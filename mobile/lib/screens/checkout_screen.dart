@@ -426,7 +426,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
-                            value: _paymentMethod,
+                            initialValue: _paymentMethod,
                             decoration: const InputDecoration(labelText: 'Payment Method'),
                             items: const [
                               DropdownMenuItem(value: 'Credit Card', child: Text('Credit Card (Stripe Mock)')),

@@ -281,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             
                             // Role Selector Dropdown
                             DropdownButtonFormField<String>(
-                              value: _role,
+                              initialValue: _role,
                               decoration: const InputDecoration(
                                 labelText: 'Register As',
                                 prefixIcon: Icon(Icons.assignment_ind_outlined, color: BrandColors.textMuted, size: 18),

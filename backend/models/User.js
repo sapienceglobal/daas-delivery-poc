@@ -21,6 +21,11 @@ const UserSchema = new mongoose.Schema({
   salt: {
     type: String
   },
+  passwordAlgorithm: {
+    type: String,
+    enum: ['scrypt'],
+    default: undefined
+  },
   phone: {
     type: String,
     default: ''
@@ -48,15 +53,26 @@ const UserSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Password hashing helper (using PBKDF2 native crypto to avoid extra npm packages)
+// New passwords use Node's memory-hard scrypt. Existing PBKDF2 hashes are
+// verified once and transparently upgraded on the next successful login.
 UserSchema.methods.setPassword = function(password) {
   this.salt = crypto.randomBytes(16).toString('hex');
-  this.password = crypto.pbkdf2Sync(password, this.salt, 1000, 64, 'sha512').toString('hex');
+  this.password = crypto.scryptSync(password, this.salt, 64).toString('hex');
+  this.passwordAlgorithm = 'scrypt';
 };
 
 UserSchema.methods.validatePassword = function(password) {
-  const hash = crypto.pbkdf2Sync(password, this.salt, 1000, 64, 'sha512').toString('hex');
-  return this.password === hash;
+  const storedHash = Buffer.from(this.password, 'hex');
+  const candidateHash = this.passwordAlgorithm === 'scrypt'
+    ? crypto.scryptSync(password, this.salt, 64)
+    : crypto.pbkdf2Sync(password, this.salt, 1000, 64, 'sha512');
+
+  return storedHash.length === candidateHash.length &&
+    crypto.timingSafeEqual(storedHash, candidateHash);
+};
+
+UserSchema.methods.needsPasswordRehash = function() {
+  return this.passwordAlgorithm !== 'scrypt';
 };
 
 module.exports = mongoose.model('User', UserSchema);

@@ -124,7 +124,7 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen> {
               background: Image.network(
                 rest['banner'] ?? 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4',
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(color: BrandColors.border),
+                errorBuilder: (_, _, _) => Container(color: BrandColors.border),
               ),
               title: Text(
                 rest['name'] ?? '',

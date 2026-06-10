@@ -607,7 +607,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                           const Text('Stock: ', style: TextStyle(fontSize: 10, color: BrandColors.textMuted)),
                           Switch(
                             value: isAvailable,
-                            activeColor: BrandColors.cyan,
+                            activeThumbColor: BrandColors.cyan,
                             inactiveTrackColor: BrandColors.border.withOpacity(0.3),
                             onChanged: (val) => _toggleMenuItemStock(itemId, val),
                           ),
@@ -661,7 +661,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                     TextField(controller: _itemPriceController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price (USD)')),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: _itemCategory,
+                      initialValue: _itemCategory,
                       decoration: const InputDecoration(labelText: 'Category'),
                       dropdownColor: BrandColors.card,
                       items: const [

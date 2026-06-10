@@ -24,12 +24,14 @@ const authLimiter = rateLimit({
 // Helper to set JWT token cookie with HttpOnly protection
 const sendTokenCookie = (user, statusCode, res) => {
   const token = generateToken(user._id);
+  const secureCookie = process.env.COOKIE_SECURE === 'true' ||
+    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
   
   const cookieOptions = {
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     httpOnly: true,
-    secure: true, // required for SameSite: 'none'
-    sameSite: 'none' // cross-site cookie sharing
+    secure: secureCookie,
+    sameSite: secureCookie ? 'none' : 'lax'
   };
 
   res.status(statusCode)
@@ -56,9 +58,14 @@ const sendTokenCookie = (user, statusCode, res) => {
  */
 router.post('/register', authLimiter, async (req, res) => {
   const { name, email, password, phone, address, role } = req.body;
+  const allowedPublicRoles = ['customer', 'merchant'];
 
   if (!name || !email || !password) {
     return res.status(400).json({ success: false, message: 'Please provide name, email, and password.' });
+  }
+
+  if (role && !allowedPublicRoles.includes(role)) {
+    return res.status(400).json({ success: false, message: 'Invalid registration role.' });
   }
 
   // Strong Password validation (minimum 8 characters, at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character)
@@ -99,7 +106,7 @@ router.post('/register', authLimiter, async (req, res) => {
 
   } catch (error) {
     console.error('[Auth Route] Registration Error:', error.message);
-    res.status(500).json({ success: false, message: 'Server error during user registration.', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error during user registration.' });
   }
 });
 
@@ -125,6 +132,11 @@ router.post('/login', authLimiter, async (req, res) => {
     const isMatch = user.validatePassword(password);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+    }
+
+    if (user.needsPasswordRehash()) {
+      user.setPassword(password);
+      await user.save();
     }
 
     // Return user details and HttpOnly cookie
@@ -318,11 +330,14 @@ router.put('/admin/users/:userId/role', protect, async (req, res) => {
  * @access  Public
  */
 router.post('/logout', (req, res) => {
+  const secureCookie = process.env.COOKIE_SECURE === 'true' ||
+    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
+
   res.cookie('token', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
-    secure: true,
-    sameSite: 'none'
+    secure: secureCookie,
+    sameSite: secureCookie ? 'none' : 'lax'
   });
 
   res.status(200).json({ success: true, message: 'Logged out successfully' });

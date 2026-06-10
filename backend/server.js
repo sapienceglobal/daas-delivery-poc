@@ -4,14 +4,64 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const http = require('http');
 const socketIo = require('socket.io');
+const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 const orderRoutes = require('./routes/orderRoutes');
 const webhookRoutes = require('./routes/webhookRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const authRoutes = require('./routes/authRoutes');
 
+const PORT = Number(process.env.PORT || 5000);
+const isProduction = process.env.NODE_ENV === 'production';
+const defaultAllowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+  'http://195.35.20.207:3001'
+];
+const allowedOrigins = (process.env.CORS_ORIGINS || defaultAllowedOrigins.join(','))
+  .split(',')
+  .map((origin) => origin.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+const validateEnvironment = () => {
+  if (!isProduction) return;
+
+  const requiredVariables = ['MONGODB_URI', 'JWT_SECRET', 'CORS_ORIGINS'];
+  const missingVariables = requiredVariables.filter((name) => !process.env[name]);
+
+  if (missingVariables.length > 0) {
+    throw new Error(`Missing required production environment variables: ${missingVariables.join(', ')}`);
+  }
+
+  if (process.env.JWT_SECRET.length < 32) {
+    throw new Error('JWT_SECRET must be at least 32 characters in production.');
+  }
+};
+
+const corsOrigin = (origin, callback) => {
+  // Native mobile clients and server-to-server calls do not send an Origin header.
+  if (!origin) return callback(null, true);
+
+  const normalizedOrigin = origin.replace(/\/$/, '');
+  if (allowedOrigins.includes(normalizedOrigin)) {
+    return callback(null, true);
+  }
+
+  return callback(new Error(`Origin not allowed by CORS: ${origin}`));
+};
+
 // Initialize express app
 const app = express();
+app.disable('x-powered-by');
+
+if (process.env.TRUST_PROXY) {
+  const trustProxy = Number(process.env.TRUST_PROXY);
+  app.set('trust proxy', Number.isNaN(trustProxy) ? process.env.TRUST_PROXY : trustProxy);
+} else if (isProduction) {
+  app.set('trust proxy', 1);
+}
 
 // Create HTTP server
 const server = http.createServer(app);
@@ -19,9 +69,7 @@ const server = http.createServer(app);
 // Initialize Socket.io
 const io = socketIo(server, {
   cors: {
-    origin: (origin, callback) => {
-      callback(null, true);
-    },
+    origin: corsOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE']
   }
@@ -44,17 +92,9 @@ io.on('connection', (socket) => {
   });
 });
 
-// Set port
-const PORT = process.env.PORT || 5000;
-
-// Connect to MongoDB
-connectDB();
-
 // Middleware
 app.use(cors({
-  origin: (origin, callback) => {
-    callback(null, true);
-  },
+  origin: corsOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
@@ -70,21 +110,39 @@ app.use(express.json({
   }
 }));
 
+// Health endpoints
+app.get('/api/health/live', (req, res) => {
+  res.json({ status: 'alive', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/health', (req, res) => {
+  const databaseReady = mongoose.connection.readyState === 1;
+
+  res.status(databaseReady ? 200 : 503).json({
+    status: databaseReady ? 'healthy' : 'degraded',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    database: databaseReady ? 'connected' : 'disconnected',
+    daasProvider: 'DoorDash Drive API v2 Sandbox'
+  });
+});
+
+// Do not let database-backed requests wait for Mongoose buffering timeouts.
+app.use('/api', (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      success: false,
+      message: 'Service temporarily unavailable. Database connection is not ready.'
+    });
+  }
+  return next();
+});
+
 // Main Service Routes
 app.use('/api/orders', orderRoutes);
 app.use('/api/delivery-webhook', webhookRoutes);
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/auth', authRoutes);
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date(),
-    environment: process.env.NODE_ENV || 'development',
-    daasProvider: 'DoorDash Drive API v2 Sandbox'
-  });
-});
 
 // Root endpoint redirect or info page
 app.get('/', (req, res) => {
@@ -110,9 +168,41 @@ app.use((req, res, next) => {
   res.status(404).json({ success: false, message: `Route not found: ${req.originalUrl}` });
 });
 
-// Start Express Server
-server.listen(PORT, () => {
-  console.log(`\n\x1b[32m%s\x1b[0m`, `🚀 DaaS PoC Server running on http://localhost:${PORT}`);
-  console.log(`\x1b[36m%s\x1b[0m`, `🔗 Active APIs ready for local/sandbox testing.`);
-  console.log(`\x1b[33m%s\x1b[0m`, `📡 Configure Webhooks at: http://localhost:${PORT}/api/delivery-webhook\n`);
+app.use((error, req, res, next) => {
+  console.error('[HTTP Error]', error.message);
+  res.status(500).json({ success: false, message: 'Internal server error.' });
+});
+
+const startServer = async () => {
+  validateEnvironment();
+  await connectDB();
+
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n\x1b[32m%s\x1b[0m`, `DaaS PoC Server running on port ${PORT}`);
+    console.log(`\x1b[36m%s\x1b[0m`, 'Database connected and APIs are ready.');
+  });
+};
+
+let isShuttingDown = false;
+const shutdown = async (signal) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  console.log(`[Shutdown] Received ${signal}. Closing connections...`);
+
+  const forceExitTimer = setTimeout(() => process.exit(1), 10000);
+  forceExitTimer.unref();
+
+  server.close(async () => {
+    await mongoose.connection.close();
+    console.log('[Shutdown] Complete.');
+    process.exit(0);
+  });
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+startServer().catch((error) => {
+  console.error(`\x1b[31m%s\x1b[0m`, `Startup failed: ${error.message}`);
+  process.exit(1);
 });

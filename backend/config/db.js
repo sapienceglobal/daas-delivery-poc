@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const Restaurant = require('../models/Restaurant');
 const User = require('../models/User');
 
+mongoose.set('bufferCommands', false);
+
 const seedData = [
   {
     name: 'Burger Palace',
@@ -116,9 +118,23 @@ const seedData = [
 ];
 
 const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/daas_poc');
-    console.log(`\x1b[36m%s\x1b[0m`, `MongoDB Connected: ${conn.connection.host}`);
+  const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/daas_poc';
+  const serverSelectionTimeoutMS = Number(process.env.MONGODB_SERVER_SELECTION_TIMEOUT_MS || 10000);
+
+  const conn = await mongoose.connect(mongoUri, {
+    serverSelectionTimeoutMS,
+    maxPoolSize: Number(process.env.MONGODB_MAX_POOL_SIZE || 20),
+    minPoolSize: Number(process.env.MONGODB_MIN_POOL_SIZE || 0),
+    autoIndex: process.env.NODE_ENV !== 'production'
+  });
+
+  console.log(`\x1b[36m%s\x1b[0m`, `MongoDB Connected: ${conn.connection.host}`);
+
+  const shouldSeedDemoData =
+    process.env.SEED_DEMO_DATA === 'true' ||
+    (process.env.SEED_DEMO_DATA !== 'false' && process.env.NODE_ENV !== 'production');
+
+  if (shouldSeedDemoData) {
     
     // Check if database needs a re-seed (missing location field in any document)
     const needsSeed = await Restaurant.countDocuments({ location: { $exists: false } });
@@ -174,10 +190,9 @@ const connectDB = async () => {
       }
       console.log('\x1b[32m%s\x1b[0m', 'Seeded Merchant successfully (merchant@marketplace.com / merchantpassword)');
     }
-  } catch (error) {
-    console.error(`\x1b[31m%s\x1b[0m`, `MongoDB Connection Error: ${error.message}`);
-    process.exit(1);
   }
+
+  return conn;
 };
 
 module.exports = connectDB;

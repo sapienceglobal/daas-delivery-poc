@@ -422,7 +422,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     height: 150,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(height: 150, color: BrandColors.border),
+                    errorBuilder: (_, _, _) => Container(height: 150, color: BrandColors.border),
                   ),
                   if (!open)
                     Positioned.fill(
