@@ -20,7 +20,8 @@ import {
   Trash2,
   Edit3,
   Volume2,
-  VolumeX
+  VolumeX,
+  LogOut
 } from 'lucide-react';
 
 const getApiBaseUrl = () => {
@@ -47,6 +48,12 @@ export default function RestaurantDashboard() {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
+
+  const handleLogout = () => {
+    localStorage.removeItem('marketplace_token');
+    localStorage.removeItem('marketplace_user');
+    window.location.href = '/';
+  };
   
   // Restaurant Profile Info
   const [restaurant, setRestaurant] = useState(null);
@@ -103,16 +110,25 @@ export default function RestaurantDashboard() {
 
   // WebSocket (Socket.io) real-time orders connection
   useEffect(() => {
-    if (!token || !restaurant) return;
+    if (!token || !restaurant?._id) return;
 
     // Establish Socket.io connection
     const socket = io(API_BASE_URL, {
-      withCredentials: true
+      withCredentials: true,
+      transports: ['websocket']
     });
 
     socket.on('connect', () => {
       console.log('[Socket.io] Connected to server');
       socket.emit('join_restaurant', restaurant._id);
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('[Socket.io] Connection error:', err.message);
+    });
+
+    socket.on('error', (err) => {
+      console.error('[Socket.io] Socket error:', err);
     });
 
     socket.on('NEW_ORDER', (newOrder) => {
@@ -139,7 +155,7 @@ export default function RestaurantDashboard() {
     return () => {
       socket.disconnect();
     };
-  }, [token, restaurant]);
+  }, [token, restaurant?._id]);
 
   // Synth chime for incoming orders
   const playChime = () => {
@@ -675,6 +691,12 @@ export default function RestaurantDashboard() {
           <a href="/" className="px-3.5 py-2 rounded-xl border border-brand-border bg-brand-bg hover:border-brand-cyan text-xs text-brand-muted hover:text-white transition-all font-black flex items-center gap-1">
             <ArrowLeft size={13} /> Home Page
           </a>
+          <button 
+            onClick={handleLogout}
+            className="px-3.5 py-2 rounded-xl border border-brand-red/30 bg-brand-red/5 hover:bg-brand-red/10 text-xs text-brand-red font-black transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <LogOut size={13} /> Logout
+          </button>
         </div>
       </header>
 
@@ -1059,11 +1081,11 @@ export default function RestaurantDashboard() {
                   <div className="space-y-2 text-[11px] text-brand-muted">
                     <div className="flex justify-between">
                       <span>Dasher Name:</span>
-                      <strong className="text-white font-bold">Alex Rodriguez (Simulation)</strong>
+                      <strong className="text-white font-bold">{order.dasherName || 'Awaiting assignment'}</strong>
                     </div>
                     <div className="flex justify-between">
                       <span>Dasher Phone:</span>
-                      <strong className="text-white font-mono">+16505550100</strong>
+                      <strong className="text-white font-mono">{order.dasherPhone || '—'}</strong>
                     </div>
                     {order.pickupTime && (
                       <div className="flex justify-between">

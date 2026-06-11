@@ -124,8 +124,12 @@ export default function Home() {
 
   // Address CRUD inside Profile Drawer
   const [profileNewAddress, setProfileNewAddress] = useState('');
+  const [profileAddressSuggestions, setProfileAddressSuggestions] = useState([]);
+  const [loadingProfileSuggestions, setLoadingProfileSuggestions] = useState(false);
   const [editingAddressIndex, setEditingAddressIndex] = useState(null);
   const [editingAddressValue, setEditingAddressValue] = useState('');
+  const [editingAddressSuggestions, setEditingAddressSuggestions] = useState([]);
+  const [loadingEditingSuggestions, setLoadingEditingSuggestions] = useState(false);
   const [loadingAddressAction, setLoadingAddressAction] = useState(false);
 
   // Reset checkout states when checkout drawer opens
@@ -207,7 +211,87 @@ export default function Home() {
     return () => clearTimeout(delayDebounce);
   }, [customAddress]);
 
-  const finalAddress = customAddress || selectedAddress;
+  // Autocomplete for new profile address input
+  useEffect(() => {
+    if (!profileNewAddress || profileNewAddress.length < 4) {
+      setProfileAddressSuggestions([]);
+      return;
+    }
+
+    if (profileAddressSuggestions.some(s => s.display_name === profileNewAddress)) {
+      return;
+    }
+
+    const fetchProfileSuggestions = async () => {
+      setLoadingProfileSuggestions(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(profileNewAddress)}&countrycodes=us&limit=5`
+        );
+        const data = await res.json();
+        if (data) {
+          setProfileAddressSuggestions(data);
+        }
+      } catch (err) {
+        console.error("Profile autocomplete search error:", err);
+      } finally {
+        setLoadingProfileSuggestions(false);
+      }
+    };
+
+    const delayDebounce = setTimeout(() => {
+      fetchProfileSuggestions();
+    }, 500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [profileNewAddress]);
+
+  // Autocomplete for editing profile address input
+  useEffect(() => {
+    if (!editingAddressValue || editingAddressValue.length < 4) {
+      setEditingAddressSuggestions([]);
+      return;
+    }
+
+    if (editingAddressSuggestions.some(s => s.display_name === editingAddressValue)) {
+      return;
+    }
+
+    const fetchEditingSuggestions = async () => {
+      setLoadingEditingSuggestions(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(editingAddressValue)}&countrycodes=us&limit=5`
+        );
+        const data = await res.json();
+        if (data) {
+          setEditingAddressSuggestions(data);
+        }
+      } catch (err) {
+        console.error("Editing autocomplete search error:", err);
+      } finally {
+        setLoadingEditingSuggestions(false);
+      }
+    };
+
+    const delayDebounce = setTimeout(() => {
+      fetchEditingSuggestions();
+    }, 500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [editingAddressValue]);
+
+  const finalAddress = selectedAddress;
+
+  // Sync custom address search input when dropdown toggle status changes
+  useEffect(() => {
+    if (!showAddressDropdown) {
+      setCustomAddress('');
+      setAddressSuggestions([]);
+    } else {
+      setCustomAddress(selectedAddress);
+    }
+  }, [showAddressDropdown, selectedAddress]);
 
   // Initialize auth state from localStorage
   useEffect(() => {
@@ -215,7 +299,13 @@ export default function Home() {
     const storedUser = localStorage.getItem('marketplace_user');
     if (storedToken && storedUser) {
       setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      if (parsedUser.role === 'merchant') {
+        window.location.href = '/restaurant';
+      } else if (parsedUser.role === 'admin') {
+        window.location.href = '/admin';
+      }
     }
   }, []);
 
@@ -509,6 +599,11 @@ export default function Home() {
       localStorage.setItem('marketplace_user', JSON.stringify(data.user));
       setShowAuthModal(false);
       setAuthPassword('');
+      if (data.user.role === 'merchant') {
+        window.location.href = '/restaurant';
+      } else if (data.user.role === 'admin') {
+        window.location.href = '/admin';
+      }
     } catch (err) {
       setAuthError(err.message);
     }
@@ -535,16 +630,33 @@ export default function Home() {
   // Profile Address CRUD Handlers
   const handleAddAddress = async (e) => {
     e.preventDefault();
-    if (!profileNewAddress.trim()) return;
+    const addressToValidate = profileNewAddress.trim();
+    if (!addressToValidate) return;
     setLoadingAddressAction(true);
     try {
+      // 1. Geocode & Validate the address via backend Nominatim integration
+      const valRes = await fetch(`${API_BASE_URL}/api/orders/validate-address`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: addressToValidate }),
+        credentials: 'include'
+      });
+      const valData = await valRes.json();
+      if (!valRes.ok || !valData.success || !valData.isValid) {
+        alert(valData.message || 'Invalid Address. Please enter a real location.');
+        return;
+      }
+      
+      const verifiedAddress = valData.formattedAddress;
+
+      // 2. Submit the verified address to backend profile CRUD API
       const res = await fetch(`${API_BASE_URL}/api/auth/addresses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ address: profileNewAddress.trim() }),
+        body: JSON.stringify({ address: verifiedAddress }),
         credentials: 'include'
       });
       const data = await res.json();
@@ -558,23 +670,40 @@ export default function Home() {
       }
     } catch (err) {
       console.error(err);
-      alert('Error adding address.');
+      alert('Error validating/adding address.');
     } finally {
       setLoadingAddressAction(false);
     }
   };
 
   const handleUpdateAddress = async (index) => {
-    if (!editingAddressValue.trim()) return;
+    const addressToValidate = editingAddressValue.trim();
+    if (!addressToValidate) return;
     setLoadingAddressAction(true);
     try {
+      // 1. Geocode & Validate the address via backend Nominatim integration
+      const valRes = await fetch(`${API_BASE_URL}/api/orders/validate-address`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: addressToValidate }),
+        credentials: 'include'
+      });
+      const valData = await valRes.json();
+      if (!valRes.ok || !valData.success || !valData.isValid) {
+        alert(valData.message || 'Invalid Address. Please enter a real location.');
+        return;
+      }
+
+      const verifiedAddress = valData.formattedAddress;
+
+      // 2. Submit the verified address to backend profile CRUD API
       const res = await fetch(`${API_BASE_URL}/api/auth/addresses/${index}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ address: editingAddressValue.trim() }),
+        body: JSON.stringify({ address: verifiedAddress }),
         credentials: 'include'
       });
       const data = await res.json();
@@ -589,7 +718,7 @@ export default function Home() {
       }
     } catch (err) {
       console.error(err);
-      alert('Error updating address.');
+      alert('Error validating/updating address.');
     } finally {
       setLoadingAddressAction(false);
     }
@@ -766,12 +895,12 @@ export default function Home() {
     <div className="relative min-h-screen text-brand-text font-sans">
       
       {/* Search & Profile Header Bar */}
-      <section className="mb-8 animate-fade-in">
+      <section className="mb-8 relative z-[60] animate-fade-in">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 md:p-6 bg-brand-bg/40 backdrop-blur-md border border-brand-border rounded-3xl">
           
           <div className="flex flex-wrap items-center gap-4">
             {/* Location Picker */}
-            <div className="relative flex items-center gap-2">
+            <div className="relative z-[70] flex items-center gap-2">
               <MapPin className="text-brand-cyan h-5 w-5 animate-pulse" />
               <div className="text-left">
                 <span className="text-[10px] block uppercase text-brand-muted font-bold tracking-wider font-mono">Deliver To</span>
@@ -785,7 +914,7 @@ export default function Home() {
               </div>
 
               {showAddressDropdown && (
-                <div className="absolute left-0 top-12 z-50 w-72 rounded-2xl border border-brand-border bg-brand-card p-4 shadow-2xl backdrop-blur-xl animate-fade-in">
+                <div className="absolute left-0 top-12 z-[80] w-72 rounded-2xl border border-brand-border bg-brand-card p-4 shadow-2xl backdrop-blur-xl animate-fade-in">
                   
                   {/* Saved User Addresses */}
                   {user && user.savedAddresses && user.savedAddresses.length > 0 && (
@@ -889,13 +1018,10 @@ export default function Home() {
                       </div>
                     )}
 
-                    {customAddress && addressSuggestions.length === 0 && (
-                      <button 
-                        onClick={() => setShowAddressDropdown(false)}
-                        className="w-full rounded-xl bg-brand-cyan text-brand-bg text-[10px] font-black py-2.5 text-center uppercase tracking-wider transition-all"
-                      >
-                        Use Custom Address
-                      </button>
+                    {customAddress && customAddress.length >= 4 && addressSuggestions.length === 0 && !loadingSuggestions && (
+                      <p className="text-[10px] text-brand-muted text-center py-2.5 font-bold italic">
+                        No matching address found on map. Please type a valid location.
+                      </p>
                     )}
                   </div>
                 </div>
@@ -905,13 +1031,22 @@ export default function Home() {
             {/* Profile trigger button */}
             <div className="h-8 w-[1px] bg-brand-border" />
             <div className="flex items-center gap-2">
-              {user && (user.role === 'merchant' || user.role === 'admin') && (
+              {user && user.role === 'merchant' && (
                 <a
                   href="/restaurant"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-brand-cyan/40 bg-brand-cyan/10 hover:bg-brand-cyan hover:text-brand-bg text-[10px] text-brand-cyan font-black transition-all uppercase tracking-wider"
                   title="Go to Restaurant Portal"
                 >
-                  <Store size={12} /> Portal
+                  <Store size={12} /> Merchant Portal
+                </a>
+              )}
+              {user && user.role === 'admin' && (
+                <a
+                  href="/admin"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-brand-cyan/40 bg-brand-cyan/10 hover:bg-brand-cyan hover:text-brand-bg text-[10px] text-brand-cyan font-black transition-all uppercase tracking-wider"
+                  title="Go to Admin Dashboard"
+                >
+                  <ShieldCheck size={12} /> Admin Portal
                 </a>
               )}
               {user ? (
@@ -1816,26 +1951,29 @@ export default function Home() {
               </div>
 
               {/* Partner Dashboards Redirection Links */}
-              {(user.role === 'merchant' || user.role === 'admin') && (
+              {user.role === 'merchant' && (
                 <div className="rounded-2xl border border-brand-cyan/20 bg-brand-cyan/5 p-4 space-y-3 text-xs">
                   <p className="text-[10px] font-bold text-brand-cyan uppercase font-mono tracking-wider">Partner Shortcuts</p>
                   <div className="flex flex-col gap-2">
-                    {(user.role === 'merchant' || user.role === 'admin') && (
-                      <a
-                        href="/restaurant"
-                        className="w-full text-center py-2.5 rounded-xl bg-brand-cyan text-brand-bg hover:bg-brand-cyan/95 font-extrabold transition-all uppercase tracking-wider text-[10px]"
-                      >
-                        Go to Restaurant Portal
-                      </a>
-                    )}
-                    {user.role === 'admin' && (
-                      <a
-                        href="/admin"
-                        className="w-full text-center py-2.5 rounded-xl border border-brand-cyan text-brand-cyan hover:bg-brand-cyan/10 font-extrabold transition-all uppercase tracking-wider text-[10px]"
-                      >
-                        Go to Admin Dashboard
-                      </a>
-                    )}
+                    <a
+                      href="/restaurant"
+                      className="w-full text-center py-2.5 rounded-xl bg-brand-cyan text-brand-bg hover:bg-brand-cyan/95 font-extrabold transition-all uppercase tracking-wider text-[10px]"
+                    >
+                      Go to Restaurant Portal
+                    </a>
+                  </div>
+                </div>
+              )}
+              {user.role === 'admin' && (
+                <div className="rounded-2xl border border-brand-cyan/20 bg-brand-cyan/5 p-4 space-y-3 text-xs">
+                  <p className="text-[10px] font-bold text-brand-cyan uppercase font-mono tracking-wider">Admin Shortcuts</p>
+                  <div className="flex flex-col gap-2">
+                    <a
+                      href="/admin"
+                      className="w-full text-center py-2.5 rounded-xl bg-brand-cyan text-brand-bg hover:bg-brand-cyan/95 font-extrabold transition-all uppercase tracking-wider text-[10px]"
+                    >
+                      Go to Admin Dashboard
+                    </a>
                   </div>
                 </div>
               )}
@@ -1845,23 +1983,45 @@ export default function Home() {
                 <h4 className="text-xs uppercase tracking-wider font-bold text-brand-muted font-mono">Saved Dropoff Locations</h4>
                 
                 {/* Add Address Form */}
-                <form onSubmit={handleAddAddress} className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Add new dropoff address..."
-                    value={profileNewAddress}
-                    onChange={(e) => setProfileNewAddress(e.target.value)}
-                    className="flex-1 bg-brand-bg/85 rounded-xl border border-brand-border px-3 py-2 outline-none text-white text-xs focus:border-brand-cyan placeholder:text-brand-muted/70"
-                    disabled={loadingAddressAction}
-                  />
-                  <button
-                    type="submit"
-                    disabled={loadingAddressAction || !profileNewAddress.trim()}
-                    className="bg-brand-cyan text-brand-bg hover:bg-brand-cyan/90 disabled:opacity-50 disabled:pointer-events-none rounded-xl p-2 flex items-center justify-center transition-all cursor-pointer"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </form>
+                <div className="relative">
+                  <form onSubmit={handleAddAddress} className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Add new dropoff address..."
+                      value={profileNewAddress}
+                      onChange={(e) => setProfileNewAddress(e.target.value)}
+                      className="flex-1 bg-brand-bg/85 rounded-xl border border-brand-border px-3 py-2 outline-none text-white text-xs focus:border-brand-cyan placeholder:text-brand-muted/70"
+                      disabled={loadingAddressAction}
+                    />
+                    <button
+                      type="submit"
+                      disabled={loadingAddressAction || !profileNewAddress.trim()}
+                      className="bg-brand-cyan text-brand-bg hover:bg-brand-cyan/90 disabled:opacity-50 disabled:pointer-events-none rounded-xl p-2 flex items-center justify-center transition-all cursor-pointer"
+                    >
+                      {loadingProfileSuggestions ? <Loader2 size={16} className="animate-spin text-brand-bg" /> : <Plus size={16} />}
+                    </button>
+                  </form>
+
+                  {/* Profile Address Suggestions list */}
+                  {profileAddressSuggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 top-11 z-50 rounded-xl border border-brand-border bg-brand-bg overflow-hidden shadow-2xl max-h-48 overflow-y-auto divide-y divide-brand-border/40 animate-fade-in">
+                      {profileAddressSuggestions.map((suggestion) => (
+                        <button
+                          key={suggestion.place_id}
+                          type="button"
+                          onClick={() => {
+                            setProfileNewAddress(suggestion.display_name);
+                            setProfileAddressSuggestions([]);
+                          }}
+                          className="w-full text-left text-[11px] p-2.5 text-brand-muted hover:bg-brand-card hover:text-white transition-all truncate block"
+                          title={suggestion.display_name}
+                        >
+                          📍 {suggestion.display_name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 {user.savedAddresses && user.savedAddresses.length > 0 ? (
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
@@ -1873,14 +2033,41 @@ export default function Home() {
                           className="text-xs rounded-xl p-3 bg-brand-bg/20 border border-brand-border hover:border-brand-cyan/20 transition-all text-white"
                         >
                           {isEditing ? (
-                            <div className="space-y-2">
-                              <input
-                                type="text"
-                                value={editingAddressValue}
-                                onChange={(e) => setEditingAddressValue(e.target.value)}
-                                className="w-full bg-brand-bg rounded-lg border border-brand-border px-2.5 py-1.5 outline-none text-white text-xs focus:border-brand-cyan"
-                                disabled={loadingAddressAction}
-                              />
+                            <div className="space-y-2 relative">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={editingAddressValue}
+                                  onChange={(e) => setEditingAddressValue(e.target.value)}
+                                  className="w-full bg-brand-bg rounded-lg border border-brand-border px-2.5 py-1.5 outline-none text-white text-xs focus:border-brand-cyan pr-8"
+                                  disabled={loadingAddressAction}
+                                />
+                                {loadingEditingSuggestions && (
+                                  <div className="absolute right-2.5 top-2.5">
+                                    <Loader2 className="h-3.5 w-3.5 text-brand-cyan animate-spin" />
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Editing Address Suggestions list */}
+                              {editingAddressSuggestions.length > 0 && (
+                                <div className="absolute left-0 right-0 top-9 z-50 rounded-xl border border-brand-border bg-brand-bg overflow-hidden shadow-2xl max-h-48 overflow-y-auto divide-y divide-brand-border/40 animate-fade-in">
+                                  {editingAddressSuggestions.map((suggestion) => (
+                                    <button
+                                      key={suggestion.place_id}
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingAddressValue(suggestion.display_name);
+                                        setEditingAddressSuggestions([]);
+                                      }}
+                                      className="w-full text-left text-[11px] p-2.5 text-brand-muted hover:bg-brand-card hover:text-white transition-all truncate block"
+                                      title={suggestion.display_name}
+                                    >
+                                      📍 {suggestion.display_name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                               <div className="flex justify-end gap-2">
                                 <button
                                   type="button"

@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Sapience Global PoC',
+      title: 'WebForge DaaS',
       debugShowCheckedModeBanner: false,
       theme: buildBrandTheme(),
       home: const MainGate(),

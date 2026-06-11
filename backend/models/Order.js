@@ -118,6 +118,14 @@ const OrderSchema = new mongoose.Schema({
     type: Number,
     default: null
   },
+  dasherName: {
+    type: String,
+    default: null
+  },
+  dasherPhone: {
+    type: String,
+    default: null
+  },
   rating: {
     type: Number,
     min: 1,

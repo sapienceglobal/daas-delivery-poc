@@ -408,10 +408,16 @@ router.post('/:id/simulate', async (req, res) => {
     // Update status
     order.deliveryStatus = nextStatus;
     
+    // Populate dasher details for simulation when driver is assigned
+    if (nextStatus === 'driver_assigned') {
+      order.dasherName = 'Alex Rodriguez (Simulation)';
+      order.dasherPhone = '+16505550100';
+    }
+    
     // Detailed descriptions for simulation logs
     let description = `Simulated status transition to ${nextStatus}`;
     if (nextStatus === 'driver_assigned') {
-      description = "Dasher 'Alex Rodriguez' has been assigned to your delivery and is heading to the store.";
+      description = `Dasher '${order.dasherName}' has been assigned to your delivery and is heading to the store.`;
     } else if (nextStatus === 'picked_up') {
       description = "Dasher picked up your package and is currently en route to your address.";
     } else if (nextStatus === 'delivered') {
@@ -454,14 +460,18 @@ router.post('/:id/simulate', async (req, res) => {
  */
 router.post('/:id/confirm-payment', async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id);
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found.' });
-    }
+    let order = await Order.findOneAndUpdate(
+      { _id: req.params.id, deliveryStatus: 'pending' },
+      { $set: { deliveryStatus: 'processing' } },
+      { new: true }
+    );
 
-    // If order already processed, just bypass
-    if (order.deliveryStatus !== 'pending') {
-      return res.json({ success: true, message: 'Payment already processed.', order });
+    if (!order) {
+      const existingOrder = await Order.findById(req.params.id);
+      if (!existingOrder) {
+        return res.status(404).json({ success: false, message: 'Order not found.' });
+      }
+      return res.json({ success: true, message: 'Payment already processed.', order: existingOrder });
     }
 
     // Log the success payment event
@@ -506,11 +516,14 @@ router.post('/:id/confirm-payment', async (req, res) => {
     await order.save();
     console.log(`[Confirm Payment] Order ${order._id} successfully confirmed & DoorDash dispatch initialized.`);
 
-    // Emit socket event to the merchant dashboard
+    // Emit socket event to the merchant dashboard and global broadcast for customer tracking
     const io = req.app.get('io');
-    if (io && order.restaurantId) {
-      io.to(order.restaurantId.toString()).emit('NEW_ORDER', order);
-      console.log(`[Socket.io] Emitted NEW_ORDER for confirmed order ${order._id} to room ${order.restaurantId}`);
+    if (io) {
+      if (order.restaurantId) {
+        io.to(order.restaurantId.toString()).emit('NEW_ORDER', order);
+        console.log(`[Socket.io] Emitted NEW_ORDER for confirmed order ${order._id} to room ${order.restaurantId}`);
+      }
+      io.emit('ORDER_UPDATED', order);
     }
 
     res.json({
@@ -547,6 +560,7 @@ router.get('/merchant/all', protect, authorize('merchant', 'admin'), async (req,
 
     const orders = await Order.find({
       $or: [
+        { restaurantId: req.user.restaurantId },
         { restaurantName: restaurant.name },
         { restaurantAddress: restaurant.address }
       ]
@@ -593,6 +607,16 @@ router.put('/:id/prep', protect, authorize('merchant', 'admin'), async (req, res
         description: 'Restaurant has accepted your order and is preparing the food.'
       });
       await order.save();
+
+      // Emit real-time socket event for customer tracking and cross-platform merchant sync
+      const io = req.app.get('io');
+      if (io) {
+        if (order.restaurantId) {
+          io.to(order.restaurantId.toString()).emit('ORDER_UPDATED', order);
+        }
+        io.emit('ORDER_UPDATED', order);
+      }
+
       return res.json({ success: true, message: 'Order accepted by restaurant.', order });
     }
 
@@ -632,6 +656,16 @@ router.put('/:id/prep', protect, authorize('merchant', 'admin'), async (req, res
         });
       }
       await order.save();
+
+      // Emit real-time socket event for customer tracking and cross-platform merchant sync
+      const io = req.app.get('io');
+      if (io) {
+        if (order.restaurantId) {
+          io.to(order.restaurantId.toString()).emit('ORDER_UPDATED', order);
+        }
+        io.emit('ORDER_UPDATED', order);
+      }
+
       return res.json({ success: true, message: 'Order marked ready. DoorDash courier notified.', order });
     }
 
@@ -715,37 +749,83 @@ router.post('/validate-address', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Address is required.' });
   }
 
-  const lowercaseAddress = address.toLowerCase();
+  try {
+    const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+      params: {
+        q: address,
+        format: 'json',
+        limit: 1,
+        countrycodes: 'us'
+      },
+      headers: {
+        'User-Agent': 'DaasDeliveryPoc/1.0 (adars.gemini.antigravity)'
+      },
+      timeout: 5000
+    });
 
-  // Mock invalid case if user types 'invalid' or similar
-  if (lowercaseAddress.includes('invalid') || lowercaseAddress.includes('fake address') || lowercaseAddress.length < 5) {
+    const data = response.data;
+    if (Array.isArray(data) && data.length > 0) {
+      const match = data[0];
+      return res.json({
+        success: true,
+        isValid: true,
+        formattedAddress: match.display_name,
+        coordinates: {
+          lat: parseFloat(match.lat),
+          lng: parseFloat(match.lon)
+        },
+        verdict: {
+          addressComplete: true,
+          hasUnresolvedTokens: false,
+          validationGranularity: 'PREMISE'
+        }
+      });
+    } else {
+      return res.json({
+        success: true,
+        isValid: false,
+        message: 'The address could not be verified by Google Maps.',
+        verdict: {
+          addressComplete: false,
+          hasUnresolvedTokens: true,
+          validationGranularity: 'OTHER'
+        }
+      });
+    }
+  } catch (error) {
+    console.error('[Address Validation] Nominatim error, falling back to basic check:', error.message);
+    const lowercaseAddress = address.toLowerCase();
+    const isFake = lowercaseAddress.includes('invalid') || 
+                   lowercaseAddress.includes('fake address') || 
+                   lowercaseAddress.length < 10;
+    
+    if (isFake) {
+      return res.json({
+        success: true,
+        isValid: false,
+        message: 'The address could not be verified by Google Maps.',
+        verdict: {
+          addressComplete: false,
+          hasUnresolvedTokens: true,
+          validationGranularity: 'OTHER'
+        }
+      });
+    }
+
+    let lat = 37.7749;
+    let lng = -122.4194;
     return res.json({
       success: true,
-      isValid: false,
-      message: 'The address could not be verified by Google Maps.',
+      isValid: true,
+      formattedAddress: `${address}, San Francisco, CA`,
+      coordinates: { lat, lng },
       verdict: {
-        addressComplete: false,
-        hasUnresolvedTokens: true,
-        validationGranularity: 'OTHER'
+        addressComplete: true,
+        hasUnresolvedTokens: false,
+        validationGranularity: 'PREMISE'
       }
     });
   }
-
-  // Generate mock but consistent coordinates based on string length to look realistic
-  let lat = 37.7749 + (address.length % 10) * 0.01;
-  let lng = -122.4194 - (address.length % 10) * 0.01;
-
-  res.json({
-    success: true,
-    isValid: true,
-    formattedAddress: `${address}, San Francisco, CA`,
-    coordinates: { lat, lng },
-    verdict: {
-      addressComplete: true,
-      hasUnresolvedTokens: false,
-      validationGranularity: 'PREMISE'
-    }
-  });
 });
 
 /**

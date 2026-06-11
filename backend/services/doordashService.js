@@ -102,11 +102,12 @@ const triggerDeliveryAPI = async (order) => {
       }
     );
 
-    console.log(`\x1b[32m[DoorDash Service] Success!\x1b[0m DoorDash Delivery ID: ${response.data.id || response.data.delivery_id}`);
+    const deliveryId = response.data.delivery_id || response.data.id || response.data.external_delivery_id;
+    console.log(`\x1b[32m[DoorDash Service] Success!\x1b[0m DoorDash Delivery ID: ${deliveryId}`);
     
     return {
-      deliveryId: response.data.id || response.data.delivery_id,
-      trackingUrl: response.data.tracking_url || `https://demo.doordash.com/tracking/${response.data.id}`,
+      deliveryId: deliveryId,
+      trackingUrl: response.data.tracking_url || `https://demo.doordash.com/tracking/${deliveryId}`,
       deliveryFee: response.data.fee || 0, // fee in cents
       pickupTime: response.data.pickup_time ? new Date(response.data.pickup_time) : null,
       deliveryTime: response.data.delivery_time ? new Date(response.data.delivery_time) : null,

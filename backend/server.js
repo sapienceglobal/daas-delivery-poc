@@ -6,6 +6,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const mongoose = require('mongoose');
 const connectDB = require('./config/db');
+const { initChangeStreams } = require('./config/changeStreams');
 const orderRoutes = require('./routes/orderRoutes');
 const webhookRoutes = require('./routes/webhookRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
@@ -49,7 +50,8 @@ const corsOrigin = (origin, callback) => {
     return callback(null, true);
   }
 
-  return callback(new Error(`Origin not allowed by CORS: ${origin}`));
+  // Reject the origin gracefully via (null, false) instead of passing a Node error object
+  return callback(null, false);
 };
 
 // Initialize express app
@@ -176,6 +178,9 @@ app.use((error, req, res, next) => {
 const startServer = async () => {
   validateEnvironment();
   await connectDB();
+
+  // Initialize safe MongoDB Change Streams listener to sync Socket.io events across multiple processes
+  initChangeStreams(io);
 
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`\n\x1b[32m%s\x1b[0m`, `DaaS PoC Server running on port ${PORT}`);

@@ -158,6 +158,12 @@ router.post('/', async (req, res) => {
       order.dasherLng = payload.dasher_location.lng;
       console.log(`\x1b[36m[Webhook Receiver]\x1b[0m Captured courier GPS coordinates: [${order.dasherLat}, ${order.dasherLng}]`);
     }
+
+    // Populate dasher contact details from webhook payload when driver is assigned
+    if (mappedStatus === 'driver_assigned') {
+      order.dasherName = payload.dasher?.name || payload.dasher_name || null;
+      order.dasherPhone = payload.dasher?.phone_number || payload.dasher_phone || null;
+    }
     
     // In case this is our first time getting the official delivery ID from the carrier
     if (deliveryId && !order.deliveryId) {

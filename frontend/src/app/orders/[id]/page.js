@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { io } from 'socket.io-client';
 import { useParams } from 'next/navigation';
 import { 
   PackageCheck, 
@@ -70,6 +71,18 @@ export default function OrderTrackingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('marketplace_user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (err) {
+        console.error('Error parsing user from localStorage:', err);
+      }
+    }
+  }, []);
 
   // Stripe Payment Confirmation States
   const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
@@ -188,15 +201,44 @@ export default function OrderTrackingPage() {
     }
   }, [orderId]);
 
-  // Poll for updates
+  // Poll for updates (fallback)
   useEffect(() => {
     fetchOrderDetails(true);
 
     const interval = setInterval(() => {
       fetchOrderDetails(false);
-    }, 4000);
+    }, 8000); // Relaxed polling since Socket.io handles real-time
 
     return () => clearInterval(interval);
+  }, [orderId]);
+
+  // Real-time Socket.io connection for instant status updates
+  useEffect(() => {
+    if (!orderId) return;
+
+    const socket = io(API_BASE_URL, {
+      withCredentials: true,
+      transports: ['websocket']
+    });
+
+    socket.on('connect', () => {
+      console.log('[Socket.io] Customer tracking connected:', socket.id);
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('[Socket.io] Customer tracking connection error:', err.message);
+    });
+
+    socket.on('ORDER_UPDATED', (updatedOrder) => {
+      if (updatedOrder && (updatedOrder._id === orderId || updatedOrder.id === orderId)) {
+        console.log('[Socket.io] Real-time order update received:', updatedOrder.deliveryStatus);
+        setOrder(updatedOrder);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, [orderId]);
 
   // 1. Dynamic Injection of Leaflet Script & CSS Stylesheet
@@ -792,6 +834,37 @@ export default function OrderTrackingPage() {
             </div>
           </div>
 
+          {/* Courier Details */}
+          {order.deliveryStatus !== 'pending' && (
+            <div className="glass-panel rounded-2xl p-6 flex flex-col gap-4 animate-fade-in">
+              <h3 className="text-xs uppercase tracking-wider font-bold font-mono text-brand-muted border-b border-brand-border pb-3 flex items-center gap-2">
+                <Truck size={16} className="text-brand-cyan" />
+                Delivery Partner
+              </h3>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-brand-cyan/10 border border-brand-cyan/30 flex items-center justify-center text-lg shadow-[0_0_15px_rgba(20,184,166,0.2)]">
+                  👤
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-bold text-white">{order.dasherName || 'Searching for nearest courier...'}</p>
+                  <p className="text-[10px] text-brand-muted mt-0.5 font-mono">
+                    {order.dasherPhone ? `Phone: ${order.dasherPhone}` : 'Awaiting assignment'}
+                  </p>
+                </div>
+              </div>
+              {order.trackingUrl && (
+                <a 
+                  href={order.trackingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full mt-1.5 py-2.5 rounded-xl bg-brand-card hover:bg-brand-bg/50 border border-brand-border hover:border-brand-cyan text-center text-xs font-bold text-white hover:text-brand-cyan transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  Track on DoorDash Live Portal
+                </a>
+              )}
+            </div>
+          )}
+
           {/* Locations */}
           <div className="glass-panel rounded-2xl p-6 flex flex-col gap-5">
             <div>
@@ -863,64 +936,66 @@ export default function OrderTrackingPage() {
       </div>
 
       {/* Webhook Status Simulator Dashboard */}
-      <div className="glass-panel rounded-2xl p-6 border-brand-yellow/30 bg-brand-yellow/5 mt-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border pb-4 mb-4">
-          <div>
-            <h3 className="text-sm font-black text-brand-yellow uppercase tracking-wider flex items-center gap-2">
-              <Truck className="h-4 w-4 animate-bounce" />
-              Dev Webhook Status Simulator
-            </h3>
-            <p className="text-[11px] text-brand-muted mt-1">
-              Advance the delivery lifecycle manually to update the live animated scooter mapping and timeline logs in real time.
-            </p>
+      {user && (user.role === 'admin' || user.role === 'merchant') && (
+        <div className="glass-panel rounded-2xl p-6 border-brand-yellow/30 bg-brand-yellow/5 mt-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-border pb-4 mb-4">
+            <div>
+              <h3 className="text-sm font-black text-brand-yellow uppercase tracking-wider flex items-center gap-2">
+                <Truck className="h-4 w-4 animate-bounce" />
+                Dev Webhook Status Simulator
+              </h3>
+              <p className="text-[11px] text-brand-muted mt-1">
+                Advance the delivery lifecycle manually to update the live animated scooter mapping and timeline logs in real time.
+              </p>
+            </div>
+            {isSimulating && (
+              <span className="text-xs text-brand-yellow font-mono flex items-center gap-1.5 animate-pulse">
+                <span className="h-1.5 w-1.5 rounded-full bg-brand-yellow shrink-0" />
+                Updating status...
+              </span>
+            )}
           </div>
-          {isSimulating && (
-            <span className="text-xs text-brand-yellow font-mono flex items-center gap-1.5 animate-pulse">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-yellow shrink-0" />
-              Updating status...
-            </span>
-          )}
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => handleSimulateStatus('driver_assigned')}
+              disabled={isSimulating || currentStatusIndex >= 2}
+              className="flex items-center gap-1.5 rounded-xl border border-brand-yellow/40 hover:bg-brand-yellow/10 disabled:opacity-30 disabled:hover:bg-transparent text-brand-yellow text-xs font-semibold px-4 py-3 transition-all cursor-pointer"
+            >
+              <Play className="h-3.5 w-3.5 shrink-0" />
+              Stage 1: Driver Assigned
+            </button>
+            
+            <button
+              onClick={() => handleSimulateStatus('picked_up')}
+              disabled={isSimulating || currentStatusIndex < 2 || currentStatusIndex >= 3}
+              className="flex items-center gap-1.5 rounded-xl border border-brand-yellow/40 hover:bg-brand-yellow/10 disabled:opacity-30 disabled:hover:bg-transparent text-brand-yellow text-xs font-semibold px-4 py-3 transition-all cursor-pointer"
+            >
+              <Play className="h-3.5 w-3.5 shrink-0" />
+              Stage 2: Food Picked Up
+            </button>
+
+            <button
+              onClick={() => handleSimulateStatus('delivered')}
+              disabled={isSimulating || currentStatusIndex < 3 || currentStatusIndex >= 4}
+              className="flex items-center gap-1.5 rounded-xl border border-brand-yellow/40 hover:bg-brand-yellow/10 disabled:opacity-30 disabled:hover:bg-transparent text-brand-yellow text-xs font-semibold px-4 py-3 transition-all cursor-pointer"
+            >
+              <Play className="h-3.5 w-3.5 shrink-0" />
+              Stage 3: Delivered
+            </button>
+
+            <div className="h-8 w-[1px] bg-brand-border self-center" />
+
+            <button
+              onClick={() => handleSimulateStatus('cancelled')}
+              disabled={isSimulating || currentStatusIndex >= 4}
+              className="rounded-xl border border-brand-red/40 hover:bg-brand-red/10 disabled:opacity-30 disabled:hover:bg-transparent text-brand-red text-xs font-semibold px-4 py-3 transition-all cursor-pointer"
+            >
+              Abort Delivery
+            </button>
+          </div>
         </div>
-
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => handleSimulateStatus('driver_assigned')}
-            disabled={isSimulating || currentStatusIndex >= 2}
-            className="flex items-center gap-1.5 rounded-xl border border-brand-yellow/40 hover:bg-brand-yellow/10 disabled:opacity-30 disabled:hover:bg-transparent text-brand-yellow text-xs font-semibold px-4 py-3 transition-all cursor-pointer"
-          >
-            <Play className="h-3.5 w-3.5 shrink-0" />
-            Stage 1: Driver Assigned
-          </button>
-          
-          <button
-            onClick={() => handleSimulateStatus('picked_up')}
-            disabled={isSimulating || currentStatusIndex < 2 || currentStatusIndex >= 3}
-            className="flex items-center gap-1.5 rounded-xl border border-brand-yellow/40 hover:bg-brand-yellow/10 disabled:opacity-30 disabled:hover:bg-transparent text-brand-yellow text-xs font-semibold px-4 py-3 transition-all cursor-pointer"
-          >
-            <Play className="h-3.5 w-3.5 shrink-0" />
-            Stage 2: Food Picked Up
-          </button>
-
-          <button
-            onClick={() => handleSimulateStatus('delivered')}
-            disabled={isSimulating || currentStatusIndex < 3 || currentStatusIndex >= 4}
-            className="flex items-center gap-1.5 rounded-xl border border-brand-yellow/40 hover:bg-brand-yellow/10 disabled:opacity-30 disabled:hover:bg-transparent text-brand-yellow text-xs font-semibold px-4 py-3 transition-all cursor-pointer"
-          >
-            <Play className="h-3.5 w-3.5 shrink-0" />
-            Stage 3: Delivered
-          </button>
-
-          <div className="h-8 w-[1px] bg-brand-border self-center" />
-
-          <button
-            onClick={() => handleSimulateStatus('cancelled')}
-            disabled={isSimulating || currentStatusIndex >= 4}
-            className="rounded-xl border border-brand-red/40 hover:bg-brand-red/10 disabled:opacity-30 disabled:hover:bg-transparent text-brand-red text-xs font-semibold px-4 py-3 transition-all cursor-pointer"
-          >
-            Abort Delivery
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

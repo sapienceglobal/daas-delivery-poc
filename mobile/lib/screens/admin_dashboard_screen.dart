@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/glass_container.dart';
@@ -154,6 +156,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.swap_horiz, color: BrandColors.cyan),
             onPressed: () => Navigator.of(context).pushReplacementNamed('/customer'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: BrandColors.red),
+            onPressed: () async {
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+              await auth.logout();
+            },
           ),
         ],
       ),

@@ -63,9 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
-      if (success) {
-        // Logged in successfully, navigation is managed automatically by main.dart listener
-      }
+      // Successful login automatically updates MainGate view reactively.
     } else if (_mode == 'register') {
       final success = await authProvider.register(
         name: _nameController.text.trim(),
@@ -76,9 +74,12 @@ class _LoginScreenState extends State<LoginScreen> {
         role: _role,
       );
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account registered successfully!')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Account registered successfully!')),
+          );
+          // Successful registration automatically updates MainGate view reactively.
+        }
       }
     } else if (_mode == 'forgot') {
       final success = await authProvider.forgotPassword(_emailController.text.trim());

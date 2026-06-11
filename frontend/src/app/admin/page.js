@@ -14,7 +14,8 @@ import {
   Store,
   Users,
   Package,
-  Clock
+  Clock,
+  LogOut
 } from 'lucide-react';
 
 const getApiBaseUrl = () => {
@@ -42,6 +43,12 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem('marketplace_token');
+    localStorage.removeItem('marketplace_user');
+    window.location.href = '/';
+  };
 
   // Users management state
   const [users, setUsers] = useState([]);
@@ -327,9 +334,17 @@ export default function AdminDashboard() {
             <p className="text-xs text-brand-muted">Approve store partnerships and registers new merchants</p>
           </div>
         </div>
-        <a href="/" className="px-4 py-2 rounded-xl border border-brand-border bg-brand-bg hover:border-brand-cyan text-xs text-brand-muted hover:text-white transition-all font-black flex items-center gap-1">
-          <ArrowLeft size={13} /> Home
-        </a>
+        <div className="flex items-center gap-2">
+          <a href="/" className="px-4 py-2 rounded-xl border border-brand-border bg-brand-bg hover:border-brand-cyan text-xs text-brand-muted hover:text-white transition-all font-black flex items-center gap-1">
+            <ArrowLeft size={13} /> Home
+          </a>
+          <button 
+            onClick={handleLogout}
+            className="px-4 py-2 rounded-xl border border-brand-red/30 bg-brand-red/5 hover:bg-brand-red/10 text-xs text-brand-red font-black transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <LogOut size={13} /> Logout
+          </button>
+        </div>
       </header>
 
       {/* Tabs Selector */}

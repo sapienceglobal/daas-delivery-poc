@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'dart:ui';
+import 'dart:ui' show Path, PathMetric;
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import '../services/api_service.dart';
 import '../services/socket_service.dart';
 import '../theme.dart';
@@ -21,6 +21,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   Map<String, dynamic>? _order;
   bool _isLoading = true;
   String? _error;
+
+  bool _isInteractingWithMap = false;
 
   // Rating state
   int _rating = 5;
@@ -49,7 +51,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   @override
   void dispose() {
     _pollingTimer?.cancel();
-    SocketService.disconnect();
+    SocketService.disconnect('order_tracking');
     _reviewController.dispose();
     super.dispose();
   }
@@ -83,7 +85,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   void _connectSocket() {
     SocketService.connect(
-      onNewOrder: (_) {},
+      listenerId: 'order_tracking',
       onOrderUpdated: (updatedData) {
         if (updatedData != null && (updatedData['_id'] == widget.orderId || updatedData['id'] == widget.orderId)) {
           setState(() {
@@ -150,6 +152,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           : _error != null
               ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(_error!, style: const TextStyle(color: BrandColors.red))))
               : SingleChildScrollView(
+                  physics: _isInteractingWithMap
+                      ? const NeverScrollableScrollPhysics()
+                      : const BouncingScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -231,20 +236,131 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Courier Location Mapping', style: Theme.of(context).textTheme.titleMedium),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Courier Location Mapping', style: Theme.of(context).textTheme.titleMedium),
+                                  if (_order?['deliveryId'] != null)
+                                    Text(
+                                      'ID: ${_order!['deliveryId'].toString().length > 10 ? _order!['deliveryId'].toString().substring(_order!['deliveryId'].toString().length - 10) : _order!['deliveryId']}',
+                                      style: const TextStyle(color: BrandColors.textMuted, fontSize: 10, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                                    ),
+                                ],
+                              ),
                               const SizedBox(height: 20),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Container(
-                                  height: 250,
-                                  width: double.infinity,
-                                  color: const Color(0xFF0F172A),
-                                  child: InteractiveStreetMap(
-                                    order: _order,
-                                    statusIndex: statusIdx,
+                              Listener(
+                                onPointerDown: (_) {
+                                  setState(() {
+                                    _isInteractingWithMap = true;
+                                  });
+                                },
+                                onPointerUp: (_) {
+                                  setState(() {
+                                    _isInteractingWithMap = false;
+                                  });
+                                },
+                                onPointerCancel: (_) {
+                                  setState(() {
+                                    _isInteractingWithMap = false;
+                                  });
+                                },
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    height: 250,
+                                    width: double.infinity,
+                                    color: const Color(0xFF0F172A),
+                                    child: InteractiveStreetMap(
+                                      order: _order,
+                                      statusIndex: statusIdx,
+                                    ),
                                   ),
                                 ),
                               ),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: BrandColors.background.withOpacity(0.4),
+                                  border: Border.all(color: BrandColors.border),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Live Tracking Network Connected',
+                                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Your order is tracked via our secure delivery partner gateway. Updates and courier coordinates are synced instantly on the map.',
+                                            style: TextStyle(color: BrandColors.textMuted, fontSize: 9.5, height: 1.3),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: BrandColors.cyan.withOpacity(0.05),
+                                        border: Border.all(color: BrandColors.cyan.withOpacity(0.25)),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Text(
+                                        'ONLINE GPS SYNC',
+                                        style: TextStyle(color: BrandColors.cyan, fontSize: 9, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (statusIdx >= 2) ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: BrandColors.background.withOpacity(0.4),
+                                    border: Border.all(color: BrandColors.border),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: const [
+                                          Icon(Icons.directions_car_filled_rounded, color: BrandColors.cyan, size: 14),
+                                          SizedBox(width: 6),
+                                          Text(
+                                            'DOORDASH DISPATCH TRACKER',
+                                            style: TextStyle(color: BrandColors.cyan, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1),
+                                          ),
+                                        ],
+                                      ),
+                                      const Divider(color: BrandColors.border, height: 16),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text('Dasher Name:', style: TextStyle(color: BrandColors.textMuted, fontSize: 10.5)),
+                                          Text(_order?['dasherName'] ?? 'Awaiting assignment', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10.5)),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text('Dasher Phone:', style: TextStyle(color: BrandColors.textMuted, fontSize: 10.5)),
+                                          Text(_order?['dasherPhone'] ?? '—', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10.5)),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -481,6 +597,25 @@ class _InteractiveStreetMapState extends State<InteractiveStreetMap> {
     super.dispose();
   }
 
+  void _centerMap(double viewW, double viewH, double midPixelX, double midPixelY) {
+    final double tx = viewW / 2.0 - midPixelX;
+    final double ty = viewH / 2.0 - midPixelY;
+    
+    final currentMatrix = _transformationController.value;
+    final double currentTx = currentMatrix.storage[12];
+    final double currentTy = currentMatrix.storage[13];
+    final double currentScale = currentMatrix.storage[0];
+    
+    if ((currentTx - tx).abs() > 0.1 || (currentTy - ty).abs() > 0.1 || (currentScale - 1.0).abs() > 0.1) {
+      final targetMatrix = Matrix4.identity()..translate(tx, ty);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _transformationController.value = targetMatrix;
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final rCoords = getRestaurantCoords(widget.order?['restaurantName']);
@@ -494,7 +629,7 @@ class _InteractiveStreetMapState extends State<InteractiveStreetMap> {
     final centerLat = (rLat + cLat) / 2.0;
     final centerLng = (rLng + cLng) / 2.0;
 
-    const int zoom = 14;
+    const int zoom = 13;
     final double centerFractionalX = _lonToTileX(centerLng, zoom);
     final double centerFractionalY = _latToTileY(centerLat, zoom);
 
@@ -519,7 +654,7 @@ class _InteractiveStreetMapState extends State<InteractiveStreetMap> {
     double statusT = 0.0;
     final status = widget.order?['deliveryStatus'];
     if (status == 'pending' || status == 'processing' || status == 'quote_created') {
-      statusT = 0.0;
+      statusT = 0.05; // Sitting at restaurant
     } else if (status == 'driver_assigned') {
       statusT = 0.15;
     } else if (status == 'picked_up') {
@@ -531,9 +666,11 @@ class _InteractiveStreetMapState extends State<InteractiveStreetMap> {
     }
 
     double dLat, dLng;
-    if (widget.order?['dasherLat'] != null && widget.order?['dasherLng'] != null) {
-      dLat = (widget.order!['dasherLat'] as num).toDouble();
-      dLng = (widget.order!['dasherLng'] as num).toDouble();
+    final dynamic rawLat = widget.order?['dasherLat'];
+    final dynamic rawLng = widget.order?['dasherLng'];
+    if (rawLat != null && rawLng != null && rawLat != 0 && rawLng != 0) {
+      dLat = (rawLat as num).toDouble();
+      dLng = (rawLng as num).toDouble();
     } else {
       // Interpolated coordinates
       if (statusT <= 0.5) {
@@ -552,29 +689,37 @@ class _InteractiveStreetMapState extends State<InteractiveStreetMap> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Center the viewport on the midpoint pixel coordinate
         final double viewW = constraints.maxWidth;
         final double viewH = constraints.maxHeight;
 
         final double midPixelX = (centerFractionalX - topLeftX) * 256.0;
         final double midPixelY = (centerFractionalY - topLeftY) * 256.0;
 
-        final double tx = viewW / 2.0 - midPixelX;
-        final double ty = viewH / 2.0 - midPixelY;
-
-        // Apply translation matrix
-        _transformationController.value = Matrix4.identity()..translate(tx, ty);
+        _centerMap(viewW, viewH, midPixelX, midPixelY);
 
         return InteractiveViewer(
           transformationController: _transformationController,
           maxScale: 3.0,
           minScale: 0.6,
           boundaryMargin: EdgeInsets.all(max(viewW, viewH)),
+          constrained: false,
           child: SizedBox(
             width: 768,
             height: 768,
             child: Stack(
               children: [
+                // Background Vector street map fallback (drawn under the tiles)
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: VectorMapPainter(
+                      rX: rX,
+                      rY: rY,
+                      cX: cX,
+                      cY: cY,
+                    ),
+                  ),
+                ),
+
                 // 1. Render OSM Tiles in 3x3 grid
                 for (int y = 0; y < 3; y++)
                   for (int x = 0; x < 3; x++)
@@ -584,20 +729,17 @@ class _InteractiveStreetMapState extends State<InteractiveStreetMap> {
                       child: Container(
                         width: 256,
                         height: 256,
-                        color: const Color(0xFF0F172A),
+                        color: Colors.transparent,
                         child: Image.network(
-                          'https://basemaps.cartocdn.com/rastertiles/dark_all/$zoom/${topLeftX + x}/${topLeftY + y}.png',
+                          'https://a.basemaps.cartocdn.com/dark_all/$zoom/${topLeftX + x}/${topLeftY + y}.png',
+                          headers: const {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                          },
                           width: 256,
                           height: 256,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            // Fallback slate box if image fails to load (offline scenario)
-                            return Container(
-                              color: const Color(0xFF0F172A),
-                              child: const Center(
-                                child: Icon(Icons.map, color: BrandColors.border, size: 24),
-                              ),
-                            );
+                            return const SizedBox.shrink();
                           },
                         ),
                       ),
@@ -657,12 +799,13 @@ class _InteractiveStreetMapState extends State<InteractiveStreetMap> {
                 ),
 
                 // 5. Courier/Scooter Pulse Marker
-                if (widget.statusIndex < 4 && widget.statusIndex > 0)
-                  Positioned(
-                    left: scooterX - 20,
-                    top: scooterY - 20,
-                    child: const ScooterPulseMarker(),
+                Positioned(
+                  left: scooterX - 20,
+                  top: scooterY - 20,
+                  child: ScooterPulseMarker(
+                    status: widget.order?['deliveryStatus'] ?? 'pending',
                   ),
+                ),
               ],
             ),
           ),
@@ -723,8 +866,94 @@ class MapRouteLinePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+class VectorMapPainter extends CustomPainter {
+  final double rX;
+  final double rY;
+  final double cX;
+  final double cY;
+
+  VectorMapPainter({
+    required this.rX,
+    required this.rY,
+    required this.cX,
+    required this.cY,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 1. Draw Map Background (Dark Theme)
+    final paintBg = Paint()..color = const Color(0xFF0F172A); // slate-900
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paintBg);
+
+    // 2. Draw River / Waterway (Background Detail)
+    final paintRiver = Paint()
+      ..color = const Color(0xFF1E293B)
+      ..style = PaintingStyle.fill;
+    final riverPath = Path()
+      ..moveTo(0, size.height * 0.85)
+      ..cubicTo(size.width * 0.3, size.height * 0.9, size.width * 0.4, size.height * 0.4, size.width, size.height * 0.2)
+      ..lineTo(size.width, 0)
+      ..lineTo(0, 0)
+      ..close();
+    canvas.drawPath(riverPath, paintRiver);
+
+    final paintWaterLine = Paint()
+      ..color = const Color(0xFF38BDF8).withOpacity(0.08)
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+    final waterPath = Path()
+      ..moveTo(0, size.height * 0.8)
+      ..cubicTo(size.width * 0.3, size.height * 0.85, size.width * 0.4, size.height * 0.35, size.width, size.height * 0.15);
+    canvas.drawPath(waterPath, paintWaterLine);
+
+    // 3. Draw Street Grids (Gray Asphalt Lines) at rX, rY, cX, cY
+    final paintRoad = Paint()
+      ..color = BrandColors.border.withOpacity(0.35)
+      ..strokeWidth = 14
+      ..strokeCap = StrokeCap.square
+      ..style = PaintingStyle.stroke;
+
+    final paintRoadCenterline = Paint()
+      ..color = Colors.white.withOpacity(0.2)
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    // Draw Roads
+    canvas.drawLine(Offset(0, rY), Offset(size.width, rY), paintRoad);
+    canvas.drawLine(Offset(0, cY), Offset(size.width, cY), paintRoad);
+    canvas.drawLine(Offset(rX, 0), Offset(rX, size.height), paintRoad);
+    canvas.drawLine(Offset(cX, 0), Offset(cX, size.height), paintRoad);
+
+    // Draw Road center dash lines
+    canvas.drawLine(Offset(0, rY), Offset(size.width, rY), paintRoadCenterline);
+    canvas.drawLine(Offset(0, cY), Offset(size.width, cY), paintRoadCenterline);
+    canvas.drawLine(Offset(rX, 0), Offset(rX, size.height), paintRoadCenterline);
+    canvas.drawLine(Offset(cX, 0), Offset(cX, size.height), paintRoadCenterline);
+
+    // 4. Render labels
+    final textPainter = TextPainter(textDirection: TextDirection.ltr);
+    textPainter.text = TextSpan(
+      text: 'MARKET ST',
+      style: TextStyle(color: Colors.white.withOpacity(0.15), fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 1),
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(24, rY - 12));
+
+    textPainter.text = TextSpan(
+      text: 'MISSION ST',
+      style: TextStyle(color: Colors.white.withOpacity(0.15), fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 1),
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(24, cY - 12));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class ScooterPulseMarker extends StatefulWidget {
-  const ScooterPulseMarker({super.key});
+  final String status;
+  const ScooterPulseMarker({super.key, required this.status});
 
   @override
   State<ScooterPulseMarker> createState() => _ScooterPulseMarkerState();
@@ -750,6 +979,15 @@ class _ScooterPulseMarkerState extends State<ScooterPulseMarker> with SingleTick
 
   @override
   Widget build(BuildContext context) {
+    final isError = widget.status == 'cancelled' || widget.status == 'failed';
+    final isDelivered = widget.status == 'delivered';
+    
+    final markerColor = isError 
+        ? BrandColors.red 
+        : (isDelivered ? BrandColors.green : const Color(0xFFF97316));
+        
+    final iconText = isError ? '✕' : (isDelivered ? '✔️' : '🛵');
+
     return AnimatedBuilder(
       animation: _pulseController,
       builder: (context, child) {
@@ -760,33 +998,39 @@ class _ScooterPulseMarkerState extends State<ScooterPulseMarker> with SingleTick
             alignment: Alignment.center,
             children: [
               // Pulsing ring
-              Container(
-                width: 14 + (22 * _pulseController.value),
-                height: 14 + (22 * _pulseController.value),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: BrandColors.cyan.withOpacity(0.4 * (1.0 - _pulseController.value)),
-                  border: Border.all(
-                    color: BrandColors.cyan.withOpacity(0.8 * (1.0 - _pulseController.value)),
-                    width: 1.5,
+              if (!isError && !isDelivered)
+                Container(
+                  width: 14 + (22 * _pulseController.value),
+                  height: 14 + (22 * _pulseController.value),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: markerColor.withOpacity(0.4 * (1.0 - _pulseController.value)),
+                    border: Border.all(
+                      color: markerColor.withOpacity(0.8 * (1.0 - _pulseController.value)),
+                      width: 1.5,
+                    ),
                   ),
                 ),
-              ),
               // Scooter icon container
               Container(
                 width: 26,
                 height: 26,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: markerColor,
                   shape: BoxShape.circle,
-                  boxShadow: [
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: const [
                     BoxShadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 2)),
                   ],
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    '🛵',
-                    style: TextStyle(fontSize: 14),
+                    iconText,
+                    style: TextStyle(
+                      fontSize: isDelivered || isError ? 11 : 14,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),

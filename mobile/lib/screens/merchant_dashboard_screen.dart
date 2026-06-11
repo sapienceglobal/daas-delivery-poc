@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -69,7 +70,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
     _itemPriceController.dispose();
     _openTimeController.dispose();
     _closeTimeController.dispose();
-    SocketService.disconnect();
+    SocketService.disconnect('merchant_dashboard');
     super.dispose();
   }
 
@@ -82,7 +83,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       if (auth.token == null) return;
 
-      final response = await ApiService.get('/api/restaurants/merchant/profile');
+      final response = await ApiService.get('/api/restaurants/merchant/my');
       final data = json.decode(response.body);
       
       if (data['success'] == true) {
@@ -108,7 +109,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
 
   Future<void> _fetchOrders() async {
     try {
-      final response = await ApiService.get('/api/restaurants/${_restaurant!['_id']}/orders');
+      final response = await ApiService.get('/api/orders/merchant/all');
       final data = json.decode(response.body);
       if (data['success'] == true) {
         setState(() {
@@ -123,6 +124,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
 
   void _connectSocket() {
     SocketService.connect(
+      listenerId: 'merchant_dashboard',
       restaurantId: _restaurant!['_id'],
       onNewOrder: (newOrder) {
         if (newOrder != null) {
@@ -166,18 +168,227 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
     }
   }
 
+  void _showUploadBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: BrandColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        double uploadProgress = 0.0;
+        bool isUploading = false;
+        String uploadStatus = '';
+
+        final presets = [
+          {'name': 'Burgers', 'url': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80'},
+          {'name': 'Pizza', 'url': 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80'},
+          {'name': 'Sushi', 'url': 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80'},
+          {'name': 'Desserts', 'url': 'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=800&q=80'},
+          {'name': 'Cafe', 'url': 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=800&q=80'},
+          {'name': 'Fine Dining', 'url': 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80'},
+        ];
+
+        return StatefulBuilder(
+          builder: (context, setStateSheet) {
+            void startMockUpload(String url, String fileName) {
+              setStateSheet(() {
+                isUploading = true;
+                uploadProgress = 0.0;
+                uploadStatus = 'Connecting to storage server...';
+              });
+
+              const steps = 15;
+              int currentStep = 0;
+              Timer.periodic(const Duration(milliseconds: 100), (timer) {
+                currentStep++;
+                setStateSheet(() {
+                  uploadProgress = currentStep / steps;
+                  if (currentStep < 4) {
+                    uploadStatus = 'Optimizing banner dimensions...';
+                  } else if (currentStep < 9) {
+                    uploadStatus = 'Uploading $fileName (${(uploadProgress * 100).toInt()}%)...';
+                  } else if (currentStep < 14) {
+                    uploadStatus = 'Saving file references...';
+                  } else {
+                    uploadStatus = 'Upload complete!';
+                  }
+                });
+
+                if (currentStep >= steps) {
+                  timer.cancel();
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    if (context.mounted) {
+                      _regBannerController.text = url;
+                      setState(() {});
+                      Navigator.of(context).pop();
+                    }
+                  });
+                }
+              });
+            }
+
+            if (isUploading) {
+              return Container(
+                padding: const EdgeInsets.all(24),
+                height: 250,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.cloud_upload, size: 48, color: BrandColors.cyan),
+                    const SizedBox(height: 16),
+                    Text(
+                      uploadStatus,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 16),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: uploadProgress,
+                        backgroundColor: BrandColors.background,
+                        color: BrandColors.cyan,
+                        minHeight: 8,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${(uploadProgress * 100).toInt()}%',
+                      style: const TextStyle(color: BrandColors.textMuted, fontSize: 12),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Upload Banner Image',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      final randomIdx = Random().nextInt(presets.length);
+                      final preset = presets[randomIdx];
+                      startMockUpload(preset['url']!, 'device_photo_${randomIdx + 1}.jpg');
+                    },
+                    icon: const Icon(Icons.upload_file, color: BrandColors.background),
+                    label: const Text('UPLOAD FROM DEVICE'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: BrandColors.cyan,
+                      foregroundColor: BrandColors.background,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'OR SELECT CUISINE BANNER PRESET',
+                    style: TextStyle(color: BrandColors.textMuted, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 100,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: presets.length,
+                      itemBuilder: (context, idx) {
+                        final p = presets[idx];
+                        return GestureDetector(
+                          onTap: () {
+                            startMockUpload(p['url']!, '${p['name']!.toLowerCase()}_banner.jpg');
+                          },
+                          child: Container(
+                            width: 120,
+                            margin: const EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: BrandColors.border),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(11),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Image.network(
+                                    p['url']!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (c, e, s) => Container(color: BrandColors.border),
+                                  ),
+                                  Container(
+                                    color: Colors.black.withOpacity(0.4),
+                                  ),
+                                  Center(
+                                    child: Text(
+                                      p['name']!,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        shadows: [
+                                          Shadow(blurRadius: 4, color: Colors.black),
+                                        ],
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _registerRestaurant() async {
+    final name = _regNameController.text.trim();
+    final cuisine = _regCuisineController.text.trim();
+    final address = _regAddressController.text.trim();
+    final phone = _regPhoneController.text.trim();
+    final banner = _regBannerController.text.trim();
+
+    if (name.isEmpty || cuisine.isEmpty || address.isEmpty || phone.isEmpty || banner.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill out all fields, including the banner image.')),
+      );
+      return;
+    }
+
     setState(() {
       _submittingReg = true;
     });
 
     try {
       final response = await ApiService.post('/api/restaurants', {
-        'name': _regNameController.text.trim(),
-        'cuisine': _regCuisineController.text.trim(),
-        'address': _regAddressController.text.trim(),
-        'phone': _regPhoneController.text.trim(),
-        'banner': _regBannerController.text.trim().isNotEmpty ? _regBannerController.text.trim() : null,
+        'name': name,
+        'cuisine': cuisine,
+        'address': address,
+        'phone': phone,
+        'banner': banner,
         'lat': 37.7749,
         'lng': -122.4194,
       });
@@ -201,10 +412,10 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
     }
   }
 
-  Future<void> _updateOrderStatus(String orderId, String newStatus) async {
+  Future<void> _updateOrderStatus(String orderId, String prepStatus) async {
     try {
-      final response = await ApiService.put('/api/orders/$orderId/status', {
-        'deliveryStatus': newStatus,
+      final response = await ApiService.put('/api/orders/$orderId/prep', {
+        'status': prepStatus,
       });
       final data = json.decode(response.body);
       if (data['success'] == true) {
@@ -220,10 +431,26 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
     }
   }
 
+  bool _hasStatusUpdateContaining(Map<String, dynamic> order, String keyword) {
+    final updates = order['statusUpdates'] as List?;
+    if (updates == null) return false;
+    return updates.any((update) {
+      final desc = update['description']?.toString().toLowerCase() ?? '';
+      return desc.contains(keyword.toLowerCase());
+    });
+  }
+
   Future<void> _toggleMenuItemStock(String itemId, bool available) async {
     try {
       final restId = _restaurant!['_id'];
-      final response = await ApiService.put('/api/restaurants/$restId/menu/$itemId/availability', {
+      final menuList = _restaurant!['menu'] as List;
+      final item = menuList.firstWhere((i) => (i['_id'] ?? i['id']) == itemId);
+
+      final response = await ApiService.put('/api/restaurants/$restId/menu/$itemId', {
+        'name': item['name'],
+        'description': item['description'],
+        'price': item['price'],
+        'category': item['category'],
         'isAvailable': available,
       });
       final data = json.decode(response.body);
@@ -317,7 +544,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
 
     try {
       final restId = _restaurant!['_id'];
-      final response = await ApiService.put('/api/restaurants/$restId/hours', {
+      final response = await ApiService.put('/api/restaurants/$restId', {
         'openTime': _openTimeController.text.trim(),
         'closeTime': _closeTimeController.text.trim(),
       });
@@ -383,8 +610,11 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.swap_horiz, color: BrandColors.cyan),
-            onPressed: () => Navigator.of(context).pushReplacementNamed('/customer'),
+            icon: const Icon(Icons.logout, color: BrandColors.red),
+            onPressed: () async {
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+              await auth.logout();
+            },
           ),
         ],
       ),
@@ -515,29 +745,51 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                           ),
                           if (isPending)
                             ElevatedButton(
-                              onPressed: () => _updateOrderStatus(order['_id'], 'processing'),
+                              onPressed: () => _updateOrderStatus(order['_id'], 'accepted'),
                               style: ElevatedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 minimumSize: Size.zero,
                               ),
                               child: const Text('ACCEPT ORDER'),
                             )
+                          else if (order['deliveryStatus'] == 'processing')
+                            _hasStatusUpdateContaining(order, 'complete')
+                                ? Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: BrandColors.green.withOpacity(0.15),
+                                      border: Border.all(color: BrandColors.green.withOpacity(0.3)),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Icon(Icons.check_circle_outline, size: 14, color: BrandColors.green),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Food Ready / Dispatched',
+                                          style: TextStyle(color: BrandColors.green, fontSize: 11, fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : ElevatedButton(
+                                    onPressed: () => _updateOrderStatus(order['_id'], 'ready'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: BrandColors.green,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      minimumSize: Size.zero,
+                                    ),
+                                    child: const Text('MARK READY'),
+                                  )
                           else if (!isCompleted)
-                            DropdownButton<String>(
-                              value: order['deliveryStatus'],
-                              dropdownColor: BrandColors.card,
-                              style: const TextStyle(color: Colors.white, fontSize: 12),
-                              items: const [
-                                DropdownMenuItem(value: 'processing', child: Text('Processing')),
-                                DropdownMenuItem(value: 'driver_assigned', child: Text('Courier Heading to Store')),
-                                DropdownMenuItem(value: 'picked_up', child: Text('Out for Delivery')),
-                                DropdownMenuItem(value: 'delivered', child: Text('Delivered')),
-                              ],
-                              onChanged: (val) {
-                                if (val != null) {
-                                  _updateOrderStatus(order['_id'], val);
-                                }
-                              },
+                            Text(
+                              order['deliveryStatus'] == 'driver_assigned'
+                                  ? 'Courier Heading to Store'
+                                  : order['deliveryStatus'] == 'picked_up'
+                                      ? 'Out for Delivery'
+                                      : 'In Transit',
+                              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                             )
                           else
                             const Text('Archived', style: TextStyle(color: BrandColors.textMuted, fontSize: 11)),
@@ -772,6 +1024,15 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
         title: const Text('Link Restaurant'),
         backgroundColor: BrandColors.background,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: BrandColors.red),
+            onPressed: () async {
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+              await auth.logout();
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -804,7 +1065,69 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                   const SizedBox(height: 16),
                   TextField(controller: _regPhoneController, decoration: const InputDecoration(labelText: 'Fulfillment Phone Number')),
                   const SizedBox(height: 16),
-                  TextField(controller: _regBannerController, decoration: const InputDecoration(labelText: 'Banner URL (Optional)')),
+                  TextField(
+                    controller: _regBannerController,
+                    decoration: const InputDecoration(labelText: 'Banner Image URL (Required)'),
+                    onChanged: (val) {
+                      setState(() {});
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _showUploadBottomSheet(context),
+                          icon: const Icon(Icons.cloud_upload_outlined, size: 16, color: BrandColors.cyan),
+                          label: const Text('UPLOAD BANNER IMAGE', style: TextStyle(color: BrandColors.cyan)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: BrandColors.cyan),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (_regBannerController.text.trim().isNotEmpty) ...[
+                    Container(
+                      height: 150,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: BrandColors.border),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: Image.network(
+                          _regBannerController.text.trim(),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.broken_image, color: BrandColors.red, size: 32),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Invalid Image URL or connection error',
+                                    style: TextStyle(color: BrandColors.textMuted, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(color: BrandColors.cyan),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   const SizedBox(height: 24),
                   
                   ElevatedButton(
