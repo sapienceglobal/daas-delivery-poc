@@ -1015,27 +1015,54 @@ export default function RestaurantDashboard() {
 
                   {/* Status Transitions */}
                   <div className="flex gap-2 justify-end pt-1">
-                    {order.deliveryStatus === 'pending' ? (
+                    {order.deliveryStatus === 'pending' || order.deliveryStatus === 'processing' && order.statusUpdates.length <= 1 ? (
                       <button
                         onClick={() => handleUpdatePrepStatus(order._id, 'accepted')}
                         disabled={updatingOrderId === order._id}
                         className="px-3.5 py-2 bg-brand-yellow text-brand-bg rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:bg-brand-yellow/90 active:scale-95 flex items-center gap-1 cursor-pointer"
                       >
                         {updatingOrderId === order._id ? <Loader2 size={10} className="animate-spin" /> : <Clock size={10} />}
-                        Accept & Prepare
+                        Accept Order
                       </button>
-                    ) : order.deliveryStatus === 'processing' && !order.statusUpdates.some(s => s.description.includes('complete')) ? (
+                    ) : order.deliveryStatus === 'accepted' ? (
+                      <button
+                        onClick={() => handleUpdatePrepStatus(order._id, 'preparing')}
+                        disabled={updatingOrderId === order._id}
+                        className="px-3.5 py-2 bg-brand-cyan text-brand-bg rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:bg-brand-cyan/90 active:scale-95 flex items-center gap-1 cursor-pointer"
+                      >
+                        {updatingOrderId === order._id ? <Loader2 size={10} className="animate-spin" /> : <Loader2 size={10} className="animate-spin" />}
+                        Start Preparing
+                      </button>
+                    ) : order.deliveryStatus === 'preparing' ? (
+                      <button
+                        onClick={() => handleUpdatePrepStatus(order._id, 'cooking')}
+                        disabled={updatingOrderId === order._id}
+                        className="px-3.5 py-2 bg-orange-500 text-white rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:bg-orange-600 active:scale-95 flex items-center gap-1 cursor-pointer"
+                      >
+                        {updatingOrderId === order._id ? <Loader2 size={10} className="animate-spin" /> : <Clock size={10} />}
+                        Start Cooking
+                      </button>
+                    ) : order.deliveryStatus === 'cooking' ? (
                       <button
                         onClick={() => handleUpdatePrepStatus(order._id, 'ready')}
                         disabled={updatingOrderId === order._id}
                         className="px-3.5 py-2 bg-brand-green text-brand-bg rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:bg-brand-green/90 active:scale-95 flex items-center gap-1 cursor-pointer"
                       >
                         {updatingOrderId === order._id ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
-                        Mark Ready (Call Dasher)
+                        Mark Ready & Pack
+                      </button>
+                    ) : order.deliveryStatus === 'ready' || order.deliveryStatus === 'processing' ? (
+                      <button
+                        onClick={() => handleUpdatePrepStatus(order._id, 'dispatched')}
+                        disabled={updatingOrderId === order._id}
+                        className="px-3.5 py-2 bg-brand-blue text-white rounded-xl font-black text-[10px] uppercase tracking-wider transition-all hover:bg-brand-blue/90 active:scale-95 flex items-center gap-1 cursor-pointer"
+                      >
+                        {updatingOrderId === order._id ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+                        Dispatch Courier
                       </button>
                     ) : (
                       <div className="text-[10px] text-brand-green font-bold flex items-center gap-1 py-1 px-2.5 bg-brand-green/10 border border-brand-green/30 rounded-xl">
-                        <Check size={10} /> Food Ready / Dasher Dispatched
+                        <Check size={10} /> Food Dispatched / Driver En Route
                       </div>
                     )}
                   </div>

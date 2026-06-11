@@ -255,36 +255,13 @@ router.post('/', async (req, res) => {
     await order.save();
     console.log(`\x1b[34m[Order Route]\x1b[0m Saved order ${order._id} locally.`);
 
-    // If Cash on Delivery, trigger DoorDash dispatch immediately
+    // If Cash on Delivery, emit socket event to merchant immediately without triggering DoorDash
     if (paymentMethod === 'Cash on Delivery') {
-      order.deliveryStatus = 'processing';
+      order.deliveryStatus = 'pending';
       order.statusUpdates.push({
-        status: 'processing',
-        description: 'Order confirmed under Cash on Delivery. Dispatching DoorDash...'
+        status: 'pending',
+        description: 'Order placed under Cash on Delivery. Awaiting restaurant acceptance.'
       });
-
-      let deliveryResult;
-      try {
-        deliveryResult = await triggerDeliveryAPI(order);
-        order.deliveryId = deliveryResult.deliveryId;
-        order.trackingUrl = deliveryResult.trackingUrl;
-        order.deliveryFee = deliveryResult.deliveryFee;
-        order.pickupTime = deliveryResult.pickupTime;
-        order.deliveryTime = deliveryResult.deliveryTime;
-        order.statusUpdates.push({
-          status: 'processing',
-          description: deliveryResult.realRequest 
-            ? `Delivery partner assigned and dispatch initialized (ID: ${deliveryResult.deliveryId})`
-            : `Marketplace simulation active. Generated mock Courier ID: ${deliveryResult.deliveryId}`
-        });
-      } catch (apiError) {
-        console.error('[Order Route] Cash Delivery API failed:', apiError.message);
-        order.deliveryStatus = 'failed';
-        order.statusUpdates.push({
-          status: 'failed',
-          description: `Fulfillment dispatch failure: ${apiError.message}`
-        });
-      }
 
       await order.save();
 
@@ -297,7 +274,7 @@ router.post('/', async (req, res) => {
 
       return res.status(201).json({
         success: true,
-        message: 'Cash order created and DaaS shipment triggered successfully.',
+        message: 'Cash order created successfully. Awaiting restaurant acceptance.',
         order
       });
     }
@@ -461,8 +438,8 @@ router.post('/:id/simulate', async (req, res) => {
 router.post('/:id/confirm-payment', async (req, res) => {
   try {
     let order = await Order.findOneAndUpdate(
-      { _id: req.params.id, deliveryStatus: 'pending' },
-      { $set: { deliveryStatus: 'processing' } },
+      { _id: req.params.id, paymentStatus: 'pending' },
+      { $set: { paymentStatus: 'paid' } },
       { new: true }
     );
 
@@ -480,55 +457,22 @@ router.post('/:id/confirm-payment', async (req, res) => {
       description: 'Transaction successfully processed and captured via Stripe Gateway.'
     });
 
-    // Save and call DoorDash Drive API
-    let deliveryResult;
-    try {
-      deliveryResult = await triggerDeliveryAPI(order);
-    } catch (apiError) {
-      console.error(`[Confirm Payment] DoorDash dispatch failed:`, apiError.message);
-      order.deliveryStatus = 'failed';
-      order.statusUpdates.push({
-        status: 'failed',
-        description: `DoorDash integration failure: ${apiError.message}`
-      });
-      await order.save();
-      return res.status(502).json({
-        success: false,
-        message: `Payment confirmed, but DoorDash dispatch rejected: ${apiError.message}`,
-        order
-      });
-    }
-
-    order.deliveryId = deliveryResult.deliveryId;
-    order.trackingUrl = deliveryResult.trackingUrl;
-    order.deliveryFee = deliveryResult.deliveryFee;
-    order.pickupTime = deliveryResult.pickupTime;
-    order.deliveryTime = deliveryResult.deliveryTime;
-    order.deliveryStatus = 'processing';
-    
-    order.statusUpdates.push({
-      status: 'processing',
-      description: deliveryResult.realRequest 
-        ? `Delivery dispatch registered with fulfillment network (ID: ${deliveryResult.deliveryId})`
-        : `Marketplace simulation active. Generated mock Courier ID: ${deliveryResult.deliveryId}`
-    });
-
     await order.save();
-    console.log(`[Confirm Payment] Order ${order._id} successfully confirmed & DoorDash dispatch initialized.`);
+    console.log(`[Confirm Payment] Order ${order._id} successfully paid.`);
 
     // Emit socket event to the merchant dashboard and global broadcast for customer tracking
     const io = req.app.get('io');
     if (io) {
       if (order.restaurantId) {
         io.to(order.restaurantId.toString()).emit('NEW_ORDER', order);
-        console.log(`[Socket.io] Emitted NEW_ORDER for confirmed order ${order._id} to room ${order.restaurantId}`);
+        console.log(`[Socket.io] Emitted NEW_ORDER for paid order ${order._id} to room ${order.restaurantId}`);
       }
       io.emit('ORDER_UPDATED', order);
     }
 
     res.json({
       success: true,
-      message: 'Payment confirmed and DaaS dispatch triggered successfully.',
+      message: 'Payment confirmed successfully.',
       order
     });
   } catch (error) {
@@ -559,10 +503,20 @@ router.get('/merchant/all', protect, authorize('merchant', 'admin'), async (req,
     }
 
     const orders = await Order.find({
-      $or: [
-        { restaurantId: req.user.restaurantId },
-        { restaurantName: restaurant.name },
-        { restaurantAddress: restaurant.address }
+      $and: [
+        {
+          $or: [
+            { restaurantId: req.user.restaurantId },
+            { restaurantName: restaurant.name },
+            { restaurantAddress: restaurant.address }
+          ]
+        },
+        {
+          $or: [
+            { paymentMethod: 'Cash on Delivery' },
+            { paymentStatus: 'paid' }
+          ]
+        }
       ]
     }).sort({ createdAt: -1 });
 
@@ -579,11 +533,11 @@ router.get('/merchant/all', protect, authorize('merchant', 'admin'), async (req,
  * @access  Private (Merchant/Admin)
  */
 router.put('/:id/prep', protect, authorize('merchant', 'admin'), async (req, res) => {
-  const { status } = req.body; // 'accepted' | 'ready'
-  const validStatuses = ['accepted', 'ready'];
+  const { status } = req.body; // 'accepted' | 'preparing' | 'cooking' | 'ready' | 'dispatched'
+  const validStatuses = ['accepted', 'preparing', 'cooking', 'ready', 'dispatched'];
 
   if (!status || !validStatuses.includes(status)) {
-    return res.status(400).json({ success: false, message: 'Invalid prep status. Choose accepted or ready.' });
+    return res.status(400).json({ success: false, message: 'Invalid prep status. Choose accepted, preparing, cooking, ready, or dispatched.' });
   }
 
   try {
@@ -601,26 +555,30 @@ router.put('/:id/prep', protect, authorize('merchant', 'admin'), async (req, res
     }
 
     if (status === 'accepted') {
-      order.deliveryStatus = 'processing';
+      order.deliveryStatus = 'accepted';
       order.statusUpdates.push({
-        status: 'processing',
-        description: 'Restaurant has accepted your order and is preparing the food.'
+        status: 'accepted',
+        description: 'Restaurant has accepted your order.'
       });
-      await order.save();
-
-      // Emit real-time socket event for customer tracking and cross-platform merchant sync
-      const io = req.app.get('io');
-      if (io) {
-        if (order.restaurantId) {
-          io.to(order.restaurantId.toString()).emit('ORDER_UPDATED', order);
-        }
-        io.emit('ORDER_UPDATED', order);
-      }
-
-      return res.json({ success: true, message: 'Order accepted by restaurant.', order });
-    }
-
-    if (status === 'ready') {
+    } else if (status === 'preparing') {
+      order.deliveryStatus = 'preparing';
+      order.statusUpdates.push({
+        status: 'preparing',
+        description: 'Restaurant has started preparing your food.'
+      });
+    } else if (status === 'cooking') {
+      order.deliveryStatus = 'cooking';
+      order.statusUpdates.push({
+        status: 'cooking',
+        description: 'Restaurant is cooking your food.'
+      });
+    } else if (status === 'ready') {
+      order.deliveryStatus = 'ready';
+      order.statusUpdates.push({
+        status: 'ready',
+        description: 'Food preparation is complete and order has been packed.'
+      });
+    } else if (status === 'dispatched') {
       // If DoorDash hasn't been triggered yet (simulation or Cash on Delivery fallback), trigger it now
       if (!order.deliveryId) {
         try {
@@ -630,9 +588,9 @@ router.put('/:id/prep', protect, authorize('merchant', 'admin'), async (req, res
           order.deliveryFee = deliveryResult.deliveryFee;
           order.pickupTime = deliveryResult.pickupTime;
           order.deliveryTime = deliveryResult.deliveryTime;
-          order.deliveryStatus = 'processing';
+          order.deliveryStatus = 'driver_assigned';
           order.statusUpdates.push({
-            status: 'processing',
+            status: 'driver_assigned',
             description: deliveryResult.realRequest 
               ? `Fulfillment courier dispatch registered (ID: ${deliveryResult.deliveryId})`
               : `Marketplace simulation active. Generated mock Courier ID: ${deliveryResult.deliveryId}`
@@ -643,32 +601,33 @@ router.put('/:id/prep', protect, authorize('merchant', 'admin'), async (req, res
           const simulatedDeliveryId = `dd-sim-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
           order.deliveryId = simulatedDeliveryId;
           order.trackingUrl = 'https://developer.doordash.com/portal/simulator';
-          order.deliveryStatus = 'processing';
+          order.deliveryStatus = 'driver_assigned';
           order.statusUpdates.push({
-            status: 'processing',
+            status: 'driver_assigned',
             description: `Fulfillment dispatch simulation initialized (ID: ${simulatedDeliveryId})`
           });
         }
       } else {
+        order.deliveryStatus = 'driver_assigned';
         order.statusUpdates.push({
-          status: 'processing',
-          description: 'Food preparation complete. Waiting for DoorDash courier pickup.'
+          status: 'driver_assigned',
+          description: 'Food ready. Dispatched to delivery partner.'
         });
       }
-      await order.save();
-
-      // Emit real-time socket event for customer tracking and cross-platform merchant sync
-      const io = req.app.get('io');
-      if (io) {
-        if (order.restaurantId) {
-          io.to(order.restaurantId.toString()).emit('ORDER_UPDATED', order);
-        }
-        io.emit('ORDER_UPDATED', order);
-      }
-
-      return res.json({ success: true, message: 'Order marked ready. DoorDash courier notified.', order });
     }
 
+    await order.save();
+
+    // Emit real-time socket event for customer tracking and cross-platform merchant sync
+    const io = req.app.get('io');
+    if (io) {
+      if (order.restaurantId) {
+        io.to(order.restaurantId.toString()).emit('ORDER_UPDATED', order);
+      }
+      io.emit('ORDER_UPDATED', order);
+    }
+
+    return res.json({ success: true, message: `Order marked as ${status}.`, order });
   } catch (error) {
     console.error('[Order Route] Prep Status Update Error:', error.message);
     res.status(500).json({ success: false, message: 'Server error updating prep status.', error: error.message });

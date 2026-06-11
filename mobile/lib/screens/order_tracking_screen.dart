@@ -32,8 +32,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   final List<Map<String, String>> _statusSteps = [
     { 'key': 'pending', 'label': 'Order Confirmed', 'desc': 'Preparing your meal' },
-    { 'key': 'processing', 'label': 'Dispatching Courier', 'desc': 'Assigning nearest delivery courier' },
-    { 'key': 'driver_assigned', 'label': 'Courier En Route', 'desc': 'Courier heading to restaurant' },
+    { 'key': 'accepted', 'label': 'Order Accepted', 'desc': 'Restaurant has accepted your order' },
+    { 'key': 'preparing', 'label': 'Food Preparing', 'desc': 'Restaurant is preparing your food' },
+    { 'key': 'cooking', 'label': 'Food Cooking', 'desc': 'Restaurant is cooking your food' },
+    { 'key': 'ready', 'label': 'Ready & Packed', 'desc': 'Food is ready and packed' },
+    { 'key': 'driver_assigned', 'label': 'Courier Heading to Store', 'desc': 'Courier heading to restaurant' },
     { 'key': 'picked_up', 'label': 'Out for Delivery', 'desc': 'Courier heading to your address' },
     { 'key': 'delivered', 'label': 'Delivered', 'desc': 'Order hand-off complete' }
   ];
@@ -98,7 +101,19 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   int _getStatusIndex(String? status) {
     if (status == null) return 0;
-    return _statusSteps.indexWhere((s) => s['key'] == status);
+    const mapping = {
+      'pending': 0,
+      'accepted': 1,
+      'preparing': 2,
+      'cooking': 3,
+      'ready': 4,
+      'processing': 4,
+      'quote_created': 4,
+      'driver_assigned': 5,
+      'picked_up': 6,
+      'delivered': 7
+    };
+    return mapping[status] ?? 0;
   }
 
   Future<void> _submitRating() async {

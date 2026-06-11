@@ -59,6 +59,12 @@ const OrderSchema = new mongoose.Schema({
     required: true,
     default: 'Credit Card'
   },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'paid', 'refunded'],
+    required: true,
+    default: 'pending'
+  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -75,7 +81,7 @@ const OrderSchema = new mongoose.Schema({
   deliveryStatus: { 
     type: String, 
     required: true,
-    enum: ['pending', 'processing', 'quote_created', 'driver_assigned', 'picked_up', 'delivered', 'cancelled', 'failed'],
+    enum: ['pending', 'accepted', 'preparing', 'cooking', 'ready', 'processing', 'quote_created', 'driver_assigned', 'picked_up', 'delivered', 'cancelled', 'failed'],
     default: 'pending' 
   },
   deliveryId: { 

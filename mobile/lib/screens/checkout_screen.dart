@@ -145,6 +145,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       } else {
         // Direct cash order
         if (!context.mounted) return;
+        Provider.of<AuthProvider>(context, listen: false).fetchProfile();
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => OrderTrackingScreen(orderId: orderId)),
         );
@@ -193,6 +194,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         // Trigger payment confirmation webhook/API mock
                         await ApiService.post('/api/orders/$orderId/confirm-payment', {});
                         if (context.mounted) {
+                          Provider.of<AuthProvider>(context, listen: false).fetchProfile();
                           Navigator.of(context).pop(); // dismiss sheet
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(builder: (context) => OrderTrackingScreen(orderId: orderId)),

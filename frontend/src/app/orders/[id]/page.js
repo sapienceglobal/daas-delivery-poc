@@ -139,14 +139,29 @@ export default function OrderTrackingPage() {
 
   const statusSteps = [
     { key: 'pending', label: 'Order Confirmed', desc: 'Preparing your meal' },
-    { key: 'processing', label: 'Dispatching Courier', desc: 'Assigning nearest delivery courier' },
-    { key: 'driver_assigned', label: 'Courier Heading to Restaurant', desc: 'Courier en route to store' },
-    { key: 'picked_up', label: 'On The Way', desc: 'Courier en route to your address' },
+    { key: 'accepted', label: 'Order Accepted', desc: 'Restaurant has accepted your order' },
+    { key: 'preparing', label: 'Food Preparing', desc: 'Restaurant is preparing your food' },
+    { key: 'cooking', label: 'Food Cooking', desc: 'Restaurant is cooking your food' },
+    { key: 'ready', label: 'Ready & Packed', desc: 'Food is ready and packed' },
+    { key: 'driver_assigned', label: 'Courier Heading to Store', desc: 'Courier heading to restaurant' },
+    { key: 'picked_up', label: 'Out for Delivery', desc: 'Courier heading to your address' },
     { key: 'delivered', label: 'Delivered', desc: 'Order hand-off complete' }
   ];
 
   const getStatusIndex = (status) => {
-    return statusSteps.findIndex(step => step.key === status);
+    const mapping = {
+      'pending': 0,
+      'accepted': 1,
+      'preparing': 2,
+      'cooking': 3,
+      'ready': 4,
+      'processing': 4,
+      'quote_created': 4,
+      'driver_assigned': 5,
+      'picked_up': 6,
+      'delivered': 7
+    };
+    return mapping[status] !== undefined ? mapping[status] : 0;
   };
 
   const fetchOrderDetails = async (showLoader = false) => {

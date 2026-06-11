@@ -161,8 +161,14 @@ router.get('/profile', protect, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User profile not found.' });
     }
 
-    // Fetch past orders sorted by newest first
-    const orders = await Order.find({ userId: user._id }).sort({ createdAt: -1 });
+    // Fetch past orders sorted by newest first (excluding unpaid/abandoned checkout orders)
+    const orders = await Order.find({
+      userId: user._id,
+      $or: [
+        { paymentMethod: 'Cash on Delivery' },
+        { paymentStatus: 'paid' }
+      ]
+    }).sort({ createdAt: -1 });
 
     res.json({
       success: true,
