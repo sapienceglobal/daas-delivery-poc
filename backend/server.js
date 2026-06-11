@@ -141,6 +141,39 @@ app.use('/api', (req, res, next) => {
 });
 
 // Main Service Routes
+const fs = require('fs');
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.post('/api/upload', (req, res) => {
+  const { image, name } = req.body;
+  if (!image) {
+    return res.status(400).json({ success: false, message: 'No image data provided.' });
+  }
+
+  try {
+    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir);
+    }
+
+    const fileExt = name ? path.extname(name) : '.jpg';
+    const fileName = `banner_${Date.now()}${fileExt}`;
+    const filePath = path.join(uploadsDir, fileName);
+
+    fs.writeFileSync(filePath, buffer);
+
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${fileName}`;
+    return res.json({ success: true, url: fileUrl });
+  } catch (error) {
+    console.error('[Upload API] Error saving image:', error.message);
+    return res.status(500).json({ success: false, message: 'Failed to upload image.' });
+  }
+});
+
 app.use('/api/orders', orderRoutes);
 app.use('/api/delivery-webhook', webhookRoutes);
 app.use('/api/restaurants', restaurantRoutes);

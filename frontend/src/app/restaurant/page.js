@@ -71,6 +71,12 @@ export default function RestaurantDashboard() {
   const [submittingReg, setSubmittingReg] = useState(false);
   const [resolvingAddress, setResolvingAddress] = useState(false);
 
+  // Address suggestions & Upload states
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+
   // Orders State
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
@@ -92,6 +98,37 @@ export default function RestaurantDashboard() {
   const [storeOpenTime, setStoreOpenTime] = useState('09:00');
   const [storeCloseTime, setStoreCloseTime] = useState('22:00');
   const [savingSettings, setSavingSettings] = useState(false);
+
+  // Autocomplete Address Search via Nominatim
+  useEffect(() => {
+    if (!regAddress || regAddress.length < 4) {
+      setAddressSuggestions([]);
+      return;
+    }
+
+    const fetchSuggestions = async () => {
+      setLoadingSuggestions(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(regAddress)}&countrycodes=us&limit=5`
+        );
+        const data = await res.json();
+        if (data) {
+          setAddressSuggestions(data);
+        }
+      } catch (err) {
+        console.error("Autocomplete search error:", err);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+
+    const delayDebounce = setTimeout(() => {
+      fetchSuggestions();
+    }, 500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [regAddress]);
 
   // Load auth user information
   useEffect(() => {
@@ -282,6 +319,28 @@ export default function RestaurantDashboard() {
     e.preventDefault();
     setSubmittingReg(true);
     try {
+      // 1. Geocode & Validate the address via backend Nominatim integration
+      const valRes = await fetch(`${API_BASE_URL}/api/orders/validate-address`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: regAddress.trim() })
+      });
+      const valData = await valRes.json();
+      if (!valRes.ok || !valData.success || !valData.isValid) {
+        alert(valData.message || 'Invalid location. We do not serve this address or it could not be verified.');
+        setSubmittingReg(false);
+        return;
+      }
+
+      const verifiedAddress = valData.formattedAddress;
+      const verifiedLng = parseFloat(valData.coordinates.lng);
+      const verifiedLat = parseFloat(valData.coordinates.lat);
+
+      setRegAddress(verifiedAddress);
+      setRegLng(verifiedLng.toString());
+      setRegLat(verifiedLat.toString());
+
+      // 2. Submit verified info to database
       const res = await fetch(`${API_BASE_URL}/api/restaurants`, {
         method: 'POST',
         headers: {
@@ -291,10 +350,10 @@ export default function RestaurantDashboard() {
         body: JSON.stringify({
           name: regName,
           cuisine: regCuisine,
-          address: regAddress,
+          address: verifiedAddress,
           phone: regPhone,
           banner: regBanner || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80',
-          coordinates: [parseFloat(regLng), parseFloat(regLat)]
+          coordinates: [verifiedLng, verifiedLat]
         })
       });
       const data = await res.json();
@@ -314,6 +373,38 @@ export default function RestaurantDashboard() {
     } finally {
       setSubmittingReg(false);
     }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+    setUploadError(null);
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Data = reader.result;
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/upload`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64Data, name: file.name })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setRegBanner(data.url);
+        } else {
+          setUploadError(data.message || 'Upload failed.');
+        }
+      } catch (err) {
+        console.error(err);
+        setUploadError('Failed to upload image to server.');
+      } finally {
+        setUploadingFile(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleUpdatePrepStatus = async (orderId, prepStatus) => {
@@ -577,37 +668,63 @@ export default function RestaurantDashboard() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="font-bold text-brand-muted">STORE BANNER IMAGE URL</label>
-              <input
-                type="text"
-                value={regBanner}
-                onChange={(e) => setRegBanner(e.target.value)}
-                placeholder="https://unsplash.com/..."
-                className="w-full bg-brand-bg/85 rounded-xl border border-brand-border px-3.5 py-2.5 outline-none text-white focus:border-brand-cyan font-mono"
-              />
+              <label className="font-bold text-brand-muted">STORE BANNER IMAGE</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={regBanner}
+                  placeholder="No banner uploaded. Click to upload..."
+                  className="flex-1 bg-brand-bg/85 rounded-xl border border-brand-border px-3.5 py-2.5 outline-none text-brand-muted focus:border-brand-cyan font-mono text-[11px]"
+                />
+                <label className="px-4 py-2.5 rounded-xl bg-brand-cyan hover:bg-brand-cyan/80 text-brand-bg text-xs font-bold uppercase transition-all cursor-pointer flex items-center justify-center">
+                  {uploadingFile ? 'Uploading...' : 'Browse'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              {uploadError && (
+                <span className="text-[10px] text-red-500 font-medium mt-1">{uploadError}</span>
+              )}
             </div>
 
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 relative">
               <div className="flex justify-between items-center">
                 <label className="font-bold text-brand-muted">STREET ADDRESS (US)</label>
-                <button
-                  type="button"
-                  onClick={handleResolveAddress}
-                  disabled={resolvingAddress || !regAddress}
-                  className="text-[10px] text-brand-cyan hover:text-white font-bold flex items-center gap-1 transition-all disabled:opacity-40 cursor-pointer"
-                >
-                  <MapPin size={10} />
-                  {resolvingAddress ? 'Geocoding...' : 'Resolve GPS'}
-                </button>
+                {loadingSuggestions && (
+                  <span className="text-[10px] text-brand-cyan animate-pulse">Searching...</span>
+                )}
               </div>
-              <textarea
-                rows={2}
+              <input
+                type="text"
                 required
                 value={regAddress}
                 onChange={(e) => setRegAddress(e.target.value)}
                 placeholder="e.g. 100 Sutter St, San Francisco, CA"
-                className="w-full bg-brand-bg/85 rounded-xl border border-brand-border px-3.5 py-2.5 outline-none text-white focus:border-brand-cyan resize-none"
+                className="w-full bg-brand-bg/85 rounded-xl border border-brand-border px-3.5 py-2.5 outline-none text-white focus:border-brand-cyan"
               />
+              {addressSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-1 max-h-40 overflow-y-auto bg-brand-card border border-brand-border rounded-xl shadow-xl z-30">
+                  {addressSuggestions.map((item, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        setRegAddress(item.display_name);
+                        setRegLng(item.lon);
+                        setRegLat(item.lat);
+                        setAddressSuggestions([]);
+                      }}
+                      className="px-3.5 py-2 text-[11px] text-brand-muted hover:text-white hover:bg-brand-bg/60 cursor-pointer border-b border-brand-border/30 last:border-0 text-left"
+                    >
+                      {item.display_name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">

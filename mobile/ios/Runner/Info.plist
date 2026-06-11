@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app requires access to the photo library to upload restaurant banner images.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app requires access to the camera to take restaurant banner images.</string>
 </dict>
 </plist>

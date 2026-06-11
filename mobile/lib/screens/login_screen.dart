@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/glass_container.dart';
 
@@ -28,6 +32,12 @@ class _LoginScreenState extends State<LoginScreen> {
   String _mode = 'login'; // 'login' | 'register' | 'forgot' | 'reset'
   String _role = 'customer'; // 'customer' | 'merchant'
 
+  // Address autocomplete state
+  List<dynamic> _addressSuggestions = [];
+  bool _isLoadingSuggestions = false;
+  Timer? _debounce;
+  bool _isValidatingAddress = false;
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -37,6 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _addressController.dispose();
     _resetTokenController.dispose();
     _newPasswordController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -53,6 +64,39 @@ class _LoginScreenState extends State<LoginScreen> {
     return regex.hasMatch(value);
   }
 
+  void _searchAddress(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (query.trim().length < 4) {
+        setState(() {
+          _addressSuggestions = [];
+        });
+        return;
+      }
+
+      setState(() {
+        _isLoadingSuggestions = true;
+      });
+
+      try {
+        final url = Uri.parse('https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(query)}&countrycodes=us&limit=5');
+        final res = await http.get(url, headers: {
+          'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0 (adars.gemini.antigravity)'
+        });
+        final data = json.decode(res.body);
+        setState(() {
+          _addressSuggestions = data ?? [];
+        });
+      } catch (e) {
+        debugPrint('OSM suggestions error: $e');
+      } finally {
+        setState(() {
+          _isLoadingSuggestions = false;
+        });
+      }
+    });
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -65,6 +109,50 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       // Successful login automatically updates MainGate view reactively.
     } else if (_mode == 'register') {
+      setState(() {
+        _isValidatingAddress = true;
+      });
+      try {
+        final valRes = await ApiService.post('/api/orders/validate-address', {
+          'address': _addressController.text.trim(),
+        });
+        final valData = json.decode(valRes.body);
+        if (valData['success'] != true || valData['isValid'] != true) {
+          setState(() {
+            _isValidatingAddress = false;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(valData['message'] ?? 'Invalid location. We do not serve this address or it could not be verified.'),
+                backgroundColor: BrandColors.red,
+              ),
+            );
+          }
+          return;
+        }
+        
+        final formattedAddr = valData['formattedAddress'] ?? _addressController.text.trim();
+        _addressController.text = formattedAddr;
+      } catch (e) {
+        setState(() {
+          _isValidatingAddress = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Address verification failed: $e. Please verify your connection.'),
+              backgroundColor: BrandColors.red,
+            ),
+          );
+        }
+        return;
+      } finally {
+        setState(() {
+          _isValidatingAddress = false;
+        });
+      }
+
       final success = await authProvider.register(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
@@ -272,12 +360,60 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: _addressController,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'Primary Delivery Address',
-                                prefixIcon: Icon(Icons.location_on_outlined, color: BrandColors.textMuted, size: 18),
+                                prefixIcon: const Icon(Icons.location_on_outlined, color: BrandColors.textMuted, size: 18),
+                                suffixIcon: _isLoadingSuggestions
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: Padding(
+                                          padding: EdgeInsets.all(12),
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: BrandColors.cyan,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
                               ),
+                              onChanged: _searchAddress,
                               validator: (val) => val == null || val.trim().isEmpty ? 'Enter your address' : null,
                             ),
+                            if (_addressSuggestions.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: BrandColors.card,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: BrandColors.border),
+                                ),
+                                constraints: const BoxConstraints(maxHeight: 200),
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const ClampingScrollPhysics(),
+                                  padding: EdgeInsets.zero,
+                                  itemCount: _addressSuggestions.length,
+                                  itemBuilder: (context, idx) {
+                                    final suggestion = _addressSuggestions[idx];
+                                    return ListTile(
+                                      dense: true,
+                                      leading: const Icon(Icons.location_on, color: BrandColors.cyan, size: 16),
+                                      title: Text(
+                                        suggestion['display_name'] ?? '',
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                                      ),
+                                      onTap: () {
+                                        setState(() {
+                                          _addressController.text = suggestion['display_name'] ?? '';
+                                          _addressSuggestions = [];
+                                        });
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 16),
                             
                             // Role Selector Dropdown
@@ -332,9 +468,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
 
                           // Submit Action Button
-                          ElevatedButton(
-                            onPressed: authProvider.isLoading ? null : _handleSubmit,
-                            child: authProvider.isLoading
+                           ElevatedButton(
+                            onPressed: (authProvider.isLoading || _isValidatingAddress) ? null : _handleSubmit,
+                            child: (authProvider.isLoading || _isValidatingAddress)
                                 ? const SizedBox(
                                     height: 20,
                                     width: 20,

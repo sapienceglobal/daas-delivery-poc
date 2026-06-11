@@ -1217,7 +1217,7 @@ export default function Home() {
 
       {/* Restaurant Menu Modal */}
       {activeRestaurant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-bg/70 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand-bg/70 backdrop-blur-sm animate-fade-in">
           <div className="relative w-full max-w-2xl bg-brand-card border border-brand-border rounded-3xl overflow-hidden shadow-2xl max-h-[85vh] flex flex-col">
             
             {/* Header info */}
@@ -1339,7 +1339,7 @@ export default function Home() {
 
       {/* Cart Drawer & Checkout Form */}
       {isCheckoutOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-brand-bg/60 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex justify-end bg-brand-bg/60 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md bg-brand-card border-l border-brand-border h-full flex flex-col justify-between shadow-2xl relative">
             
             {/* Header */}
@@ -1912,7 +1912,7 @@ export default function Home() {
 
       {/* User Profile & Past Orders History Drawer */}
       {showProfileDrawer && user && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-brand-bg/60 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex justify-end bg-brand-bg/60 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md bg-brand-card border-l border-brand-border h-full flex flex-col justify-between shadow-2xl relative">
             
             {/* Drawer Header */}

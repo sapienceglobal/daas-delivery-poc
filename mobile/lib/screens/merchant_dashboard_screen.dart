@@ -4,6 +4,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../services/socket_service.dart';
@@ -34,6 +36,12 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
   final _regBannerController = TextEditingController();
   bool _submittingReg = false;
 
+  // Address autocomplete state
+  List<dynamic> _addressSuggestions = [];
+  bool _isLoadingSuggestions = false;
+  Timer? _debounce;
+  bool _isValidatingAddress = false;
+
   // Add/Edit Menu Item Controllers
   final _itemNameController = TextEditingController();
   final _itemDescController = TextEditingController();
@@ -60,6 +68,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
   @override
   void dispose() {
     _chimeTimer?.cancel();
+    _debounce?.cancel();
     _regNameController.dispose();
     _regCuisineController.dispose();
     _regAddressController.dispose();
@@ -72,6 +81,39 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
     _closeTimeController.dispose();
     SocketService.disconnect('merchant_dashboard');
     super.dispose();
+  }
+
+  void _searchAddress(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (query.trim().length < 4) {
+        setState(() {
+          _addressSuggestions = [];
+        });
+        return;
+      }
+
+      setState(() {
+        _isLoadingSuggestions = true;
+      });
+
+      try {
+        final url = Uri.parse('https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(query)}&countrycodes=us&limit=5');
+        final res = await http.get(url, headers: {
+          'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0 (adars.gemini.antigravity)'
+        });
+        final data = json.decode(res.body);
+        setState(() {
+          _addressSuggestions = data ?? [];
+        });
+      } catch (e) {
+        debugPrint('OSM suggestions error: $e');
+      } finally {
+        setState(() {
+          _isLoadingSuggestions = false;
+        });
+      }
+    });
   }
 
   Future<void> _fetchMerchantProfile() async {
@@ -151,11 +193,11 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
 
   void _playChime() {
     if (_chimeMuted) return;
-    // Play system beep sound and trigger haptic vibration
-    SystemSound.play(SystemSoundType.click);
+    // Play system alert notification sound and trigger haptic vibration
+    SystemSound.play(SystemSoundType.alert);
     HapticFeedback.vibrate();
-    Future.delayed(const Duration(milliseconds: 200), () {
-      SystemSound.play(SystemSoundType.click);
+    Future.delayed(const Duration(milliseconds: 300), () {
+      SystemSound.play(SystemSoundType.alert);
       HapticFeedback.vibrate();
     });
   }
@@ -193,6 +235,70 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
 
         return StatefulBuilder(
           builder: (context, setStateSheet) {
+            void startRealUpload(XFile file) async {
+              setStateSheet(() {
+                isUploading = true;
+                uploadProgress = 0.1;
+                uploadStatus = 'Reading image file...';
+              });
+
+              try {
+                final bytes = await file.readAsBytes();
+                setStateSheet(() {
+                  uploadProgress = 0.3;
+                  uploadStatus = 'Encoding image...';
+                });
+                
+                final base64Image = base64Encode(bytes);
+                
+                setStateSheet(() {
+                  uploadProgress = 0.5;
+                  uploadStatus = 'Uploading to storage server...';
+                });
+
+                final response = await ApiService.post('/api/upload', {
+                  'image': base64Image,
+                  'name': file.name,
+                });
+                
+                setStateSheet(() {
+                  uploadProgress = 0.8;
+                  uploadStatus = 'Saving file references...';
+                });
+
+                final data = json.decode(response.body);
+                if (data['success'] == true && data['url'] != null) {
+                  final url = data['url'];
+                  setStateSheet(() {
+                    uploadProgress = 1.0;
+                    uploadStatus = 'Upload complete!';
+                  });
+                  
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    if (context.mounted) {
+                      _regBannerController.text = url;
+                      setState(() {});
+                      Navigator.of(context).pop();
+                    }
+                  });
+                } else {
+                  throw Exception(data['message'] ?? 'Failed to upload image.');
+                }
+              } catch (e) {
+                setStateSheet(() {
+                  isUploading = false;
+                });
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to upload image: $e'),
+                      backgroundColor: BrandColors.red,
+                    ),
+                  );
+                }
+              }
+            }
+
             void startMockUpload(String url, String fileName) {
               setStateSheet(() {
                 isUploading = true;
@@ -284,10 +390,21 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
-                    onPressed: () {
-                      final randomIdx = Random().nextInt(presets.length);
-                      final preset = presets[randomIdx];
-                      startMockUpload(preset['url']!, 'device_photo_${randomIdx + 1}.jpg');
+                    onPressed: () async {
+                      final picker = ImagePicker();
+                      try {
+                        final XFile? file = await picker.pickImage(source: ImageSource.gallery);
+                        if (file != null) {
+                          startRealUpload(file);
+                        }
+                      } catch (e) {
+                        debugPrint('Error picking image: $e');
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to pick image: $e'), backgroundColor: BrandColors.red),
+                          );
+                        }
+                      }
                     },
                     icon: const Icon(Icons.upload_file, color: BrandColors.background),
                     label: const Text('UPLOAD FROM DEVICE'),
@@ -382,17 +499,69 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
 
     setState(() {
       _submittingReg = true;
+      _isValidatingAddress = true;
     });
+
+    double lat = 37.7749;
+    double lng = -122.4194;
+    String formattedAddress = address;
+
+    try {
+      final valRes = await ApiService.post('/api/orders/validate-address', {
+        'address': address,
+      });
+      final valData = json.decode(valRes.body);
+      if (valData['success'] != true || valData['isValid'] != true) {
+        setState(() {
+          _submittingReg = false;
+          _isValidatingAddress = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(valData['message'] ?? 'Invalid location. We do not serve this address or it could not be verified.'),
+              backgroundColor: BrandColors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      formattedAddress = valData['formattedAddress'] ?? address;
+      _regAddressController.text = formattedAddress;
+
+      if (valData['coordinates'] != null) {
+        lat = (valData['coordinates']['lat'] as num).toDouble();
+        lng = (valData['coordinates']['lng'] as num).toDouble();
+      }
+    } catch (e) {
+      setState(() {
+        _submittingReg = false;
+        _isValidatingAddress = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Address verification failed: $e. Please verify connection.'),
+            backgroundColor: BrandColors.red,
+          ),
+        );
+      }
+      return;
+    } finally {
+      setState(() {
+        _isValidatingAddress = false;
+      });
+    }
 
     try {
       final response = await ApiService.post('/api/restaurants', {
         'name': name,
         'cuisine': cuisine,
-        'address': address,
+        'address': formattedAddress,
         'phone': phone,
         'banner': banner,
-        'lat': 37.7749,
-        'lng': -122.4194,
+        'coordinates': [lng, lat],
       });
 
       final data = json.decode(response.body);
@@ -1119,7 +1288,60 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                   const SizedBox(height: 16),
                   TextField(controller: _regCuisineController, decoration: const InputDecoration(labelText: 'Cuisines (e.g. Burgers, Fast Food)')),
                   const SizedBox(height: 16),
-                  TextField(controller: _regAddressController, decoration: const InputDecoration(labelText: 'Fulfillment Address (San Francisco presaved)')),
+                  TextField(
+                    controller: _regAddressController,
+                    decoration: InputDecoration(
+                      labelText: 'Fulfillment Address (San Francisco presaved)',
+                      suffixIcon: _isLoadingSuggestions
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: Padding(
+                                padding: EdgeInsets.all(12),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: BrandColors.cyan,
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                    onChanged: _searchAddress,
+                  ),
+                  if (_addressSuggestions.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: BrandColors.card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: BrandColors.border),
+                      ),
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: const ClampingScrollPhysics(),
+                        padding: EdgeInsets.zero,
+                        itemCount: _addressSuggestions.length,
+                        itemBuilder: (context, idx) {
+                          final suggestion = _addressSuggestions[idx];
+                          return ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.location_on, color: BrandColors.cyan, size: 16),
+                            title: Text(
+                              suggestion['display_name'] ?? '',
+                              style: const TextStyle(color: Colors.white, fontSize: 12),
+                            ),
+                            onTap: () {
+                              setState(() {
+                                _regAddressController.text = suggestion['display_name'] ?? '';
+                                _addressSuggestions = [];
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   TextField(controller: _regPhoneController, decoration: const InputDecoration(labelText: 'Fulfillment Phone Number')),
                   const SizedBox(height: 16),

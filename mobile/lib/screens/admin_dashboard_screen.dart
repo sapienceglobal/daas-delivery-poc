@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
@@ -15,9 +16,11 @@ class AdminDashboardScreen extends StatefulWidget {
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
-  int _activeTab = 0; // 0: Analytics, 1: Orders & Refunds
+  int _activeTab = 0; // 0: Partners, 1: Users, 2: Orders, 3: Analytics
   bool _isLoading = true;
   List<dynamic> _orders = [];
+  List<dynamic> _restaurants = [];
+  List<dynamic> _users = [];
   String? _error;
 
   @override
@@ -33,14 +36,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     });
 
     try {
-      final response = await ApiService.get('/api/orders');
-      final data = json.decode(response.body);
-      if (data['success'] == true) {
+      final responses = await Future.wait([
+        ApiService.get('/api/orders'),
+        ApiService.get('/api/restaurants/admin/all'),
+        ApiService.get('/api/auth/admin/users'),
+      ]);
+
+      final ordersData = json.decode(responses[0].body);
+      final restaurantsData = json.decode(responses[1].body);
+      final usersData = json.decode(responses[2].body);
+
+      if (ordersData['success'] == true &&
+          restaurantsData['success'] == true &&
+          usersData['success'] == true) {
         setState(() {
-          _orders = data['orders'] ?? [];
+          _orders = ordersData['orders'] ?? [];
+          _restaurants = restaurantsData['restaurants'] ?? [];
+          _users = usersData['users'] ?? [];
         });
       } else {
-        throw Exception(data['message'] ?? 'Failed to load platform data');
+        throw Exception('Failed to load platform data');
       }
     } catch (e) {
       setState(() {
@@ -94,6 +109,96 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  Future<void> _updateRestaurantStatus(String id, String status) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await ApiService.put('/api/restaurants/$id/status', {
+        'status': status,
+      });
+      final data = json.decode(response.body);
+      if (data['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Store status updated to ${status.toUpperCase()} successfully!')),
+        );
+        await _fetchAdminData();
+      } else {
+        throw Exception(data['message'] ?? 'Failed to update store status');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Update Error: $e')),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _updateUserRole(String userId, String role, String? restaurantId) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await ApiService.put('/api/auth/admin/users/$userId/role', {
+        'role': role,
+        'restaurantId': restaurantId,
+      });
+      final data = json.decode(response.body);
+      if (data['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User role updated successfully!')),
+        );
+        await _fetchAdminData();
+      } else {
+        throw Exception(data['message'] ?? 'Failed to update user role');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Role Update Error: $e')),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _createRestaurant(String name, String cuisine, String address, String phone, String banner, double lat, double lng) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await ApiService.post('/api/restaurants', {
+        'name': name,
+        'cuisine': cuisine,
+        'address': address,
+        'phone': phone,
+        'banner': banner.isEmpty ? 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80' : banner,
+        'coordinates': [lng, lat],
+      });
+      final data = json.decode(response.body);
+      if (data['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Restaurant created and auto-approved successfully!')),
+        );
+        await _fetchAdminData();
+      } else {
+        throw Exception(data['message'] ?? 'Failed to create restaurant');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Creation Error: $e')),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   // Analytics Helpers
   double _getGrossRevenue() {
     return _orders
@@ -102,7 +207,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   double _getPlatformEarnings() {
-    // Platform fee ($2) + 20% markups (mock markup or commission)
     final completed = _orders.where((o) => o['deliveryStatus'] != 'cancelled' && o['deliveryStatus'] != 'refunded');
     double fees = completed.length * 2.0;
     double markup = completed.fold(0.0, (sum, o) => sum + (((o['deliveryFee'] as num?)?.toDouble() ?? 0.0) * 0.2) / 100);
@@ -110,7 +214,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   List<double> _getDailySalesData() {
-    // Returns sales for past 7 days
     final now = DateTime.now();
     final List<double> sales = List.filled(7, 0.0);
     
@@ -173,8 +276,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               : IndexedStack(
                   index: _activeTab,
                   children: [
-                    _buildAnalyticsTab(),
+                    _buildRestaurantsTab(),
+                    _buildUsersTab(),
                     _buildOrdersTab(),
+                    _buildAnalyticsTab(),
                   ],
                 ),
       bottomNavigationBar: BottomNavigationBar(
@@ -182,12 +287,428 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         backgroundColor: BrandColors.card,
         selectedItemColor: BrandColors.cyan,
         unselectedItemColor: BrandColors.textMuted,
+        type: BottomNavigationBarType.fixed,
         onTap: (idx) => setState(() => _activeTab = idx),
         items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.storefront_outlined), label: 'Stores'),
+          BottomNavigationBarItem(icon: Icon(Icons.people_alt_outlined), label: 'Users'),
+          BottomNavigationBarItem(icon: Icon(Icons.gavel_outlined), label: 'Orders'),
           BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined), label: 'Analytics'),
-          BottomNavigationBarItem(icon: Icon(Icons.gavel_outlined), label: 'Orders & Refunds'),
         ],
       ),
+    );
+  }
+
+  Widget _buildRestaurantsTab() {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showCreateRestaurantDialog,
+        backgroundColor: BrandColors.cyan,
+        child: const Icon(Icons.add, color: BrandColors.background),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _fetchAdminData,
+        child: _restaurants.isEmpty
+            ? const Center(child: Text('No restaurants registered.', style: TextStyle(color: BrandColors.textMuted)))
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _restaurants.length,
+                itemBuilder: (context, idx) {
+                  final rest = _restaurants[idx];
+                  final status = rest['status'] ?? 'pending';
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: GlassContainer(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(rest['name'] ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: status == 'approved'
+                                      ? BrandColors.green.withOpacity(0.15)
+                                      : status == 'rejected'
+                                          ? BrandColors.red.withOpacity(0.15)
+                                          : Colors.amber.withOpacity(0.15),
+                                  border: Border.all(
+                                    color: status == 'approved'
+                                        ? BrandColors.green
+                                        : status == 'rejected'
+                                            ? BrandColors.red
+                                            : Colors.amber,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  status.toString().toUpperCase(),
+                                  style: TextStyle(
+                                    color: status == 'approved'
+                                        ? BrandColors.green
+                                        : status == 'rejected'
+                                            ? BrandColors.red
+                                            : Colors.amber,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text('Cuisine: ${rest['cuisine'] ?? ''}', style: const TextStyle(color: BrandColors.textMuted, fontSize: 11)),
+                          Text('Address: ${rest['address'] ?? ''}', style: const TextStyle(color: BrandColors.textMuted, fontSize: 11)),
+                          Text('Phone: ${rest['phone'] ?? ''}', style: const TextStyle(color: BrandColors.textMuted, fontSize: 11)),
+                          const Divider(color: BrandColors.border, height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              if (status != 'approved')
+                                ElevatedButton.icon(
+                                  onPressed: () => _updateRestaurantStatus(rest['_id'], 'approved'),
+                                  icon: const Icon(Icons.check, size: 12, color: BrandColors.background),
+                                  label: const Text('APPROVE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(backgroundColor: BrandColors.green, minimumSize: Size.zero, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                                ),
+                              if (status != 'approved' && status != 'rejected')
+                                const SizedBox(width: 8),
+                              if (status != 'rejected')
+                                OutlinedButton.icon(
+                                  onPressed: () => _updateRestaurantStatus(rest['_id'], status == 'approved' ? 'pending' : 'rejected'),
+                                  icon: Icon(Icons.block, size: 12, color: status == 'approved' ? Colors.amber : BrandColors.red),
+                                  label: Text(status == 'approved' ? 'SUSPEND' : 'REJECT', style: TextStyle(fontSize: 10, color: status == 'approved' ? Colors.amber : BrandColors.red, fontWeight: FontWeight.bold)),
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(color: status == 'approved' ? Colors.amber : BrandColors.red),
+                                    minimumSize: Size.zero,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+      ),
+    );
+  }
+
+  Widget _buildUsersTab() {
+    return RefreshIndicator(
+      onRefresh: _fetchAdminData,
+      child: _users.isEmpty
+          ? const Center(child: Text('No users registered.', style: TextStyle(color: BrandColors.textMuted)))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _users.length,
+              itemBuilder: (context, idx) {
+                final user = _users[idx];
+                final role = user['role'] ?? 'customer';
+                
+                // Find linked restaurant name if merchant
+                String linkedStore = '';
+                if (role == 'merchant' && user['restaurantId'] != null) {
+                  final store = _restaurants.firstWhere(
+                    (r) => r['_id'] == user['restaurantId'],
+                    orElse: () => null,
+                  );
+                  linkedStore = store != null ? store['name'] : 'Linked Store Unknown';
+                }
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: GlassContainer(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(user['name'] ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                              Text(user['email'] ?? '', style: const TextStyle(color: BrandColors.textMuted, fontSize: 11, fontFamily: 'monospace')),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: role == 'admin'
+                                          ? BrandColors.red.withOpacity(0.15)
+                                          : role == 'merchant'
+                                              ? BrandColors.cyan.withOpacity(0.15)
+                                              : BrandColors.textMuted.withOpacity(0.15),
+                                      border: Border.all(
+                                        color: role == 'admin'
+                                            ? BrandColors.red
+                                            : role == 'merchant'
+                                                ? BrandColors.cyan
+                                                : BrandColors.textMuted,
+                                      ),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      role.toString().toUpperCase(),
+                                      style: TextStyle(
+                                        color: role == 'admin'
+                                            ? BrandColors.red
+                                            : role == 'merchant'
+                                                ? BrandColors.cyan
+                                                : BrandColors.textMuted,
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  if (role == 'merchant' && linkedStore.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Store: $linkedStore',
+                                        style: const TextStyle(color: BrandColors.textMuted, fontSize: 10, fontStyle: FontStyle.italic),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: BrandColors.cyan, size: 20),
+                          onPressed: () => _showEditUserDialog(user),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  void _showEditUserDialog(Map<String, dynamic> user) {
+    String selectedRole = user['role'] ?? 'customer';
+    String? selectedRestaurantId = user['restaurantId'];
+
+    // Ensure selected restaurant is valid
+    if (selectedRestaurantId != null && !_restaurants.any((r) => r['_id'] == selectedRestaurantId)) {
+      selectedRestaurantId = null;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              backgroundColor: BrandColors.card,
+              title: Text('Edit User: ${user['name']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('PLATFORM ROLE', style: TextStyle(color: BrandColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: selectedRole,
+                    dropdownColor: BrandColors.card,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: BrandColors.background,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: BrandColors.border)),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'customer', child: Text('Customer')),
+                      DropdownMenuItem(value: 'merchant', child: Text('Merchant (Store Owner)')),
+                      DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setStateDialog(() {
+                          selectedRole = val;
+                        });
+                      }
+                    },
+                  ),
+                  if (selectedRole == 'merchant') ...[
+                    const SizedBox(height: 16),
+                    const Text('LINKED STORE', style: TextStyle(color: BrandColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String?>(
+                      value: selectedRestaurantId,
+                      dropdownColor: BrandColors.card,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: BrandColors.background,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: BrandColors.border)),
+                      ),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('-- No Store Link --')),
+                        ..._restaurants.map((r) => DropdownMenuItem(
+                              value: r['_id'] as String?,
+                              child: Text(r['name'] ?? ''),
+                            )),
+                      ],
+                      onChanged: (val) {
+                        setStateDialog(() {
+                          selectedRestaurantId = val;
+                        });
+                      },
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('CANCEL', style: TextStyle(color: BrandColors.textMuted)),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _updateUserRole(user['_id'], selectedRole, selectedRole == 'merchant' ? selectedRestaurantId : null);
+                  },
+                  child: const Text('SAVE'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showCreateRestaurantDialog() {
+    final nameController = TextEditingController();
+    final cuisineController = TextEditingController();
+    final addressController = TextEditingController();
+    final phoneController = TextEditingController();
+    final bannerController = TextEditingController();
+    double lat = 37.7749;
+    double lng = -122.4194;
+    bool resolving = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            Future<void> resolveAddress() async {
+              if (addressController.text.trim().isEmpty) return;
+              setStateDialog(() {
+                resolving = true;
+              });
+              try {
+                final response = await http.get(Uri.parse(
+                    'https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(addressController.text.trim())}&countrycodes=us&limit=1'));
+                final data = json.decode(response.body);
+                if (data != null && data.isNotEmpty) {
+                  lat = double.parse(data[0]['lat']);
+                  lng = double.parse(data[0]['lon']);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Resolved location to Lat: $lat, Lng: $lng')),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Address resolution failed. Using defaults.')),
+                  );
+                }
+              } catch (e) {
+                debugPrint('Resolution failure: $e');
+              } finally {
+                setStateDialog(() {
+                  resolving = false;
+                });
+              }
+            }
+
+            return AlertDialog(
+              backgroundColor: BrandColors.card,
+              title: const Text('Add Approved Store', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      decoration: const InputDecoration(labelText: 'STORE NAME', labelStyle: TextStyle(color: BrandColors.textMuted, fontSize: 10)),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: cuisineController,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      decoration: const InputDecoration(labelText: 'CUISINE TYPES', labelStyle: TextStyle(color: BrandColors.textMuted, fontSize: 10)),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: phoneController,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      decoration: const InputDecoration(labelText: 'CONTACT PHONE', labelStyle: TextStyle(color: BrandColors.textMuted, fontSize: 10)),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: bannerController,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      decoration: const InputDecoration(labelText: 'BANNER IMAGE URL (OPTIONAL)', labelStyle: TextStyle(color: BrandColors.textMuted, fontSize: 10)),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('STREET ADDRESS', style: TextStyle(color: BrandColors.textMuted, fontSize: 10)),
+                        TextButton.icon(
+                          onPressed: resolving ? null : resolveAddress,
+                          icon: const Icon(Icons.pin_drop, size: 12, color: BrandColors.cyan),
+                          label: Text(resolving ? 'Resolving...' : 'RESOLVE GPS', style: const TextStyle(fontSize: 9, color: BrandColors.cyan)),
+                        ),
+                      ],
+                    ),
+                    TextField(
+                      controller: addressController,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      maxLines: 2,
+                      decoration: const InputDecoration(hintText: 'e.g. 100 Sutter St, San Francisco, CA', hintStyle: TextStyle(color: BrandColors.textMuted, fontSize: 11)),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('CANCEL', style: TextStyle(color: BrandColors.textMuted)),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final name = nameController.text.trim();
+                    final cuisine = cuisineController.text.trim();
+                    final phone = phoneController.text.trim();
+                    final address = addressController.text.trim();
+                    if (name.isEmpty || cuisine.isEmpty || phone.isEmpty || address.isEmpty) return;
+                    Navigator.of(context).pop();
+                    _createRestaurant(name, cuisine, address, phone, bannerController.text.trim(), lat, lng);
+                  },
+                  child: const Text('CREATE'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
