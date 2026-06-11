@@ -151,10 +151,12 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
 
   void _playChime() {
     if (_chimeMuted) return;
-    // Play system beep sound
+    // Play system beep sound and trigger haptic vibration
     SystemSound.play(SystemSoundType.click);
+    HapticFeedback.vibrate();
     Future.delayed(const Duration(milliseconds: 200), () {
       SystemSound.play(SystemSoundType.click);
+      HapticFeedback.vibrate();
     });
   }
 
@@ -690,7 +692,6 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
             ),
           ] else ...[
             ..._orders.map((order) {
-              final isPending = order['deliveryStatus'] == 'pending';
               final isCompleted = order['deliveryStatus'] == 'delivered' || order['deliveryStatus'] == 'refunded' || order['deliveryStatus'] == 'cancelled';
               
               return Container(
@@ -717,7 +718,21 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                       Text('Address: ${order['address']}', style: const TextStyle(color: BrandColors.textMuted, fontSize: 11)),
                       if (order['courierNotes'] != null)
                         Text('Courier Notes: "${order['courierNotes']}"', style: const TextStyle(color: BrandColors.green, fontSize: 11, fontStyle: FontStyle.italic)),
-                      
+                      if (order['dasherName'] != null) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(Icons.delivery_dining, size: 14, color: BrandColors.cyan),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                'Dasher: ${order['dasherName']}${order['dasherPhone'] != null ? " (${order['dasherPhone']})" : ""}',
+                                style: const TextStyle(color: BrandColors.cyan, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const Divider(color: BrandColors.border, height: 20),
                       
                       // Items details
@@ -732,7 +747,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Status: ${order['deliveryStatus'].toUpperCase()}',
+                            'Status: ${order['deliveryStatus'].toString().toUpperCase()}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 11,
@@ -743,56 +758,99 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                                       : BrandColors.blue,
                             ),
                           ),
-                          if (isPending)
-                            ElevatedButton(
-                              onPressed: () => _updateOrderStatus(order['_id'], 'accepted'),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                minimumSize: Size.zero,
-                              ),
-                              child: const Text('ACCEPT ORDER'),
-                            )
-                          else if (order['deliveryStatus'] == 'processing')
-                            _hasStatusUpdateContaining(order, 'complete')
-                                ? Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: BrandColors.green.withOpacity(0.15),
-                                      border: Border.all(color: BrandColors.green.withOpacity(0.3)),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: const [
-                                        Icon(Icons.check_circle_outline, size: 14, color: BrandColors.green),
-                                        SizedBox(width: 6),
-                                        Text(
-                                          'Food Ready / Dispatched',
-                                          style: TextStyle(color: BrandColors.green, fontSize: 11, fontWeight: FontWeight.bold),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : ElevatedButton(
-                                    onPressed: () => _updateOrderStatus(order['_id'], 'ready'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: BrandColors.green,
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                      minimumSize: Size.zero,
-                                    ),
-                                    child: const Text('MARK READY'),
-                                  )
-                          else if (!isCompleted)
-                            Text(
-                              order['deliveryStatus'] == 'driver_assigned'
-                                  ? 'Courier Heading to Store'
-                                  : order['deliveryStatus'] == 'picked_up'
-                                      ? 'Out for Delivery'
-                                      : 'In Transit',
-                              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                            )
-                          else
-                            const Text('Archived', style: TextStyle(color: BrandColors.textMuted, fontSize: 11)),
+                          () {
+                            final status = order['deliveryStatus'];
+                            if (status == 'pending') {
+                              return ElevatedButton(
+                                onPressed: () => _updateOrderStatus(order['_id'], 'accepted'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: BrandColors.cyan,
+                                  foregroundColor: BrandColors.background,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  minimumSize: Size.zero,
+                                ),
+                                child: const Text('ACCEPT ORDER'),
+                              );
+                            } else if (status == 'accepted') {
+                              return ElevatedButton(
+                                onPressed: () => _updateOrderStatus(order['_id'], 'preparing'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: BrandColors.cyan,
+                                  foregroundColor: BrandColors.background,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  minimumSize: Size.zero,
+                                ),
+                                child: const Text('START PREPARING'),
+                              );
+                            } else if (status == 'preparing') {
+                              return ElevatedButton(
+                                onPressed: () => _updateOrderStatus(order['_id'], 'cooking'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  minimumSize: Size.zero,
+                                ),
+                                child: const Text('START COOKING'),
+                              );
+                            } else if (status == 'cooking') {
+                              return ElevatedButton(
+                                onPressed: () => _updateOrderStatus(order['_id'], 'ready'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: BrandColors.green,
+                                  foregroundColor: BrandColors.background,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  minimumSize: Size.zero,
+                                ),
+                                child: const Text('MARK READY & PACK'),
+                              );
+                            } else if (status == 'ready' || status == 'processing') {
+                              return ElevatedButton(
+                                onPressed: () => _updateOrderStatus(order['_id'], 'dispatched'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: BrandColors.blue,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  minimumSize: Size.zero,
+                                ),
+                                child: const Text('DISPATCH COURIER'),
+                              );
+                            } else if (status == 'driver_assigned') {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: BrandColors.cyan.withOpacity(0.15),
+                                  border: Border.all(color: BrandColors.cyan.withOpacity(0.4)),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'Courier Heading to Store',
+                                  style: TextStyle(color: BrandColors.cyan, fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                              );
+                            } else if (status == 'picked_up') {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: BrandColors.green.withOpacity(0.15),
+                                  border: Border.all(color: BrandColors.green.withOpacity(0.4)),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'Out for Delivery',
+                                  style: TextStyle(color: BrandColors.green, fontSize: 11, fontWeight: FontWeight.bold),
+                                ),
+                              );
+                            } else if (status == 'delivered') {
+                              return const Text('Delivered', style: TextStyle(color: BrandColors.textMuted, fontSize: 11, fontWeight: FontWeight.bold));
+                            } else if (status == 'cancelled') {
+                              return const Text('Cancelled', style: TextStyle(color: BrandColors.red, fontSize: 11, fontWeight: FontWeight.bold));
+                            } else if (status == 'failed') {
+                              return const Text('Fulfillment Failed', style: TextStyle(color: BrandColors.red, fontSize: 11, fontWeight: FontWeight.bold));
+                            } else {
+                              return Text(status.toString().toUpperCase(), style: const TextStyle(color: BrandColors.textMuted, fontSize: 11, fontWeight: FontWeight.bold));
+                            }
+                          }(),
                         ],
                       ),
                     ],
