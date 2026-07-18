@@ -1,0 +1,83 @@
+/**
+ * ============================================================================
+ * BRAND OVERRIDE — Lassi Lounge (Single-Restaurant Branded Mode)
+ * ============================================================================
+ * Scoped entirely under [data-brand="lassi-lounge"], set on <html> in
+ * layout.js when NEXT_PUBLIC_SINGLE_RESTAURANT_MODE=true and
+ * NEXT_PUBLIC_BRANDED_RESTAURANT_ID=lassi-lounge. Marketplace mode never
+ * renders this attribute, so none of these rules apply there — this file is
+ * safe to import globally in every deployment of the shared codebase.
+ *
+ * RULE: only semantic tokens are overridden here — never invent new raw hex
+ * values inside components. If a value from the design needs a token that
+ * doesn't exist yet in tokens.css (e.g. --font-script), add it to the base
+ * :root first with a sensible platform-wide default, then override it here.
+ *
+ * Google Fonts used by this brand (add to the <head> alongside the base
+ * import, or load via next/font — do not duplicate the <link> tag):
+ * https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Dancing+Script:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap
+ * ============================================================================
+ */
+
+[data-brand="lassi-lounge"] {
+  /* --- Dark chrome: header, hero, footer, delivery-partner banner --- */
+  --color-background:      #0e0d0c;
+  --color-surface:         #171514;
+  --color-card:            #1a1817;
+  --color-border:          #2a2624;
+  --color-text:            #f7f3ec;
+  --color-text-secondary:  #c9c0b5;
+
+  /* --- Cream section background: menu strip, signature dishes, testimonials.
+     Components in these sections use --color-background-alt + a locally
+     dark text color (set via the .on-cream helper below), since the base
+     --color-text/-secondary above are tuned for the dark hero/footer. --- */
+  --color-background-alt:  #f7f1e4;
+
+  /* --- Primary: vivid red — logo wordmark, headings accent, feature
+     titles, plus-button outlines, badges. Ramp anchored at 600 = #cd131b,
+     matching the exact red sampled from the reference screenshot. --- */
+  --color-primary-50:  #fdecec;
+  --color-primary-100: #fad0d0;
+  --color-primary-200: #f4a3a3;
+  --color-primary-300: #ec7373;
+  --color-primary-400: #e04747;
+  --color-primary-500: #d62b2b;
+  --color-primary-600: #cd131b;   /* base brand red — exact screenshot match */
+  --color-primary-700: #a30f16;
+  --color-primary-800: #7a0b10;   /* dark maroon — used for solid CTA buttons like "Read More About Us" */
+  --color-primary-900: #4d0709;
+
+  /* --- Accent: gold/amber — "LOUNGE" wordmark, active nav underline,
+     prices, star ratings, ORDER ONLINE button fill --- */
+  --color-accent-50:  #fdf6e6;
+  --color-accent-100: #faeac2;
+  --color-accent-200: #f3d485;
+  --color-accent-300: #edbd52;
+  --color-accent-400: #e8a020;
+  --color-accent-500: #d68f13;   /* base accent gold */
+  --color-accent-600: #b8770e;
+  --color-accent-700: #8f5c0a;
+  --color-accent-800: #664107;
+  --color-accent-900: #3d2704;
+
+  /* --- Typography --- */
+  --font-heading: 'Playfair Display', serif;     /* "LASSI LOUNGE", section titles */
+  --font-script:  'Dancing Script', cursive;      /* "Welcome to", logo script flourish */
+  --font-body:    'Poppins', ui-sans-serif, sans-serif;
+
+  /* --- Radius: this design uses mostly sharp/slightly-rounded corners,
+     not the platform-default rounded look, except for pills/circles --- */
+  --radius-md: 6px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+}
+
+/* Helper for cream-background sections nested inside the branded page —
+   flips text color back to dark since --color-text is dark-mode-tuned
+   at the brand root (used for hero/header/footer). Apply on the section
+   wrapper, e.g. <section className="bg-background-alt on-cream"> */
+[data-brand="lassi-lounge"] .on-cream {
+  --color-text: #201a15;
+  --color-text-secondary: #6b5f52;
+}

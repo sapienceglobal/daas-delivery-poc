@@ -202,8 +202,8 @@ class CartBottomSheet extends StatelessWidget {
                   _buildSummaryRow('Subtotal', '\$${cart.getCartSubtotal().toStringAsFixed(2)}'),
                   const SizedBox(height: 6),
                   _buildSummaryRow('Tax', '\$${cart.getTax().toStringAsFixed(2)}'),
-                  const SizedBox(height: 6),
                   _buildSummaryRow('Platform Fee', '\$${cart.getPlatformFee().toStringAsFixed(2)}'),
+                  _buildSummaryRow('Service Fee', '\$${cart.getServiceFee().toStringAsFixed(2)}'),
                   if (cart.getDeliveryFee() > 0) ...[
                     const SizedBox(height: 6),
                     _buildSummaryRow('Delivery Fee', '\$${cart.getDeliveryFee().toStringAsFixed(2)}'),

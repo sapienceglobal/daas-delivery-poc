@@ -5,7 +5,6 @@ import '../providers/cart_provider.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/glass_container.dart';
-import 'checkout_screen.dart';
 import '../widgets/cart_bottom_sheet.dart';
 
 class RestaurantMenuScreen extends StatefulWidget {
@@ -34,7 +33,7 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen> {
       final data = json.decode(response.body);
       if (data['success'] == true) {
         setState(() {
-          _detailedRestaurant = data['restaurant'];
+          _detailedRestaurant = data['data'];
         });
       } else {
         throw Exception(data['message'] ?? 'Failed to load menu details');
@@ -103,12 +102,12 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen> {
     // Categorized items
     final Map<String, List<dynamic>> categories = {};
     if (rest['menu'] != null) {
-      for (var item in rest['menu']) {
-        final cat = item['category'] ?? 'Mains';
-        if (!categories.containsKey(cat)) {
-          categories[cat] = [];
+      for (var catNode in rest['menu']) {
+        final catName = catNode['name'] ?? 'Mains';
+        final items = catNode['items'] as List<dynamic>? ?? [];
+        if (items.isNotEmpty) {
+          categories[catName] = items;
         }
-        categories[cat]!.add(item);
       }
     }
 

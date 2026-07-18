@@ -9,7 +9,6 @@ import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/glass_container.dart';
 import 'restaurant_menu_screen.dart';
-import 'checkout_screen.dart';
 import 'order_history_screen.dart';
 import 'order_tracking_screen.dart';
 import '../widgets/cart_bottom_sheet.dart';
@@ -22,19 +21,10 @@ class CustomerHomeScreen extends StatefulWidget {
 }
 
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
-  // Location States
-  final List<Map<String, dynamic>> _presetAddresses = [
-    { 'label': 'Oak St (Default)', 'address': '456 Oak St, San Francisco, CA 94107', 'lat': 37.7749, 'lng': -122.4092 },
-    { 'label': 'Union Square', 'address': '233 Geary St, San Francisco, CA 94102', 'lat': 37.7879, 'lng': -122.4075 },
-    { 'label': 'Mission District', 'address': '1010 Valencia St, San Francisco, CA 94110', 'lat': 37.7599, 'lng': -122.4211 },
-    { 'label': 'Lombard St', 'address': '1000 Lombard St, San Francisco, CA 94109', 'lat': 37.8021, 'lng': -122.4194 }
-  ];
-
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  late String _selectedAddress;
-  late double _lat;
-  late double _lng;
+  String _selectedAddress = 'Select a location';
+  double? _lat;
+  double? _lng;
   
   final _customAddressController = TextEditingController();
   List<dynamic> _suggestions = [];
@@ -55,9 +45,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedAddress = _presetAddresses[0]['address'];
-    _lat = _presetAddresses[0]['lat'];
-    _lng = _presetAddresses[0]['lng'];
     
     // Fetch restaurants & latest orders on init
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -65,7 +52,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       auth.fetchProfile(); // Load orders & latest user details
       if (auth.user != null && auth.user!['savedAddresses'] != null && (auth.user!['savedAddresses'] as List).isNotEmpty) {
         setState(() {
-          _selectedAddress = auth.user!['savedAddresses'][0];
+          final first = auth.user!['savedAddresses'][0];
+          _selectedAddress = first is Map ? (first['address'] ?? first.toString()) : first.toString();
         });
         _geocodeAddress(_selectedAddress);
       } else {
@@ -95,11 +83,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     });
 
     try {
-      final response = await ApiService.get('/api/restaurants?lat=$_lat&lng=$_lng');
+      final url = _lat != null && _lng != null 
+          ? '/api/restaurants/nearby?lat=$_lat&lng=$_lng' 
+          : '/api/restaurants';
+      final response = await ApiService.get(url);
       final data = json.decode(response.body);
       if (data['success'] == true) {
         setState(() {
-          _restaurants = data['restaurants'] ?? [];
+          _restaurants = data['data'] ?? [];
         });
       } else {
         throw Exception(data['message'] ?? 'Failed to load restaurants.');
@@ -220,7 +211,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
     // Check for active orders to show Swiggy/Zomato style live footer tracking bar
     final activeOrders = auth.userOrders.where((o) {
-      final s = o['deliveryStatus'];
+      final s = o['status'];
       return s != 'delivered' && s != 'cancelled' && s != 'failed';
     }).toList();
     final hasActiveOrder = activeOrders.isNotEmpty;
@@ -608,33 +599,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           child: Text('SAVED ADDRESSES', style: TextStyle(fontSize: 10, color: BrandColors.cyan, fontWeight: FontWeight.bold)),
                         ),
                         ...(auth.user!['savedAddresses'] as List).map((addr) {
+                          final String addrStr = addr is Map ? (addr['address'] ?? addr.toString()) : addr.toString();
                           return ListTile(
                             leading: const Icon(Icons.home_outlined, color: BrandColors.cyan, size: 18),
-                            title: Text(addr, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.white)),
+                            title: Text(addrStr, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Colors.white)),
                             onTap: () {
                               setState(() {
-                                _selectedAddress = addr;
+                                _selectedAddress = addrStr;
                                 _showAddressModal = false;
                               });
-                              _geocodeAddress(addr);
+                              _geocodeAddress(addrStr);
                             },
                           );
                         }),
-                        const SizedBox(height: 10),
                       ],
-
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 4),
-                        child: Text('PRESET TEST ADDRESSES', style: TextStyle(fontSize: 10, color: BrandColors.textMuted, fontWeight: FontWeight.bold)),
-                      ),
-                      ..._presetAddresses.map((preset) {
-                        return ListTile(
-                          leading: const Icon(Icons.location_city, color: BrandColors.textMuted, size: 18),
-                          title: Text(preset['label'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
-                          subtitle: Text(preset['address'], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: BrandColors.textMuted)),
-                          onTap: () => _onAddressChanged(preset['address'], preset['lat'], preset['lng']),
-                        );
-                      }),
                     ],
                   ),
           ),
@@ -722,12 +700,39 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   void _showSavedAddressesDialog(BuildContext context, AuthProvider auth) {
-    final newAddrController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) {
+        final newAddrController = TextEditingController();
+        List<dynamic> localSuggestions = [];
+        bool localIsLoading = false;
+        Timer? localDebounce;
+
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            void searchOsm(String query) {
+              if (localDebounce?.isActive ?? false) localDebounce!.cancel();
+              if (query.length < 3) {
+                setDialogState(() {
+                  localSuggestions = [];
+                });
+                return;
+              }
+              localDebounce = Timer(const Duration(milliseconds: 600), () async {
+                setDialogState(() => localIsLoading = true);
+                try {
+                  final url = Uri.parse('https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(query)}&countrycodes=us&limit=5');
+                  final res = await http.get(url, headers: {'User-Agent': 'SapienceGlobalPoC/1.0'});
+                  final data = json.decode(res.body);
+                  setDialogState(() {
+                    localSuggestions = data ?? [];
+                  });
+                } catch (_) {} finally {
+                  setDialogState(() => localIsLoading = false);
+                }
+              });
+            }
+
             return AlertDialog(
               backgroundColor: BrandColors.card,
               title: const Text('Manage Saved Addresses', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
@@ -738,24 +743,45 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   children: [
                     TextField(
                       controller: newAddrController,
-                      decoration: const InputDecoration(
-                        labelText: 'Add New Address...',
-                        suffixIcon: Icon(Icons.add, color: BrandColors.cyan),
+                      onChanged: searchOsm,
+                      decoration: InputDecoration(
+                        labelText: 'Search Address...',
+                        suffixIcon: localIsLoading
+                            ? const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: BrandColors.cyan)))
+                            : const Icon(Icons.search, color: BrandColors.cyan),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (newAddrController.text.trim().isEmpty) return;
-                        final ok = await auth.addAddress(newAddrController.text.trim());
-                        if (ok) {
-                          newAddrController.clear();
-                          setDialogState(() {});
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 10)),
-                      child: const Text('ADD ADDRESS'),
-                    ),
+                    if (localSuggestions.isNotEmpty)
+                      Container(
+                        constraints: const BoxConstraints(maxHeight: 150),
+                        margin: const EdgeInsets.only(top: 8),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: localSuggestions.length,
+                          itemBuilder: (ctx, idx) {
+                            final item = localSuggestions[idx];
+                            return ListTile(
+                              dense: true,
+                              leading: const Icon(Icons.location_pin, color: BrandColors.cyan, size: 16),
+                              title: Text(item['display_name'] ?? '', maxLines: 2, style: const TextStyle(fontSize: 11, color: Colors.white)),
+                              onTap: () async {
+                                final lat = double.parse(item['lat']);
+                                final lng = double.parse(item['lon']);
+                                final labelParts = (item['display_name'] as String).split(',');
+                                final label = labelParts.isNotEmpty ? labelParts[0] : 'Home';
+                                
+                                final ok = await auth.addAddress(item['display_name'], lat, lng, label: label);
+                                if (ok) {
+                                  newAddrController.clear();
+                                  setDialogState(() {
+                                    localSuggestions = [];
+                                  });
+                                }
+                              },
+                            );
+                          },
+                        ),
+                      ),
                     const SizedBox(height: 16),
                     const Divider(color: BrandColors.border),
                     const SizedBox(height: 8),
@@ -766,14 +792,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                               shrinkWrap: true,
                               itemCount: (auth.user!['savedAddresses'] as List).length,
                               itemBuilder: (context, idx) {
-                                final addr = auth.user!['savedAddresses'][idx];
+                                final addrRaw = auth.user!['savedAddresses'][idx];
+                                if (addrRaw is String) {
+                                  return ListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    title: Text('Invalid Cached Address', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+                                    subtitle: Text(addrRaw, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: BrandColors.textMuted)),
+                                  );
+                                }
+                                final addr = addrRaw as Map<String, dynamic>;
                                 return ListTile(
                                   contentPadding: EdgeInsets.zero,
-                                  title: Text(addr, style: const TextStyle(fontSize: 12, color: Colors.white)),
+                                  title: Text(addr['label'] ?? 'Saved', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+                                  subtitle: Text(addr['address'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: BrandColors.textMuted)),
                                   trailing: IconButton(
                                     icon: const Icon(Icons.delete, color: BrandColors.red, size: 18),
                                     onPressed: () async {
-                                      final ok = await auth.deleteAddress(idx);
+                                      final ok = await auth.deleteAddress(addr['_id']);
                                       if (ok) {
                                         setDialogState(() {});
                                       }
@@ -790,7 +825,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text('Close', style: TextStyle(color: BrandColors.cyan)),
-                )
+                ),
               ],
             );
           },
@@ -801,7 +836,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   Widget _buildActiveOrderFloatingCard(Map<String, dynamic> order) {
     final orderId = order['_id'] ?? order['id'] ?? '';
-    final status = order['deliveryStatus'] ?? 'pending';
+    final status = order['status'] ?? 'pending';
     final restaurantName = order['restaurantName'] ?? 'Restaurant';
     
     // Status descriptions

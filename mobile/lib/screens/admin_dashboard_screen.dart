@@ -37,7 +37,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     try {
       final responses = await Future.wait([
-        ApiService.get('/api/orders'),
+        ApiService.get('/api/orders/merchant/all'),
         ApiService.get('/api/restaurants/admin/all'),
         ApiService.get('/api/auth/admin/users'),
       ]);
@@ -50,9 +50,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           restaurantsData['success'] == true &&
           usersData['success'] == true) {
         setState(() {
-          _orders = ordersData['orders'] ?? [];
-          _restaurants = restaurantsData['restaurants'] ?? [];
-          _users = usersData['users'] ?? [];
+          _orders = ordersData['data'] ?? ordersData['orders'] ?? [];
+          _restaurants = restaurantsData['data'] ?? restaurantsData['restaurants'] ?? [];
+          _users = usersData['data'] ?? usersData['users'] ?? [];
         });
       } else {
         throw Exception('Failed to load platform data');
@@ -202,12 +202,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // Analytics Helpers
   double _getGrossRevenue() {
     return _orders
-        .where((o) => o['deliveryStatus'] != 'cancelled' && o['deliveryStatus'] != 'refunded')
+        .where((o) => o['status'] != 'cancelled' && o['status'] != 'refunded')
         .fold(0.0, (sum, o) => sum + ((o['subtotal'] as num?)?.toDouble() ?? 0.0));
   }
 
   double _getPlatformEarnings() {
-    final completed = _orders.where((o) => o['deliveryStatus'] != 'cancelled' && o['deliveryStatus'] != 'refunded');
+    final completed = _orders.where((o) => o['status'] != 'cancelled' && o['status'] != 'refunded');
     double fees = completed.length * 2.0;
     double markup = completed.fold(0.0, (sum, o) => sum + (((o['deliveryFee'] as num?)?.toDouble() ?? 0.0) * 0.2) / 100);
     return fees + markup;
@@ -218,7 +218,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final List<double> sales = List.filled(7, 0.0);
     
     for (var order in _orders) {
-      if (order['deliveryStatus'] == 'cancelled' || order['deliveryStatus'] == 'refunded') continue;
+      if (order['status'] == 'cancelled' || order['status'] == 'refunded') continue;
       final dateStr = order['createdAt'] as String?;
       if (dateStr == null) continue;
       
@@ -519,7 +519,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   const Text('PLATFORM ROLE', style: TextStyle(color: BrandColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
-                    value: selectedRole,
+                    initialValue: selectedRole,
                     dropdownColor: BrandColors.card,
                     style: const TextStyle(color: Colors.white, fontSize: 13),
                     decoration: InputDecoration(
@@ -546,7 +546,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     const Text('LINKED STORE', style: TextStyle(color: BrandColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String?>(
-                      value: selectedRestaurantId,
+                      initialValue: selectedRestaurantId,
                       dropdownColor: BrandColors.card,
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                       decoration: InputDecoration(
@@ -810,7 +810,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         itemCount: _orders.length,
         itemBuilder: (context, idx) {
           final order = _orders[idx];
-          final isRefunded = order['refunded'] == true || order['deliveryStatus'] == 'refunded' || order['deliveryStatus'] == 'cancelled';
+          final isRefunded = order['refunded'] == true || order['status'] == 'refunded' || order['status'] == 'cancelled';
           final date = DateTime.parse(order['createdAt']).toLocal();
 
           return Container(
@@ -824,7 +824,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '#${order['_id'].toString().substring(order['_id'].toString().length - 8).toUpperCase()}',
+                        order['orderNumber'] ?? '#${order['_id'].toString().substring(order['_id'].toString().length - 8).toUpperCase()}',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
                       ),
                       Text(
@@ -842,7 +842,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        isRefunded ? 'STATUS: REFUNDED' : 'STATUS: ${order['deliveryStatus'].toString().toUpperCase()}',
+                        isRefunded ? 'STATUS: REFUNDED' : 'STATUS: ${order['status'].toString().toUpperCase()}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 10,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../providers/auth_provider.dart';
+import 'dart:convert';
+import '../services/api_service.dart';
 import '../theme.dart';
 import '../widgets/glass_container.dart';
 import 'order_tracking_screen.dart';
@@ -15,27 +15,38 @@ class OrderHistoryScreen extends StatefulWidget {
 
 class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   bool _isRefreshing = false;
+  List<dynamic> _orders = [];
 
   @override
   void initState() {
     super.initState();
-    // Fetch latest profile & orders
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AuthProvider>(context, listen: false).fetchProfile();
+      _fetchOrders();
     });
   }
 
-  Future<void> _refreshOrders() async {
+  Future<void> _fetchOrders() async {
     setState(() => _isRefreshing = true);
-    await Provider.of<AuthProvider>(context, listen: false).fetchProfile();
+    try {
+      final response = await ApiService.get('/api/orders/my-orders');
+      final data = json.decode(response.body);
+      if (data['success'] == true) {
+        setState(() {
+          _orders = data['data'] ?? data['orders'] ?? [];
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load orders: $e');
+    }
     setState(() => _isRefreshing = false);
+  }
+
+  Future<void> _refreshOrders() async {
+    await _fetchOrders();
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context);
-    final orders = auth.userOrders;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Order History'),
@@ -46,13 +57,15 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         onRefresh: _refreshOrders,
         color: BrandColors.cyan,
         backgroundColor: BrandColors.card,
-        child: orders.isEmpty
+        child: _isRefreshing && _orders.isEmpty
+            ? const Center(child: CircularProgressIndicator(color: BrandColors.cyan))
+            : _orders.isEmpty
             ? _buildEmptyState()
             : ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: orders.length,
+                itemCount: _orders.length,
                 itemBuilder: (context, idx) {
-                  final order = orders[idx];
+                  final order = _orders[idx];
                   return _buildOrderCard(order);
                 },
               ),
@@ -84,15 +97,21 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
   Widget _buildOrderCard(Map<String, dynamic> order) {
     final orderId = order['_id'] ?? order['id'] ?? '';
-    final status = order['deliveryStatus'] ?? 'pending';
+    final status = order['status'] ?? 'pending';
     final dateStr = order['createdAt'] != null
         ? DateFormat('MMM d, yyyy • hh:mm a').format(DateTime.parse(order['createdAt']).toLocal())
         : 'Unknown Date';
     
     final subtotal = (order['subtotal'] as num?)?.toDouble() ?? 0.0;
     final tax = (order['tax'] as num?)?.toDouble() ?? 0.0;
-    final deliveryFee = ((order['deliveryFee'] as num?)?.toDouble() ?? 0.0) / 100.0;
-    final grandTotal = subtotal + tax + 2.0 + deliveryFee;
+    final deliveryFee = (order['deliveryFee'] as num?)?.toDouble() ?? 0.0;
+    final platformFee = (order['platformFee'] as num?)?.toDouble() ?? 0.0;
+    final serviceFee = (order['serviceFee'] as num?)?.toDouble() ?? 0.0;
+    final tip = (order['tip'] as num?)?.toDouble() ?? 0.0;
+    final discount = (order['discount'] as num?)?.toDouble() ?? 0.0;
+    final loyaltyDiscount = (order['loyaltyDiscount'] as num?)?.toDouble() ?? 0.0;
+    final fallbackTotal = subtotal + tax + deliveryFee + platformFee + serviceFee + tip - discount - loyaltyDiscount;
+    final grandTotal = (order['total'] as num?)?.toDouble() ?? (fallbackTotal < 0 ? 0.0 : fallbackTotal);
 
     final items = order['items'] as List? ?? [];
     final itemsSummary = items.map((i) => '${i['quantity']}x ${i['name']}').join(', ');
@@ -112,7 +131,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ORDER #${orderId.substring(orderId.length - 8).toUpperCase()}',
+                      order['orderNumber'] ?? 'ORDER #${orderId.substring(orderId.length - 8).toUpperCase()}',
                       style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
                     ),
                     const SizedBox(height: 2),

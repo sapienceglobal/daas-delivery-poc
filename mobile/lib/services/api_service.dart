@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiService {
   static const String _configuredBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://195.35.20.207:5001',
+    defaultValue: 'http://192.168.1.5:5000',
   );
   static const Duration _requestTimeout = Duration(seconds: 20);
 
@@ -19,6 +19,7 @@ class ApiService {
     final Map<String, String> headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'x-app-secret': 'DAAS_MOBILE_SECRET_2026',
     };
     
     if (token != null && token.isNotEmpty) {
@@ -54,16 +55,22 @@ class ApiService {
     return _send(() => http.get(uri, headers: headers));
   }
 
-  static Future<http.Response> post(String endpoint, Map<String, dynamic> body) async {
+  static Future<http.Response> post(String endpoint, dynamic body) async {
     final uri = Uri.parse('$baseUrl$endpoint');
     final headers = await _getHeaders();
     return _send(() => http.post(uri, headers: headers, body: json.encode(body)));
   }
 
-  static Future<http.Response> put(String endpoint, Map<String, dynamic> body) async {
+  static Future<http.Response> put(String endpoint, dynamic body) async {
     final uri = Uri.parse('$baseUrl$endpoint');
     final headers = await _getHeaders();
     return _send(() => http.put(uri, headers: headers, body: json.encode(body)));
+  }
+
+  static Future<http.Response> patch(String endpoint, dynamic body) async {
+    final uri = Uri.parse('$baseUrl$endpoint');
+    final headers = await _getHeaders();
+    return _send(() => http.patch(uri, headers: headers, body: json.encode(body)));
   }
 
   static Future<http.Response> delete(String endpoint) async {

@@ -1,0 +1,25 @@
+{
+  "header": {
+    "browse": "Explorar",
+    "my_orders": "Mis Pedidos",
+    "dashboard": "Panel de Control",
+    "admin": "Admin",
+    "sign_in": "Iniciar Sesión",
+    "logout": "Cerrar Sesión",
+    "profile_settings": "Perfil y Ajustes",
+    "order_history": "Historial de Pedidos",
+    "browse_restaurants": "Explorar Restaurantes"
+  },
+  "home": {
+    "hero_title": "¿Antojos? Entregados.",
+    "hero_subtitle": "Pide de los mejores restaurantes locales con seguimiento en tiempo real.",
+    "search_placeholder": "Buscar restaurantes o cocinas...",
+    "trending": "Categorías en Tendencia",
+    "top_restaurants": "Mejores Restaurantes"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Ocurrió un error",
+    "success": "¡Éxito!"
+  }
+}

@@ -31,14 +31,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   bool _ratingSuccess = false;
 
   final List<Map<String, String>> _statusSteps = [
-    { 'key': 'pending', 'label': 'Order Confirmed', 'desc': 'Preparing your meal' },
-    { 'key': 'accepted', 'label': 'Order Accepted', 'desc': 'Restaurant has accepted your order' },
-    { 'key': 'preparing', 'label': 'Food Preparing', 'desc': 'Restaurant is preparing your food' },
-    { 'key': 'cooking', 'label': 'Food Cooking', 'desc': 'Restaurant is cooking your food' },
-    { 'key': 'ready', 'label': 'Ready & Packed', 'desc': 'Food is ready and packed' },
-    { 'key': 'driver_assigned', 'label': 'Courier Heading to Store', 'desc': 'Courier heading to restaurant' },
-    { 'key': 'picked_up', 'label': 'Out for Delivery', 'desc': 'Courier heading to your address' },
-    { 'key': 'delivered', 'label': 'Delivered', 'desc': 'Order hand-off complete' }
+    { 'key': 'pending', 'label': 'Pending' },
+    { 'key': 'accepted', 'label': 'Accepted' },
+    { 'key': 'preparing', 'label': 'Preparing' },
+    { 'key': 'ready', 'label': 'Ready' },
+    { 'key': 'picked_up', 'label': 'Picked Up' },
+    { 'key': 'delivered', 'label': 'Delivered' }
   ];
 
   Timer? _pollingTimer;
@@ -61,7 +59,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
   void _startPolling() {
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      final status = _order?['deliveryStatus'];
+      final status = _order?['status'];
       if (status == 'delivered' || status == 'cancelled' || status == 'failed') {
         _pollingTimer?.cancel();
         return;
@@ -75,7 +73,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       final response = await ApiService.get('/api/orders/${widget.orderId}');
       final data = json.decode(response.body);
       setState(() {
-        _order = data['order'];
+        _order = data['data'] ?? data['order'];
         _isLoading = false;
       });
     } catch (e) {
@@ -89,11 +87,43 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   void _connectSocket() {
     SocketService.connect(
       listenerId: 'order_tracking',
+      orderId: widget.orderId,
       onOrderUpdated: (updatedData) {
-        if (updatedData != null && (updatedData['_id'] == widget.orderId || updatedData['id'] == widget.orderId)) {
-          setState(() {
-            _order = updatedData;
-          });
+        debugPrint('[OrderTrackingScreen] onOrderUpdated callback invoked. Data: $updatedData (Type: ${updatedData.runtimeType})');
+        if (updatedData != null) {
+          try {
+            if (updatedData is String) {
+              debugPrint('[OrderTrackingScreen] Data is String, decoding as JSON...');
+              final parsed = json.decode(updatedData);
+              if (parsed is Map) {
+                updatedData = parsed;
+              }
+            }
+
+            if (updatedData is Map) {
+              setState(() {
+                if (updatedData['_id'] == widget.orderId || updatedData['id'] == widget.orderId) {
+                  debugPrint('[OrderTrackingScreen] Matched order ID. Updating full order.');
+                  _order = Map<String, dynamic>.from(updatedData);
+                } else if (updatedData['status'] != null) {
+                  debugPrint('[OrderTrackingScreen] Updating status only to: ${updatedData['status']}');
+
+                  // Ensure _order is a mutable map
+                  if (_order != null) {
+                    final mutableOrder = Map<String, dynamic>.from(_order!);
+                    mutableOrder['status'] = updatedData['status'];
+                    _order = mutableOrder;
+                  }
+                }
+              });
+              _fetchDetails();
+            } else {
+              debugPrint('[OrderTrackingScreen] Data is not a Map/String. Cannot process.');
+            }
+          } catch (e, stackTrace) {
+            debugPrint('[OrderTrackingScreen] Error handling order update: $e');
+            debugPrint(stackTrace.toString());
+          }
         }
       },
     );
@@ -105,13 +135,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       'pending': 0,
       'accepted': 1,
       'preparing': 2,
-      'cooking': 3,
-      'ready': 4,
-      'processing': 4,
-      'quote_created': 4,
-      'driver_assigned': 5,
-      'picked_up': 6,
-      'delivered': 7
+      'ready': 3,
+      'picked_up': 4,
+      'delivered': 5
     };
     return mapping[status] ?? 0;
   }
@@ -130,7 +156,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       if (data['success'] == true) {
         setState(() {
           _ratingSuccess = true;
-          _order = data['order'];
+          _order = data['data'] ?? data['order'];
         });
       } else {
         throw Exception(data['message'] ?? 'Rating submission failed.');
@@ -146,11 +172,88 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     }
   }
 
+  double _amount(String key) {
+    return (_order?[key] as num?)?.toDouble() ?? 0.0;
+  }
+
+  String _money(double amount) => '\$${amount.toStringAsFixed(2)}';
+
+  Widget _paymentRow(
+    String label,
+    double amount, {
+    Color color = BrandColors.textMuted,
+    bool bold = false,
+    bool negative = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+            ),
+          ),
+          Text(
+            '${negative ? '-' : ''}${_money(amount)}',
+            style: TextStyle(
+              color: bold ? Colors.white : color,
+              fontSize: 12,
+              fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentSummary() {
+    final subtotal = _amount('subtotal');
+    final tax = _amount('tax');
+    final deliveryFee = _amount('deliveryFee');
+    final platformFee = _amount('platformFee');
+    final serviceFee = _amount('serviceFee');
+    final tip = _amount('tip');
+    final discount = _amount('discount');
+    final loyaltyDiscount = _amount('loyaltyDiscount');
+    final refundAmount = _amount('refundAmount');
+    final fallbackTotal = subtotal + tax + deliveryFee + platformFee + serviceFee + tip - discount - loyaltyDiscount;
+    final total = (_order?['total'] as num?)?.toDouble() ?? (fallbackTotal < 0 ? 0.0 : fallbackTotal);
+
+    return GlassContainer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'PAYMENT SUMMARY',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1),
+          ),
+          const SizedBox(height: 12),
+          _paymentRow('Subtotal', subtotal),
+          _paymentRow('Tax', tax),
+          if (deliveryFee > 0) _paymentRow('Delivery Fee', deliveryFee),
+          if (platformFee > 0) _paymentRow('Platform Fee', platformFee),
+          if (serviceFee > 0) _paymentRow('Service Fee', serviceFee),
+          if (tip > 0) _paymentRow('Tip', tip, color: BrandColors.green),
+          if (discount > 0) _paymentRow('Discount', discount, color: BrandColors.green, negative: true),
+          if (loyaltyDiscount > 0) _paymentRow('Loyalty Discount', loyaltyDiscount, color: BrandColors.cyan, negative: true),
+          if (refundAmount > 0) _paymentRow('Refunded', refundAmount, color: BrandColors.red, negative: true),
+          const Divider(color: BrandColors.border, height: 22),
+          _paymentRow('Total', total, color: Colors.white, bold: true),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final statusIdx = _getStatusIndex(_order?['deliveryStatus']);
-    final isRefunded = _order?['refunded'] == true || _order?['deliveryStatus'] == 'refunded' || _order?['deliveryStatus'] == 'cancelled';
-    final isDelivered = _order?['deliveryStatus'] == 'delivered';
+    final statusIdx = _getStatusIndex(_order?['status']);
+    final isRefunded = _order?['refunded'] == true || _order?['status'] == 'refunded' || _order?['status'] == 'cancelled';
+    final isDelivered = _order?['status'] == 'delivered';
 
     return Scaffold(
       appBar: AppBar(
@@ -185,9 +288,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('ORDER ID', style: const TextStyle(color: BrandColors.textMuted, fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)),
+                                    Text('ORDER NUMBER', style: const TextStyle(color: BrandColors.textMuted, fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 2),
-                                    Text('#${widget.orderId.substring(widget.orderId.length - 8).toUpperCase()}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                                    Text(_order?['orderNumber'] ?? '#${widget.orderId.substring(widget.orderId.length - 8).toUpperCase()}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                                   ],
                                 ),
                                 Container(
@@ -210,7 +313,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                                   child: Text(
                                     isRefunded
                                         ? 'REFUNDED'
-                                        : _order?['deliveryStatus']?.toUpperCase() ?? '',
+                                        : _order?['status']?.toUpperCase() ?? '',
                                     style: TextStyle(
                                       color: isRefunded
                                           ? BrandColors.red
@@ -411,73 +514,81 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                         const SizedBox(height: 16),
                       ],
 
-                      // Linear timeline step indicator
-                      GlassContainer(
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _statusSteps.length,
-                          itemBuilder: (context, idx) {
-                            final step = _statusSteps[idx];
-                            final isDone = idx <= statusIdx;
-                            final isActive = idx == statusIdx;
-                            
-                            Color stepColor = isDone ? BrandColors.cyan : BrandColors.textMuted;
-                            if (isDelivered && idx == _statusSteps.length - 1) {
-                              stepColor = BrandColors.green;
-                            }
+                      _buildPaymentSummary(),
+                      const SizedBox(height: 16),
 
-                            return IntrinsicHeight(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Column(
-                                    children: [
-                                      Container(
-                                        width: 16,
-                                        height: 16,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: isActive ? BrandColors.background : stepColor,
-                                          border: Border.all(color: stepColor, width: isActive ? 4 : 1.5),
-                                        ),
-                                      ),
-                                      if (idx < _statusSteps.length - 1)
-                                        Expanded(
-                                          child: Container(
-                                            width: 2,
-                                            color: idx < statusIdx ? BrandColors.cyan : BrandColors.border.withOpacity(0.3),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(bottom: 20),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            step['label']!,
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: isDone ? FontWeight.bold : FontWeight.normal,
-                                              color: isDone ? Colors.white : BrandColors.textMuted,
+                      // Horizontal timeline step indicator
+                      if (!isRefunded)
+                        GlassContainer(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('ORDER PROGRESS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1)),
+                              const SizedBox(height: 24),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: List.generate(_statusSteps.length, (idx) {
+                                  final step = _statusSteps[idx];
+                                  final isCompleted = idx <= statusIdx;
+                                  final isCurrent = idx == statusIdx;
+                                  return Expanded(
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Container(
+                                                height: 2,
+                                                color: idx == 0 ? Colors.transparent : (idx <= statusIdx ? BrandColors.green : BrandColors.border.withOpacity(0.3)),
+                                              ),
                                             ),
+                                            Container(
+                                              width: 32,
+                                              height: 32,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: isCompleted ? BrandColors.green.withOpacity(0.15) : BrandColors.background,
+                                                border: Border.all(
+                                                  color: isCompleted ? BrandColors.green : BrandColors.border.withOpacity(0.3),
+                                                  width: 1.5,
+                                                ),
+                                                boxShadow: isCurrent ? [
+                                                  BoxShadow(color: BrandColors.green.withOpacity(0.2), spreadRadius: 4, blurRadius: 4)
+                                                ] : [],
+                                              ),
+                                              child: Center(
+                                                child: isCompleted
+                                                  ? const Icon(Icons.check, color: BrandColors.green, size: 16)
+                                                  : Text('${idx + 1}', style: const TextStyle(color: BrandColors.textMuted, fontSize: 12)),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: Container(
+                                                height: 2,
+                                                color: idx == _statusSteps.length - 1 ? Colors.transparent : (idx < statusIdx ? BrandColors.green : BrandColors.border.withOpacity(0.3)),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          step['label']!,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: isCompleted ? BrandColors.green : BrandColors.textMuted,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
                                           ),
-                                          const SizedBox(height: 2),
-                                          Text(step['desc']!, style: const TextStyle(fontSize: 11, color: BrandColors.textMuted)),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
+                                  );
+                                }),
                               ),
-                            );
-                          },
+                            ],
+                          ),
                         ),
-                      ),
                       const SizedBox(height: 16),
 
                       // Rating screen if delivered
@@ -559,7 +670,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 class InteractiveStreetMap extends StatefulWidget {
   final Map<String, dynamic>? order;
   final int statusIndex;
-  
+
   const InteractiveStreetMap({
     super.key,
     required this.order,
@@ -615,12 +726,12 @@ class _InteractiveStreetMapState extends State<InteractiveStreetMap> {
   void _centerMap(double viewW, double viewH, double midPixelX, double midPixelY) {
     final double tx = viewW / 2.0 - midPixelX;
     final double ty = viewH / 2.0 - midPixelY;
-    
+
     final currentMatrix = _transformationController.value;
     final double currentTx = currentMatrix.storage[12];
     final double currentTy = currentMatrix.storage[13];
     final double currentScale = currentMatrix.storage[0];
-    
+
     if ((currentTx - tx).abs() > 0.1 || (currentTy - ty).abs() > 0.1 || (currentScale - 1.0).abs() > 0.1) {
       final targetMatrix = Matrix4.identity()..translate(tx, ty);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -635,7 +746,7 @@ class _InteractiveStreetMapState extends State<InteractiveStreetMap> {
   Widget build(BuildContext context) {
     final rCoords = getRestaurantCoords(widget.order?['restaurantName']);
     final cCoords = getCustomerCoords(widget.order?['address']);
-    
+
     final rLat = rCoords[0];
     final rLng = rCoords[1];
     final cLat = cCoords[0];
@@ -667,7 +778,7 @@ class _InteractiveStreetMapState extends State<InteractiveStreetMap> {
 
     // Scooter position logic
     double statusT = 0.0;
-    final status = widget.order?['deliveryStatus'];
+    final status = widget.order?['status'];
     if (status == 'pending' || status == 'processing' || status == 'quote_created') {
       statusT = 0.05; // Sitting at restaurant
     } else if (status == 'driver_assigned') {
@@ -818,7 +929,7 @@ class _InteractiveStreetMapState extends State<InteractiveStreetMap> {
                   left: scooterX - 20,
                   top: scooterY - 20,
                   child: ScooterPulseMarker(
-                    status: widget.order?['deliveryStatus'] ?? 'pending',
+                    status: widget.order?['status'] ?? 'pending',
                   ),
                 ),
               ],
@@ -996,11 +1107,11 @@ class _ScooterPulseMarkerState extends State<ScooterPulseMarker> with SingleTick
   Widget build(BuildContext context) {
     final isError = widget.status == 'cancelled' || widget.status == 'failed';
     final isDelivered = widget.status == 'delivered';
-    
-    final markerColor = isError 
-        ? BrandColors.red 
+
+    final markerColor = isError
+        ? BrandColors.red
         : (isDelivered ? BrandColors.green : const Color(0xFFF97316));
-        
+
     final iconText = isError ? '✕' : (isDelivered ? '✔️' : '🛵');
 
     return AnimatedBuilder(

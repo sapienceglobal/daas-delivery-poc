@@ -8,8 +8,8 @@ const Order = require('../models/Order');
 const { protect } = require('../middleware/authMiddleware');
 
 // JWT Token generation helper
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET', {
+const generateToken = (id, tenantId = 'marketplace') => {
+  return jwt.sign({ id, tenantId }, process.env.JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET', {
     expiresIn: '7d'
   });
 };
@@ -22,8 +22,8 @@ const authLimiter = rateLimit({
 });
 
 // Helper to set JWT token cookie with HttpOnly protection
-const sendTokenCookie = (user, statusCode, res) => {
-  const token = generateToken(user._id);
+const sendTokenCookie = (user, statusCode, res, tenantId = 'marketplace') => {
+  const token = generateToken(user._id, tenantId);
   const secureCookie = process.env.COOKIE_SECURE === 'true' ||
     (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
   
@@ -78,8 +78,11 @@ router.post('/register', authLimiter, async (req, res) => {
   }
 
   try {
+    const tenantId = req.headers['x-tenant-id'] || 'marketplace';
+    const UserModel = req.getModel('User');
+
     // Check if email already registered
-    const userExists = await User.findOne({ email: email.toLowerCase() });
+    const userExists = await UserModel.findOne({ email: email.toLowerCase() });
     if (userExists) {
       return res.status(400).json({ success: false, message: 'Email address already registered.' });
     }
@@ -87,7 +90,7 @@ router.post('/register', authLimiter, async (req, res) => {
     const savedAddresses = address ? [address] : [];
 
     // Create user instance (without setting password directly)
-    const user = new User({
+    const user = new UserModel({
       name,
       email: email.toLowerCase(),
       phone: phone || '',
@@ -102,7 +105,7 @@ router.post('/register', authLimiter, async (req, res) => {
     await user.save();
 
     // Return user details and HttpOnly cookie
-    sendTokenCookie(user, 201, res);
+    sendTokenCookie(user, 201, res, tenantId);
 
   } catch (error) {
     console.error('[Auth Route] Registration Error:', error.message);
@@ -123,7 +126,10 @@ router.post('/login', authLimiter, async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const tenantId = req.headers['x-tenant-id'] || 'marketplace';
+    const UserModel = req.getModel('User');
+
+    const user = await UserModel.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
@@ -140,7 +146,7 @@ router.post('/login', authLimiter, async (req, res) => {
     }
 
     // Return user details and HttpOnly cookie
-    sendTokenCookie(user, 200, res);
+    sendTokenCookie(user, 200, res, tenantId);
 
   } catch (error) {
     console.error('[Auth Route] Login Error:', error.message);
@@ -156,13 +162,13 @@ router.post('/login', authLimiter, async (req, res) => {
 router.get('/profile', protect, async (req, res) => {
   try {
     // req.user contains the user record verified by auth middleware
-    const user = await User.findById(req.user._id).select('-password -salt');
+    const user = await req.getModel('User').findById(req.user._id).select('-password -salt');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User profile not found.' });
     }
 
     // Fetch past orders sorted by newest first (excluding unpaid/abandoned checkout orders)
-    const orders = await Order.find({
+    const orders = await req.getModel('Order').find({
       userId: user._id,
       $or: [
         { paymentMethod: 'Cash on Delivery' },
@@ -193,7 +199,7 @@ router.post('/addresses', protect, async (req, res) => {
   }
 
   try {
-    const user = await User.findById(req.user._id);
+    const user = await req.getModel('User').findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
     // Prevent exact duplicates
@@ -222,7 +228,7 @@ router.put('/addresses/:index', protect, async (req, res) => {
   }
 
   try {
-    const user = await User.findById(req.user._id);
+    const user = await req.getModel('User').findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
     if (isNaN(index) || index < 0 || index >= user.savedAddresses.length) {
@@ -249,7 +255,7 @@ router.delete('/addresses/:index', protect, async (req, res) => {
   const index = parseInt(req.params.index, 10);
 
   try {
-    const user = await User.findById(req.user._id);
+    const user = await req.getModel('User').findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
     if (isNaN(index) || index < 0 || index >= user.savedAddresses.length) {
@@ -275,7 +281,7 @@ router.get('/admin/users', protect, async (req, res) => {
     return res.status(403).json({ success: false, message: 'Forbidden: Admin access required.' });
   }
   try {
-    const users = await User.find().select('-password -salt').sort({ role: 1, name: 1 });
+    const users = await req.getModel('User').find().select('-password -salt').sort({ role: 1, name: 1 });
     res.json({ success: true, count: users.length, users });
   } catch (error) {
     console.error('[Auth Admin Route] GET Users Error:', error.message);
@@ -299,7 +305,7 @@ router.put('/admin/users/:userId/role', protect, async (req, res) => {
   }
 
   try {
-    const targetUser = await User.findById(req.params.userId);
+    const targetUser = await req.getModel('User').findById(req.params.userId);
     if (!targetUser) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
@@ -362,7 +368,7 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await req.getModel('User').findOne({ email: email.toLowerCase() });
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'There is no user with that email' });
@@ -419,7 +425,7 @@ router.post('/reset-password/:token', authLimiter, async (req, res) => {
       .update(req.params.token)
       .digest('hex');
 
-    const user = await User.findOne({
+    const user = await req.getModel('User').findOne({
       resetPasswordToken,
       resetPasswordExpire: { $gt: Date.now() }
     });

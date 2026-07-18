@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "150214752938",
+    "project_id": "daas-delivery",
+    "storage_bucket": "daas-delivery.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:150214752938:android:8d513b99dd63d41a6b6ed3",
+        "android_client_info": {
+          "package_name": "com.daas.delivery"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDm6d7Zqs1DNTMATiDsRs_gLBlfod3y7k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

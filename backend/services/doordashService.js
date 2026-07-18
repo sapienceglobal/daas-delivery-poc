@@ -46,6 +46,21 @@ const generateJWT = () => {
   }
 };
 
+const formatPhoneForDoorDash = (phone, defaultPhone = '+16505550100') => {
+  if (!phone) return defaultPhone;
+  const cleaned = phone.toString().replace(/\D/g, '');
+  if (cleaned.length === 10) {
+    return `+1${cleaned}`;
+  }
+  if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return `+${cleaned}`;
+  }
+  if (phone.toString().trim().startsWith('+') && cleaned.length >= 10) {
+    return `+${cleaned}`;
+  }
+  return defaultPhone;
+};
+
 /**
  * Triggers a real DoorDash Drive API direct delivery request.
  * Endpoint: POST https://openapi.doordash.com/drive/v2/deliveries
@@ -57,7 +72,8 @@ const triggerDeliveryAPI = async (order) => {
   // Prioritize pickup details defined on the restaurant order dynamically
   const pickupBusinessName = order.restaurantName || process.env.PICKUP_BUSINESS_NAME || 'The Premium Test Store';
   const pickupAddress = order.restaurantAddress || process.env.PICKUP_ADDRESS || '100 Main St, San Francisco, CA 94105';
-  const pickupPhone = order.restaurantPhone || process.env.PICKUP_PHONE_NUMBER || '+16505550100';
+  const rawPickupPhone = order.restaurantPhone || process.env.PICKUP_PHONE_NUMBER || '+16505550100';
+  const pickupPhone = formatPhoneForDoorDash(rawPickupPhone, '+16505550100');
 
   console.log(`\n\x1b[35m[DoorDash Service]\x1b[0m Triggering delivery for order ${order.externalDeliveryId}...`);
 
@@ -73,7 +89,7 @@ const triggerDeliveryAPI = async (order) => {
       pickup_phone_number: pickupPhone,
       pickup_business_name: pickupBusinessName,
       dropoff_address: order.address,
-      dropoff_phone_number: order.customerPhone,
+      dropoff_phone_number: formatPhoneForDoorDash(order.customerPhone, '+16505550100'),
       dropoff_name: order.customerName,
       order_value: Math.round(order.productPrice * 100), // convert USD to cents
       dropoff_instructions: order.courierNotes || undefined,

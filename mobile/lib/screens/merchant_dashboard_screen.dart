@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -130,7 +129,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
       
       if (data['success'] == true) {
         setState(() {
-          _restaurant = data['restaurant'];
+          _restaurant = data['data'] ?? data['restaurant'];
           _openTimeController.text = _restaurant?['openTime'] ?? '09:00';
           _closeTimeController.text = _restaurant?['closeTime'] ?? '22:00';
         });
@@ -155,7 +154,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
       final data = json.decode(response.body);
       if (data['success'] == true) {
         setState(() {
-          _orders = data['orders'] ?? [];
+          _orders = data['data'] ?? data['orders'] ?? [];
         });
         _updateChimeTimer();
       }
@@ -169,23 +168,14 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
       listenerId: 'merchant_dashboard',
       restaurantId: _restaurant!['_id'],
       onNewOrder: (newOrder) {
-        if (newOrder != null) {
-          setState(() {
-            // Avoid duplicates
-            if (!_orders.any((o) => o['_id'] == newOrder['_id'])) {
-              _orders.insert(0, newOrder);
-            }
-          });
+        if (mounted && newOrder != null) {
+          _fetchOrders();
           _playChime();
-          _updateChimeTimer();
         }
       },
       onOrderUpdated: (updatedOrder) {
-        if (updatedOrder != null) {
-          setState(() {
-            _orders = _orders.map((o) => o['_id'] == updatedOrder['_id'] ? updatedOrder : o).toList();
-          });
-          _updateChimeTimer();
+        if (mounted && updatedOrder != null) {
+          _fetchOrders();
         }
       },
     );
@@ -204,7 +194,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
 
   void _updateChimeTimer() {
     _chimeTimer?.cancel();
-    final hasPending = _orders.any((o) => o['deliveryStatus'] == 'pending');
+    final hasPending = _orders.any((o) => o['status'] == 'pending');
     if (hasPending) {
       _chimeTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
         _playChime();
@@ -567,7 +557,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
       final data = json.decode(response.body);
       if (data['success'] == true) {
         setState(() {
-          _restaurant = data['restaurant'];
+          _restaurant = data['data'] ?? data['restaurant'];
         });
         await _fetchOrders();
         _connectSocket();
@@ -591,7 +581,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
       final data = json.decode(response.body);
       if (data['success'] == true) {
         setState(() {
-          _orders = _orders.map((o) => o['_id'] == orderId ? data['order'] : o).toList();
+          _orders = _orders.map((o) => o['_id'] == orderId ? (data['data'] ?? data['order']) : o).toList();
         });
         _updateChimeTimer();
       }
@@ -627,7 +617,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
       final data = json.decode(response.body);
       if (data['success'] == true) {
         setState(() {
-          _restaurant = data['restaurant'];
+          _restaurant = data['data'] ?? data['restaurant'];
         });
       }
     } catch (e) {
@@ -660,7 +650,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
         final data = json.decode(res.body);
         if (data['success'] == true) {
           setState(() {
-            _restaurant = data['restaurant'];
+            _restaurant = data['data'] ?? data['restaurant'];
           });
         }
       } else {
@@ -668,7 +658,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
         final data = json.decode(res.body);
         if (data['success'] == true) {
           setState(() {
-            _restaurant = data['restaurant'];
+            _restaurant = data['data'] ?? data['restaurant'];
           });
         }
       }
@@ -698,7 +688,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
       final data = json.decode(response.body);
       if (data['success'] == true) {
         setState(() {
-          _restaurant = data['restaurant'];
+          _restaurant = data['data'] ?? data['restaurant'];
         });
       }
     } catch (e) {
@@ -722,7 +712,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
       final data = json.decode(response.body);
       if (data['success'] == true) {
         setState(() {
-          _restaurant = data['restaurant'];
+          _restaurant = data['data'] ?? data['restaurant'];
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Operating hours updated successfully!')),
@@ -813,7 +803,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
   }
 
   Widget _buildOrdersTab() {
-    final pendingCount = _orders.where((o) => o['deliveryStatus'] == 'pending').length;
+    final pendingCount = _orders.where((o) => o['status'] == 'pending').length;
 
     return RefreshIndicator(
       onRefresh: _fetchOrders,
@@ -861,7 +851,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
             ),
           ] else ...[
             ..._orders.map((order) {
-              final isCompleted = order['deliveryStatus'] == 'delivered' || order['deliveryStatus'] == 'refunded' || order['deliveryStatus'] == 'cancelled';
+              final isCompleted = order['status'] == 'delivered' || order['status'] == 'refunded' || order['status'] == 'cancelled';
               
               return Container(
                 margin: const EdgeInsets.only(bottom: 16),
@@ -873,7 +863,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Order #${order['_id'].toString().substring(order['_id'].toString().length - 6).toUpperCase()}',
+                            order['orderNumber'] ?? 'Order #${order['_id'].toString().substring(order['_id'].toString().length - 6).toUpperCase()}',
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
                           ),
                           Text(
@@ -916,11 +906,11 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Status: ${order['deliveryStatus'].toString().toUpperCase()}',
+                            'Status: ${order['status'].toString().toUpperCase()}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 11,
-                              color: order['deliveryStatus'] == 'pending'
+                              color: order['status'] == 'pending'
                                   ? BrandColors.cyan
                                   : isCompleted
                                       ? BrandColors.textMuted
@@ -928,7 +918,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                             ),
                           ),
                           () {
-                            final status = order['deliveryStatus'];
+                            final status = order['status'];
                             if (status == 'pending') {
                               return ElevatedButton(
                                 onPressed: () => _updateOrderStatus(order['_id'], 'accepted'),
@@ -953,17 +943,6 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                               );
                             } else if (status == 'preparing') {
                               return ElevatedButton(
-                                onPressed: () => _updateOrderStatus(order['_id'], 'cooking'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  minimumSize: Size.zero,
-                                ),
-                                child: const Text('START COOKING'),
-                              );
-                            } else if (status == 'cooking') {
-                              return ElevatedButton(
                                 onPressed: () => _updateOrderStatus(order['_id'], 'ready'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: BrandColors.green,
@@ -971,18 +950,18 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   minimumSize: Size.zero,
                                 ),
-                                child: const Text('MARK READY & PACK'),
+                                child: const Text('MARK READY'),
                               );
                             } else if (status == 'ready' || status == 'processing') {
                               return ElevatedButton(
-                                onPressed: () => _updateOrderStatus(order['_id'], 'dispatched'),
+                                onPressed: () => _updateOrderStatus(order['_id'], 'picked_up'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: BrandColors.blue,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   minimumSize: Size.zero,
                                 ),
-                                child: const Text('DISPATCH COURIER'),
+                                child: const Text('MARK PICKED UP'),
                               );
                             } else if (status == 'driver_assigned') {
                               return Container(
@@ -998,17 +977,15 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen> {
                                 ),
                               );
                             } else if (status == 'picked_up') {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: BrandColors.green.withOpacity(0.15),
-                                  border: Border.all(color: BrandColors.green.withOpacity(0.4)),
-                                  borderRadius: BorderRadius.circular(8),
+                              return ElevatedButton(
+                                onPressed: () => _updateOrderStatus(order['_id'], 'delivered'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: BrandColors.green,
+                                  foregroundColor: BrandColors.background,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  minimumSize: Size.zero,
                                 ),
-                                child: const Text(
-                                  'Out for Delivery',
-                                  style: TextStyle(color: BrandColors.green, fontSize: 11, fontWeight: FontWeight.bold),
-                                ),
+                                child: const Text('MARK DELIVERED'),
                               );
                             } else if (status == 'delivered') {
                               return const Text('Delivered', style: TextStyle(color: BrandColors.textMuted, fontSize: 11, fontWeight: FontWeight.bold));

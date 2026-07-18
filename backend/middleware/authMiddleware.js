@@ -21,8 +21,18 @@ const protect = async (req, res, next) => {
     // Decode token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET');
 
-    // Fetch user from database and attach to request context (excluding password hash)
-    req.user = await User.findById(decoded.id).select('-password -salt');
+    // Dynamically align tenant DB connection context based on the signed JWT token payload
+    const tenantId = decoded.tenantId || 'marketplace';
+    const mongoose = require('mongoose');
+    if (tenantId === 'marketplace') {
+      req.tenantDb = mongoose.connection;
+    } else {
+      const dbName = `daas_poc_${tenantId.replace(/[^a-zA-Z0-9_]/g, '_')}`;
+      req.tenantDb = mongoose.connection.useDb(dbName, { useCache: true });
+    }
+
+    // Fetch user from tenant database and attach to request context (excluding password hash)
+    req.user = await req.getModel('User').findById(decoded.id).select('-password -salt');
     
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'Not authorized, user not found' });

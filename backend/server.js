@@ -80,6 +80,16 @@ const io = socketIo(server, {
 // Save io reference on app
 app.set('io', io);
 
+// Socket Authentication Middleware
+const APP_SECRET = process.env.APP_SECRET || 'DAAS_MOBILE_SECRET_2026';
+io.use((socket, next) => {
+  const secret = socket.handshake.auth?.appSecret || socket.handshake.headers['x-app-secret'];
+  if (secret === APP_SECRET) {
+    return next();
+  }
+  return next(new Error('Authentication error: Invalid App Secret'));
+});
+
 // Socket.io connection logic
 io.on('connection', (socket) => {
   console.log(`\x1b[36m[Socket.io]\x1b[0m New client connected: ${socket.id}`);
@@ -87,6 +97,11 @@ io.on('connection', (socket) => {
   socket.on('join_restaurant', (restaurantId) => {
     socket.join(restaurantId.toString());
     console.log(`\x1b[36m[Socket.io]\x1b[0m Client joined restaurant room: ${restaurantId}`);
+  });
+
+  socket.on('join_order', (orderId) => {
+    socket.join(`order_${orderId}`);
+    console.log(`\x1b[36m[Socket.io]\x1b[0m Client joined order room: order_${orderId}`);
   });
 
   socket.on('disconnect', () => {
@@ -111,6 +126,10 @@ app.use(express.json({
     req.rawBody = buf;
   }
 }));
+
+// Multi-Tenant database connection routing middleware
+const tenantDb = require('./middleware/tenantDb');
+app.use(tenantDb);
 
 // Health endpoints
 app.get('/api/health/live', (req, res) => {

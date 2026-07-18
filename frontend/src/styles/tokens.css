@@ -1,0 +1,299 @@
+/**
+ * ============================================================================
+ * DESIGN TOKENS — SINGLE SOURCE OF TRUTH
+ * ============================================================================
+ * This file is the ONLY place visual design decisions may be defined.
+ * Do not hardcode colors, spacing, radii, shadows, or font values anywhere
+ * else in the codebase — no hex codes in components, no arbitrary Tailwind
+ * values like bg-[#1a1a2e]. Every value a component needs must resolve to
+ * a token defined here (directly, or via the Tailwind config in
+ * tailwind.config.js which maps 1:1 onto these custom properties).
+ *
+ * Google Fonts import (place in _document.js / root layout <head>, or via
+ * next/font — do NOT re-declare these families anywhere else):
+ * https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap
+ *
+ * Dark mode: toggle either `[data-theme="dark"]` on <html>/<body> or a
+ * `.dark` class — both selectors are wired up below so either strategy works
+ * depending on how the app's ThemeProvider is implemented.
+ * ============================================================================
+ */
+
+:root {
+  /* ==========================================================================
+   * 1. COLOR PALETTE
+   * ==========================================================================
+   */
+
+  /* --- Primary: "Signal Violet" — main brand color. Use for primary buttons,
+     links, active nav states, focus rings, and key brand moments. --- */
+  --color-primary-50:  #f1eeff;
+  --color-primary-100: #e4deff;
+  --color-primary-200: #cbc0ff;
+  --color-primary-300: #a99aff;
+  --color-primary-400: #8874ff;
+  --color-primary-500: #6b52ff;
+  --color-primary-600: #4a3aff; /* base brand color */
+  --color-primary-700: #3a2acc;
+  --color-primary-800: #2b1f99;
+  --color-primary-900: #1d1466;
+
+  /* --- Secondary: "Jade" — supporting color. Use for secondary buttons,
+     success accents in illustrations, tags, and complementary highlights.
+     Do not confuse with the `success` semantic color below, which is
+     reserved strictly for status messaging. --- */
+  --color-secondary-50:  #eafbf4;
+  --color-secondary-100: #d2f6e7;
+  --color-secondary-200: #a6edd0;
+  --color-secondary-300: #74deb6;
+  --color-secondary-400: #45c99b;
+  --color-secondary-500: #22ad82;
+  --color-secondary-600: #158a68;
+  --color-secondary-700: #106c53;
+  --color-secondary-800: #0c5240;
+  --color-secondary-900: #083b2e;
+
+  /* --- Accent: "Ember" — sparingly-used highlight color. Use for callouts,
+     badges, promotional banners, and small decorative details that need to
+     pop against primary/secondary. Never use as a full-page background. --- */
+  --color-accent-50:  #fff7e8;
+  --color-accent-100: #ffebc2;
+  --color-accent-200: #ffd98a;
+  --color-accent-300: #ffc24d;
+  --color-accent-400: #ffa91f;
+  --color-accent-500: #f58b00;
+  --color-accent-600: #c96e00;
+  --color-accent-700: #9c5400;
+  --color-accent-800: #703d00;
+  --color-accent-900: #4a2800;
+
+  /* --- Semantic surfaces & text (light mode defaults). Use these — never
+     raw palette values — for page chrome, cards, and copy. --- */
+  --color-background:     #f7f8fa; /* page/app background */
+  --color-background-alt: #ffffff; /* secondary section background — used to alternate section backgrounds down a long page (e.g. cream/tinted sections between white sections) */
+  --color-surface:        #ffffff; /* raised panels, nav bars, modals */
+  --color-card:           #ffffff; /* card components specifically */
+  --color-border:         #e4e7ec; /* dividers, input borders, card outlines */
+  --color-muted:          #98a2b3; /* disabled states, placeholders, icons */
+  --color-text:           #101828; /* primary body/heading text */
+  --color-text-secondary: #475467; /* captions, helper text, timestamps */
+
+  /* --- Status colors — use ONLY for system feedback (toasts, form
+     validation, banners, badges of state). Never reuse for decoration. --- */
+  --color-success: #1fae64;
+  --color-success-bg: #eafbf1;
+  --color-warning: #f5a623;
+  --color-warning-bg: #fff8e8;
+  --color-error:   #e5484d;
+  --color-error-bg: #fdeced;
+  --color-info:    #3b82f6;
+  --color-info-bg: #eaf2ff;
+
+  /* ==========================================================================
+   * 2. TYPOGRAPHY
+   * ==========================================================================
+   */
+
+  /* --- Font families. heading = display/headline copy, body = paragraphs
+     and UI text, mono = code blocks, technical/numeric data. --- */
+  --font-heading: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-script: 'Inter', ui-sans-serif, system-ui, sans-serif; /* decorative script/cursive accent — base platform has no script font, so this falls back to body; branded overrides (e.g. lassi-lounge) replace this with an actual script face like Dancing Script for their own headline flourishes */
+
+  /* --- Font sizes, paired line-height and letter-spacing. Use the matching
+     --line-height-* and --tracking-* alongside each --font-size-* — never
+     mix a size from one step with a line-height from another. --- */
+  --font-size-xs:   0.75rem;   /* 12px — legal copy, tiny labels */
+  --line-height-xs: 1.333;     /* 16px */
+  --tracking-xs:    0.01em;
+
+  --font-size-sm:   0.875rem;  /* 14px — captions, form helper text */
+  --line-height-sm: 1.429;     /* 20px */
+  --tracking-sm:    0.005em;
+
+  --font-size-base: 1rem;      /* 16px — default body copy */
+  --line-height-base: 1.5;     /* 24px */
+  --tracking-base:  0em;
+
+  --font-size-lg:   1.125rem;  /* 18px — lead paragraphs, emphasized body */
+  --line-height-lg: 1.556;     /* 28px */
+  --tracking-lg:    -0.005em;
+
+  --font-size-xl:   1.25rem;   /* 20px — card titles, small headings */
+  --line-height-xl: 1.4;       /* 28px */
+  --tracking-xl:    -0.01em;
+
+  --font-size-2xl:  1.5rem;    /* 24px — section headings */
+  --line-height-2xl: 1.333;    /* 32px */
+  --tracking-2xl:   -0.015em;
+
+  --font-size-3xl:  1.875rem;  /* 30px — page subheadings */
+  --line-height-3xl: 1.2;      /* 36px */
+  --tracking-3xl:   -0.02em;
+
+  --font-size-4xl:  2.25rem;   /* 36px — page titles */
+  --line-height-4xl: 1.111;    /* 40px */
+  --tracking-4xl:   -0.025em;
+
+  --font-size-5xl:  3rem;      /* 48px — hero headlines */
+  --line-height-5xl: 1.083;    /* 52px */
+  --tracking-5xl:   -0.03em;
+
+  /* --- Font weights. Use `regular` for body copy, `medium` for UI labels
+     and buttons, `semibold` for subheadings, `bold` for headings, `black`
+     only for hero/display headlines. --- */
+  --font-weight-regular:  400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+  --font-weight-black:    900;
+
+  /* ==========================================================================
+   * 3. SPACING SCALE
+   * ==========================================================================
+   * Base unit = 4px. Use for margin, padding, gap — never hardcode raw px
+   * for layout spacing. Both px and rem given; prefer rem in stylesheets so
+   * spacing scales with root font-size.
+   */
+  --space-0:  0px;     /* 0rem   — reset/no spacing */
+  --space-1:  4px;      /* 0.25rem — icon-to-label gaps, tight inline spacing */
+  --space-2:  8px;      /* 0.5rem  — small gaps between related elements */
+  --space-3:  12px;     /* 0.75rem — form field internal padding */
+  --space-4:  16px;     /* 1rem    — default component padding/gap */
+  --space-5:  20px;     /* 1.25rem — card padding */
+  --space-6:  24px;     /* 1.5rem  — section internal spacing */
+  --space-8:  32px;     /* 2rem    — spacing between stacked cards */
+  --space-10: 40px;     /* 2.5rem  — spacing between form groups */
+  --space-12: 48px;     /* 3rem    — spacing between distinct page blocks */
+  --space-16: 64px;     /* 4rem    — section vertical padding (mobile) */
+  --space-20: 80px;     /* 5rem    — section vertical padding (tablet) */
+  --space-24: 96px;     /* 6rem    — section vertical padding (desktop) */
+  --space-32: 128px;    /* 8rem    — hero vertical padding */
+  --space-40: 160px;    /* 10rem   — large hero/landing spacing */
+  --space-48: 192px;    /* 12rem   — max page-section spacing */
+  --space-64: 256px;    /* 16rem   — rare, full-bleed marketing sections */
+
+  /* rem equivalents (1rem = 16px root) for use in calc()/utilities that need rem explicitly */
+  --space-0-rem:  0rem;
+  --space-1-rem:  0.25rem;
+  --space-2-rem:  0.5rem;
+  --space-3-rem:  0.75rem;
+  --space-4-rem:  1rem;
+  --space-5-rem:  1.25rem;
+  --space-6-rem:  1.5rem;
+  --space-8-rem:  2rem;
+  --space-10-rem: 2.5rem;
+  --space-12-rem: 3rem;
+  --space-16-rem: 4rem;
+  --space-20-rem: 5rem;
+  --space-24-rem: 6rem;
+  --space-32-rem: 8rem;
+  --space-40-rem: 10rem;
+  --space-48-rem: 12rem;
+  --space-64-rem: 16rem;
+
+  /* ==========================================================================
+   * 4. BORDER RADIUS
+   * ==========================================================================
+   * Use `sm`/`md` for inputs and buttons, `lg`/`xl` for cards and modals,
+   * `2xl` for hero/feature panels, `full` for pills, avatars, and dots.
+   */
+  --radius-none: 0px;
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  24px;
+  --radius-full: 9999px;
+
+  /* ==========================================================================
+   * 5. SHADOWS (light mode)
+   * ==========================================================================
+   * Use `sm` for subtle borders-as-shadow on inputs, `md` for cards at rest,
+   * `lg` for hovered/raised cards, `xl` for dropdowns/popovers, `2xl` for
+   * modals and dialogs. `none` explicitly removes shadow (e.g. flat variants).
+   */
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-md: 0 4px 8px -2px rgba(16, 24, 40, 0.10), 0 2px 4px -2px rgba(16, 24, 40, 0.06);
+  --shadow-lg: 0 12px 16px -4px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.03);
+  --shadow-xl: 0 20px 24px -4px rgba(16, 24, 40, 0.08), 0 8px 8px -4px rgba(16, 24, 40, 0.03);
+  --shadow-2xl: 0 24px 48px -12px rgba(16, 24, 40, 0.18);
+
+  /* ==========================================================================
+   * 6. TRANSITIONS
+   * ==========================================================================
+   * `fast` for micro-interactions (hover color/opacity changes), `base` for
+   * standard UI transitions (dropdown open/close, tab switches), `slow` for
+   * larger layout shifts (modal enter/exit, page transitions).
+   */
+  --transition-fast: 150ms;
+  --transition-base: 200ms;
+  --transition-slow: 300ms;
+  --ease-linear:    linear;
+  --ease-in:        cubic-bezier(0.4, 0, 1, 1);
+  --ease-out:       cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out:    cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ==========================================================================
+   * 7. Z-INDEX SCALE
+   * ==========================================================================
+   * Use the named layer for its exact purpose only — never invent one-off
+   * z-index values in components. Layers are spaced 100 apart to leave room
+   * for internal stacking within a layer (e.g. multiple stacked toasts).
+   */
+  --z-base:     0;
+  --z-dropdown: 1000;
+  --z-sticky:   1100;
+  --z-overlay:  1200;
+  --z-modal:    1300;
+  --z-toast:    1400;
+
+  /* ==========================================================================
+   * 8. BREAKPOINTS (reference values — enforced via tailwind.config.js
+   * screens, since plain CSS custom properties cannot be used inside
+   * @media query conditions). Kept here so this file remains the single
+   * documented source of truth for every dimension in the system.
+   * ==========================================================================
+   * sm:  640px  — large phones / phablets
+   * md:  768px  — tablets (portrait)
+   * lg:  1024px — tablets (landscape) / small laptops
+   * xl:  1280px — laptops / desktops
+   * 2xl: 1536px — large desktops / wide monitors
+   */
+}
+
+/* ============================================================================
+ * DARK MODE OVERRIDES
+ * Applies when either `[data-theme="dark"]` is set on a root element or the
+ * `.dark` class is present (covers class-strategy and attribute-strategy
+ * theme providers alike). Only semantic tokens and shadows are overridden —
+ * the raw primary/secondary/accent/status ramps stay constant across themes
+ * so brand color stays recognizable; components should always consume the
+ * semantic tokens, never the raw palette, for anything background/text/shadow.
+ * ============================================================================
+ */
+[data-theme="dark"],
+.dark {
+  --color-background:     #0b0e14;
+  --color-surface:        #131722;
+  --color-card:           #171b26;
+  --color-border:         #232838;
+  --color-muted:          #667085;
+  --color-text:           #f0f2f5;
+  --color-text-secondary: #b0b7c3;
+
+  --color-success-bg: #0f2c1e;
+  --color-warning-bg: #2e2408;
+  --color-error-bg:   #2e1416;
+  --color-info-bg:    #10233d;
+
+  /* Shadows need heavier, darker rgba values to read correctly against a
+     near-black surface — light-mode shadow values disappear on dark bg. */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.40);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.45), 0 2px 4px -2px rgba(0, 0, 0, 0.30);
+  --shadow-lg: 0 12px 16px -4px rgba(0, 0, 0, 0.50), 0 4px 6px -2px rgba(0, 0, 0, 0.30);
+  --shadow-xl: 0 20px 24px -4px rgba(0, 0, 0, 0.55), 0 8px 8px -4px rgba(0, 0, 0, 0.30);
+  --shadow-2xl: 0 24px 48px -12px rgba(0, 0, 0, 0.65);
+}

@@ -10,6 +10,15 @@ class CartProvider extends ChangeNotifier {
   Map<String, dynamic>? _deliveryQuote;
   bool _isLoadingQuote = false;
   bool _isSubmittingOrder = false;
+  // Checkout advanced options
+  String _orderType = 'delivery';
+  double _tipAmount = 0.0;
+  String? _couponCode;
+  double _couponDiscount = 0.0;
+  bool _useLoyaltyPoints = false;
+  int _loyaltyDiscountPoints = 0;
+  bool _isApplyingCoupon = false;
+
   String? _checkoutError;
 
   List<Map<String, dynamic>> get cartItems => _cartItems;
@@ -19,8 +28,62 @@ class CartProvider extends ChangeNotifier {
   bool get isSubmittingOrder => _isSubmittingOrder;
   String? get checkoutError => _checkoutError;
 
+  String get orderType => _orderType;
+  double get tipAmount => _tipAmount;
+  String? get couponCode => _couponCode;
+  double get couponDiscount => _couponDiscount;
+  bool get useLoyaltyPoints => _useLoyaltyPoints;
+  int get loyaltyDiscountPoints => _loyaltyDiscountPoints;
+  bool get isApplyingCoupon => _isApplyingCoupon;
+
   void clearCheckoutError() {
     _checkoutError = null;
+    notifyListeners();
+  }
+
+  void setOrderType(String type) {
+    _orderType = type;
+    notifyListeners();
+  }
+
+  void setTipAmount(double amount) {
+    _tipAmount = amount;
+    notifyListeners();
+  }
+
+  void toggleLoyaltyPoints(bool use, int userPoints) {
+    _useLoyaltyPoints = use;
+    _loyaltyDiscountPoints = use ? userPoints : 0;
+    notifyListeners();
+  }
+
+  Future<void> applyCoupon(String code) async {
+    if (code.trim().isEmpty) return;
+    _isApplyingCoupon = true;
+    notifyListeners();
+    try {
+      final response = await ApiService.post('/api/coupons/validate', {
+        'code': code.trim().toUpperCase(),
+        'cartValue': getCartSubtotal(),
+        'restaurantId': _cartRestaurant!['_id']
+      });
+      final data = json.decode(response.body);
+      _couponCode = code.trim().toUpperCase();
+      _couponDiscount = (data['data']['discount'] as num).toDouble();
+      _checkoutError = null;
+    } catch (e) {
+      _couponCode = null;
+      _couponDiscount = 0.0;
+      _checkoutError = e.toString().replaceFirst('Exception: ', '');
+    } finally {
+      _isApplyingCoupon = false;
+      notifyListeners();
+    }
+  }
+
+  void clearCoupon() {
+    _couponCode = null;
+    _couponDiscount = 0.0;
     notifyListeners();
   }
 
@@ -68,6 +131,12 @@ class CartProvider extends ChangeNotifier {
     _cartRestaurant = null;
     _deliveryQuote = null;
     _checkoutError = null;
+    _orderType = 'delivery';
+    _tipAmount = 0.0;
+    _couponCode = null;
+    _couponDiscount = 0.0;
+    _useLoyaltyPoints = false;
+    _loyaltyDiscountPoints = 0;
     notifyListeners();
   }
 
@@ -81,26 +150,65 @@ class CartProvider extends ChangeNotifier {
   }
 
   double getTax() {
-    return getCartSubtotal() * 0.0825; // 8.25% tax
+    final taxRate = _cartRestaurant != null && _cartRestaurant!['taxRate'] != null
+        ? (_cartRestaurant!['taxRate'] as num).toDouble()
+        : 0.0875;
+    return getCartSubtotal() * taxRate;
   }
 
   double getPlatformFee() {
     return _cartItems.isNotEmpty ? 2.00 : 0.00;
   }
 
+  double getServiceFee() {
+    if (_cartItems.isEmpty) return 0.00;
+    return double.parse((getCartSubtotal() * 0.03).toStringAsFixed(2));
+  }
+
   double getDeliveryFee() {
-    if (_deliveryQuote != null) {
-      return (_deliveryQuote!['deliveryFee'] as num).toDouble() / 100.0;
+    if (_orderType == 'pickup') return 0.0;
+    if (_deliveryQuote != null && _deliveryQuote!['deliveryFee'] != null) {
+      return (_deliveryQuote!['deliveryFee'] as num).toDouble();
     }
     return 0.0;
   }
 
   double getGrandTotal() {
-    return getCartSubtotal() + getTax() + getPlatformFee() + getDeliveryFee();
+    double total = getCartSubtotal() + getTax() + getPlatformFee() + getServiceFee() + getDeliveryFee() + _tipAmount;
+    double loyaltyDiscount = _useLoyaltyPoints ? (_loyaltyDiscountPoints / 100.0) : 0.0;
+    total = total - _couponDiscount - loyaltyDiscount;
+    return total < 0 ? 0.0 : total;
   }
 
-  Future<void> fetchQuote(String dropoffAddress, {DateTime? scheduledTime}) async {
-    if (_cartItems.isEmpty || _cartRestaurant == null) {
+  List<Map<String, dynamic>> buildCheckoutItems() {
+    return _cartItems.map((item) => {
+      'menuItemId': item['id'],
+      'quantity': item['quantity'],
+    }).toList();
+  }
+
+  Map<String, dynamic> buildCheckoutPayload({
+    required String dropoffAddress,
+    DateTime? scheduledTime,
+  }) {
+    if (_cartRestaurant == null) {
+      throw Exception('Cart restaurant is missing.');
+    }
+
+    return {
+      'restaurantId': _cartRestaurant!['_id'],
+      'items': buildCheckoutItems(),
+      'orderType': _orderType,
+      'tip': _tipAmount,
+      'couponCode': _couponCode,
+      'useLoyaltyPoints': _useLoyaltyPoints,
+      'address': _orderType == 'delivery' ? dropoffAddress : null,
+      'scheduledTime': scheduledTime?.toUtc().toIso8601String(),
+    };
+  }
+
+  Future<void> fetchQuote(String dropoffAddress, {DateTime? scheduledTime, double? lat, double? lng}) async {
+    if (_cartItems.isEmpty || _cartRestaurant == null || _orderType == 'pickup') {
       _deliveryQuote = null;
       notifyListeners();
       return;
@@ -111,13 +219,18 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await ApiService.post('/api/orders/quote', {
-        'pickupAddress': _cartRestaurant!['address'],
-        'dropoffAddress': dropoffAddress,
-        'orderValue': getCartSubtotal(),
+      final body = <String, dynamic>{
+        'restaurantId': _cartRestaurant!['_id'],
+        'address': dropoffAddress,
         'scheduledTime': scheduledTime?.toUtc().toIso8601String(),
-      });
-      _deliveryQuote = json.decode(response.body);
+        'items': buildCheckoutItems(),
+      };
+      if (lat != null) body['addressLat'] = lat;
+      if (lng != null) body['addressLng'] = lng;
+
+      final response = await ApiService.post('/api/orders/delivery-quote', body);
+      final decoded = json.decode(response.body);
+      _deliveryQuote = Map<String, dynamic>.from(decoded['data'] ?? decoded);
     } catch (e) {
       _checkoutError = e.toString().replaceFirst('Exception: ', '');
       _deliveryQuote = null;
@@ -147,6 +260,7 @@ class CartProvider extends ChangeNotifier {
     required String paymentMethod,
     DateTime? scheduledTime,
     String? courierNotes,
+    String? stripePaymentIntentId,
   }) async {
     _isSubmittingOrder = true;
     _checkoutError = null;
@@ -154,30 +268,20 @@ class CartProvider extends ChangeNotifier {
 
     try {
       // Validate address first
-      final isValid = await validateAddress(dropoffAddress);
-      if (!isValid) {
-        throw Exception('Address validation failed. Google Maps could not locate this address.');
+      if (_orderType == 'delivery') {
+        final isValid = await validateAddress(dropoffAddress);
+        if (!isValid) {
+          throw Exception('Address validation failed. Google Maps could not locate this address.');
+        }
       }
 
       final orderPayload = {
+        ...buildCheckoutPayload(dropoffAddress: dropoffAddress, scheduledTime: scheduledTime),
         'customerName': customerName,
         'customerPhone': customerPhone,
-        'address': dropoffAddress,
-        'items': _cartItems.map((item) => {
-          'name': item['name'],
-          'price': item['price'],
-          'quantity': item['quantity'],
-        }).toList(),
-        'restaurantName': _cartRestaurant!['name'],
-        'restaurantAddress': _cartRestaurant!['address'],
-        'restaurantPhone': _cartRestaurant!['phone'],
-        'restaurantId': _cartRestaurant!['_id'],
-        'subtotal': getCartSubtotal(),
-        'tax': getTax(),
-        'deliveryFee': _deliveryQuote != null ? _deliveryQuote!['deliveryFee'] : 599,
         'paymentMethod': paymentMethod,
-        'scheduledTime': scheduledTime?.toUtc().toIso8601String(),
         'courierNotes': courierNotes,
+        'stripePaymentIntentId': stripePaymentIntentId,
       };
 
       final response = await ApiService.post('/api/orders', orderPayload);

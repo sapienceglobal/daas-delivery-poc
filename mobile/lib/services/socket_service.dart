@@ -1,10 +1,12 @@
 import 'dart:developer' as dev;
 import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'api_service.dart';
 
 class SocketService {
   static io.Socket? _socket;
-  static String? _currentRestaurantId;
+  static final Set<String> _restaurantRooms = {};
+  static final Set<String> _orderRooms = {};
 
   // Active listener maps indexed by a unique listenerId (e.g. 'merchant_dashboard', 'order_tracking')
   static final Map<String, Function(dynamic)> _newOrderListeners = {};
@@ -15,6 +17,7 @@ class SocketService {
     Function(dynamic)? onNewOrder,
     Function(dynamic)? onOrderUpdated,
     String? restaurantId,
+    String? orderId,
   }) {
     // Register or update callbacks for this listenerId
     if (onNewOrder != null) {
@@ -27,15 +30,25 @@ class SocketService {
     // If socket is already initialized, join room (if restaurantId changes/is provided) and keep connection alive
     if (_socket != null) {
       dev.log('[Socket.io] Socket already initialized. Registered/updated listener: $listenerId');
-      
+
       if (!_socket!.connected) {
         _socket!.connect();
       }
 
-      if (restaurantId != null && restaurantId != _currentRestaurantId) {
-        _currentRestaurantId = restaurantId;
+      if (restaurantId != null) {
+        _restaurantRooms.add(restaurantId);
         dev.log('[Socket.io] Joining restaurant room: $restaurantId');
-        _socket!.emit('join_restaurant', restaurantId);
+        if (_socket!.connected) {
+          _socket!.emit('join_restaurant', restaurantId);
+        }
+      }
+
+      if (orderId != null) {
+        _orderRooms.add(orderId);
+        if (_socket!.connected) {
+          dev.log('[Socket.io] Joining order room: $orderId');
+          _socket!.emit('join_order', orderId);
+        }
       }
       return;
     }
@@ -43,21 +56,31 @@ class SocketService {
     try {
       final url = ApiService.baseUrl;
       dev.log('[Socket.io] Connecting to: $url');
-      _currentRestaurantId = restaurantId;
-      
+      if (restaurantId != null) _restaurantRooms.add(restaurantId);
+      if (orderId != null) _orderRooms.add(orderId);
+
       _socket = io.io(
         url,
         io.OptionBuilder()
-            .setTransports(['websocket']) // essential for flutter network compatibility
+            .setTransports(['websocket', 'polling']) // allow polling fallback like the web
+            .setAuth({'appSecret': 'DAAS_MOBILE_SECRET_2026'})
+            .setExtraHeaders({'x-app-secret': 'DAAS_MOBILE_SECRET_2026'})
+            .enableReconnection()
+            .setReconnectionDelay(1000)
+            .setReconnectionAttempts(10)
             .disableAutoConnect()
             .build(),
       );
 
       _socket!.onConnect((_) {
         dev.log('[Socket.io] Socket connected successfully');
-        if (_currentRestaurantId != null) {
-          dev.log('[Socket.io] Joining restaurant room: $_currentRestaurantId');
-          _socket!.emit('join_restaurant', _currentRestaurantId);
+        for (final room in _restaurantRooms) {
+          dev.log('[Socket.io] Joining restaurant room: $room');
+          _socket!.emit('join_restaurant', room);
+        }
+        for (final orderRoom in _orderRooms) {
+          dev.log('[Socket.io] Joining order room: $orderRoom');
+          _socket!.emit('join_order', orderRoom);
         }
       });
 
@@ -69,26 +92,45 @@ class SocketService {
         dev.log('[Socket.io] Connection Error: $err');
       });
 
-      _socket!.on('NEW_ORDER', (data) {
-        dev.log('[Socket.io] Event NEW_ORDER received: $data. Notifying ${_newOrderListeners.length} listener(s).');
+      _socket!.on('new_order', (data) {
+        dev.log('[Socket.io] Event new_order received: $data. Notifying ${_newOrderListeners.length} listener(s).');
+        
+        try {
+          // Play native notification sound
+          FlutterRingtonePlayer.playNotification();
+        } catch (e) {
+          dev.log('[Socket.io] Failed to play notification sound: $e');
+        }
+
         // Notify all registered new order listeners
         _newOrderListeners.forEach((id, callback) {
           try {
             callback(data);
           } catch (e) {
-            dev.log('[Socket.io] Error in NEW_ORDER listener ($id): $e');
+            dev.log('[Socket.io] Error in new_order listener ($id): $e');
           }
         });
       });
 
-      _socket!.on('ORDER_UPDATED', (data) {
-        dev.log('[Socket.io] Event ORDER_UPDATED received: $data. Notifying ${_orderUpdatedListeners.length} listener(s).');
+      _socket!.on('order_updated', (data) {
+        dev.log('[Socket.io] Event order_updated received: $data. Notifying ${_orderUpdatedListeners.length} listener(s).');
         // Notify all registered order updated listeners
         _orderUpdatedListeners.forEach((id, callback) {
           try {
             callback(data);
           } catch (e) {
-            dev.log('[Socket.io] Error in ORDER_UPDATED listener ($id): $e');
+            dev.log('[Socket.io] Error in order_updated listener ($id): $e');
+          }
+        });
+      });
+
+      _socket!.on('order_status_changed', (data) {
+        dev.log('[Socket.io] Event order_status_changed received: $data (Type: ${data.runtimeType}). Notifying ${_orderUpdatedListeners.length} listener(s).');
+        _orderUpdatedListeners.forEach((id, callback) {
+          try {
+            callback(data);
+          } catch (e) {
+            dev.log('[Socket.io] Error in order_status_changed listener ($id): $e');
           }
         });
       });
@@ -110,8 +152,17 @@ class SocketService {
         dev.log('[Socket.io] Disconnecting socket (no active listeners remaining)');
         _socket!.disconnect();
         _socket = null;
-        _currentRestaurantId = null;
+        _restaurantRooms.clear();
+        _orderRooms.clear();
       }
+    }
+  }
+
+  static void emit(String event, dynamic data) {
+    if (_socket != null && _socket!.connected) {
+      _socket!.emit(event, data);
+    } else {
+      dev.log('[Socket.io] Cannot emit \$event: socket is not connected.');
     }
   }
 }

@@ -1,919 +1,456 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  ShieldCheck, 
-  MapPin, 
-  Phone, 
-  ArrowLeft, 
-  Plus, 
-  Check, 
-  X, 
-  Loader2, 
-  ExternalLink,
-  Store,
-  Users,
-  Package,
-  Clock,
-  LogOut
+import { useRouter } from 'next/navigation';
+import {
+  ShieldCheck, Users, Store, ShoppingBag, DollarSign,
+  TrendingUp, ReceiptText, Tag, Trash2
 } from 'lucide-react';
-
-const getApiBaseUrl = () => {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
-  }
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    const port = window.location.port;
-    let backendPort = '5000';
-    if (port && !isNaN(port)) {
-      backendPort = (parseInt(port, 10) + 2000).toString();
-    } else if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      backendPort = '5001';
-    }
-    return `${window.location.protocol}//${hostname}:${backendPort}`;
-  }
-  return 'http://localhost:5000';
-};
-
-const API_BASE_URL = getApiBaseUrl();
+import { useAuth } from '@/context/AuthContext';
+import { adminAPI, restaurantAPI, couponAPI } from '@/lib/api';
+import {
+  GlassCard, StatCard, Badge, Button, Tabs,
+  SearchInput, Skeleton, showToast
+} from '@/components/ui';
+import { downloadCSV } from '@/lib/exportUtils';
 
 export default function AdminDashboard() {
-  const [restaurants, setRestaurants] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  const handleLogout = () => {
-    localStorage.removeItem('marketplace_token');
-    localStorage.removeItem('marketplace_user');
-    window.location.href = '/';
-  };
-
-  // Users management state
+  const { isAuthenticated, isAdmin } = useAuth();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [adminActiveTab, setAdminActiveTab] = useState('restaurants'); // 'restaurants' | 'users' | 'orders' | 'analytics'
-  const [updatingUserRoleId, setUpdatingUserRoleId] = useState(null);
+  const [restaurants, setRestaurants] = useState([]);
+  const [finance, setFinance] = useState(null);
+  const [settlements, setSettlements] = useState([]);
+  const [coupons, setCoupons] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('');
+  const [reviewNotes, setReviewNotes] = useState({});
+  const [settlementForm, setSettlementForm] = useState({
+    restaurantId: '',
+    periodStart: '',
+    periodEnd: '',
+  });
 
-  // New Restaurant Form States
-  const [name, setName] = useState('');
-  const [cuisine, setCuisine] = useState('');
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
-  const [banner, setBanner] = useState('');
-  const [lng, setLng] = useState('-122.4194');
-  const [lat, setLat] = useState('37.7749');
-  
-  const [submitting, setSubmitting] = useState(false);
-  const [resolvingAddress, setResolvingAddress] = useState(false);
-
-  // Load token and verify admin role
   useEffect(() => {
-    const storedToken = localStorage.getItem('marketplace_token');
-    const storedUser = localStorage.getItem('marketplace_user');
-    
-    if (storedToken && storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setToken(storedToken);
-      if (parsedUser.role === 'admin') {
-        setIsAdmin(true);
-        fetchRestaurants(storedToken);
-        fetchUsers(storedToken);
-        fetchOrders(storedToken);
-      }
-    }
-    setLoading(false);
-  }, []);
+    if (!isAuthenticated) { router.push('/login'); return; }
+    if (!isAdmin) { router.push('/'); return; }
+    loadDashboard();
+  }, [isAuthenticated, isAdmin]);
 
-  const fetchRestaurants = async (authToken) => {
+  const loadDashboard = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/restaurants/admin/all`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setRestaurants(data.restaurants);
-      }
-    } catch (err) {
-      console.error('Error fetching admin restaurants:', err);
-    }
-  };
-
-  const fetchUsers = async (authToken) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/admin/users`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setUsers(data.users);
-      }
-    } catch (err) {
-      console.error('Error fetching admin users:', err);
-    }
-  };
-
-  const fetchOrders = async (authToken) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/orders/merchant/all`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setOrders(data.orders);
-      }
-    } catch (err) {
-      console.error('Error fetching admin orders:', err);
-    }
-  };
-
-  const handleRefundOrder = async (orderId) => {
-    if (!confirm("Are you sure you want to cancel and refund this order? This will cancel the DoorDash delivery and trigger a full billing refund.")) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/orders/${orderId}/refund`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        alert("Order refunded and cancelled successfully!");
-        fetchOrders(token);
-      } else {
-        alert(data.message || "Failed to process refund.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error processing refund.");
-    }
-  };
-
-  const getAnalyticsData = () => {
-    const dailyData = {};
-    const successOrders = orders.filter(o => o.deliveryStatus !== 'cancelled' && o.deliveryStatus !== 'failed');
-    
-    // Initialize past 7 days
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-      dailyData[dateStr] = { count: 0, revenue: 0 };
-    }
-
-    successOrders.forEach(o => {
-      const dateStr = new Date(o.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' });
-      if (dailyData[dateStr] !== undefined) {
-        dailyData[dateStr].count += 1;
-        dailyData[dateStr].revenue += o.subtotal;
-      }
-    });
-
-    return Object.keys(dailyData).map(date => ({
-      date,
-      count: dailyData[date].count,
-      revenue: parseFloat(dailyData[date].revenue.toFixed(2))
-    }));
-  };
-
-  const handleUpdateUserRole = async (userId, role, restaurantId) => {
-    setUpdatingUserRoleId(userId);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/admin/users/${userId}/role`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ role, restaurantId })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setUsers(prev => 
-          prev.map(u => u._id === userId ? { ...u, role: data.user.role, restaurantId: data.user.restaurantId } : u)
-        );
-        alert("User details updated successfully!");
-      } else {
-        alert(data.message || "Failed to update user.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error updating user details.");
+      const [dashData, usersData, restData, financeData, settlementData, couponsData] = await Promise.all([
+        adminAPI.getDashboard(),
+        adminAPI.getUsers(),
+        adminAPI.getAllRestaurants(),
+        adminAPI.getFinanceSummary(30),
+        adminAPI.getSettlements(),
+        couponAPI.getAll(),
+      ]);
+      setStats(dashData.data);
+      setUsers(usersData.data || []);
+      setRestaurants(restData.data || []);
+      setFinance(financeData.data);
+      setSettlements(settlementData.data || []);
+      setCoupons(couponsData.data || []);
+    } catch {
+      showToast('Failed to load admin dashboard', 'error');
     } finally {
-      setUpdatingUserRoleId(null);
+      setLoading(false);
     }
   };
 
-  const handleUpdateStatus = async (id, status) => {
+  const loadUsers = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/restaurants/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        // Update state list
-        setRestaurants(prev => 
-          prev.map(r => r._id === id ? { ...r, status } : r)
-        );
-      } else {
-        alert(data.message || 'Status update failed.');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error updating status.');
+      const params = new URLSearchParams();
+      if (userSearch) params.set('search', userSearch);
+      if (userRoleFilter) params.set('role', userRoleFilter);
+      const data = await adminAPI.getUsers(params.toString());
+      setUsers(data.data || []);
+    } catch {
+      showToast('Failed to load users', 'error');
     }
   };
 
-  const handleResolveAddress = async () => {
-    if (!address.trim()) {
-      alert("Please enter a restaurant street address first.");
+  useEffect(() => {
+    if (!loading && activeTab === 'users') {
+      const timer = setTimeout(loadUsers, userSearch ? 400 : 0);
+      return () => clearTimeout(timer);
+    }
+  }, [userSearch, userRoleFilter, activeTab]);
+
+  const handleUpdateRole = async (userId, role) => {
+    try { await adminAPI.updateUserRole(userId, role); showToast(`Role → ${role}`, 'success'); loadUsers(); }
+    catch (err) { showToast(err.message || 'Failed', 'error'); }
+  };
+
+  const handleToggleUser = async (userId) => {
+    try { await adminAPI.toggleUserActive(userId); showToast('Toggled', 'success'); loadUsers(); }
+    catch (err) { showToast(err.message || 'Failed', 'error'); }
+  };
+
+  const handleRestaurantStatus = async (id, status) => {
+    try { await restaurantAPI.updateStatus(id, status); showToast(`Restaurant ${status}`, 'success'); loadDashboard(); }
+    catch (err) { showToast(err.message || 'Failed', 'error'); }
+  };
+
+  const handleOnboardingReview = async (id, decision) => {
+    try {
+      await restaurantAPI.reviewOnboarding(id, { decision, notes: reviewNotes[id] || '' });
+      showToast(`Onboarding ${decision}`, 'success');
+      loadDashboard();
+    } catch (err) {
+      showToast(err.message || 'Review failed', 'error');
+    }
+  };
+
+  const handleGenerateSettlement = async () => {
+    if (!settlementForm.restaurantId || !settlementForm.periodStart || !settlementForm.periodEnd) {
+      showToast('Choose restaurant and settlement period', 'warning');
       return;
     }
-    setResolvingAddress(true);
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=us&limit=1`);
-      const data = await res.json();
-      if (data && data.length > 0) {
-        setLng(data[0].lon);
-        setLat(data[0].lat);
-        alert(`Resolved Address to GPS coordinates:\nLongitude: ${data[0].lon}\nLatitude: ${data[0].lat}`);
-      } else {
-        alert("Geocode lookup failed. Using default SF coordinates.");
-      }
+      await adminAPI.generateSettlement(settlementForm);
+      showToast('Settlement generated', 'success');
+      loadDashboard();
     } catch (err) {
-      console.error(err);
-      alert("Error contacting Nominatim service.");
-    } finally {
-      setResolvingAddress(false);
+      showToast(err.message || 'Failed to generate settlement', 'error');
     }
   };
 
-  const handleCreateRestaurant = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    
+  const handleMarkPaid = async (id) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/restaurants`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name,
-          cuisine,
-          address,
-          phone,
-          banner: banner || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80',
-          coordinates: [parseFloat(lng), parseFloat(lat)]
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        alert("Restaurant added and auto-approved!");
-        // Reset form
-        setName('');
-        setCuisine('');
-        setAddress('');
-        setPhone('');
-        setBanner('');
-        setLng('-122.4194');
-        setLat('37.7749');
-        fetchRestaurants(token);
-      } else {
-        alert(data.message || "Failed to create restaurant.");
-      }
+      await adminAPI.markSettlementPaid(id);
+      showToast('Settlement marked paid', 'success');
+      loadDashboard();
     } catch (err) {
-      console.error(err);
-      alert("Connection error occurred.");
-    } finally {
-      setSubmitting(false);
+      showToast(err.message || 'Failed to mark paid', 'error');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center flex-col gap-4 text-white">
-        <Loader2 className="h-10 w-10 text-brand-cyan animate-spin" />
-        <p className="text-xs uppercase tracking-widest font-mono text-brand-muted">Verifying Credentials...</p>
-      </div>
-    );
-  }
+  const handleDeleteCoupon = async (id) => {
+    if (!confirm('Deactivate this promotion?')) return;
+    try {
+      await couponAPI.update(id, { isActive: false });
+      showToast('Promotion deactivated', 'success');
+      loadDashboard();
+    } catch (err) {
+      showToast('Failed to deactivate', 'error');
+    }
+  };
 
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center flex-col gap-4 text-white p-6 text-center">
-        <ShieldCheck className="h-16 w-16 text-brand-red animate-pulse" />
-        <h1 className="text-xl font-black">Access Denied</h1>
-        <p className="text-sm text-brand-muted max-w-sm">
-          This dashboard is restricted to administrators. Please log in with an admin role.
-        </p>
-        <a href="/" className="px-5 py-2.5 rounded-xl border border-brand-border bg-brand-card text-xs hover:border-brand-cyan transition-all text-white font-extrabold flex items-center gap-1.5 mt-2">
-          <ArrowLeft size={14} /> Back to Home
-        </a>
-      </div>
-    );
-  }
+  if (loading) return <AdminSkeleton />;
+
+  const tabs = [
+    { value: 'overview', label: 'Overview', icon: TrendingUp },
+    { value: 'users', label: 'Users', icon: Users },
+    { value: 'restaurants', label: 'Restaurants', icon: Store },
+    { value: 'finance', label: 'Finance', icon: ReceiptText },
+    { value: 'promotions', label: 'Promotions', icon: Tag },
+  ];
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text font-sans p-6 max-w-6xl mx-auto space-y-8">
-      
-      {/* Header */}
-      <header className="flex justify-between items-center bg-brand-card/40 border border-brand-border rounded-3xl p-5 md:p-6 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <ShieldCheck className="text-brand-cyan h-8 w-8 animate-pulse" />
-          <div>
-            <h1 className="text-xl md:text-2xl font-black text-white">Admin Control Dashboard</h1>
-            <p className="text-xs text-brand-muted">Approve store partnerships and registers new merchants</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <a href="/" className="px-4 py-2 rounded-xl border border-brand-border bg-brand-bg hover:border-brand-cyan text-xs text-brand-muted hover:text-white transition-all font-black flex items-center gap-1">
-            <ArrowLeft size={13} /> Home
-          </a>
-          <button 
-            onClick={handleLogout}
-            className="px-4 py-2 rounded-xl border border-brand-red/30 bg-brand-red/5 hover:bg-brand-red/10 text-xs text-brand-red font-black transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <LogOut size={13} /> Logout
-          </button>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-black text-brand-text flex items-center gap-3">
+        <ShieldCheck className="h-6 w-6 text-brand-cyan" /> Admin Dashboard
+      </h1>
 
-      {/* Tabs Selector */}
-      <div className="flex gap-4 border-b border-brand-border pb-1 overflow-x-auto scrollbar-hide">
-        <button
-          onClick={() => setAdminActiveTab('restaurants')}
-          className={`pb-3 text-xs font-black uppercase tracking-wider border-b-2 transition-all whitespace-nowrap ${
-            adminActiveTab === 'restaurants' 
-              ? 'border-brand-cyan text-brand-cyan' 
-              : 'border-transparent text-brand-muted hover:text-white'
-          }`}
-        >
-          Partners & Registrations
-        </button>
-        <button
-          onClick={() => setAdminActiveTab('users')}
-          className={`pb-3 text-xs font-black uppercase tracking-wider border-b-2 transition-all whitespace-nowrap ${
-            adminActiveTab === 'users' 
-              ? 'border-brand-cyan text-brand-cyan' 
-              : 'border-transparent text-brand-muted hover:text-white'
-          }`}
-        >
-          Users Management
-        </button>
-        <button
-          onClick={() => setAdminActiveTab('orders')}
-          className={`pb-3 text-xs font-black uppercase tracking-wider border-b-2 transition-all whitespace-nowrap ${
-            adminActiveTab === 'orders' 
-              ? 'border-brand-cyan text-brand-cyan' 
-              : 'border-transparent text-brand-muted hover:text-white'
-          }`}
-        >
-          Orders & Refunds
-        </button>
-        <button
-          onClick={() => setAdminActiveTab('analytics')}
-          className={`pb-3 text-xs font-black uppercase tracking-wider border-b-2 transition-all whitespace-nowrap ${
-            adminActiveTab === 'analytics' 
-              ? 'border-brand-cyan text-brand-cyan' 
-              : 'border-transparent text-brand-muted hover:text-white'
-          }`}
-        >
-          Platform Analytics
-        </button>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Total Restaurants" value={stats?.totalRestaurants || 0} icon={Store} color="cyan" />
+        <StatCard label="Total Customers" value={stats?.totalCustomers || 0} icon={Users} color="blue" />
+        <StatCard label="Total Orders" value={stats?.totalOrders || 0} icon={ShoppingBag} color="green" />
+        <StatCard label="Total Revenue" value={`$${(stats?.totalRevenue || 0).toFixed(2)}`} icon={DollarSign} color="yellow" />
       </div>
 
-      {adminActiveTab === 'users' ? (
-        <section className="bg-brand-card/35 border border-brand-border rounded-3xl p-6 space-y-4">
-          <h2 className="text-xs font-black uppercase tracking-wider text-brand-cyan flex items-center gap-2">
-            <Users size={16} /> Platform Registered Users
-          </h2>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <StatCard label="Today's Orders" value={stats?.todayOrders || 0} icon={ShoppingBag} color="cyan" />
+        <StatCard label="Today's Revenue" value={`$${(stats?.todayRevenue || 0).toFixed(2)}`} icon={DollarSign} color="green" />
+        <StatCard label="Platform Commission" value={`$${(stats?.totalCommission || 0).toFixed(2)}`} icon={TrendingUp} color="yellow" />
+      </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs divide-y divide-brand-border">
-              <thead>
-                <tr className="text-brand-muted font-bold">
-                  <th className="py-3 px-2">Name</th>
-                  <th className="py-3 px-2">Email</th>
-                  <th className="py-3 px-2">Role</th>
-                  <th className="py-3 px-2">Linked Restaurant</th>
-                  <th className="py-3 px-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-brand-border/40">
-                {users.map((u) => (
-                  <tr key={u._id} className="hover:bg-brand-bg/20 transition-all">
-                    <td className="py-3.5 px-2 font-black text-white">{u.name}</td>
-                    <td className="py-3.5 px-2 text-brand-muted font-mono">{u.email}</td>
-                    <td className="py-3.5 px-2 text-brand-muted">
-                      <select
-                        value={u.role}
-                        onChange={(e) => handleUpdateUserRole(u._id, e.target.value, u.restaurantId)}
-                        disabled={updatingUserRoleId === u._id}
-                        className="bg-brand-bg text-white border border-brand-border rounded-xl px-2 py-1 outline-none text-xs cursor-pointer focus:border-brand-cyan"
-                      >
-                        <option value="customer">Customer</option>
-                        <option value="merchant">Merchant</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </td>
-                    <td className="py-3.5 px-2 text-brand-muted">
-                      {u.role === 'merchant' ? (
-                        <select
-                          value={u.restaurantId || ''}
-                          onChange={(e) => handleUpdateUserRole(u._id, u.role, e.target.value || null)}
-                          disabled={updatingUserRoleId === u._id}
-                          className="bg-brand-bg text-white border border-brand-border rounded-xl px-2 py-1 outline-none text-xs cursor-pointer focus:border-brand-cyan max-w-[200px]"
-                        >
-                          <option value="">-- No Restaurant --</option>
-                          {restaurants.map(r => (
-                            <option key={r._id} value={r._id}>{r.name}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="text-[10px] text-brand-muted italic">N/A</span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-2 text-right">
-                      {updatingUserRoleId === u._id && (
-                        <Loader2 className="h-4 w-4 animate-spin text-brand-cyan inline" />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : (
-        <div className="grid gap-8 lg:grid-cols-3">
-          
-          {/* Approve/Reject Table */}
-          <section className="lg:col-span-2 bg-brand-card/35 border border-brand-border rounded-3xl p-6 space-y-4">
-            <h2 className="text-xs font-black uppercase tracking-wider text-brand-cyan flex items-center gap-2">
-              <Store size={16} /> Merchant Registrations
-            </h2>
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs divide-y divide-brand-border">
-                <thead>
-                  <tr className="text-brand-muted font-bold">
-                    <th className="py-3 px-2">Store Name</th>
-                    <th className="py-3 px-2">Cuisine</th>
-                    <th className="py-3 px-2">Address</th>
-                    <th className="py-3 px-2">Status</th>
-                    <th className="py-3 px-2 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-brand-border/40">
-                  {restaurants.map((rest) => (
-                    <tr key={rest._id} className="hover:bg-brand-bg/20 transition-all">
-                      <td className="py-3.5 px-2 font-black text-white">{rest.name}</td>
-                      <td className="py-3.5 px-2 text-brand-muted">{rest.cuisine}</td>
-                      <td className="py-3.5 px-2 text-brand-muted truncate max-w-[150px]" title={rest.address}>
-                        {rest.address}
-                      </td>
-                      <td className="py-3.5 px-2">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase border ${
-                          rest.status === 'approved' 
-                            ? 'border-brand-green/30 bg-brand-green/5 text-brand-green'
-                            : rest.status === 'rejected'
-                              ? 'border-brand-red/30 bg-brand-red/5 text-brand-red'
-                              : 'border-brand-yellow/30 bg-brand-yellow/5 text-brand-yellow'
-                        }`}>
-                          {rest.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-2 text-right space-x-1">
-                        {rest.status !== 'approved' && (
-                          <button
-                            onClick={() => handleUpdateStatus(rest._id, 'approved')}
-                            className="h-7 w-7 rounded-lg bg-brand-green/10 border border-brand-green/30 hover:bg-brand-green text-brand-green hover:text-brand-bg inline-flex items-center justify-center transition-all cursor-pointer"
-                            title="Approve Store"
-                          >
-                            <Check size={13} />
-                          </button>
-                        )}
-                        {rest.status !== 'rejected' && (
-                          <button
-                            onClick={() => handleUpdateStatus(rest._id, 'rejected')}
-                            className="h-7 w-7 rounded-lg bg-brand-red/10 border border-brand-red/30 hover:bg-brand-red text-brand-red hover:text-brand-bg inline-flex items-center justify-center transition-all cursor-pointer"
-                            title="Reject Store"
-                          >
-                            <X size={13} />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {restaurants.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="py-10 text-center italic text-brand-muted">
-                        No merchant stores found in database.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+      {activeTab === 'overview' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <GlassCard>
+            <h3 className="text-sm font-bold text-brand-text uppercase tracking-wider mb-3">Recent Restaurants</h3>
+            <div className="space-y-2">
+              {restaurants.slice(0, 5).map(r => (
+                <div key={r._id} className="flex items-center justify-between p-3 rounded-xl bg-brand-bg/40 border border-brand-border">
+                  <div><p className="text-sm font-bold text-brand-text">{r.name}</p><p className="text-xs text-brand-muted">{r.cuisine}</p></div>
+                  <Badge color={r.status === 'approved' ? 'green' : r.status === 'pending' ? 'yellow' : 'red'}>{r.status}</Badge>
+                </div>
+              ))}
             </div>
-          </section>
-
-          {/* Add New Restaurant */}
-          <section className="bg-brand-card/35 border border-brand-border rounded-3xl p-6 space-y-4">
-            <h2 className="text-xs font-black uppercase tracking-wider text-brand-cyan flex items-center gap-2">
-              <Plus size={16} /> Register New Store
-            </h2>
-
-            <form onSubmit={handleCreateRestaurant} className="space-y-3.5 text-xs">
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-brand-muted">STORE NAME</label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Burger Express"
-                  className="w-full bg-brand-bg/85 rounded-xl border border-brand-border px-3.5 py-2.5 outline-none text-white focus:border-brand-cyan"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-brand-muted">CUISINE TYPES</label>
-                <input
-                  type="text"
-                  required
-                  value={cuisine}
-                  onChange={(e) => setCuisine(e.target.value)}
-                  placeholder="Burgers, Fries, Fast Food"
-                  className="w-full bg-brand-bg/85 rounded-xl border border-brand-border px-3.5 py-2.5 outline-none text-white focus:border-brand-cyan"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-brand-muted">CONTACT PHONE</label>
-                <input
-                  type="text"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+16505550188"
-                  className="w-full bg-brand-bg/85 rounded-xl border border-brand-border px-3.5 py-2.5 outline-none text-white focus:border-brand-cyan font-mono font-bold"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-brand-muted">BANNER IMAGE URL</label>
-                <input
-                  type="text"
-                  value={banner}
-                  onChange={(e) => setBanner(e.target.value)}
-                  placeholder="https://unsplash.com/..."
-                  className="w-full bg-brand-bg/85 rounded-xl border border-brand-border px-3.5 py-2.5 outline-none text-white focus:border-brand-cyan font-mono"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <div className="flex justify-between items-center">
-                  <label className="font-bold text-brand-muted">STREET ADDRESS (US)</label>
-                  <button
-                    type="button"
-                    onClick={handleResolveAddress}
-                    disabled={resolvingAddress || !address}
-                    className="text-[10px] text-brand-cyan hover:text-white font-bold flex items-center gap-1 transition-all disabled:opacity-40 cursor-pointer"
-                  >
-                    <MapPin size={10} />
-                    {resolvingAddress ? 'Geocoding...' : 'Resolve GPS'}
-                  </button>
+          </GlassCard>
+          <GlassCard>
+            <h3 className="text-sm font-bold text-brand-text uppercase tracking-wider mb-3">Recent Users</h3>
+            <div className="space-y-2">
+              {users.slice(0, 5).map(u => (
+                <div key={u._id} className="flex items-center justify-between p-3 rounded-xl bg-brand-bg/40 border border-brand-border">
+                  <div><p className="text-sm font-bold text-brand-text">{u.name}</p><p className="text-xs text-brand-muted">{u.email}</p></div>
+                  <Badge color="cyan">{u.role}</Badge>
                 </div>
-                <textarea
-                  rows={2}
-                  required
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="e.g. 500 Market St, San Francisco, CA"
-                  className="w-full bg-brand-bg/85 rounded-xl border border-brand-border px-3.5 py-2 outline-none text-white focus:border-brand-cyan resize-none text-xs"
-                />
-              </div>
-
-              {/* Latitude and Longitude */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-[10px] text-brand-muted">LONGITUDE</label>
-                  <input
-                    type="text"
-                    required
-                    value={lng}
-                    onChange={(e) => setLng(e.target.value)}
-                    className="w-full bg-brand-bg/50 rounded-xl border border-brand-border px-3 py-2 outline-none text-brand-muted focus:border-brand-cyan font-mono text-center"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-[10px] text-brand-muted">LATITUDE</label>
-                  <input
-                    type="text"
-                    required
-                    value={lat}
-                    onChange={(e) => setLat(e.target.value)}
-                    className="w-full bg-brand-bg/50 rounded-xl border border-brand-border px-3 py-2 outline-none text-brand-muted focus:border-brand-cyan font-mono text-center"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-cyan to-brand-blue hover:from-brand-blue hover:to-brand-cyan text-brand-bg text-xs font-black uppercase tracking-wider shadow-lg active:scale-95 transition-all cursor-pointer text-center mt-2 flex justify-center items-center gap-1"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Creating Store...
-                  </>
-                ) : (
-                  <>
-                    <Plus size={14} /> Add approved Store
-                  </>
-                )}
-              </button>
-            </form>
-          </section>
-
+              ))}
+            </div>
+          </GlassCard>
         </div>
       )}
 
-      {adminActiveTab === 'orders' && (
-        <section className="bg-brand-card/35 border border-brand-border rounded-3xl p-6 space-y-4 animate-fade-in">
-          <h2 className="text-xs font-black uppercase tracking-wider text-brand-cyan flex items-center gap-2">
-            <Package size={16} /> Platform Registered Orders & Disputes
-          </h2>
+      {activeTab === 'users' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <SearchInput value={userSearch} onChange={setUserSearch} placeholder="Search users..." className="flex-1" />
+            <div className="flex gap-2">
+              {['', 'customer', 'merchant', 'driver', 'admin'].map(role => (
+                <button key={role} onClick={() => setUserRoleFilter(role)}
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold border transition-all capitalize
+                    ${userRoleFilter === role ? 'bg-brand-cyan/10 text-brand-cyan border-brand-cyan/30' : 'text-brand-muted border-brand-border hover:text-brand-text'}`}>
+                  {role || 'All'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            {users.map(u => (
+              <GlassCard key={u._id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-brand-green to-brand-cyan flex items-center justify-center text-sm font-bold text-brand-bg">
+                    {u.name?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div><p className="text-sm font-bold text-brand-text">{u.name}</p><p className="text-xs text-brand-muted">{u.email}</p></div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge color="cyan">{u.role}</Badge>
+                  <Badge color={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Active' : 'Inactive'}</Badge>
+                  <select value={u.role} onChange={(e) => handleUpdateRole(u._id, e.target.value)}
+                    className="rounded-lg bg-brand-card border border-brand-border text-xs text-brand-text px-2 py-1">
+                    <option value="customer">Customer</option><option value="merchant">Merchant</option>
+                    <option value="driver">Driver</option><option value="admin">Admin</option>
+                  </select>
+                  <Button variant="ghost" size="sm" onClick={() => handleToggleUser(u._id)}>
+                    {u.isActive ? 'Deactivate' : 'Activate'}
+                  </Button>
+                </div>
+              </GlassCard>
+            ))}
+          </div>
+        </div>
+      )}
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs divide-y divide-brand-border">
-              <thead>
-                <tr className="text-brand-muted font-bold">
-                  <th className="py-3 px-2">Order ID</th>
-                  <th className="py-3 px-2">Customer / Restaurant</th>
-                  <th className="py-3 px-2">Items</th>
-                  <th className="py-3 px-2">Total Paid</th>
-                  <th className="py-3 px-2">Status</th>
-                  <th className="py-3 px-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-brand-border/40">
-                {orders.map((o) => (
-                  <tr key={o._id} className="hover:bg-brand-bg/20 transition-all">
-                    <td className="py-3.5 px-2 font-mono font-bold text-white">{o.externalDeliveryId}</td>
-                    <td className="py-3.5 px-2">
-                      <div className="font-bold text-white">{o.customerName}</div>
-                      <div className="text-[10px] text-brand-muted">Store: {o.restaurantName}</div>
-                    </td>
-                    <td className="py-3.5 px-2 text-brand-muted max-w-[200px] truncate" title={o.productName}>
-                      {o.productName}
-                    </td>
-                    <td className="py-3.5 px-2 font-bold text-white">
-                      ${(o.subtotal + o.tax + o.platformFee + (o.deliveryFee / 100)).toFixed(2)}
-                    </td>
-                    <td className="py-3.5 px-2">
-                      <div className="flex flex-col gap-1 items-start">
-                        <span className={`px-2 py-0.5 rounded text-[8px] font-bold font-mono uppercase border ${
-                          o.deliveryStatus === 'delivered'
-                            ? 'border-brand-green/30 bg-brand-green/5 text-brand-green'
-                            : o.deliveryStatus === 'cancelled' || o.deliveryStatus === 'failed'
-                              ? 'border-brand-red/30 bg-brand-red/5 text-brand-red'
-                              : 'border-brand-cyan/30 bg-brand-cyan/5 text-brand-cyan animate-pulse'
-                        }`}>
-                          {o.deliveryStatus}
-                        </span>
-                        {o.refunded && (
-                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-brand-red/10 border border-brand-red/30 text-brand-red uppercase">
-                            Refunded
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-2 text-right">
-                      {o.deliveryStatus !== 'cancelled' && o.deliveryStatus !== 'failed' ? (
-                        <button
-                          onClick={() => handleRefundOrder(o._id)}
-                          className="px-3 py-1.5 rounded-xl border border-brand-red/30 bg-brand-red/5 hover:bg-brand-red hover:text-brand-bg text-[10px] font-black uppercase tracking-wider transition-all"
-                        >
-                          Cancel & Refund
-                        </button>
-                      ) : (
-                        <span className="text-[10px] text-brand-muted italic">No actions</span>
-                      )}
-                    </td>
-                  </tr>
+      {activeTab === 'restaurants' && (
+        <div className="space-y-3">
+          {restaurants.map(r => (
+            <GlassCard key={r._id} className="space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold text-brand-text">{r.name}</p>
+                  <p className="text-xs text-brand-muted">{r.cuisine} • {r.address}</p>
+                  {r.ownerId && <p className="text-[10px] text-brand-muted">Owner: {r.ownerId.name || r.ownerId.email}</p>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge color={r.status === 'approved' ? 'green' : r.status === 'pending' ? 'yellow' : 'red'}>{r.status}</Badge>
+                  <Badge color={r.onboardingStatus === 'approved' ? 'green' : r.onboardingStatus === 'rejected' ? 'red' : 'yellow'}>{r.onboardingStatus || 'not_started'}</Badge>
+                  {r.status === 'pending' && (<><Button variant="primary" size="sm" onClick={() => handleRestaurantStatus(r._id, 'approved')}>Approve</Button><Button variant="danger" size="sm" onClick={() => handleRestaurantStatus(r._id, 'rejected')}>Reject</Button></>)}
+                  {r.status === 'approved' && <Button variant="danger" size="sm" onClick={() => handleRestaurantStatus(r._id, 'suspended')}>Suspend</Button>}
+                </div>
+              </div>
+
+              {(r.businessInfo?.legalName || r.documents?.length > 0 || ['submitted', 'needs_changes'].includes(r.onboardingStatus)) && (
+                <div className="rounded-xl border border-brand-border bg-brand-bg/30 p-3 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-brand-muted">
+                    <span>Legal: <b className="text-brand-text">{r.businessInfo?.legalName || '—'}</b></span>
+                    <span>Tax ID: <b className="text-brand-text">{r.businessInfo?.taxIdLast4 ? `***${r.businessInfo.taxIdLast4}` : '—'}</b></span>
+                    <span>Owner: <b className="text-brand-text">{r.businessInfo?.ownerName || '—'}</b></span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {(r.documents || []).map(doc => (
+                      <a key={doc._id || doc.url} href={doc.url} target="_blank" rel="noopener noreferrer"
+                        className="rounded-lg border border-brand-border px-3 py-1.5 text-xs font-semibold text-brand-cyan hover:border-brand-cyan/50">
+                        {doc.name || doc.type}
+                      </a>
+                    ))}
+                    {(r.documents || []).length === 0 && <span className="text-xs text-brand-muted">No documents uploaded.</span>}
+                  </div>
+
+                  <textarea
+                    value={reviewNotes[r._id] || ''}
+                    onChange={(e) => setReviewNotes(prev => ({ ...prev, [r._id]: e.target.value }))}
+                    placeholder="Review notes for merchant..."
+                    className="w-full rounded-xl border border-brand-border bg-brand-card/60 p-3 text-sm text-brand-text placeholder:text-brand-muted/50 focus:border-brand-cyan/50 focus:outline-none resize-none h-20"
+                  />
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => handleOnboardingReview(r._id, 'approved')}>Approve KYC</Button>
+                    <Button size="sm" variant="secondary" onClick={() => handleOnboardingReview(r._id, 'needs_changes')}>Needs Changes</Button>
+                    <Button size="sm" variant="danger" onClick={() => handleOnboardingReview(r._id, 'rejected')}>Reject KYC</Button>
+                  </div>
+                </div>
+              )}
+            </GlassCard>
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'finance' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard label="30D Collected" value={`$${(finance?.totalCollected || 0).toFixed(2)}`} icon={DollarSign} color="green" />
+            <StatCard label="Platform Fees" value={`$${((finance?.platformFees || 0) + (finance?.serviceFees || 0)).toFixed(2)}`} icon={TrendingUp} color="cyan" />
+            <StatCard label="Refunds" value={`$${(finance?.refunds || 0).toFixed(2)}`} icon={ReceiptText} color="red" />
+            <StatCard label="Pending Payouts" value={`$${(finance?.pendingPayouts || 0).toFixed(2)}`} icon={Store} color="yellow" />
+          </div>
+
+          <GlassCard>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-brand-text uppercase tracking-wider">Generate Settlement</h3>
+              <Button size="sm" variant="outline" onClick={() => {
+                const data = settlements.map(s => ({
+                  ID: s._id,
+                  Restaurant: s.restaurantId?.name,
+                  Status: s.status,
+                  PeriodStart: new Date(s.periodStart).toLocaleDateString(),
+                  PeriodEnd: new Date(s.periodEnd).toLocaleDateString(),
+                  Orders: s.totalOrders,
+                  GrossSales: s.grossSales,
+                  PlatformFee: s.platformFee,
+                  Payout: s.netPayout
+                }));
+                downloadCSV(data, 'settlements_export.csv');
+              }}>
+                Export CSV
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <select
+                value={settlementForm.restaurantId}
+                onChange={(e) => setSettlementForm(f => ({ ...f, restaurantId: e.target.value }))}
+                className="rounded-xl bg-brand-card border border-brand-border text-sm text-brand-text px-3 py-2"
+              >
+                <option value="">Restaurant</option>
+                {restaurants.filter(r => r.status === 'approved').map(r => (
+                  <option key={r._id} value={r._id}>{r.name}</option>
                 ))}
-                {orders.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-10 text-center italic text-brand-muted">
-                      No platform orders found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+              </select>
+              <input
+                type="date"
+                value={settlementForm.periodStart}
+                onChange={(e) => setSettlementForm(f => ({ ...f, periodStart: e.target.value }))}
+                className="rounded-xl bg-brand-card border border-brand-border text-sm text-brand-text px-3 py-2"
+              />
+              <input
+                type="date"
+                value={settlementForm.periodEnd}
+                onChange={(e) => setSettlementForm(f => ({ ...f, periodEnd: e.target.value }))}
+                className="rounded-xl bg-brand-card border border-brand-border text-sm text-brand-text px-3 py-2"
+              />
+              <Button onClick={handleGenerateSettlement}>Generate</Button>
+            </div>
+          </GlassCard>
+
+          <div className="space-y-3">
+            {settlements.length === 0 ? (
+              <GlassCard className="text-center py-8">
+                <p className="text-sm text-brand-muted">No settlements generated yet.</p>
+              </GlassCard>
+            ) : settlements.map(s => (
+              <GlassCard key={s._id} className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-brand-text">{s.restaurantId?.name || 'Restaurant'}</p>
+                    <Badge color={s.status === 'paid' ? 'green' : s.status === 'failed' ? 'red' : 'yellow'}>{s.status}</Badge>
+                  </div>
+                  <p className="text-xs text-brand-muted mt-1">
+                    {new Date(s.periodStart).toLocaleDateString()} - {new Date(s.periodEnd).toLocaleDateString()} • {s.totalOrders} orders
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-xs text-brand-muted">Gross</p>
+                    <p className="text-sm font-bold text-brand-text">${s.grossSales?.toFixed(2)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-brand-muted">Commission</p>
+                    <p className="text-sm font-bold text-brand-cyan">${s.commission?.toFixed(2)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-brand-muted">Net Payable</p>
+                    <p className="text-sm font-black text-brand-green">${s.netPayable?.toFixed(2)}</p>
+                  </div>
+                  {s.status !== 'paid' && <Button size="sm" onClick={() => handleMarkPaid(s._id)}>Mark Paid</Button>}
+                </div>
+              </GlassCard>
+            ))}
           </div>
-        </section>
+        </div>
       )}
 
-      {adminActiveTab === 'analytics' && (
-        <section className="space-y-6 animate-fade-in">
-          
-          {/* Highlight Cards */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="bg-brand-card/35 border border-brand-border rounded-3xl p-5 space-y-1">
-              <span className="text-[9px] uppercase tracking-wider font-bold text-brand-muted">Total Food Sales</span>
-              <p className="text-2xl font-black text-white">
-                ${orders.filter(o => o.deliveryStatus !== 'cancelled' && o.deliveryStatus !== 'failed').reduce((sum, o) => sum + o.subtotal, 0).toFixed(2)}
-              </p>
-            </div>
-            
-            <div className="bg-brand-card/35 border border-brand-border rounded-3xl p-5 space-y-1">
-              <span className="text-[9px] uppercase tracking-wider font-bold text-brand-muted">Commission (Platform Fees)</span>
-              <p className="text-2xl font-black text-brand-cyan">
-                ${(orders.filter(o => o.deliveryStatus !== 'cancelled' && o.deliveryStatus !== 'failed').length * 2.00).toFixed(2)}
-              </p>
-            </div>
-
-            <div className="bg-brand-card/35 border border-brand-border rounded-3xl p-5 space-y-1">
-              <span className="text-[9px] uppercase tracking-wider font-bold text-brand-muted">Courier Payouts</span>
-              <p className="text-2xl font-black text-brand-green">
-                ${(orders.filter(o => o.deliveryStatus !== 'cancelled' && o.deliveryStatus !== 'failed').reduce((sum, o) => sum + (o.deliveryFee / 100), 0)).toFixed(2)}
-              </p>
-            </div>
-
-            <div className="bg-brand-card/35 border border-brand-border rounded-3xl p-5 space-y-1">
-              <span className="text-[9px] uppercase tracking-wider font-bold text-brand-muted">Completed Deliveries</span>
-              <p className="text-2xl font-black text-white">
-                {orders.filter(o => o.deliveryStatus === 'delivered').length} / {orders.length} Total
-              </p>
-            </div>
+      {activeTab === 'promotions' && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-bold text-brand-text uppercase tracking-wider">All Promotions</h3>
           </div>
-
-          {/* SVG Graphs */}
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Daily Revenue Bar Chart */}
-            <div className="bg-brand-card/35 border border-brand-border rounded-3xl p-6 space-y-4">
-              <div>
-                <h3 className="text-sm font-black text-white">Daily Sales (Past 7 Days)</h3>
-                <p className="text-[11px] text-brand-muted">Aggregated food subtotal revenue in USD</p>
-              </div>
-              <div className="pt-2">
-                {orders.length > 0 ? (
-                  <div className="w-full">
-                    {(() => {
-                      const analyticsData = getAnalyticsData();
-                      const maxRevenue = Math.max(...analyticsData.map(d => d.revenue), 10);
-                      return (
-                        <svg viewBox="0 0 500 200" className="w-full h-48">
-                          <line x1="40" y1="20" x2="480" y2="20" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                          <line x1="40" y1="70" x2="480" y2="70" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                          <line x1="40" y1="120" x2="480" y2="120" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                          <line x1="40" y1="170" x2="480" y2="170" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-                          
-                          {analyticsData.map((d, i) => {
-                            const x = 50 + i * 60;
-                            const barHeight = (d.revenue / maxRevenue) * 130;
-                            const y = 170 - barHeight;
-                            return (
-                              <g key={i} className="group">
-                                <rect
-                                  x={x}
-                                  y={y}
-                                  width="30"
-                                  height={barHeight}
-                                  rx="4"
-                                  fill="url(#revGrad)"
-                                  className="hover:opacity-90 transition-all cursor-pointer"
-                                />
-                                <text
-                                  x={x + 15}
-                                  y={y - 8}
-                                  textAnchor="middle"
-                                  fill="#10b981"
-                                  className="text-[9px] font-mono font-bold opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  ${d.revenue}
-                                </text>
-                                <text
-                                  x={x + 15}
-                                  y="185"
-                                  textAnchor="middle"
-                                  fill="#9ca3af"
-                                  className="text-[9px] font-mono"
-                                >
-                                  {d.date}
-                                </text>
-                              </g>
-                            );
-                          })}
-                          <defs>
-                            <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#10b981" />
-                              <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.3" />
-                            </linearGradient>
-                          </defs>
-                        </svg>
-                      );
-                    })()}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {coupons.map(coupon => (
+              <GlassCard key={coupon._id} className="relative flex flex-col justify-between">
+                <div className="absolute top-4 right-4 flex gap-2">
+                  <Badge color={coupon.specificRestaurant ? 'blue' : 'yellow'}>
+                    {coupon.specificRestaurant ? 'Restaurant' : 'Platform'}
+                  </Badge>
+                  <Badge color={coupon.isActive ? 'green' : 'red'}>{coupon.isActive ? 'Active' : 'Inactive'}</Badge>
+                </div>
+                
+                <div>
+                  <h3 className="text-xl font-black text-brand-text mb-1">{coupon.code}</h3>
+                  <p className="text-sm text-brand-muted mb-4 line-clamp-2">{coupon.description || 'No description'}</p>
+                  
+                  <div className="space-y-2 text-xs text-brand-text/80 mb-6">
+                    <p className="flex justify-between">
+                      <span>Discount:</span> 
+                      <span className="font-bold">{coupon.type === 'percentage' ? `${coupon.value}% OFF` : coupon.type === 'free_delivery' ? 'FREE DELIVERY' : `$${coupon.value} OFF`}</span>
+                    </p>
+                    {coupon.specificRestaurant && (
+                      <p className="flex justify-between text-brand-cyan">
+                        <span>Restaurant ID:</span>
+                        <span className="font-bold truncate max-w-[120px]">{coupon.specificRestaurant}</span>
+                      </p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-center italic text-brand-muted text-xs py-10">No metrics available.</p>
-                )}
-              </div>
-            </div>
+                </div>
 
-            {/* Daily Orders Line Chart */}
-            <div className="bg-brand-card/35 border border-brand-border rounded-3xl p-6 space-y-4">
-              <div>
-                <h3 className="text-sm font-black text-white">Daily Order Volume (Past 7 Days)</h3>
-                <p className="text-[11px] text-brand-muted">Number of successfully dispatched transactions</p>
+                <div className="flex items-center justify-between border-t border-brand-border/50 pt-4 mt-2">
+                  <span className="text-xs text-brand-muted">Used {coupon.usedCount} times</span>
+                  {coupon.isActive && (
+                    <button onClick={() => handleDeleteCoupon(coupon._id)} className="text-brand-red/60 hover:text-brand-red p-1 transition-colors">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </GlassCard>
+            ))}
+            {coupons.length === 0 && (
+              <div className="col-span-full py-12 text-center text-brand-muted">
+                No promotions active on the platform.
               </div>
-              <div className="pt-2">
-                {orders.length > 0 ? (
-                  <div className="w-full">
-                    {(() => {
-                      const analyticsData = getAnalyticsData();
-                      const maxCount = Math.max(...analyticsData.map(d => d.count), 5);
-                      const points = analyticsData.map((d, i) => {
-                        const x = 65 + i * 60;
-                        const y = 170 - (d.count / maxCount) * 130;
-                        return `${x},${y}`;
-                      }).join(' ');
-                      return (
-                        <svg viewBox="0 0 500 200" className="w-full h-48">
-                          <line x1="40" y1="20" x2="480" y2="20" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                          <line x1="40" y1="70" x2="480" y2="70" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                          <line x1="40" y1="120" x2="480" y2="120" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                          <line x1="40" y1="170" x2="480" y2="170" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-                          
-                          <polyline
-                            fill="none"
-                            stroke="#06b6d4"
-                            strokeWidth="3"
-                            points={points}
-                            className="transition-all duration-500"
-                          />
-                          
-                          {analyticsData.map((d, i) => {
-                            const x = 65 + i * 60;
-                            const y = 170 - (d.count / maxCount) * 130;
-                            return (
-                              <g key={i} className="group">
-                                <circle
-                                  cx={x}
-                                  cy={y}
-                                  r="5"
-                                  fill="#0b0f19"
-                                  stroke="#06b6d4"
-                                  strokeWidth="3"
-                                  className="cursor-pointer hover:r-7 transition-all"
-                                />
-                                <text
-                                  x={x}
-                                  y={y - 10}
-                                  textAnchor="middle"
-                                  fill="#06b6d4"
-                                  className="text-[9px] font-mono font-bold opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  {d.count}
-                                </text>
-                                <text
-                                  x={x}
-                                  y="185"
-                                  textAnchor="middle"
-                                  fill="#9ca3af"
-                                  className="text-[9px] font-mono"
-                                >
-                                  {d.date}
-                                </text>
-                              </g>
-                            );
-                          })}
-                        </svg>
-                      );
-                    })()}
-                  </div>
-                ) : (
-                  <p className="text-center italic text-brand-muted text-xs py-10">No metrics available.</p>
-                )}
-              </div>
-            </div>
+            )}
           </div>
-          
-        </section>
+        </div>
       )}
+    </div>
+  );
+}
 
+function AdminSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-8 w-48" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}</div>
+      <Skeleton className="h-12 rounded-xl" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><Skeleton className="h-64 rounded-2xl" /><Skeleton className="h-64 rounded-2xl" /></div>
     </div>
   );
 }

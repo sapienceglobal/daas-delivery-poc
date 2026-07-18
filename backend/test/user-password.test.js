@@ -1,7 +1,7 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const crypto = require('crypto');
-const User = require('../models/User');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import User from '../src/models/User.js';
 
 test('new passwords use scrypt and validate correctly', () => {
   const user = new User({

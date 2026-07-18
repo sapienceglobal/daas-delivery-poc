@@ -1,0 +1,25 @@
+{
+  "header": {
+    "browse": "Browse",
+    "my_orders": "My Orders",
+    "dashboard": "Dashboard",
+    "admin": "Admin",
+    "sign_in": "Sign In",
+    "logout": "Logout",
+    "profile_settings": "Profile & Settings",
+    "order_history": "Order History",
+    "browse_restaurants": "Browse Restaurants"
+  },
+  "home": {
+    "hero_title": "Cravings? Delivered.",
+    "hero_subtitle": "Order from the best local restaurants with real-time tracking.",
+    "search_placeholder": "Search restaurants or cuisines...",
+    "trending": "Trending Categories",
+    "top_restaurants": "Top Restaurants"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success!"
+  }
+}

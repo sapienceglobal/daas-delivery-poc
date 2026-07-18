@@ -196,11 +196,15 @@ class AuthProvider extends ChangeNotifier {
   Future<void> fetchProfile() async {
     if (_token == null) return;
     try {
-      final response = await ApiService.get('/api/auth/profile');
+      final response = await ApiService.get('/api/auth/me');
       final data = json.decode(response.body);
       if (data['success'] == true) {
-        _user = data['user'];
-        _userOrders = data['orders'] ?? [];
+        _user = data['user'] ?? data['data']; // some backends return data instead of user
+        
+        // Addresses are correctly handled as a List<dynamic> of Map objects.
+        // No longer normalizing to List<String> to preserve lat, lng, and _id fields.
+
+        _userOrders = data['data']?['orders'] ?? data['orders'] ?? [];
         
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('marketplace_user', json.encode(_user));
@@ -210,22 +214,27 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> addAddress(String address) async {
+  Future<bool> addAddress(String address, double lat, double lng, {String label = 'Home'}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      final response = await ApiService.post('/api/auth/addresses', {'address': address});
+      final response = await ApiService.post('/api/auth/addresses', {
+        'address': address,
+        'lat': lat,
+        'lng': lng,
+        'label': label,
+      });
       final data = json.decode(response.body);
       if (data['success'] == true) {
-        _user!['savedAddresses'] = data['savedAddresses'];
+        _user!['savedAddresses'] = data['data'];
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('marketplace_user', json.encode(_user));
         _isLoading = false;
         notifyListeners();
         return true;
       }
-      throw HttpException('Failed to add address');
+      throw Exception('Failed to add address');
     } catch (e) {
       _errorMessage = e.toString();
       _isLoading = false;
@@ -242,14 +251,14 @@ class AuthProvider extends ChangeNotifier {
       final response = await ApiService.put('/api/auth/addresses/$index', {'address': address});
       final data = json.decode(response.body);
       if (data['success'] == true) {
-        _user!['savedAddresses'] = data['savedAddresses'];
+        _user!['savedAddresses'] = data['data'];
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('marketplace_user', json.encode(_user));
         _isLoading = false;
         notifyListeners();
         return true;
       }
-      throw HttpException('Failed to update address');
+      throw Exception('Failed to update address');
     } catch (e) {
       _errorMessage = e.toString();
       _isLoading = false;
@@ -258,22 +267,22 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteAddress(int index) async {
+  Future<bool> deleteAddress(String addressId) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      final response = await ApiService.delete('/api/auth/addresses/$index');
+      final response = await ApiService.delete('/api/auth/addresses/$addressId');
       final data = json.decode(response.body);
       if (data['success'] == true) {
-        _user!['savedAddresses'] = data['savedAddresses'];
+        _user!['savedAddresses'] = data['data'];
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('marketplace_user', json.encode(_user));
         _isLoading = false;
         notifyListeners();
         return true;
       }
-      throw HttpException('Failed to delete address');
+      throw Exception('Failed to delete address');
     } catch (e) {
       _errorMessage = e.toString();
       _isLoading = false;
