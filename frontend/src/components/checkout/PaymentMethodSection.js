@@ -186,9 +186,7 @@ export default function PaymentMethodSection({
               }
             }}
           >
-            <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
-              paymentMethod === 'credit_card' ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0 mt-0'
-            }`}>
+            <div className={`ll-collapsible ${paymentMethod === 'credit_card' ? 'll-collapsible--open' : ''}`} style={paymentMethod === 'credit_card' ? {marginTop: '1rem'} : {}}>
               <div className="overflow-hidden">
                 <div className="space-y-4 pb-2 pt-1">
                 <div>
@@ -239,7 +237,13 @@ export default function PaymentMethodSection({
                         placeholder="123"
                         className="w-full rounded-lg border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] pl-4 pr-10 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
                       />
-                      <HelpCircle className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 cursor-pointer text-[#9ca3af]" />
+                      <div className="absolute right-3.5 top-1/2 -translate-y-1/2 group z-20">
+                        <HelpCircle className="w-4 h-4 cursor-help text-[#9ca3af] hover:text-[#1a1a1a] transition-colors" />
+                        <div className="absolute right-[-4px] bottom-full mb-2 w-48 p-2.5 bg-[#1a1a1a] text-white text-[11px] leading-tight font-medium rounded-lg shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 z-50 text-center">
+                          3-digit security code usually found on the back of your card.
+                          <div className="absolute top-full right-[8px] -mt-px border-4 border-transparent border-t-[#1a1a1a]"></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="md:col-span-2">

@@ -121,6 +121,7 @@ export default function DeliveryInfoSection({
 
           {/* Manual Address Fields Form */}
           <form 
+            noValidate 
             onSubmit={(e) => {
               e.preventDefault();
               onContinue({ fullName, phone, email, orderType, addressLine1, city, zipCode });

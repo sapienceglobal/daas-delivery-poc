@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import ProfileHero from './shared/ProfileHero';
 import AccountSidebar from './shared/AccountSidebar';
 import TrustStrip from './shared/TrustStrip';
@@ -18,7 +18,13 @@ import MyReservationsTab from './tabs/MyReservationsTab';
 
 export default function LassiProfilePage({ user, logout, updateUser }) {
   const router = useRouter();
-  const [activeNav, setActiveNav] = useState('orders');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams?.get('tab');
+  const [activeNav, setActiveNav] = useState(tabParam || 'dashboard');
+
+  useEffect(() => {
+    setActiveNav(tabParam || 'dashboard');
+  }, [tabParam]);
 
   const handleNavClick = async (id) => {
     if (id === 'logout') {
@@ -27,6 +33,7 @@ export default function LassiProfilePage({ user, logout, updateUser }) {
       return;
     }
     setActiveNav(id);
+    router.push(`/customer/profile?tab=${id}`, { scroll: false });
   };
 
   return (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Star, Clock, MapPin, Phone, Globe, ChevronLeft,
@@ -54,6 +54,9 @@ export default function RestaurantPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [couponApplied, setCouponApplied] = useState(false); 
   const [repeatModal, setRepeatModal] = useState(null); // { item, lastCartItem }
+  
+  const menuTopRef = useRef(null);
+  const dishGridRef = useRef(null);
   
   // Local state for quantity selector in card before adding to cart
   const [localQuantities, setLocalQuantities] = useState({});
@@ -212,7 +215,7 @@ export default function RestaurantPage() {
         <MenuHero />
 
         {/* ─── 2. BREADCRUMBS & SEARCH ROW ─── */}
-        <div className="bg-[#ffffff] border-b border-[#e5e7eb] py-4 sticky top-0 z-30 shadow-[0_8px_24px_rgba(122,11,16,0.05)]">
+        <div ref={menuTopRef} className="bg-[#ffffff] border-b border-[#e5e7eb] py-4 sticky top-0 z-30 shadow-[0_8px_24px_rgba(122,11,16,0.05)]">
           {/* max-w-[1550px] इस्तेमाल किया है ताकि लेआउट इमेज की तरह वाइड (wide) दिखे */}
           <div className="mx-auto max-w-[1550px] px-4 md:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
             
@@ -242,16 +245,26 @@ export default function RestaurantPage() {
         {/* ─── 3. MAIN CONTENT AREA (FLEX LAYOUT) ─── */}
         <div className="mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8 py-8">
           
-          {/* Grid की जगह Flex का इस्तेमाल किया है ताकि कॉलम्स की चौड़ाई परफेक्ट रहे */}
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+          {/* Grid की जगह Flex का इस्तेमाल किया है ताकि कॉलम्स की चौड़ाई परफेक्ट रहे */}
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
             
             {/* === LEFT SIDEBAR: CATEGORIES === */}
             <div className="w-full lg:w-[240px] shrink-0">
-              <div className="lg:sticky lg:top-28">
+              <div className="lg:sticky lg:top-[72px]">
                 <CategorySidebar
                   categories={categories}
                   activeCategory={activeCategory}
-                  setActiveCategory={setActiveCategory}
+                  setActiveCategory={(id) => {
+                    // Scroll FIRST (instantly) before React re-renders — avoids jerk from competing scroll+layout-shift
+                    if (dishGridRef.current) {
+                      const rect = dishGridRef.current.getBoundingClientRect();
+                      if (rect.top < 80) {
+                        window.scrollTo({ top: window.scrollY + rect.top - 80, behavior: 'instant' });
+                      }
+                    }
+                    // Then update category state — content changes after position is already correct
+                    setActiveCategory(id);
+                  }}
                   setSearchQuery={setSearchQuery}
                   couponApplied={couponApplied}
                   setCouponApplied={setCouponApplied}
@@ -260,7 +273,7 @@ export default function RestaurantPage() {
             </div>
             
             {/* === MIDDLE CONTENT: DISHES GRID === */}
-            <div className="flex-1 w-full min-w-0">
+            <div ref={dishGridRef} className="flex-1 w-full min-w-0">
               <DishGrid
                 filteredItems={filteredItems}
                 currentCategory={currentCategory}
@@ -284,7 +297,7 @@ export default function RestaurantPage() {
             {/* === RIGHT SIDEBAR: CART DETAILS === */}
           
             <div className="w-full lg:w-[320px] shrink-0">
-              <div className="sticky top-24">
+              <div className="lg:sticky lg:top-[72px]">
                 <CartSidebar
                   items={items}
                   itemCount={itemCount}

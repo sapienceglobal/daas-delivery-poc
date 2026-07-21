@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Tag, ChevronLeft, Plus, Trash2, Calendar, DollarSign, Percent } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { couponAPI } from '@/lib/api';
-import { Button, showToast, Skeleton, Modal, Input, GlassCard, Badge } from '@/components/ui';
+import { Button, showToast, Skeleton, Modal, Input, GlassCard, Badge, ConfirmDialog } from '@/components/ui';
 
 export default function PromotionsPage() {
   const router = useRouter();
@@ -15,6 +15,7 @@ export default function PromotionsPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmData, setConfirmData] = useState({ isOpen: false });
   
   const [formData, setFormData] = useState({
     code: '',
@@ -71,15 +72,23 @@ export default function PromotionsPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Deactivate this promotion?')) return;
-    try {
-      await couponAPI.update(id, { isActive: false });
-      showToast('Promotion deactivated', 'success');
-      loadCoupons();
-    } catch (err) {
-      showToast('Failed to deactivate', 'error');
-    }
+  const handleDelete = (id) => {
+    setConfirmData({
+      isOpen: true,
+      title: 'Deactivate Promotion',
+      message: 'Are you sure you want to deactivate this promotion?',
+      confirmText: 'Deactivate',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await couponAPI.update(id, { isActive: false });
+          showToast('Promotion deactivated', 'success');
+          loadCoupons();
+        } catch (err) {
+          showToast('Failed to deactivate', 'error');
+        }
+      }
+    });
   };
 
   if (loading) return <div className="p-8"><Skeleton className="h-64 w-full" /></div>;
@@ -163,7 +172,7 @@ export default function PromotionsPage() {
       </div>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Create Promotion">
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4 pt-4">
           <div className="grid grid-cols-2 gap-4">
             <Input 
               label="Coupon Code" 
@@ -248,6 +257,16 @@ export default function PromotionsPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog 
+        isOpen={confirmData.isOpen}
+        onClose={() => setConfirmData({ ...confirmData, isOpen: false })}
+        onConfirm={confirmData.onConfirm}
+        title={confirmData.title}
+        message={confirmData.message}
+        confirmText={confirmData.confirmText}
+        variant={confirmData.variant}
+      />
     </div>
   );
 }

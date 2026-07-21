@@ -297,7 +297,7 @@ export default function MerchantDashboard() {
         res.data.recommendations.forEach(r => {
           msg += `- ${r.name}: $${r.suggestedPrice} (${r.reason})\n`;
         });
-        alert(msg);
+        showToast(msg, 'success');
       }
     } catch (err) {
       showToast('AI Pricing failed: ' + err.message, 'error');

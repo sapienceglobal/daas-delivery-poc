@@ -109,11 +109,17 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
 
   useEffect(() => {
     if (isOpen) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
       document.body.style.overflow = 'hidden';
     } else {
+      document.body.style.paddingRight = '';
       document.body.style.overflow = '';
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => { 
+      document.body.style.paddingRight = '';
+      document.body.style.overflow = ''; 
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -121,7 +127,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-transparent" onClick={onClose} />
-      <div className={`relative z-10 w-full ${sizes[size]} glass-panel rounded-2xl p-6 animate-slide-up max-h-[90vh] overflow-y-auto shadow-[0_0_40px_rgba(0,0,0,0.15)] border-2 border-[#eadfdb] ring-4 ring-[#eadfdb]/30 ${className}`}>
+      <div className={`relative z-10 w-full ${sizes[size]} bg-white rounded-2xl p-6 animate-slide-up max-h-[90vh] overflow-y-auto shadow-[0_0_40px_rgba(0,0,0,0.15)] border-2 border-[#eadfdb] ring-4 ring-[#eadfdb]/30 ${className}`}>
         <div className="flex items-center justify-between mb-4">
           {title && <h3 className="text-lg font-bold text-brand-text">{title}</h3>}
           <button
@@ -159,15 +165,15 @@ export function showToast(message, type = 'info', duration = 4000) {
 
   const id = ++toastId;
   const colors = {
-    success: 'border-brand-green/40 bg-brand-green/10 text-brand-green',
-    error: 'border-brand-red/40 bg-brand-red/10 text-brand-red',
-    info: 'border-brand-cyan/40 bg-brand-cyan/10 text-brand-cyan',
-    warning: 'border-brand-yellow/40 bg-brand-yellow/10 text-brand-yellow',
+    success: 'border-[#10b981] bg-[#ecfdf5] text-[#047857]',
+    error: 'border-[#ef4444] bg-[#fef2f2] text-[#b91c1c]',
+    info: 'border-[#3b82f6] bg-[#eff6ff] text-[#1d4ed8]',
+    warning: 'border-[#f5a623] bg-[#fffbeb] text-[#b45309]',
   };
 
   const toast = document.createElement('div');
   toast.id = `toast-${id}`;
-  toast.className = `glass-panel border rounded-xl px-4 py-3 text-sm font-medium animate-slide-up ${colors[type] || colors.info}`;
+  toast.className = `border rounded-xl px-4 py-3 text-[14px] font-bold shadow-lg animate-slide-up ${colors[type] || colors.info}`;
   toast.textContent = message;
   container.appendChild(toast);
 
@@ -354,14 +360,14 @@ export function OrderStatusBadge({ status }) {
 
 // ── Confirm Dialog ──────────────────────────────────────────────────────────
 
-export function ConfirmDialog({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', variant = 'danger' }) {
+export function ConfirmDialog({ isOpen, onClose, onCancel, onConfirm, title, message, confirmText = 'Confirm', cancelText = 'Cancel', variant = 'danger' }) {
   if (!isOpen) return null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
-      <p className="text-sm text-brand-muted mb-6">{message}</p>
+      <p className="text-[14px] text-[#4b5563] mb-6">{message}</p>
       <div className="flex gap-3 justify-end">
-        <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
+        <Button variant="secondary" size="sm" onClick={() => { if (onCancel) onCancel(); onClose(); }}>{cancelText}</Button>
         <Button variant={variant} size="sm" onClick={() => { onConfirm(); onClose(); }}>{confirmText}</Button>
       </div>
     </Modal>

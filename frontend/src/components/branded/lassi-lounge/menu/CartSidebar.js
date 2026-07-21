@@ -51,7 +51,7 @@ export default function CartSidebar({
       <div className="p-5 flex flex-col gap-0">
         {items.length > 0 ? (
           <>
-            <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${isCartExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+            <div className={`ll-collapsible ${isCartExpanded ? 'll-collapsible--open' : ''}`}>
               <div className="overflow-hidden">
                 <div className="flex flex-col gap-0 pb-2">
                 {/* Cart Items List */}
@@ -134,8 +134,8 @@ export default function CartSidebar({
 
                 {/* Special Instructions */}
                 <div className="pt-3 mt-1 relative">
-                  <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
-                    (isAddingInstructions || specialInstructions) ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                  <div className={`ll-collapsible ${
+                    (isAddingInstructions || specialInstructions) ? 'll-collapsible--open' : ''
                   }`}>
                     <div className="overflow-hidden">
                       <div className="pb-2">
@@ -158,8 +158,8 @@ export default function CartSidebar({
                     </div>
                   </div>
                 </div>
-                  <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
-                    (isAddingInstructions || specialInstructions) ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'
+                  <div className={`ll-collapsible ${
+                    (isAddingInstructions || specialInstructions) ? '' : 'll-collapsible--open'
                   }`}>
                     <div className="overflow-hidden">
                     <button 

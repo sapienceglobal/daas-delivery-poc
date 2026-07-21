@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Users, Plus, ArrowLeft, KeySquare, CheckCircle2, Clock, DollarSign } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { employeeAPI } from '@/lib/api';
-import { GlassCard, Button, Input, Badge, showToast, Tabs, EmptyState } from '@/components/ui';
+import { GlassCard, Button, Input, Badge, showToast, Tabs, EmptyState, ConfirmDialog } from '@/components/ui';
 
 export default function EmployeesDashboard() {
   const { user, isMerchant, isAuthenticated } = useAuth();
@@ -15,6 +15,7 @@ export default function EmployeesDashboard() {
   const [payroll, setPayroll] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('employees');
+  const [confirmData, setConfirmData] = useState({ isOpen: false });
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [addForm, setAddForm] = useState({ firstName: '', lastName: '', phone: '', role: 'waiter', pin: '' });
@@ -80,15 +81,25 @@ export default function EmployeesDashboard() {
     }
   };
 
-  const handleRemove = async (id) => {
-    if (!window.confirm('Are you sure you want to remove this employee?')) return;
-    try {
-      await employeeAPI.removeEmployee(id);
-      showToast('Employee removed', 'success');
-      loadEmployees();
-    } catch (err) {
-      showToast(err.message || 'Failed to remove', 'error');
-    }
+  const handleRemove = (id) => {
+    setConfirmData({
+      isOpen: true,
+      title: 'Remove Employee',
+      message: 'Are you sure you want to remove this employee?',
+      confirmText: 'Remove',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await employeeAPI.removeEmployee(id);
+          showToast('Employee removed', 'success');
+          loadEmployees();
+        } catch (err) {
+          showToast(err.message || 'Failed to remove', 'error');
+        } finally {
+          setConfirmData({ ...confirmData, isOpen: false });
+        }
+      }
+    });
   };
 
   const isClockedIn = (emp) => {

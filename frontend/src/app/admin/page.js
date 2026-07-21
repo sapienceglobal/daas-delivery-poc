@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { adminAPI, restaurantAPI, couponAPI } from '@/lib/api';
 import {
   GlassCard, StatCard, Badge, Button, Tabs,
-  SearchInput, Skeleton, showToast
+  SearchInput, Skeleton, showToast, ConfirmDialog
 } from '@/components/ui';
 import { downloadCSV } from '@/lib/exportUtils';
 
@@ -24,6 +24,7 @@ export default function AdminDashboard() {
   const [finance, setFinance] = useState(null);
   const [settlements, setSettlements] = useState([]);
   const [coupons, setCoupons] = useState([]);
+  const [confirmData, setConfirmData] = useState({ isOpen: false });
   const [loading, setLoading] = useState(true);
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('');
@@ -131,15 +132,23 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeleteCoupon = async (id) => {
-    if (!confirm('Deactivate this promotion?')) return;
-    try {
-      await couponAPI.update(id, { isActive: false });
-      showToast('Promotion deactivated', 'success');
-      loadDashboard();
-    } catch (err) {
-      showToast('Failed to deactivate', 'error');
-    }
+  const handleDeleteCoupon = (id) => {
+    setConfirmData({
+      isOpen: true,
+      title: 'Deactivate Promotion',
+      message: 'Are you sure you want to deactivate this promotion?',
+      confirmText: 'Deactivate',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await couponAPI.update(id, { isActive: false });
+          showToast('Promotion deactivated', 'success');
+          loadDashboard();
+        } catch (err) {
+          showToast('Failed to deactivate', 'error');
+        }
+      }
+    });
   };
 
   if (loading) return <AdminSkeleton />;
@@ -440,6 +449,16 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog 
+        isOpen={confirmData.isOpen}
+        onClose={() => setConfirmData({ ...confirmData, isOpen: false })}
+        onConfirm={confirmData.onConfirm}
+        title={confirmData.title}
+        message={confirmData.message}
+        confirmText={confirmData.confirmText}
+        variant={confirmData.variant}
+      />
     </div>
   );
 }

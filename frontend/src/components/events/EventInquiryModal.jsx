@@ -62,13 +62,13 @@ export default function EventInquiryModal({ isOpen, onClose, restaurantId, initi
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-24 pb-8">
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
       
-      <div className="relative bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl z-10">
+      <div className="relative bg-white rounded-2xl w-full max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto ll-soft-scroll shadow-2xl z-10">
         <div className="sticky top-0 bg-white/95 backdrop-blur-md px-6 py-4 border-b border-[#eadfdb] flex items-center justify-between z-20">
           <div>
             <h2 className="text-[20px] font-black text-[#7a0b10]">Customize Your Event</h2>
@@ -82,7 +82,7 @@ export default function EventInquiryModal({ isOpen, onClose, restaurantId, initi
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-6">
           {/* Contact Details */}
           <div>
             <h3 className="text-[13px] font-bold text-[#1a1a1a] uppercase tracking-wider mb-4 border-b border-[#eadfdb] pb-2">Contact Information</h3>

@@ -35,6 +35,13 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
     e.preventDefault();
     setLoading(true);
     try {
+      const addr = formData.address.trim();
+      if (!addr || addr.length < 10) {
+        return showToast('Address must be at least 10 characters long', 'error');
+      }
+      if (!/\d/.test(addr)) {
+        return showToast('Please include a street number in your address', 'error');
+      }
       if (addressToEdit) {
         await authAPI.editAddress(addressToEdit._id, formData);
         showToast('Address updated successfully', 'success');
@@ -63,7 +70,7 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-5">
           <div>
             <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Label</label>
             <div className="flex gap-2">

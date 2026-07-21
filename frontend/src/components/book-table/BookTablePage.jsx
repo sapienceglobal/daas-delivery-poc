@@ -1,22 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import BookTableHero from './BookTableHero';
 import ReservationForm from './ReservationForm';
 import WhyDineWithUs from './WhyDineWithUs';
 import MakeItSpecialPromo from './MakeItSpecialPromo';
 import BookingTrustStrip from './BookingTrustStrip';
 import PerfectSettingGrid from './PerfectSettingGrid';
-import { reservationAPI } from '@/lib/api';
+import { reservationAPI, restaurantAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 
 export default function BookTablePage({ restaurantId, initialUser }) {
+  const [realRestaurantId, setRealRestaurantId] = useState(null);
+
+  useEffect(() => {
+    async function fetchRestaurant() {
+      try {
+        const res = await restaurantAPI.getById(restaurantId);
+        if (res.data?._id) {
+          setRealRestaurantId(res.data._id);
+        }
+      } catch (err) {
+        console.error('Failed to fetch restaurant', err);
+      }
+    }
+    fetchRestaurant();
+  }, [restaurantId]);
+
   const handleReservationSubmit = async (data) => {
     try {
+      if (!realRestaurantId) return showToast('Restaurant details are loading. Please wait.', 'warning');
+      
       // Attach restaurant ID
       const payload = {
         ...data,
-        restaurantId
+        restaurantId: realRestaurantId
       };
       
       const res = await reservationAPI.create(payload);

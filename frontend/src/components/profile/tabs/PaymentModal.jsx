@@ -24,16 +24,27 @@ export default function PaymentModal({ isOpen, onClose, onSuccess }) {
     setLoading(true);
 
     try {
-      // Basic validation mock
-      if (formData.cardNumber.replace(/\D/g, '').length < 15) {
-        throw new Error('Invalid card number');
+      if (!formData.cardNumber || formData.cardNumber.replace(/\D/g, '').length < 16) {
+        throw new Error('Please enter a valid 16-digit card number');
+      }
+
+      if (!formData.expDate || formData.expDate.length < 5) {
+        throw new Error('Please enter a valid expiry date (MM/YY)');
+      }
+
+      if (!formData.cvc || formData.cvc.length < 3) {
+        throw new Error('Please enter a valid CVV');
+      }
+
+      if (!formData.name || formData.name.trim().length === 0) {
+        throw new Error('Please enter the name on the card');
       }
 
       const last4 = formData.cardNumber.replace(/\D/g, '').slice(-4);
       const [expMonth, expYear] = formData.expDate.split('/').map(n => parseInt(n.trim(), 10));
 
       if (!expMonth || !expYear || expMonth < 1 || expMonth > 12) {
-        throw new Error('Invalid expiration date (MM/YY)');
+        throw new Error('Invalid expiration month (1-12)');
       }
 
       // Determine brand based on first digit (mock)
@@ -97,7 +108,7 @@ export default function PaymentModal({ isOpen, onClose, onSuccess }) {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-5">
           <div>
             <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Name on Card</label>
             <input

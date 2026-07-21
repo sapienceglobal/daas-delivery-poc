@@ -146,9 +146,9 @@ export const createReservationSchema = Joi.object({
     'number.max': 'Maximum party size is 100',
     'any.required': 'Party size is required'
   }),
-  name: Joi.string().trim().max(100).required(),
-  email: Joi.string().email().required(),
-  phone: Joi.string().max(30).required(),
+  customerName: Joi.string().trim().max(100).required(),
+  customerEmail: Joi.string().email().allow('', null).optional(),
+  customerPhone: Joi.string().max(30).required(),
   specialRequests: Joi.string().max(500).allow('', null).optional(),
   occasion: Joi.string().max(100).allow('', null).optional()
 });

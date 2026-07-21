@@ -91,7 +91,7 @@ export default function LassiProfileOrdersPage({ user, logout, updateUser }) {
   const [activeNav, setActiveNav] = useState(tabParam || 'dashboard');
 
   useEffect(() => {
-    if (tabParam) setActiveNav(tabParam);
+    setActiveNav(tabParam || 'dashboard');
   }, [tabParam]);
   const [activeStatus, setActiveStatus] = useState('all');
   const [search, setSearch] = useState('');
@@ -965,7 +965,7 @@ function MyProfileSubView({ user, updateUser }) {
     <div className="rounded-xl border border-[#eadfdb] bg-white p-6 shadow-sm space-y-6">
       <h2 className="font-serif text-[24px] font-black text-[#7a0b10]">My Profile Settings</h2>
 
-      <form onSubmit={handleSave} className="space-y-4 max-w-lg">
+      <form onSubmit={handleSave} noValidate className="space-y-4 max-w-lg">
         <div>
           <label className="block text-[13px] font-black text-[#1a1a1a] mb-1">Full Name</label>
           <input

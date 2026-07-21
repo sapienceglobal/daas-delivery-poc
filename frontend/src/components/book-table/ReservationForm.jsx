@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Calendar, Clock, Users, MapPin, Check, ChevronDown } from 'lucide-react';
 import { showToast } from '@/components/ui';
 
@@ -23,7 +23,8 @@ export default function ReservationForm({ onSubmit }) {
   const [currentStep, setCurrentStep] = useState(1);
   
   // Form State
-  const [date, setDate] = useState('2025-05-21');
+  const today = new Date().toISOString().split('T')[0];
+  const [date, setDate] = useState(today);
   const [time, setTime] = useState('19:00');
   const [partySize, setPartySize] = useState('4');
   const [location, setLocation] = useState('Main Dining Area');
@@ -37,29 +38,44 @@ export default function ReservationForm({ onSubmit }) {
 
   const handleContinue = () => {
     if (currentStep === 1) {
-      if (!date || !time || !partySize) {
-        return showToast('Please select date, time and party size', 'error');
-      }
+      if (!date) return showToast('Please select a date', 'error');
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (date < todayStr) return showToast('Please select a future date', 'error');
+      if (!time) return showToast('Please select a time', 'error');
+      if (!partySize || partySize < 1) return showToast('Please select a valid party size', 'error');
+      
       setCurrentStep(2);
+      // Scroll the form card to top
+      if (formRef.current) formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (currentStep === 2) {
-      if (!name || !phone) {
-        return showToast('Name and phone are required', 'error');
+      if (!name || name.trim().length < 3) {
+        return showToast('Please enter a valid full name (min 3 characters)', 'error');
+      }
+      const cleanPhone = phone.replace(/\D/g, '');
+      if (cleanPhone.length < 10) {
+        return showToast('Please enter a valid 10-digit phone number', 'error');
+      }
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return showToast('Please enter a valid email address', 'error');
       }
       // Assuming step 3 is skipped for now since requests are in step 1 based on UI
-      setCurrentStep(4); 
+      setCurrentStep(4);
+      if (formRef.current) formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       
       // Submit to backend
       if (onSubmit) {
         onSubmit({
           date, time, partySize: Number(partySize), location, occasion, specialRequests: note,
-          customerName: name, customerEmail: email, customerPhone: phone
+          customerName: name.trim(), customerEmail: email.trim(), customerPhone: phone.trim()
         });
       }
     }
   };
 
+  const formRef = useRef(null);
+
   return (
-    <div className="bg-white rounded-2xl border border-[#eadfdb] shadow-[0_4px_24px_rgba(0,0,0,0.02)] p-6 md:p-10">
+    <div ref={formRef} className="bg-white rounded-2xl border border-[#eadfdb] shadow-[0_4px_24px_rgba(0,0,0,0.02)] p-6 md:p-10">
       
       {/* Header */}
       <div className="flex items-center gap-4 mb-10">
@@ -239,7 +255,8 @@ export default function ReservationForm({ onSubmit }) {
                 <label className="text-[13px] font-bold text-[#1a1a1a] block mb-2">Full Name<span className="text-[#7a0b10]">*</span></label>
                 <input 
                   type="text" value={name} onChange={(e) => setName(e.target.value)}
-                  className="w-full h-[52px] px-4 rounded-xl border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] outline-none"
+                  placeholder="John Doe"
+                  className="w-full h-[52px] px-4 rounded-xl border border-[#eadfdb] bg-white text-[#1a1a1a] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] outline-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -247,14 +264,16 @@ export default function ReservationForm({ onSubmit }) {
                   <label className="text-[13px] font-bold text-[#1a1a1a] block mb-2">Phone Number<span className="text-[#7a0b10]">*</span></label>
                   <input 
                     type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
-                    className="w-full h-[52px] px-4 rounded-xl border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] outline-none"
+                    placeholder="(555) 123-4567"
+                    className="w-full h-[52px] px-4 rounded-xl border border-[#eadfdb] bg-white text-[#1a1a1a] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-[13px] font-bold text-[#1a1a1a] block mb-2">Email Address</label>
+                   <label className="text-[13px] font-bold text-[#1a1a1a] block mb-2">Email Address <span className="text-[#9ca3af] font-medium">(optional)</span></label>
                   <input 
                     type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-[52px] px-4 rounded-xl border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] outline-none"
+                    placeholder="john@example.com"
+                    className="w-full h-[52px] px-4 rounded-xl border border-[#eadfdb] bg-white text-[#1a1a1a] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] outline-none"
                   />
                 </div>
               </div>

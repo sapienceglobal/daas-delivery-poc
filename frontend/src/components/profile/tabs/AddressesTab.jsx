@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { MapPin, Plus, Trash2, Edit2, Loader2, Star } from 'lucide-react';
 import { authAPI } from '@/lib/api';
-import { showToast } from '@/components/ui';
+import { showToast, ConfirmDialog } from '@/components/ui';
 import ProfileAddressModal from './ProfileAddressModal';
 
 export default function AddressesTab({ user, updateUser }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [addressToEdit, setAddressToEdit] = useState(null);
   const [loadingId, setLoadingId] = useState(null);
+  const [confirmData, setConfirmData] = useState({ isOpen: false });
 
   const addresses = user?.savedAddresses || [];
 
@@ -23,18 +24,26 @@ export default function AddressesTab({ user, updateUser }) {
     setModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this address?')) return;
-    setLoadingId(id);
-    try {
-      const res = await authAPI.removeAddress(id);
-      updateUser({ ...user, savedAddresses: res.data });
-      showToast('Address deleted', 'success');
-    } catch (err) {
-      showToast(err.message || 'Failed to delete address', 'error');
-    } finally {
-      setLoadingId(null);
-    }
+  const handleDelete = (id) => {
+    setConfirmData({
+      isOpen: true,
+      title: 'Delete Address',
+      message: 'Are you sure you want to delete this address?',
+      confirmText: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        setLoadingId(id);
+        try {
+          const res = await authAPI.removeAddress(id);
+          updateUser({ ...user, savedAddresses: res.data });
+          showToast('Address deleted', 'success');
+        } catch (err) {
+          showToast(err.message || 'Failed to delete address', 'error');
+        } finally {
+          setLoadingId(null);
+        }
+      }
+    });
   };
 
   const handleSetDefault = async (id) => {
@@ -148,6 +157,16 @@ export default function AddressesTab({ user, updateUser }) {
         onClose={() => setModalOpen(false)}
         addressToEdit={addressToEdit}
         onSuccess={refreshUser}
+      />
+
+      <ConfirmDialog 
+        isOpen={confirmData.isOpen}
+        onClose={() => setConfirmData({ ...confirmData, isOpen: false })}
+        onConfirm={confirmData.onConfirm}
+        title={confirmData.title}
+        message={confirmData.message}
+        confirmText={confirmData.confirmText}
+        variant={confirmData.variant}
       />
     </div>
   );

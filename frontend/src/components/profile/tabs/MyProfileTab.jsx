@@ -60,7 +60,7 @@ export default function MyProfileTab({ user, updateUser }) {
       {/* Basic Info */}
       <div className="bg-white rounded-2xl border border-[#eadfdb] shadow-sm p-6 md:p-8">
         <h3 className="text-[20px] font-black text-[#1a1a1a] mb-6">Personal Information</h3>
-        <form onSubmit={handleProfileUpdate} className="space-y-5 max-w-2xl">
+        <form onSubmit={handleProfileUpdate} noValidate className="space-y-5 max-w-2xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Full Name</label>
@@ -116,7 +116,7 @@ export default function MyProfileTab({ user, updateUser }) {
           </div>
         </div>
         
-        <form onSubmit={handlePasswordChange} className="space-y-5 max-w-2xl">
+        <form onSubmit={handlePasswordChange} noValidate className="space-y-5 max-w-2xl">
           <div>
             <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Current Password</label>
             <input

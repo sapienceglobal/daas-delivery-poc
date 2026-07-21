@@ -196,3 +196,31 @@ html {
     transform: translateY(0) scale(1);
   }
 }
+
+/* ── Reliable expand / collapse (max-height approach) ── */
+/* 
+  Usage pattern:
+  <div class="ll-collapsible ll-collapsible--open">  ← visible
+  <div class="ll-collapsible">                       ← hidden
+*/
+.ll-collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.ll-collapsible--open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Every direct child needs overflow:hidden so rows collapse cleanly */
+.ll-collapsible > * {
+  overflow: hidden;
+  min-height: 0;
+}

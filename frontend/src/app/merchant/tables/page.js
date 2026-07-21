@@ -6,7 +6,7 @@ import { Users, ChevronLeft, Plus, Edit2, Trash2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { tableAPI } from '@/lib/api';
-import { Button, showToast, Skeleton, Modal, Input, GlassCard, Badge } from '@/components/ui';
+import { Button, showToast, Skeleton, Modal, Input, GlassCard, Badge, ConfirmDialog } from '@/components/ui';
 
 export default function TablesPage() {
   const router = useRouter();
@@ -22,6 +22,8 @@ export default function TablesPage() {
   const [actionType, setActionType] = useState('move'); // 'move' or 'merge'
   const [sourceTableId, setSourceTableId] = useState('');
   const [targetTableId, setTargetTableId] = useState('');
+  
+  const [confirmData, setConfirmData] = useState({ isOpen: false });
 
   const [formData, setFormData] = useState({
     tableNumber: '',
@@ -79,15 +81,23 @@ export default function TablesPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Remove this table?')) return;
-    try {
-      await tableAPI.delete(id);
-      showToast('Table removed', 'success');
-      loadTables();
-    } catch (err) {
-      showToast('Failed to remove table', 'error');
-    }
+  const handleDelete = (id) => {
+    setConfirmData({
+      isOpen: true,
+      title: 'Remove Table',
+      message: 'Are you sure you want to remove this table?',
+      confirmText: 'Remove',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await tableAPI.delete(id);
+          showToast('Table removed', 'success');
+          loadTables();
+        } catch (err) {
+          showToast('Failed to remove table', 'error');
+        }
+      }
+    });
   };
 
   const openModal = (table = null) => {
@@ -103,11 +113,16 @@ export default function TablesPage() {
 
   const handleTableClick = (table) => {
     if (table.status === 'occupied') {
-      if (confirm(`Table ${table.tableNumber} is occupied. Clear it to make it available?`)) {
-        handleClearTable(table._id);
-      } else if (confirm(`Do you want to add more items to Table ${table.tableNumber} in POS?`)) {
-        router.push(`/merchant/pos?tableId=${table._id}&tableNumber=${table.tableNumber}`);
-      }
+      setConfirmData({
+        isOpen: true,
+        title: 'Table Occupied',
+        message: `Table ${table.tableNumber} is occupied. Clear it to make it available, or add more items?`,
+        confirmText: 'Clear Table',
+        cancelText: 'Add Items (POS)',
+        variant: 'primary',
+        onConfirm: () => handleClearTable(table._id),
+        onCancel: () => router.push(`/merchant/pos?tableId=${table._id}&tableNumber=${table.tableNumber}`)
+      });
     } else {
       router.push(`/merchant/pos?tableId=${table._id}&tableNumber=${table.tableNumber}`);
     }
@@ -203,7 +218,7 @@ export default function TablesPage() {
       </div>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingTable ? "Edit Table" : "Add Table"}>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <Input label="Table Number/Name" name="tableNumber" value={formData.tableNumber} onChange={(e) => setFormData({...formData, tableNumber: e.target.value})} required />
           <Input label="Capacity" name="capacity" type="number" value={formData.capacity} onChange={(e) => setFormData({...formData, capacity: Number(e.target.value)})} required min="1" />
           
@@ -229,7 +244,7 @@ export default function TablesPage() {
           <Button type="button" variant={actionType === 'merge' ? 'primary' : 'secondary'} className="flex-1" onClick={() => setActionType('merge')}>Merge Tables</Button>
         </div>
         
-        <form onSubmit={handleActionSubmit} className="space-y-4">
+        <form onSubmit={handleActionSubmit} noValidate className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-brand-muted">
               {actionType === 'move' ? 'Move FROM Table (Must be occupied)' : 'Merge Table (This will be marked occupied)'}
@@ -270,6 +285,18 @@ export default function TablesPage() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog 
+        isOpen={confirmData.isOpen}
+        onClose={() => setConfirmData({ ...confirmData, isOpen: false })}
+        onConfirm={confirmData.onConfirm}
+        onCancel={confirmData.onCancel}
+        title={confirmData.title}
+        message={confirmData.message}
+        confirmText={confirmData.confirmText}
+        cancelText={confirmData.cancelText}
+        variant={confirmData.variant}
+      />
     </div>
   );
 }

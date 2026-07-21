@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { CreditCard, Plus, Trash2, Loader2, Star } from 'lucide-react';
 import { authAPI } from '@/lib/api';
-import { showToast } from '@/components/ui';
+import { showToast, ConfirmDialog } from '@/components/ui';
 import PaymentModal from './PaymentModal';
 
 export default function PaymentsTab({ user, updateUser }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [loadingId, setLoadingId] = useState(null);
+  const [confirmData, setConfirmData] = useState({ isOpen: false });
 
   const cards = user?.savedCards || [];
 
@@ -16,18 +17,26 @@ export default function PaymentsTab({ user, updateUser }) {
     setModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this payment method?')) return;
-    setLoadingId(id);
-    try {
-      const res = await authAPI.removeCard(id);
-      updateUser({ ...user, savedCards: res.data });
-      showToast('Card deleted', 'success');
-    } catch (err) {
-      showToast(err.message || 'Failed to delete card', 'error');
-    } finally {
-      setLoadingId(null);
-    }
+  const handleDelete = (id) => {
+    setConfirmData({
+      isOpen: true,
+      title: 'Delete Payment Method',
+      message: 'Are you sure you want to delete this payment method?',
+      confirmText: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        setLoadingId(id);
+        try {
+          const res = await authAPI.removeCard(id);
+          updateUser({ ...user, savedCards: res.data });
+          showToast('Card deleted', 'success');
+        } catch (err) {
+          showToast(err.message || 'Failed to delete card', 'error');
+        } finally {
+          setLoadingId(null);
+        }
+      }
+    });
   };
 
   const handleSetDefault = async (id) => {
@@ -146,6 +155,16 @@ export default function PaymentsTab({ user, updateUser }) {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onSuccess={refreshUser}
+      />
+
+      <ConfirmDialog 
+        isOpen={confirmData.isOpen}
+        onClose={() => setConfirmData({ ...confirmData, isOpen: false })}
+        onConfirm={confirmData.onConfirm}
+        title={confirmData.title}
+        message={confirmData.message}
+        confirmText={confirmData.confirmText}
+        variant={confirmData.variant}
       />
     </div>
   );
