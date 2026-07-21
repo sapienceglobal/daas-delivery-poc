@@ -81,8 +81,8 @@ app.use('/api/', apiLimiter);
 app.use(cors({
   origin: corsOrigin,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'x-app-secret', 'x-tenant-id']
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'x-app-secret', 'x-tenant-id', 'x-restaurant-id', 'X-Requested-With']
 }));
 
 app.use(cookieParser());

@@ -113,8 +113,8 @@ io.on('connection', (socket) => {
 app.use(cors({
   origin: corsOrigin,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'x-app-secret', 'x-tenant-id', 'x-restaurant-id', 'X-Requested-With']
 }));
 
 // Cookie Parser
