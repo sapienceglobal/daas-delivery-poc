@@ -116,7 +116,7 @@ export default function DishGrid({
    {/* ─── 2. ITEMS GRID / LIST ─── */}
       <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 ll-stagger" : "flex flex-col gap-4 ll-stagger"}>
         {visibleItems.map(item => {
-          const isFavorite = user?.favoriteItems?.includes(item._id);
+          const isFavorite = user?.favoriteItems?.some(f => (f._id || f) === item._id);
           const isAvailable = item.isAvailable !== false;
           
           const targetId = item.menuItemId || item._id || item.id;

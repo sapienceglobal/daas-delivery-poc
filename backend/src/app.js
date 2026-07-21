@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'express-mongo-sanitize';
 import { errorHandler } from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
 import tenantDb from './middleware/tenantDb.js';
@@ -20,6 +21,8 @@ import webhookRoutes from './routes/webhookRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import tableRoutes from './routes/tableRoutes.js';
+import reservationRoutes from './routes/reservationRoutes.js';
+import cateringRoutes from './routes/cateringRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import loyaltyRoutes from './routes/loyaltyRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
@@ -92,8 +95,15 @@ app.use(express.json({
 
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// ── NoSQL Injection Protection ─────────────────────────────────────────────
+app.use(mongoSanitize());
+
 // ── App Secret Security Middleware ──────────────────────────────────────────
-const APP_SECRET = process.env.APP_SECRET || 'DAAS_MOBILE_SECRET_2026';
+const APP_SECRET = process.env.APP_SECRET;
+if (!APP_SECRET) {
+  logger.warn('APP_SECRET is not set. Using default — NOT SAFE FOR PRODUCTION.');
+}
+const resolvedAppSecret = APP_SECRET || 'DAAS_MOBILE_SECRET_2026';
 app.use('/api', (req, res, next) => {
   // Exempt webhooks from secret check (they have their own HMAC)
   if (req.path.includes('webhook')) return next();
@@ -103,7 +113,7 @@ app.use('/api', (req, res, next) => {
   if (req.path.includes('upload') && req.method === 'GET') return next();
 
   const clientSecret = req.headers['x-app-secret'];
-  if (clientSecret !== APP_SECRET) {
+  if (clientSecret !== resolvedAppSecret) {
     return res.status(403).json({ success: false, message: 'Forbidden: Invalid App Secret' });
   }
   next();
@@ -149,6 +159,8 @@ app.use('/api/delivery-webhook', webhookRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/tables', tableRoutes);
+app.use('/api/reservations', reservationRoutes);
+app.use('/api/catering', cateringRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/inventory', inventoryRoutes);

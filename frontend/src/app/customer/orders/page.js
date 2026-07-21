@@ -15,19 +15,21 @@ import {
 } from '@/components/ui';
 
 export default function OrdersPage() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        router.push('/login');
+        return;
+      }
+      loadOrders();
     }
-    loadOrders();
-  }, [isAuthenticated]);
+  }, [authLoading, isAuthenticated]);
 
   const loadOrders = async () => {
     try {

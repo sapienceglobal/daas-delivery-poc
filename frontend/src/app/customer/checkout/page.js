@@ -22,19 +22,19 @@ export default function CheckoutPage() {
   if (c.itemCount === 0) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center bg-[#f9fafb]">
-        <EmptyState
-          icon={ShoppingBag}
-          title="Your cart is empty"
-          description="Browse and add items to your cart before checking out"
-          action={
-            <Button
-              onClick={() => c.router.push(c.isSingleRestaurantMode ? '/customer/restaurant/lassi-lounge' : '/customer')}
-              className="bg-[#7a0b10] hover:bg-[#5e070c] text-[#ffffff] transition-colors animate-in"
-            >
-              Browse Menu
-            </Button>
-          }
-        />
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="mb-4 rounded-2xl bg-white p-4 border border-[#eadfdb] shadow-sm">
+            <ShoppingBag className="h-8 w-8 text-[#7a0b10]" />
+          </div>
+          <h3 className="text-lg font-bold text-[#1a1a1a] mb-1">Your cart is empty</h3>
+          <p className="text-sm text-[#6b7280] max-w-sm mb-4">Browse and add items to your cart before checking out</p>
+          <Button
+            onClick={() => c.router.push(c.isSingleRestaurantMode ? '/customer/restaurant/lassi-lounge' : '/customer')}
+            className="bg-[#7a0b10] hover:bg-[#5e070c] text-[#ffffff] transition-colors animate-in px-6 py-2 rounded-lg font-medium"
+          >
+            Browse Menu
+          </Button>
+        </div>
       </div>
     );
   }
@@ -73,6 +73,7 @@ export default function CheckoutPage() {
               onSelectSuggestion={c.handleSelectSuggestion}
               quoteError={c.quoteError}
               quoteLoading={c.quoteLoading}
+              isLocationLoading={c.isLocationLoading}
             />
 
             <PaymentMethodSection
@@ -86,29 +87,9 @@ export default function CheckoutPage() {
               onContinue={c.handleContinueToReview}
               orderType={c.orderType}
               quoteError={c.quoteError}
+              user={c.user}
             />
 
-            <ReviewOrderSection 
-              step={c.step} 
-              t={t} 
-              onBack={() => c.setStep(2)} 
-              onPlaceOrder={c.handlePlaceOrder} 
-              total={c.total}
-              compiledAddress={c.compiledAddress}
-              fullName={c.fullName}
-              phone={c.phone}
-              paymentMethod={c.paymentMethod}
-              items={c.items}
-              subtotal={c.subtotal}
-              deliveryFee={c.deliveryFee}
-              tax={c.tax}
-              platformFee={c.platformFee}
-              serviceFee={c.serviceFee}
-              couponDiscount={c.couponDiscount}
-              loyaltyDiscount={c.loyaltyDiscount}
-              orderType={c.orderType}
-              courierNotes={c.deliveryInstructions}
-            />
           </div>
 
           <div className="lg:col-span-4 space-y-6 ll-reveal">
@@ -134,6 +115,29 @@ export default function CheckoutPage() {
           
         </div>
       </div>
+
+      <ReviewOrderSection 
+        step={c.step} 
+        t={t} 
+        onBack={() => c.setStep(2)} 
+        onPlaceOrder={c.handlePlaceOrder} 
+        total={c.total}
+        compiledAddress={c.compiledAddress}
+        fullName={c.fullName}
+        phone={c.phone}
+        paymentMethod={c.paymentMethod}
+        items={c.items}
+        subtotal={c.subtotal}
+        deliveryFee={c.deliveryFee}
+        tax={c.tax}
+        platformFee={c.platformFee}
+        serviceFee={c.serviceFee}
+        couponDiscount={c.couponDiscount}
+        loyaltyDiscount={c.loyaltyDiscount}
+        orderType={c.orderType}
+        courierNotes={c.deliveryInstructions}
+        specialInstructions={c.specialInstructions}
+      />
 
       <PaymentSimulatorModal
         isOpen={c.showPaymentModal}

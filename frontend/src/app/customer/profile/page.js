@@ -4,30 +4,63 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   User, Mail, Phone, MapPin, Shield, Bell,
-  Lock, Save, Trash2, Plus, Heart, Star, Award,
+  Lock, Save, Trash2, Plus, Award,
   Clock, ArrowUpRight, ArrowDownLeft, Loader2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { authAPI, loyaltyAPI } from '@/lib/api';
 import {
-  GlassCard, Button, Input, Badge, Tabs, Modal, showToast
+  GlassCard, Button, Input, Badge, Tabs, showToast
 } from '@/components/ui';
 import AddressModal from '@/components/shared/AddressModal';
 
+// Naye modularized components ko import karein
+import LassiProfilePage from '@/components/profile/LassiProfilePage';
+
+const isSingleRestaurantMode = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
+
 export default function ProfilePage() {
-  const { user, isAuthenticated, updateUser, logout, refreshUser } = useAuth();
+  const { user, isAuthenticated, loading, updateUser, logout, refreshUser } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('profile');
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else {
-      refreshUser();
+    if (!loading) {
+      if (!isAuthenticated) {
+        router.push('/login');
+      } else {
+        refreshUser();
+      }
     }
-  }, [isAuthenticated, refreshUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, isAuthenticated]);
 
-  if (!user) return null;
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-[#fbfaf7] flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-[#7a0b10]" />
+      </div>
+    );
+  }
+
+  // Single-Restaurant (Lassi Lounge) route ko naye structure ki taraf point karein
+  if (isSingleRestaurantMode) {
+    return <LassiProfilePage user={user} logout={logout} updateUser={updateUser} />;
+  }
+
+  // Enterprise (Zomato/Swiggy type) route (exactly unchanged)
+  return <MarketplaceProfilePage user={user} updateUser={updateUser} />;
+}
+
+
+/**
+ * ────────────────────────────────────────────────────────────────────────
+ * MARKETPLACE / ENTERPRISE PROFILE COMPONENTS
+ * (Ye sab aapke purane code ke hisab se exactly same hain)
+ * ────────────────────────────────────────────────────────────────────────
+ */
+
+function MarketplaceProfilePage({ user, updateUser }) {
+  const [activeTab, setActiveTab] = useState('profile');
 
   const tabs = [
     { value: 'profile', label: 'Profile', icon: User },
@@ -44,7 +77,6 @@ export default function ProfilePage() {
         Profile & Settings
       </h1>
 
-      {/* User Card */}
       <GlassCard className="flex items-center gap-4">
         <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-brand-green to-brand-cyan flex items-center justify-center text-2xl font-black text-brand-bg">
           {user.name?.charAt(0)?.toUpperCase()}
@@ -121,19 +153,19 @@ function LoyaltyTab({ user }) {
 
   const points = user.loyaltyPoints || 0;
   const cashValue = (points / 100).toFixed(2);
-  
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <GlassCard className="bg-gradient-to-br from-brand-card to-brand-yellow/5 border-brand-yellow/20 text-center py-8">
         <Award className="h-16 w-16 text-brand-yellow mx-auto mb-4 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
         <h2 className="text-3xl font-black text-brand-text mb-2">{points} Points</h2>
         <p className="text-brand-muted text-lg mb-6">Current Cash Value: <span className="font-bold text-brand-green">${cashValue}</span></p>
-        
+
         <div className="inline-block bg-brand-bg/50 px-6 py-3 rounded-full border border-brand-border/50 text-sm">
           Earn <span className="font-bold text-brand-cyan">10 points</span> for every $1 spent!
         </div>
       </GlassCard>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <GlassCard className="flex flex-col h-full">
           <h3 className="font-bold text-brand-text mb-4 text-lg">How it works</h3>
@@ -259,8 +291,8 @@ function AddressesTab({ user, updateUser }) {
         </GlassCard>
       )}
 
-      <AddressModal 
-        isOpen={showSearchModal} 
+      <AddressModal
+        isOpen={showSearchModal}
         onClose={() => setShowSearchModal(false)}
         onSelect={handleSelectAddress}
       />

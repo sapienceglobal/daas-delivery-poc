@@ -40,7 +40,7 @@ const getDishImage = (itemName) => {
 export default function RestaurantPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { addItem, switchRestaurant, restaurant: cartRestaurant, itemCount, items, subtotal, updateQuantity, removeItem } = useCart();
+  const { addItem, switchRestaurant, restaurant: cartRestaurant, itemCount, items, subtotal, updateQuantity, removeItem, specialInstructions, setSpecialInstructions } = useCart();
   const { user, updateUser, isAuthenticated } = useAuth();
 
   const [restaurant, setRestaurant] = useState(null);
@@ -246,20 +246,20 @@ export default function RestaurantPage() {
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
             
             {/* === LEFT SIDEBAR: CATEGORIES === */}
-            {/* इसकी चौड़ाई फिक्स 240px कर दी गई है */}
             <div className="w-full lg:w-[240px] shrink-0">
-              <CategorySidebar
-                categories={categories}
-                activeCategory={activeCategory}
-                setActiveCategory={setActiveCategory}
-                setSearchQuery={setSearchQuery}
-                couponApplied={couponApplied}
-                setCouponApplied={setCouponApplied}
-              />
+              <div className="lg:sticky lg:top-28">
+                <CategorySidebar
+                  categories={categories}
+                  activeCategory={activeCategory}
+                  setActiveCategory={setActiveCategory}
+                  setSearchQuery={setSearchQuery}
+                  couponApplied={couponApplied}
+                  setCouponApplied={setCouponApplied}
+                />
+              </div>
             </div>
-
+            
             {/* === MIDDLE CONTENT: DISHES GRID === */}
-         
             <div className="flex-1 w-full min-w-0">
               <DishGrid
                 filteredItems={filteredItems}
@@ -297,6 +297,8 @@ export default function RestaurantPage() {
                   setCouponApplied={setCouponApplied}
                   updateQuantity={updateQuantity}
                   router={router}
+                  specialInstructions={specialInstructions}
+                  setSpecialInstructions={setSpecialInstructions}
                 />
               </div>
             </div>

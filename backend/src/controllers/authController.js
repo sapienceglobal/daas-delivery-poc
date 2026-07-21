@@ -10,7 +10,7 @@ import { OAuth2Client } from 'google-auth-library';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const JWT_SECRET = process.env.JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET';
+const JWT_SECRET = process.env.JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET'; // Falls back only in dev; auth.js already logs warning
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -39,7 +39,8 @@ const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace') =
       expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       httpOnly: true,
       secure: secureCookie,
-      sameSite: secureCookie ? 'none' : 'lax'
+      sameSite: secureCookie ? 'none' : 'lax',
+      path: '/'
     })
     .json({
       success: true,
@@ -83,6 +84,9 @@ export const register = asyncHandler(async (req, response) => {
   if (phone) {
     user.savedAddresses = [];
   }
+  
+  // Generate random 6-character referral code
+  user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
 
   await user.save();
 
@@ -103,7 +107,29 @@ export const login = asyncHandler(async (req, response) => {
   const UserModel = req.getModel('User');
 
   const user = await UserModel.findOne({ email });
-  if (!user || !user.validatePassword(password)) {
+  if (!user) {
+    throw new AppError('Invalid email or password.', 401);
+  }
+
+  // H5: Account lockout after 5 failed attempts (15-minute cooldown)
+  const MAX_FAILED_ATTEMPTS = 5;
+  const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+  if (user.loginLockedUntil && user.loginLockedUntil > new Date()) {
+    const minsLeft = Math.ceil((user.loginLockedUntil - Date.now()) / 60000);
+    throw new AppError(`Account temporarily locked. Try again in ${minsLeft} minute(s).`, 429);
+  }
+
+  if (!user.validatePassword(password)) {
+    // Increment failed attempts
+    const failedAttempts = (user.failedLoginAttempts || 0) + 1;
+    const updateData = { failedLoginAttempts: failedAttempts };
+    if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+      updateData.loginLockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
+      updateData.failedLoginAttempts = 0; // Reset counter after locking
+      logger.warn('Account locked due to too many failed login attempts', { email });
+    }
+    await UserModel.updateOne({ _id: user._id }, { $set: updateData });
     throw new AppError('Invalid email or password.', 401);
   }
 
@@ -111,10 +137,13 @@ export const login = asyncHandler(async (req, response) => {
     throw new AppError('Your account has been deactivated. Contact support.', 403);
   }
 
+  // Successful login — reset failed attempts
+  user.failedLoginAttempts = 0;
+  user.loginLockedUntil = null;
+
   // Transparently upgrade old password hashes
   if (user.needsPasswordRehash()) {
     user.setPassword(password);
-    await user.save();
   }
 
   user.lastLogin = new Date();
@@ -181,14 +210,34 @@ export const googleLogin = asyncHandler(async (req, response) => {
 });
 
 export const logout = asyncHandler(async (req, response) => {
+  const secureCookie = process.env.COOKIE_SECURE === 'true' ||
+    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
+
   response
-    .cookie('token', '', { httpOnly: true, expires: new Date(0) })
+    .cookie('token', '', { 
+      httpOnly: true, 
+      secure: secureCookie,
+      sameSite: secureCookie ? 'none' : 'lax',
+      expires: new Date(0),
+      path: '/'
+    })
     .json({ success: true, message: 'Logged out successfully' });
 });
 
 export const getMe = asyncHandler(async (req, response) => {
-  const user = await req.getModel('User').findById(req.user._id);
+  const user = await req.getModel('User')
+    .findById(req.user._id)
+    .populate('favoriteRestaurants', 'name cuisine banner rating reviewCount deliveryTime deliveryFee distance')
+    .populate('favoriteItems', 'name description price image type');
+  
   if (!user) throw new AppError('User not found', 404);
+  
+  // Ensure referral code exists for old users
+  if (!user.referralCode) {
+    user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+    await user.save();
+  }
+  
   res.success(response, { data: user.toSafeJSON() });
 });
 
@@ -296,9 +345,98 @@ export const removeAddress = asyncHandler(async (req, response) => {
   user.savedAddresses = user.savedAddresses.filter(
     a => a._id.toString() !== req.params.addressId
   );
+  
+  // If we removed the default address, make the first one default (if any)
+  if (user.savedAddresses.length > 0 && !user.savedAddresses.some(a => a.isDefault)) {
+    user.savedAddresses[0].isDefault = true;
+  }
+  
   await user.save();
 
   res.success(response, { data: user.savedAddresses, message: 'Address removed' });
+});
+
+export const editAddress = asyncHandler(async (req, response) => {
+  const { label, address, lat, lng, isDefault } = req.body;
+  const user = await req.getModel('User').findById(req.user._id);
+  
+  const addr = user.savedAddresses.id(req.params.addressId);
+  if (!addr) throw new AppError('Address not found', 404);
+
+  if (isDefault) {
+    user.savedAddresses.forEach(a => { a.isDefault = false; });
+  }
+
+  if (label !== undefined) addr.label = label;
+  if (address !== undefined) addr.address = address;
+  if (lat !== undefined) addr.lat = lat;
+  if (lng !== undefined) addr.lng = lng;
+  if (isDefault !== undefined) addr.isDefault = isDefault;
+
+  await user.save();
+  res.success(response, { data: user.savedAddresses, message: 'Address updated' });
+});
+
+export const setDefaultAddress = asyncHandler(async (req, response) => {
+  const user = await req.getModel('User').findById(req.user._id);
+  
+  const addr = user.savedAddresses.id(req.params.addressId);
+  if (!addr) throw new AppError('Address not found', 404);
+
+  user.savedAddresses.forEach(a => { a.isDefault = false; });
+  addr.isDefault = true;
+
+  await user.save();
+  res.success(response, { data: user.savedAddresses, message: 'Default address set' });
+});
+
+// ── Payments ────────────────────────────────────────────────────────────────
+
+export const addCard = asyncHandler(async (req, response) => {
+  const { cardId, brand, last4, expMonth, expYear, isDefault } = req.body;
+  if (!cardId || !brand || !last4) throw new AppError('Card details missing.', 400);
+
+  const user = await req.getModel('User').findById(req.user._id);
+
+  if (isDefault || user.savedCards.length === 0) {
+    user.savedCards.forEach(c => { c.isDefault = false; });
+  }
+
+  user.savedCards.push({ 
+    cardId, brand, last4, expMonth, expYear, 
+    isDefault: isDefault || user.savedCards.length === 0 
+  });
+  
+  await user.save();
+  res.success(response, { data: user.savedCards, message: 'Card saved successfully' });
+});
+
+export const removeCard = asyncHandler(async (req, response) => {
+  const user = await req.getModel('User').findById(req.user._id);
+  user.savedCards = user.savedCards.filter(
+    c => c._id.toString() !== req.params.cardId
+  );
+  
+  // Reset default if needed
+  if (user.savedCards.length > 0 && !user.savedCards.some(c => c.isDefault)) {
+    user.savedCards[0].isDefault = true;
+  }
+  
+  await user.save();
+  res.success(response, { data: user.savedCards, message: 'Card removed' });
+});
+
+export const setDefaultCard = asyncHandler(async (req, response) => {
+  const user = await req.getModel('User').findById(req.user._id);
+  
+  const card = user.savedCards.id(req.params.cardId);
+  if (!card) throw new AppError('Card not found', 404);
+
+  user.savedCards.forEach(c => { c.isDefault = false; });
+  card.isDefault = true;
+
+  await user.save();
+  res.success(response, { data: user.savedCards, message: 'Default card set' });
 });
 
 // ── Saved Cart ──────────────────────────────────────────────────────────────

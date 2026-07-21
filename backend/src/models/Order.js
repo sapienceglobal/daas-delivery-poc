@@ -11,6 +11,7 @@ const OrderItemSchema = new mongoose.Schema({
     required: true
   },
   name: { type: String, required: true },
+  image: { type: String, default: null },
   price: { type: Number, required: true },       // unit price at time of order
   quantity: { type: Number, required: true, default: 1, min: 1 },
   selectedSize: {
@@ -152,6 +153,7 @@ const OrderSchema = new mongoose.Schema({
   deliveryTime: { type: Date, default: null },
   scheduledTime: { type: Date, default: null },
   courierNotes: { type: String, default: null },
+  specialInstructions: { type: String, default: null },
 
   // ── Driver Info ───────────────────────────────────────────────────────
   driverId: {
@@ -222,6 +224,9 @@ OrderSchema.pre('save', function (next) {
 
   next();
 });
+
+// M5: Performance indexes already defined above (lines ~185-188).
+// userId+createdAt, restaurantId+createdAt, status, orderNumber — all covered.
 
 const Order = mongoose.model('Order', OrderSchema);
 export default Order;

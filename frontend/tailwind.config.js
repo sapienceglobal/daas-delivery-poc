@@ -42,6 +42,8 @@ module.exports = {
     colors: {
       transparent: 'transparent',
       current: 'currentColor',
+      white: '#ffffff',
+      black: '#000000',
 
       primary: {
         50:  cssVar('color-primary-50'),
@@ -131,7 +133,17 @@ module.exports = {
     transitionTimingFunction: theme.transitionTimingFunction,
     zIndex: theme.zIndex,
 
-    extend: {},
+    extend: {
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        fadeIn: 'fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+      },
+    },
   },
   plugins: [],
 };

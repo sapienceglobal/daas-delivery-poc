@@ -15,7 +15,7 @@ export default function TestimonialCard({ rating, quote, name, location, avatar 
 
       <div className="flex items-center gap-4">
         <span className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 border-2 border-[#D9A441] shadow-sm">
-          <Image src={avatar} alt={name} fill sizes="48px" className="object-cover" />
+          <img src={avatar} alt={name} className="w-full h-full object-cover" />
         </span>
         <span>
      

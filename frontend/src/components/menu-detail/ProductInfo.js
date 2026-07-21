@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Star, Leaf, Flame, Clock, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const MOCK_THUMBNAILS = [
@@ -13,6 +13,16 @@ const MOCK_THUMBNAILS = [
 
 export default function ProductInfo({ item, isSingleRestaurant, isFavorite, onToggleFavorite }) {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      const activeElement = scrollRef.current.children[activeImageIdx];
+      if (activeElement) {
+        activeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [activeImageIdx]);
 
   const getDishImage = (itemName) => {
     const name = itemName.toLowerCase();
@@ -65,7 +75,10 @@ export default function ProductInfo({ item, isSingleRestaurant, isFavorite, onTo
             <ChevronLeft className="w-4 h-4" />
           </button>
           
-          <div className="flex-1 flex gap-2 overflow-x-auto scrollbar-none py-1">
+          <div 
+            ref={scrollRef}
+            className="flex-1 flex gap-2 overflow-x-auto py-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          >
             {images.map((img, idx) => (
               <button
                 key={idx}

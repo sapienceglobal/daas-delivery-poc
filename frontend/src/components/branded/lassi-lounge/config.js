@@ -155,7 +155,7 @@ export const testimonialsContent = {
       location: 'New York, USA',
       rating: 5,
       quote: "The best Indian food I've had in New York! The flavors are authentic and the service is exceptional. Highly recommended!",
-      avatar: '/images/branded/lassi-lounge/reviews/john-d.jpg',
+      avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
     },
     {
       id: 'priya-s',
@@ -163,7 +163,7 @@ export const testimonialsContent = {
       location: 'New Jersey, USA',
       rating: 5,
       quote: 'Lassi Lounge never disappoints. Butter chicken and garlic naan are our all-time favorites!',
-      avatar: '/images/branded/lassi-lounge/reviews/priya-s.jpg',
+      avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
     },
     {
       id: 'michael-r',
@@ -171,7 +171,7 @@ export const testimonialsContent = {
       location: 'New York, USA',
       rating: 5,
       quote: 'Amazing ambience, delicious food and great hospitality. Perfect place for family dinner.',
-      avatar: '/images/branded/lassi-lounge/reviews/michael-r.jpg',
+      avatar: 'https://randomuser.me/api/portraits/men/46.jpg',
     },
     {
       id: 'sara-k',
@@ -179,7 +179,7 @@ export const testimonialsContent = {
       location: 'Queens, USA',
       rating: 5,
       quote: 'Catered our office party and everyone loved it — the biryani was a huge hit with the whole team.',
-      avatar: '/images/branded/lassi-lounge/reviews/sara-k.jpg',
+      avatar: 'https://randomuser.me/api/portraits/women/65.jpg',
     },
     {
       id: 'amit-v',
@@ -187,7 +187,7 @@ export const testimonialsContent = {
       location: 'Patiala, NY',
       rating: 4,
       quote: 'Cozy spot with authentic flavors that remind me of home. Mango lassi is a must-try.',
-      avatar: '/images/branded/lassi-lounge/reviews/amit-v.jpg',
+      avatar: 'https://randomuser.me/api/portraits/men/22.jpg',
     },
     {
       id: 'linda-t',
@@ -195,7 +195,7 @@ export const testimonialsContent = {
       location: 'Long Island, USA',
       rating: 5,
       quote: 'Booked them for our wedding catering and the guests are still talking about the food.',
-      avatar: '/images/branded/lassi-lounge/reviews/linda-t.jpg',
+      avatar: 'https://randomuser.me/api/portraits/women/8.jpg',
     },
   ],
 };
@@ -204,11 +204,10 @@ export const navLinks = [
   { label: 'Home', href: '/customer' },
   { label: 'About Us', href: '/customer/about-us' },
   { label: 'Menu', href: '/customer/restaurant/lassi-lounge?tab=menu' },
-  { label: 'Order Online', href: '/customer/restaurant/lassi-lounge?mode=delivery' },
-  { label: 'Catering', href: '/customer/catering' },
-  { label: 'Events', href: '/customer/events' },
-  { label: 'Gallery', href: '/customer/gallery' },
-  { label: 'Reviews', href: '/customer/reviews' },
+  { label: 'My Orders', href: '/customer/profile?tab=orders' },
+  { label: 'Book a Table', href: '/customer/restaurant/lassi-lounge/book-a-table' },
+  { label: 'Catering', href: '/customer/restaurant/lassi-lounge/catering' },
+  { label: 'Events', href: '/customer/restaurant/lassi-lounge/events' },
   { label: 'Contact Us', href: '/customer/contact-us' },
 ];
 
@@ -235,7 +234,7 @@ export const cateringContent = {
   heading: 'CATERING & PRIVATE EVENTS',
   description:
     'From small gatherings to grand celebrations, we cater to all your needs with our delicious food and excellent service.',
-  cta: { label: 'Book Catering', href: '/customer/catering' },
+  cta: { label: 'Book Catering', href: '/customer/restaurant/lassi-lounge/catering' },
   services: [
     { id: 'weddings', label: 'Weddings' },
     { id: 'corporate-events', label: 'Corporate Events' },

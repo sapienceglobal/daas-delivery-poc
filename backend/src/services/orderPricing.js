@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import xss from 'xss';
 import Coupon from '../models/Coupon.js';
 import MenuItem from '../models/MenuItem.js';
 import Order from '../models/Order.js';
@@ -128,7 +129,7 @@ export const calculateOrderPricing = async ({
       quantity,
       selectedSize,
       addOns,
-      specialInstructions: String(requested.specialInstructions || '').slice(0, 500),
+      specialInstructions: xss(String(requested.specialInstructions || '').slice(0, 500)),
       lineTotal
     };
   });

@@ -126,9 +126,13 @@ const fontWeight = {
  */
 const spacing = {
   0:  '0px',    // no spacing / reset
+  0.5: '0.125rem', // 2px — tight borders, micro gaps
   1:  '0.25rem',  // 4px  — icon-to-label gaps, tight inline spacing
+  1.5: '0.375rem', // 6px — subtle component gaps
   2:  '0.5rem',   // 8px  — small gaps between related elements
+  2.5: '0.625rem', // 10px — medium-small gaps
   3:  '0.75rem',  // 12px — form field internal padding
+  3.5: '0.875rem', // 14px — larger internal padding
   4:  '1rem',     // 16px — default component padding/gap
   5:  '1.25rem',  // 20px — card padding
   6:  '1.5rem',   // 24px — section internal spacing

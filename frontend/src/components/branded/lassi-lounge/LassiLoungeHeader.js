@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { User, ShoppingCart, Menu, X } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { navLinks } from './config';
 
 /**
@@ -15,6 +16,7 @@ import { navLinks } from './config';
  */
 export default function LassiLoungeHeader() {
   const { items } = useCart();
+  const { isAuthenticated } = useAuth();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -53,7 +55,7 @@ export default function LassiLoungeHeader() {
 
         {/* Right icons */}
         <div className="flex items-center gap-4">
-          <Link href="/customer/profile" aria-label="Profile" className="text-text hover:text-accent-500">
+          <Link href={isAuthenticated ? "/customer/profile?tab=dashboard" : "/login"} aria-label="Profile" className="text-text hover:text-accent-500">
             <User size={20} />
           </Link>
           <Link href="/customer/checkout" aria-label="Cart" className="relative text-text hover:text-accent-500">

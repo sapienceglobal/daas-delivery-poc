@@ -11,6 +11,15 @@ const SINGLE_MODE = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
 export default function SiteChrome({ children }) {
   const pathname = usePathname();
   const isAdminOrMerchant = pathname.startsWith('/admin') || pathname.startsWith('/merchant');
+  const isAuthPage = pathname.startsWith('/login');
+
+  if (isAuthPage) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        {children}
+      </div>
+    );
+  }
 
   // Industry Standard: Wrap everything in a flex-col with min-h-screen
   if (SINGLE_MODE && !isAdminOrMerchant) {

@@ -1,3 +1,4 @@
+import xss from 'xss';
 import Order from '../models/Order.js';
 import Restaurant from '../models/Restaurant.js';
 import Table from '../models/Table.js';
@@ -111,6 +112,9 @@ const verifyCardPayment = async ({ paymentMethod, stripePaymentIntentId, expecte
   }
 
   if (stripePaymentIntentId.startsWith('pi_test_mock_')) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new AppError('Test/mock payments are not allowed in production', 400);
+    }
     return { paymentStatus: 'paid' };
   }
 
@@ -197,16 +201,22 @@ export const createOrder = asyncHandler(async (req, response) => {
   const {
     restaurantId, items, address, addressLat, addressLng,
     orderType = 'delivery', paymentMethod = 'credit_card',
-    tip = 0, couponCode, courierNotes, scheduledTime, tableNumber,
+    tip = 0, couponCode, courierNotes, specialInstructions, scheduledTime, tableNumber,
     stripePaymentIntentId, useLoyaltyPoints = false
   } = req.body;
 
   if (!restaurantId || !items?.length) {
     throw new AppError('restaurantId and items are required', 400);
   }
+  // M6: Limit maximum items per order to prevent abuse
+  if (items.length > 50) {
+    throw new AppError('Maximum 50 items per order', 400);
+  }
   if (orderType === 'delivery' && !address) {
     throw new AppError('Delivery address is required', 400);
   }
+  // M4: Sanitize user-generated text fields
+  const sanitizedCourierNotes = courierNotes ? xss(String(courierNotes).slice(0, 500)) : '';
   const isMerchantPosCash =
     ['merchant', 'admin'].includes(req.user.role) &&
     ['pickup', 'dine_in'].includes(orderType) &&
@@ -311,7 +321,8 @@ export const createOrder = asyncHandler(async (req, response) => {
     paymentStatus,
     couponId: pricing.coupon?._id || null,
     couponCode: pricing.coupon?.code || null,
-    courierNotes,
+    courierNotes: sanitizedCourierNotes,
+    specialInstructions: specialInstructions ? xss(String(specialInstructions).slice(0, 500)) : '',
     scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
     stripePaymentIntentId: stripePaymentIntentId || null
   });
@@ -417,11 +428,27 @@ export const getMyOrders = asyncHandler(async (req, response) => {
   const Order = req.getModel('Order');
 
   const page = Math.max(1, parseInt(req.query.page) || 1);
-  const limit = Math.min(50, parseInt(req.query.limit) || 20);
+  const limit = Math.min(100, parseInt(req.query.limit) || 50);
   const skip = (page - 1) * limit;
 
   const filter = { userId: req.user._id };
-  if (req.query.status) filter.status = req.query.status;
+
+  if (req.query.status && req.query.status !== 'all') {
+    if (req.query.status === 'ongoing') {
+      filter.status = { $in: ['pending', 'accepted', 'preparing', 'ready', 'picked_up', 'out_for_delivery'] };
+    } else {
+      filter.status = req.query.status;
+    }
+  }
+
+  if (req.query.q) {
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const qRegex = new RegExp(escapeRegex(req.query.q.trim()), 'i');
+    filter.$or = [
+      { orderNumber: qRegex },
+      { 'items.name': qRegex }
+    ];
+  }
 
   const [orders, total] = await Promise.all([
     Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
@@ -450,6 +477,7 @@ export const getOrderById = asyncHandler(async (req, response) => {
 });
 
 export const cancelOrder = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
   const order = await Order.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
 
@@ -507,7 +535,7 @@ export const rateOrder = asyncHandler(async (req, response) => {
   if (order.status !== 'delivered') throw new AppError('Can only rate delivered orders', 400);
 
   order.rating = rating;
-  order.review = review || null;
+  order.review = review ? xss(String(review).slice(0, 1000)) : null;
   await order.save();
 
   res.success(response, { data: order, message: 'Thanks for your rating!' });
@@ -797,6 +825,8 @@ export const getAllOrders = asyncHandler(async (req, response) => {
 });
 
 export const refundOrder = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const Payment = req.getModel('Payment');
   const order = await Order.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
   if (req.user.role === 'merchant') {
@@ -874,6 +904,7 @@ export const simulateStatusAdvance = asyncHandler(async (req, response) => {
     throw new AppError('Simulation not available in production', 403);
   }
 
+  const Order = req.getModel('Order');
   const order = await Order.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
 
@@ -913,7 +944,7 @@ export const replyToReview = asyncHandler(async (req, response) => {
     throw new AppError('Order has not been rated yet', 400);
   }
 
-  order.restaurantReply = reply;
+  order.restaurantReply = xss(String(reply).slice(0, 1000));
   await order.save();
 
   res.success(response, { data: order, message: 'Reply added successfully' });

@@ -25,110 +25,156 @@ export default function CartSidebar({
   couponApplied,
   setCouponApplied,
   updateQuantity,
-  router
+  router,
+  specialInstructions,
+  setSpecialInstructions
 }) {
+  const [isAddingInstructions, setIsAddingInstructions] = React.useState(false);
+  const [isCartExpanded, setIsCartExpanded] = React.useState(true);
+
   return (
     <div className="overflow-hidden rounded-2xl shadow-md border border-[#1a1a1a]/10 bg-[#fdfbf7] text-[#1a1a1a] ll-slide-panel">
       {/* Cart Header (Premium deep maroon) */}
-      <div className="bg-[#5c060a] text-[#ffffff] px-5 py-4 flex items-center justify-between">
+      <div 
+        className="bg-[#5c060a] text-[#ffffff] px-5 py-4 flex items-center justify-between cursor-pointer"
+        onClick={() => setIsCartExpanded(!isCartExpanded)}
+      >
         <h3 className="text-[17px] font-extrabold gap-1 tracking-wide flex items-center gap-1.5 font-sans">
           Your Cart <span className="text-[14px]  font-normal text-white/80">({itemCount} Items)</span>
         </h3>
-        <button className="text-white hover:text-white/80 transition-colors ll-focus-ring" aria-label="Cart summary">
-          <ChevronUp className="h-5 w-5" strokeWidth={2.5} />
+        <button className="text-white hover:text-white/80 transition-colors ll-focus-ring" aria-label="Toggle Cart">
+          <ChevronUp className={`h-5 w-5 transition-transform duration-300 ${isCartExpanded ? '' : 'rotate-180'}`} strokeWidth={2.5} />
         </button>
       </div>
 
       {/* Cart Body */}
-      <div className="p-5">
+      <div className="p-5 flex flex-col gap-0">
         {items.length > 0 ? (
           <>
-            {/* Cart Items List */}
-            <div className="max-h-80 overflow-y-auto pr-1 flex flex-col gap-5 ll-soft-scroll ll-stagger">
-              {items.map((item, idx) => (
-                <div key={idx} className="flex gap-4 items-center rounded-xl p-1 -m-1 transition-colors hover:bg-[#ffffff]/70">
-                  
-                  {/* Left Side: Image with (X) button inside */}
-                  <div className="relative w-[72px] h-[72px] shrink-0">
-                    <img 
-                      src={item.image || getDishImage(item.name)} 
-                      alt={item.name} 
-                      className="w-full h-full rounded-xl object-cover border border-[#1a1a1a]/10 shadow-sm" 
-                    />
-                    <button 
-                      onClick={() => updateQuantity(idx, 0)} 
-                      className="absolute top-1 right-1 bg-black/40 hover:bg-black/60 rounded-full p-0.5 text-white transition-colors border border-white/20 ll-focus-ring"
-                      aria-label={`Remove ${item.name}`}
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                  
-                  {/* Right Side: Name, Price, and Quantity Selector */}
-                  <div className="flex-1 flex flex-col justify-start">
-                    <h4 className="text-[14px] font-extrabold text-[#1a1a1a] leading-tight font-sans">
-                      {item.name}
-                    </h4>
-                    
-                    {item.selectedSize && (
-                      <span className="text-[11px] text-[#7a0b10] font-bold block mt-0.5">
-                        Size: {item.selectedSize.name}
-                      </span>
-                    )}
-                    {item.addOns && item.addOns.length > 0 && (
-                      <span className="text-[11px] text-[#1a1a1a]/60 block leading-snug">
-                        + {item.addOns.map(a => a.name).join(', ')}
-                      </span>
-                    )}
-
-                    <p className="text-[13px] text-[#1a1a1a]/80 font-bold mt-1 font-sans">
-                      ${((item.selectedSize?.price || item.price) + (item.addOns || []).reduce((sum, a) => sum + (a.price || 0), 0)).toFixed(2)}
-                    </p>
-                    
-                    {/* Quantity Controls - Exactly like image (with dividers) */}
-                    <div className="flex items-center mt-2.5">
-                      <div className="flex items-center border border-[#1a1a1a]/20 rounded-lg bg-[#ffffff] h-[30px] shadow-sm mt-2">
+            <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${isCartExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+              <div className="overflow-hidden">
+                <div className="flex flex-col gap-0 pb-2">
+                {/* Cart Items List */}
+                <div className="max-h-[290px] overflow-y-auto pr-1 flex flex-col gap-5 ll-soft-scroll ll-stagger mt-1">
+                  {items.map((item, idx) => (
+                    <div key={idx} className="flex gap-4 items-center rounded-xl p-1 -m-1 transition-colors hover:bg-[#ffffff]/70">
+                      
+                      {/* Left Side: Image with (X) button inside */}
+                      <div className="relative w-[72px] h-[72px] shrink-0">
+                        <img 
+                          src={item.image || getDishImage(item.name)} 
+                          alt={item.name} 
+                          className="w-full h-full rounded-xl object-cover border border-[#1a1a1a]/10 shadow-sm" 
+                        />
                         <button 
-                          onClick={() => updateQuantity(idx, item.quantity - 1)} 
-                          className="px-2 text-[#7a0b10] hover:bg-[#1a1a1a]/5 h-full flex items-center justify-center transition-colors ll-focus-ring"
-                          aria-label={`Decrease ${item.name}`}
+                          onClick={() => updateQuantity(idx, 0)} 
+                          className="absolute top-1 right-1 bg-black/40 hover:bg-black/60 rounded-full p-0.5 text-white transition-colors border border-white/20 ll-focus-ring"
+                          aria-label={`Remove ${item.name}`}
                         >
-                          <Minus className="h-3 w-3" strokeWidth={2.5} />
-                        </button>
-                        
-                        {/* Divider Line */}
-                        <div className="w-px h-full bg-[#1a1a1a]/10"></div>
-                        
-                        <span className="text-[12px] font-bold text-[#1a1a1a] w-7 text-center">
-                          {item.quantity}
-                        </span>
-                        
-                        {/* Divider Line */}
-                        <div className="w-px h-full bg-[#1a1a1a]/10"></div>
-                        
-                        <button 
-                          onClick={() => updateQuantity(idx, item.quantity + 1)} 
-                          className="px-2 text-[#7a0b10] hover:bg-[#1a1a1a]/5 h-full flex items-center justify-center transition-colors ll-focus-ring"
-                          aria-label={`Increase ${item.name}`}
-                        >
-                          <Plus className="h-3 w-3" strokeWidth={2.5} />
+                          <X className="w-3 h-3" />
                         </button>
                       </div>
+                      
+                      {/* Right Side: Name, Price, and Quantity Selector */}
+                      <div className="flex-1 flex flex-col justify-start">
+                        <h4 className="text-[14px] font-extrabold text-[#1a1a1a] leading-tight font-sans">
+                          {item.name}
+                        </h4>
+                        
+                        {item.selectedSize && (
+                          <span className="text-[11px] text-[#7a0b10] font-bold block mt-0.5">
+                            Size: {item.selectedSize.name}
+                          </span>
+                        )}
+                        {item.addOns && item.addOns.length > 0 && (
+                          <span className="text-[11px] text-[#1a1a1a]/60 block leading-snug">
+                            + {item.addOns.map(a => a.name).join(', ')}
+                          </span>
+                        )}
+
+                        <p className="text-[13px] text-[#1a1a1a]/80 font-bold mt-1 font-sans">
+                          ${((item.selectedSize?.price || item.price) + (item.addOns || []).reduce((sum, a) => sum + (a.price || 0), 0)).toFixed(2)}
+                        </p>
+                        
+                        {/* Quantity Controls - Exactly like image (with dividers) */}
+                        <div className="flex items-center mt-2.5">
+                          <div className="flex items-center border border-[#1a1a1a]/20 rounded-lg bg-[#ffffff] h-[30px] shadow-sm mt-2">
+                            <button 
+                              onClick={() => updateQuantity(idx, item.quantity - 1)} 
+                              className="px-2 text-[#7a0b10] hover:bg-[#1a1a1a]/5 h-full flex items-center justify-center transition-colors ll-focus-ring"
+                              aria-label={`Decrease ${item.name}`}
+                            >
+                              <Minus className="h-3 w-3" strokeWidth={2.5} />
+                            </button>
+                            
+                            {/* Divider Line */}
+                            <div className="w-px h-full bg-[#1a1a1a]/10"></div>
+                            
+                            <span className="text-[12px] font-bold text-[#1a1a1a] w-7 text-center">
+                              {item.quantity}
+                            </span>
+                            
+                            {/* Divider Line */}
+                            <div className="w-px h-full bg-[#1a1a1a]/10"></div>
+                            
+                            <button 
+                              onClick={() => updateQuantity(idx, item.quantity + 1)} 
+                              className="px-2 text-[#7a0b10] hover:bg-[#1a1a1a]/5 h-full flex items-center justify-center transition-colors ll-focus-ring"
+                              aria-label={`Increase ${item.name}`}
+                            >
+                              <Plus className="h-3 w-3" strokeWidth={2.5} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+
+                {/* Special Instructions */}
+                <div className="pt-3 mt-1 relative">
+                  <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
+                    (isAddingInstructions || specialInstructions) ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                  }`}>
+                    <div className="overflow-hidden">
+                      <div className="pb-2">
+                      <label className="text-[11px] font-bold text-[#1a1a1a]/60 uppercase tracking-widest mb-1.5 flex justify-between">
+                        <span>Special Instructions</span>
+                        <button 
+                          onClick={() => setIsAddingInstructions(false)}
+                          className="text-[#7a0b10] hover:underline normal-case tracking-normal"
+                        >
+                          Hide
+                        </button>
+                      </label>
+                      <textarea
+                        value={specialInstructions || ''}
+                        onChange={(e) => setSpecialInstructions?.(e.target.value)}
+                        placeholder="E.g., Extra spicy, allergies, etc."
+                        className="w-full text-[13px] bg-[#ffffff] border border-[#e5e7eb] rounded-lg p-2.5 focus:outline-none focus:border-[#7a0b10] focus:ring-2 focus:ring-[#7a0b10]/10 shadow-sm resize-none"
+                        rows={2}
+                      />
                     </div>
                   </div>
-
                 </div>
-              ))}
+                  <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
+                    (isAddingInstructions || specialInstructions) ? 'grid-rows-[0fr] opacity-0 pointer-events-none' : 'grid-rows-[1fr] opacity-100'
+                  }`}>
+                    <div className="overflow-hidden">
+                    <button 
+                      onClick={() => setIsAddingInstructions(true)}
+                      className="text-[13px] text-[#7a0b10] hover:underline font-extrabold text-left w-full flex items-center gap-1.5 ll-focus-ring pb-1"
+                    >
+                      <Plus className="w-3.5 h-3.5" strokeWidth={3} /> Add Special Instructions
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-
-            {/* Special Instructions */}
-            <div className="pt-3 mt-1">
-              <button className="text-[13px] text-[#7a0b10] hover:underline font-extrabold text-left w-full flex items-center gap-1.5 ll-focus-ring">
-                <Plus className="w-3.5 h-3.5" strokeWidth={3} /> Add Special Instructions
-              </button>
-            </div>
-
-            {/* Calculations Table */}
+          </div>
+        </div>
+                {/* Calculations Table */}
             <div className="space-y-3 pt-4 border-t border-[#1a1a1a]/15 mt-4 text-[13px] font-bold text-[#1a1a1a]/80">
               <div className="flex justify-between">
                 <span className="text-[#1a1a1a]/60 font-medium">Subtotal</span>

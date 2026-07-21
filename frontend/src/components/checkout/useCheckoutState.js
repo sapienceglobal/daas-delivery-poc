@@ -79,7 +79,16 @@ const ONLINE_PAYMENT_METHODS = ['credit_card', 'apple_pay', 'google_pay'];
  */
 export function useCheckoutState() {
   const router = useRouter();
-  const { items, restaurant, subtotal, itemCount, updateQuantity, removeItem, clearCart } = useCart();
+  const {
+    items,
+    restaurant,
+    subtotal,
+    itemCount,
+    updateQuantity,
+    removeItem,
+    clearCart,
+    specialInstructions,
+  } = useCart();
   const { isAuthenticated, user, refreshUser } = useAuth();
 
   const isSingleRestaurantMode = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
@@ -117,6 +126,7 @@ export function useCheckoutState() {
 
   const [deliveryQuote, setDeliveryQuote] = useState(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
   const [quoteError, setQuoteError] = useState(null);
   const [quoteTrigger, setQuoteTrigger] = useState(0);
 
@@ -207,8 +217,9 @@ export function useCheckoutState() {
       couponCode: couponApplied ? couponCode : undefined,
       useLoyaltyPoints,
       address: compiledAddress,
+      specialInstructions,
     }),
-    [restaurant?._id, checkoutItems, orderType, tip, couponApplied, couponCode, useLoyaltyPoints, compiledAddress]
+    [restaurant?._id, checkoutItems, orderType, tip, couponApplied, couponCode, useLoyaltyPoints, compiledAddress, specialInstructions]
   );
 
   const triggerGeocoding = async (addrStr) => {
@@ -354,6 +365,7 @@ export function useCheckoutState() {
       showToast('Geolocation is not supported by your browser', 'error');
       return;
     }
+    setIsLocationLoading(true);
     setQuoteLoading(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
@@ -428,10 +440,12 @@ export function useCheckoutState() {
           showToast('Failed to reverse geocode location', 'error');
         } finally {
           setQuoteLoading(false);
+          setIsLocationLoading(false);
         }
       },
-      () => {
+      (error) => {
         setQuoteLoading(false);
+        setIsLocationLoading(false);
         setDeliveryQuote(null);
         setQuoteError('Unable to retrieve your location. Please enter the address manually.');
         showToast('Unable to retrieve your location', 'error');
@@ -630,7 +644,7 @@ export function useCheckoutState() {
     couponCode, setCouponCode, couponDiscount, couponApplied, couponLoading,
     useLoyaltyPoints, setUseLoyaltyPoints,
     showPaymentModal, setShowPaymentModal,
-    quoteLoading, quoteError,
+    quoteLoading, isLocationLoading, quoteError,
     suggestions, suggestionsLoading, addressVerified,
     items, restaurant, subtotal, itemCount, updateQuantity, removeItem, user,
     compiledAddress, checkoutPayload, tax, deliveryFee, platformFee, serviceFee, total,

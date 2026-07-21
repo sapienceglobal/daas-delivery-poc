@@ -1,11 +1,14 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Bike, Utensils, ChevronRight, ArrowRight, ArrowLeft } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { menuCategoryContent, deliveryPartnersContent } from '../config';
+import { menuCategoryContent, deliveryPartnersContent, heroContent } from '../config';
 
 export default function HomeTopSection() {
+  const router = useRouter();
+
   const handleScroll = (id) => {
     const el = document.getElementById(id);
     if (el) {
@@ -71,17 +74,17 @@ export default function HomeTopSection() {
 
           <div className="flex flex-wrap items-center gap-4 mt-8">
             <Button
-              onClick={() => handleScroll('menu')}
+              href={heroContent.primaryCta.href}
               className="bg-[#e8a020] hover:bg-[#d68f13] text-black px-6 py-3 rounded-md font-bold uppercase text-xs tracking-wider flex items-center gap-2 transition-colors shadow-md"
             >
-              <Bike size={18} strokeWidth={2.5} /> ORDER ONLINE
+              <Bike size={18} strokeWidth={2.5} /> {heroContent.primaryCta.label}
             </Button>
 
             <Button
-              onClick={() => handleScroll('menu')}
+              href={heroContent.secondaryCta.href}
               className="bg-transparent border border-[#e8a020] text-white hover:bg-[#e8a020]/10 px-6 py-3 rounded-md font-bold uppercase text-xs tracking-wider flex items-center gap-2 transition-colors"
             >
-              <Utensils size={16} strokeWidth={2.5} className="text-[#e8a020]" /> VIEW MENU
+              <Utensils size={16} strokeWidth={2.5} className="text-[#e8a020]" /> {heroContent.secondaryCta.label}
             </Button>
           </div>
         </div>
@@ -115,7 +118,7 @@ export default function HomeTopSection() {
 
               <div className="flex flex-wrap md:flex-nowrap justify-center md:justify-between gap-6 md:gap-4 flex-1 w-full">
                 {categories.map((category) => (
-                  <div key={category.id} className="group flex flex-col items-center gap-2 cursor-pointer">
+                  <div key={category.id} onClick={() => router.push(viewFullMenuCta.href)} className="group flex flex-col items-center gap-2 cursor-pointer">
                     <div className="relative w-[75px] h-[75px] md:w-[85px] md:h-[85px] rounded-full p-[2px] border border-[#e8a020] bg-transparent transition-transform duration-300 group-hover:-translate-y-1">
                       <div className="w-full h-full rounded-full border-[3px] border-[#fcfaf5] bg-white overflow-hidden shadow-sm">
                         <img

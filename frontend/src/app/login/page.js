@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, User, Phone, Eye, EyeOff, ChefHat, ArrowRight, Loader2 } from 'lucide-react';
@@ -25,7 +25,7 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get('redirect') || '';
-  const { login, register, googleLogin } = useAuth();
+  const { login, register, googleLogin, isAuthenticated, user, loading: authLoading } = useAuth();
   const isSingleMode = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,6 +35,23 @@ function LoginPageContent() {
     name: '', email: '', password: '', phone: '', role: 'customer'
   });
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && user) {
+      if (user.role === 'admin') router.push('/admin');
+      else if (user.role === 'merchant') router.push('/merchant');
+      else router.push(redirectPath || '/customer');
+    }
+  }, [authLoading, isAuthenticated, user, router, redirectPath]);
+
+  // If we are authenticated, return a loader while we redirect
+  if (isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#7a0b10]" />
+      </div>
+    );
+  }
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -84,7 +101,7 @@ function LoginPageContent() {
       } else if (userData?.role === 'admin') {
         router.push('/admin');
       } else {
-        router.push(redirectPath || '/customer');
+        router.push(redirectPath || (isSingleMode ? '/customer/restaurant/lassi-lounge' : '/customer'));
       }
     } catch (err) {
       showToast(err.message || 'Authentication failed', 'error');
@@ -101,7 +118,7 @@ function LoginPageContent() {
       
       if (userData.role === 'admin') router.push('/admin');
       else if (userData.role === 'merchant') router.push('/merchant');
-      else router.push(redirectPath || '/customer/profile');
+      else router.push(redirectPath || (isSingleMode ? '/customer/restaurant/lassi-lounge' : '/customer/profile'));
     } catch (err) {
       showToast(err.message || 'Google authentication failed', 'error');
     } finally {
@@ -112,6 +129,159 @@ function LoginPageContent() {
   const handleGoogleError = () => {
     showToast('Google Sign-In failed', 'error');
   };
+
+  if (isSingleMode) {
+    return (
+      <div className="flex items-center justify-center min-h-[75vh] bg-[#fdfbf7] px-4 font-sans py-12">
+        <div className="w-full max-w-[420px] bg-white rounded-2xl shadow-xl overflow-hidden border border-[#eadfdb] animate-fadeIn relative">
+          
+          {/* Top Banner Accent */}
+          <div className="h-2 w-full bg-[#7a0b10]" />
+
+          <div className="p-8">
+            <div className="text-center mb-8">
+              <h2 className="text-[26px] font-black text-[#1a1a1a] mb-1">
+                {isRegister ? 'Create Account' : 'Welcome Back'}
+              </h2>
+              <p className="text-[14px] text-[#6b7280]">
+                {isRegister ? 'Join Lassi Lounge today' : 'Sign in to your account'}
+              </p>
+            </div>
+
+            {/* Toggle */}
+            <div className="flex bg-[#f4f7f9] p-1 rounded-xl mb-8 border border-[#eadfdb]">
+              <button
+                onClick={() => setIsRegister(false)}
+                className={`flex-1 rounded-lg py-2.5 text-[14px] font-bold transition-all ${
+                  !isRegister ? 'bg-white text-[#1a1a1a] shadow-sm' : 'text-[#6b7280] hover:text-[#1a1a1a]'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => setIsRegister(true)}
+                className={`flex-1 rounded-lg py-2.5 text-[14px] font-bold transition-all ${
+                  isRegister ? 'bg-white text-[#1a1a1a] shadow-sm' : 'text-[#6b7280] hover:text-[#1a1a1a]'
+                }`}
+              >
+                Register
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+              {isRegister && (
+                <>
+                  <div>
+                    <label className="block text-[12px] font-bold text-[#4b5563] mb-1.5">Full Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#9ca3af]" />
+                      <input
+                        name="name"
+                        placeholder="John Doe"
+                        value={form.name}
+                        onChange={handleChange}
+                        className={`w-full h-12 pl-10 pr-4 rounded-xl border focus:ring-1 outline-none transition-colors text-[14px] bg-[#f9f9f9] text-[#1a1a1a] ${errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-[#eadfdb] focus:border-[#7a0b10] focus:ring-[#7a0b10]'}`}
+                      />
+                    </div>
+                    {errors.name && <p className="text-red-500 text-[11px] mt-1 font-bold">{errors.name}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-bold text-[#4b5563] mb-1.5">Phone (Optional)</label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#9ca3af]" />
+                      <input
+                        name="phone"
+                        placeholder="(555) 000-0000"
+                        value={form.phone}
+                        onChange={handleChange}
+                        className="w-full h-12 pl-10 pr-4 rounded-xl border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-[#7a0b10] focus:ring-1 outline-none transition-colors text-[14px] bg-[#f9f9f9] text-[#1a1a1a]"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="block text-[12px] font-bold text-[#4b5563] mb-1.5">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#9ca3af]" />
+                  <input
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={form.email}
+                    onChange={handleChange}
+                    className={`w-full h-12 pl-10 pr-4 rounded-xl border focus:ring-1 outline-none transition-colors text-[14px] bg-[#f9f9f9] text-[#1a1a1a] ${errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-[#eadfdb] focus:border-[#7a0b10] focus:ring-[#7a0b10]'}`}
+                  />
+                </div>
+                {errors.email && <p className="text-red-500 text-[11px] mt-1 font-bold">{errors.email}</p>}
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-bold text-[#4b5563] mb-1.5">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#9ca3af]" />
+                  <input
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={form.password}
+                    onChange={handleChange}
+                    className={`w-full h-12 pl-10 pr-10 rounded-xl border focus:ring-1 outline-none transition-colors text-[14px] bg-[#f9f9f9] text-[#1a1a1a] ${errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-[#eadfdb] focus:border-[#7a0b10] focus:ring-[#7a0b10]'}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9ca3af] hover:text-[#4b5563]"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.password && <p className="text-red-500 text-[11px] mt-1 font-bold">{errors.password}</p>}
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-12 rounded-xl bg-[#7a0b10] text-white text-[14px] font-black uppercase tracking-wider hover:bg-[#680307] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isRegister ? 'Create Account' : 'Sign In'}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="relative flex items-center py-4">
+                <div className="flex-grow border-t border-[#eadfdb]"></div>
+                <span className="flex-shrink-0 mx-4 text-[11px] font-bold text-[#9ca3af] uppercase tracking-wider">Or continue with</span>
+                <div className="flex-grow border-t border-[#eadfdb]"></div>
+              </div>
+
+              <div className="flex justify-center pb-2">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="outline"
+                  shape="rectangular"
+                  size="large"
+                  text={isRegister ? "signup_with" : "signin_with"}
+                />
+              </div>
+            </form>
+
+            {!isRegister && (
+              <div className="mt-6 text-center">
+                <Link href="/forgot-password" className="text-[13px] font-bold text-[#7a0b10] hover:underline">
+                  Forgot your password?
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">

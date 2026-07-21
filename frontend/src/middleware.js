@@ -4,7 +4,7 @@ export function middleware(request) {
   const { pathname } = request.nextUrl;
   
   // Retrieve token and role from cookies
-  const token = request.cookies.get('marketplace_token')?.value;
+  const token = request.cookies.get('token')?.value || request.cookies.get('marketplace_token')?.value;
   const role = request.cookies.get('user_role')?.value;
   const SINGLE_MODE = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
 

@@ -3,7 +3,11 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import { AppError } from './errorHandler.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.warn('[AUTH] WARNING: JWT_SECRET is not set in environment. Using insecure default — NOT SAFE FOR PRODUCTION.');
+}
+const resolvedJwtSecret = JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET';
 
 /**
  * Protects a route — verifies JWT from cookie or Authorization header
@@ -26,7 +30,7 @@ export const protect = async (req, _res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, resolvedJwtSecret);
 
     // Switch the request tenant db connection dynamically based on the signed JWT token payload
     const tenantId = decoded.tenantId || 'marketplace';

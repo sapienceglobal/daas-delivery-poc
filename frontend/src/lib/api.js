@@ -1,4 +1,4 @@
-/**
+  /**
  * Centralized API client for the Restaurant Commerce Platform.
  * All API calls go through this module for consistent error handling,
  * token management, and base URL resolution.
@@ -32,7 +32,7 @@ const request = async (endpoint, options = {}) => {
 
   const headers = {
     'Content-Type': 'application/json',
-    'x-app-secret': 'DAAS_MOBILE_SECRET_2026',
+    'x-app-secret': process.env.NEXT_PUBLIC_APP_SECRET || 'DAAS_MOBILE_SECRET_2026',
     'x-tenant-id': process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true' ? 'lassi-lounge' : 'marketplace',
     ...options.headers,
   };
@@ -42,12 +42,13 @@ const request = async (endpoint, options = {}) => {
     headers['Content-Type'] = 'application/json';
   }
 
-  // Add auth token from localStorage if available
+  // M2 fallback: If httpOnly cookie fails cross-port, use token from localStorage
+  let token = null;
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('marketplace_token');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+    token = localStorage.getItem('marketplace_token');
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   const config = {
@@ -107,8 +108,19 @@ export const authAPI = {
   changePassword: (data) => api.put('/api/auth/me/password', data),
   forgotPassword: (email) => api.post('/api/auth/forgot-password', { email }),
   resetPassword: (token, password) => api.post(`/api/auth/reset-password/${token}`, { password }),
+  
+  // Addresses
   addAddress: (data) => api.post('/api/auth/me/addresses', data),
+  editAddress: (id, data) => api.put(`/api/auth/me/addresses/${id}`, data),
   removeAddress: (id) => api.delete(`/api/auth/me/addresses/${id}`),
+  setDefaultAddress: (id) => api.patch(`/api/auth/me/addresses/${id}/default`),
+
+  // Cards
+  addCard: (data) => api.post('/api/auth/me/cards', data),
+  removeCard: (id) => api.delete(`/api/auth/me/cards/${id}`),
+  setDefaultCard: (id) => api.patch(`/api/auth/me/cards/${id}/default`),
+
+  // Cart
   getCart: () => api.get('/api/auth/me/cart'),
   updateCart: (data) => api.put('/api/auth/me/cart', data),
   clearCart: () => api.delete('/api/auth/me/cart'),
@@ -263,6 +275,23 @@ export const tableAPI = {
   merge: (data) => api.post('/api/tables/merge', data),
 };
 
+// ── Reservation API ─────────────────────────────────────────────────────────
+
+export const reservationAPI = {
+  create: (data) => api.post('/api/reservations', data),
+  getMyReservations: () => api.get('/api/reservations/my-reservations'),
+  getRestaurantReservations: (restaurantId) => api.get(`/api/reservations/restaurant/${restaurantId}`),
+  updateStatus: (id, status, tableId = null) => api.put(`/api/reservations/${id}/status`, { status, tableId }),
+};
+
+// ── Catering API ────────────────────────────────────────────────────────────
+
+export const cateringAPI = {
+  submitInquiry: (data) => api.post('/api/catering', data),
+  getRestaurantInquiries: (restaurantId) => api.get(`/api/catering/restaurant/${restaurantId}`),
+  updateStatus: (id, status) => api.put(`/api/catering/${id}/status`, { status }),
+};
+
 // ── Notification API ────────────────────────────────────────────────────────
 
 export const notificationAPI = {
@@ -309,3 +338,21 @@ export const aiAPI = {
   smartPricing: (restaurantId) => api.post('/api/ai/smart-pricing', { restaurantId }),
   recommendFood: (restaurantId, pastOrdersContext) => api.post('/api/ai/recommend', { restaurantId, pastOrdersContext }),
 };
+
+// ── Reservation API ──────────────────────────────────────────────────────────
+
+// export const reservationAPI = {
+//   createReservation: (data) => api.post('/api/reservations', data),
+//   getMyReservations: () => api.get('/api/reservations/my-reservations'),
+//   getRestaurantReservations: (restaurantId) => api.get(`/api/reservations/restaurant/${restaurantId}`),
+//   updateStatus: (id, status) => api.put(`/api/reservations/${id}/status`, { status }),
+// };
+
+// // ── Catering API ────────────────────────────────────────────────────────────
+
+// export const cateringAPI = {
+//   createInquiry: (data) => api.post('/api/catering', data),
+//   getRestaurantInquiries: (restaurantId) => api.get(`/api/catering/restaurant/${restaurantId}`),
+//   updateStatus: (id, status) => api.put(`/api/catering/${id}/status`, { status }),
+// };
+

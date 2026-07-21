@@ -1,10 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import TestimonialCard from '@/components/ui/TestimonialCard';
 import { testimonialsContent } from '../config';
-
-const CARDS_PER_PAGE = 3;
 
 function Ornament({ flip = false }) {
   return (
@@ -19,14 +17,33 @@ function Ornament({ flip = false }) {
 
 export default function TestimonialsSection() {
   const { eyebrow, reviews } = testimonialsContent;
-  const pageCount = reviews.length - CARDS_PER_PAGE + 1;
+  const [cardsPerPage, setCardsPerPage] = useState(3);
   const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 640) {
+        setCardsPerPage(1);
+      } else if (window.innerWidth < 1024) {
+        setCardsPerPage(2);
+      } else {
+        setCardsPerPage(3);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const pageCount = reviews.length;
+  // Append early reviews so that the last few pages still show a full set of cards without empty space
+  const displayReviews = [...reviews, ...reviews.slice(0, cardsPerPage > 1 ? cardsPerPage - 1 : 0)];
 
   function goToPage(index) {
     setPage((index + pageCount) % pageCount);
   }
 
-  const visibleReviews = reviews.slice(page, page + CARDS_PER_PAGE);
+  // No need for out of bounds check anymore since pageCount = reviews.length
 
   return (
     <section className="bg-background-alt on-cream pt-12 pb-16">
@@ -39,7 +56,6 @@ export default function TestimonialsSection() {
         </div>
 
         <div className="flex items-center gap-4 xl:gap-6">
-          {/* Previous Button: Direct dark red (#8a1620) HEX */}
           <button
             type="button"
             onClick={() => goToPage(page - 1)}
@@ -48,13 +64,26 @@ export default function TestimonialsSection() {
             <ChevronLeft size={24} />
           </button>
 
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {visibleReviews.map((review) => (
-              <TestimonialCard key={review.id} {...review} />
-            ))}
+          <div className="flex-1 overflow-hidden px-1 py-2 -mx-1">
+            <div 
+              className="flex"
+              style={{ 
+                transform: `translateX(-${page * (100 / cardsPerPage)}%)`,
+                transition: 'transform 0.5s ease-in-out'
+              }}
+            >
+              {displayReviews.map((review, idx) => (
+                <div 
+                  key={`${review.id}-${idx}`} 
+                  className="shrink-0 px-3"
+                  style={{ width: `${100 / cardsPerPage}%` }}
+                >
+                  <TestimonialCard {...review} />
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Next Button: Direct dark red (#8a1620) HEX */}
           <button
             type="button"
             onClick={() => goToPage(page + 1)}
@@ -64,7 +93,6 @@ export default function TestimonialsSection() {
           </button>
         </div>
 
-        {/* Dots Section */}
         {pageCount > 1 && (
           <div className="flex items-center justify-center gap-3 mt-10">
             {Array.from({ length: pageCount }).map((_, i) => (
@@ -74,8 +102,8 @@ export default function TestimonialsSection() {
                 aria-label={`Go to review page ${i + 1}`}
                 onClick={() => goToPage(i)}
                 className={`inline-block rounded-full transition-all duration-300 ${i === page
-                  ? 'w-3 h-3 bg-[#cd131b] border-2 border-white shadow-sm'
-                  : 'w-2.5 h-2.5 bg-gray-400'
+                  ? 'w-3 h-3 bg-[#cd131b] border-2 border-[#8a1620] shadow-md'
+                  : 'w-2.5 h-2.5 bg-[#cd131b]/20 hover:bg-[#cd131b]/40 shadow-sm'
                   }`}
               />
             ))}

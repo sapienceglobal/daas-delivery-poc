@@ -13,6 +13,7 @@ export default function HelpCard({ isSingleRestaurantMode }) {
   return (
     <div className="rounded-2xl border border-[#e5e7eb] bg-[#ffffff] p-6 shadow-sm font-sans space-y-4">
       <div>
+        
         <h4 className="font-bold text-[18px] font-serif text-[#7a0b10] mb-0.5">Need Help?</h4>
         <p className="text-[14px] font-medium text-[#4b5563]">We're here for you</p>
       </div>

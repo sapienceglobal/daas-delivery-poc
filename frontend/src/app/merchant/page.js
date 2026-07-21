@@ -6,11 +6,11 @@ import Link from 'next/link';
 import {
   Store, ShoppingBag, DollarSign, TrendingUp, Users, Star,
   ClipboardList, UtensilsCrossed, Package, Clock, Settings,
-  AlertTriangle, ChefHat, BarChart3, Tag, Upload, FileText, Plus, Edit3, Save, X, Mail
+  AlertTriangle, ChefHat, BarChart3, Tag, Upload, FileText, Plus, Edit3, Save, X, Mail, Calendar, Gift, PartyPopper
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
-import { orderAPI, restaurantAPI, menuAPI, uploadAPI } from '@/lib/api';
+import { orderAPI, restaurantAPI, menuAPI, uploadAPI, reservationAPI, cateringAPI } from '@/lib/api';
 import {
   GlassCard, StatCard, Badge, Button, Tabs, OrderStatusBadge,
   Skeleton, showToast, EmptyState
@@ -18,7 +18,7 @@ import {
 import Papa from 'papaparse';
 
 export default function MerchantDashboard() {
-  const { user, isMerchant, isAdmin, isAuthenticated } = useAuth();
+  const { user, isMerchant, isAdmin, isAuthenticated, loading: authLoading } = useAuth();
   const { joinRoom, on, off } = useSocket();
   const router = useRouter();
 
@@ -27,6 +27,8 @@ export default function MerchantDashboard() {
   const [orders, setOrders] = useState([]);
   const [menu, setMenu] = useState([]);
   const [finance, setFinance] = useState(null);
+  const [reservations, setReservations] = useState([]);
+  const [cateringInquiries, setCateringInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState(null);
@@ -66,27 +68,32 @@ export default function MerchantDashboard() {
   const [stats, setStats] = useState({ todayOrders: 0, todayRevenue: 0, activeOrders: 0, avgRating: 0 });
 
   useEffect(() => {
+    if (authLoading) return;
     if (!isAuthenticated) { router.push('/login'); return; }
     if (!isMerchant && !isAdmin) { router.push('/customer'); return; }
     loadDashboard();
-  }, [isAuthenticated, isMerchant]);
+  }, [isAuthenticated, isMerchant, authLoading]);
 
   const loadDashboard = async () => {
     try {
       const restaurantId = user?.restaurantId;
       if (!restaurantId) { setLoading(false); return; }
 
-      const [restData, ordersData, menuData, financeData] = await Promise.all([
+      const [restData, ordersData, menuData, financeData, resData, catData] = await Promise.all([
         restaurantAPI.getById(restaurantId),
         orderAPI.getRestaurantOrders(restaurantId),
         menuAPI.getByRestaurant(restaurantId),
         restaurantAPI.getFinance(restaurantId, 30),
+        reservationAPI.getRestaurantReservations(restaurantId),
+        cateringAPI.getRestaurantInquiries(restaurantId)
       ]);
 
       setRestaurant(restData.data);
       setOrders(ordersData.data || []);
       setMenu(menuData.data || []);
       setFinance(financeData.data);
+      setReservations(resData?.data || []);
+      setCateringInquiries(catData?.data || []);
       setOnboardingForm({
         businessInfo: {
           legalName: restData.data?.businessInfo?.legalName || '',
@@ -147,6 +154,16 @@ export default function MerchantDashboard() {
   const handleRejectOrder = async (orderId) => {
     try { await orderAPI.reject(orderId, 'Rejected by restaurant'); showToast('Order rejected', 'info'); loadDashboard(); }
     catch (err) { showToast(err.message || 'Failed', 'error'); }
+  };
+
+  const handleUpdateReservationStatus = async (id, status) => {
+    try { await reservationAPI.updateStatus(id, status); showToast(`Reservation ${status}`, 'success'); loadDashboard(); }
+    catch (err) { showToast(err.message || 'Failed to update reservation', 'error'); }
+  };
+
+  const handleUpdateCateringStatus = async (id, status) => {
+    try { await cateringAPI.updateStatus(id, status); showToast(`Inquiry ${status}`, 'success'); loadDashboard(); }
+    catch (err) { showToast(err.message || 'Failed to update catering inquiry', 'error'); }
   };
 
   const updateBusinessInfo = (key, value) => {
@@ -398,8 +415,13 @@ export default function MerchantDashboard() {
     return <EmptyState icon={Store} title="No Restaurant Linked" description="Create a restaurant to get started" />;
   }
 
+  const pendingReservations = reservations.filter(r => r.status === 'pending');
+  const pendingCatering = cateringInquiries.filter(c => c.status === 'pending');
+
   const tabs = [
     { value: 'orders', label: 'Orders', icon: ClipboardList, count: stats.activeOrders },
+    { value: 'reservations', label: 'Reservations', icon: Calendar, count: pendingReservations.length || undefined },
+    { value: 'catering', label: 'Events & Catering', icon: Gift, count: pendingCatering.length || undefined },
     { value: 'menu', label: 'Menu', icon: UtensilsCrossed },
     { value: 'reviews', label: 'Reviews', icon: Star, count: orders.filter(o => o.rating && !o.restaurantReply).length || undefined },
     { value: 'analytics', label: 'Finance', icon: BarChart3 },
@@ -604,6 +626,81 @@ export default function MerchantDashboard() {
                 </GlassCard>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'reservations' && (
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-sm font-bold text-brand-text uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-brand-cyan" /> Reservations ({reservations.length})
+            </h3>
+            {reservations.length === 0 ? (
+              <GlassCard className="text-center py-8"><p className="text-sm text-brand-muted">No reservations found.</p></GlassCard>
+            ) : (
+              <div className="space-y-3">
+                {reservations.map(res => (
+                  <GlassCard key={res._id} className="flex flex-col gap-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="text-sm font-bold text-brand-text">{new Date(res.date).toLocaleDateString()} at {res.time}</span>
+                          <Badge color={res.status === 'confirmed' ? 'green' : res.status === 'cancelled' ? 'red' : res.status === 'completed' ? 'blue' : 'yellow'}>{res.status}</Badge>
+                        </div>
+                        <div className="text-xs space-y-1 mt-2">
+                          <p className="font-bold text-brand-text/90">👤 {res.customerName} ({res.customerPhone})</p>
+                          <p className="text-brand-muted">Party of {res.partySize} • {res.location} {res.occasion ? `• Occasion: ${res.occasion}` : ''}</p>
+                          {res.specialRequests && <p className="text-brand-yellow/80 mt-1">Note: {res.specialRequests}</p>}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 shrink-0">
+                        {res.status === 'pending' && (<><Button variant="primary" size="sm" onClick={() => handleUpdateReservationStatus(res._id, 'confirmed')}>Confirm</Button><Button variant="danger" size="sm" onClick={() => handleUpdateReservationStatus(res._id, 'cancelled')}>Cancel</Button></>)}
+                        {res.status === 'confirmed' && <Button variant="primary" size="sm" onClick={() => handleUpdateReservationStatus(res._id, 'completed')}>Mark Completed</Button>}
+                      </div>
+                    </div>
+                  </GlassCard>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'catering' && (
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-sm font-bold text-brand-text uppercase tracking-wider mb-3 flex items-center gap-2">
+              <Gift className="h-4 w-4 text-brand-purple" /> Catering & Events ({cateringInquiries.length})
+            </h3>
+            {cateringInquiries.length === 0 ? (
+              <GlassCard className="text-center py-8"><p className="text-sm text-brand-muted">No inquiries found.</p></GlassCard>
+            ) : (
+              <div className="space-y-3">
+                {cateringInquiries.map(inq => (
+                  <GlassCard key={inq._id} className="flex flex-col gap-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="text-sm font-bold text-brand-text">{inq.eventType} on {new Date(inq.eventDate).toLocaleDateString()}</span>
+                          <Badge color={inq.status === 'contacted' ? 'green' : inq.status === 'closed' ? 'muted' : inq.status === 'reviewed' ? 'blue' : 'yellow'}>{inq.status}</Badge>
+                        </div>
+                        <div className="text-xs space-y-1 mt-2">
+                          <p className="font-bold text-brand-text/90">👤 {inq.customerName} ({inq.customerPhone}) • {inq.customerEmail}</p>
+                          <p className="text-brand-muted">Guests: {inq.guestCount} • Package: {inq.packagePreference}</p>
+                          {inq.additionalNotes && <p className="text-brand-yellow/80 mt-1">Note: {inq.additionalNotes}</p>}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 shrink-0">
+                        {inq.status === 'pending' && (<><Button variant="primary" size="sm" onClick={() => handleUpdateCateringStatus(inq._id, 'reviewed')}>Mark Reviewed</Button></>)}
+                        {inq.status === 'reviewed' && <Button variant="primary" size="sm" onClick={() => handleUpdateCateringStatus(inq._id, 'contacted')}>Mark Contacted</Button>}
+                        {['pending', 'reviewed', 'contacted'].includes(inq.status) && <Button variant="danger" size="sm" onClick={() => handleUpdateCateringStatus(inq._id, 'closed')}>Close</Button>}
+                      </div>
+                    </div>
+                  </GlassCard>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

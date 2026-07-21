@@ -198,7 +198,7 @@ const handleIncrement = () => {
     }
   };
 
-  const isFavorite = user?.favoriteItems?.includes(item?._id);
+  const isFavorite = user?.favoriteItems?.some(f => (f._id || f) === item?._id);
 
   if (loading) {
     return (

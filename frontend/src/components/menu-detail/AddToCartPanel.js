@@ -78,7 +78,7 @@ export default function AddToCartPanel({
           onClick={onToggleFavorite}
           className={`w-full h-[46px] rounded-lg border flex items-center justify-center gap-2 font-bold uppercase tracking-wider text-[13px] transition-colors duration-200 bg-[#ffffff] ${favoriteBtnBorder}`}
         >
-          <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#ef4444] text-[#ef4444]' : ''}`} /> Add to Favorites
+          <Heart className={`w-4 h-4 ${isFavorite ? 'fill-[#ef4444] text-[#ef4444]' : ''}`} /> {isFavorite ? 'Added' : 'Add to Favorites'}
         </button>
       </div>
 

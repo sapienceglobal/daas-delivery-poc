@@ -19,7 +19,7 @@ export default function DeliveryInfoSection({
   user, onSelectSavedAddress, onUseCurrentLocation,
   restaurant, compiledAddress,
   onContinue,
-  onAddressLine1Change, suggestions = [], suggestionsLoading, onSelectSuggestion, quoteError, quoteLoading,
+  onAddressLine1Change, suggestions = [], suggestionsLoading, onSelectSuggestion, quoteError, quoteLoading, isLocationLoading,
 }) {
   return (
     <div className={`rounded-2xl border border-[#e5e7eb] bg-[#ffffff] p-6 shadow-sm ll-interactive ${step === 3 ? 'opacity-85' : ''}`}>
@@ -70,8 +70,8 @@ export default function DeliveryInfoSection({
                       <p className="text-[13px] text-[#6b7280]">{opt.desc}</p>
                     </div>
                     {isSelected && (
-                      <span className="absolute top-2.5 right-2.5 rounded-full p-0.5 bg-[#7a0b10] text-[#ffffff]">
-                        <Check className="w-3.5 h-3.5" strokeWidth={4} />
+                      <span className="absolute top-2 right-2 rounded-full p-1 bg-[#7a0b10] text-[#ffffff]">
+                        <Check className="w-3 h-3" strokeWidth={4} />
                       </span>
                     )}
                   </button>
@@ -86,9 +86,18 @@ export default function DeliveryInfoSection({
               <button
                 type="button"
                 onClick={onUseCurrentLocation}
-                className="text-[12px] font-extrabold uppercase tracking-wide text-[#7a0b10] bg-[#ffffff] border border-[#e5e7eb] hover:bg-[#fffaf9] px-4 py-2 rounded-xl flex items-center gap-1.5 ll-interactive ll-focus-ring"
+                disabled={isLocationLoading}
+                className={`text-[12px] font-extrabold uppercase tracking-wide text-[#7a0b10] bg-[#ffffff] border border-[#e5e7eb] hover:bg-[#fffaf9] px-4 py-2 rounded-xl flex items-center gap-1.5 ll-interactive ll-focus-ring ${isLocationLoading ? 'opacity-70 cursor-wait' : ''}`}
               >
-                <Navigation className="h-3.5 w-3.5" /> Use Current Location
+                {isLocationLoading ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Locating...
+                  </>
+                ) : (
+                  <>
+                    <Navigation className="h-3.5 w-3.5" /> Use Current Location
+                  </>
+                )}
               </button>
 
               {user?.savedAddresses && user.savedAddresses.length > 0 && (
@@ -111,22 +120,38 @@ export default function DeliveryInfoSection({
           )}
 
           {/* Manual Address Fields Form */}
-          <div className="space-y-4">
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              onContinue({ fullName, phone, email, orderType, addressLine1, city, zipCode });
+            }}
+            className="space-y-4"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[13px] font-bold text-[#1a1a1a] mb-1.5">Full Name*</label>
                 <input
-                  type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)}
+                  type="text" 
+                  required 
+                  name="fullName"
+                  autoComplete="name"
+                  value={fullName} 
+                  onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter your full name"
-                  className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors"
+                  className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
                 />
               </div>
               <div>
                 <label className="block text-[13px] font-bold text-[#1a1a1a] mb-1.5">Phone Number*</label>
                 <input
-                  type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
+                  type="tel" 
+                  required 
+                  name="phone"
+                  autoComplete="tel"
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)}
                   placeholder="(123) 456-7890"
-                  className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors"
+                  className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
                 />
               </div>
             </div>
@@ -134,9 +159,14 @@ export default function DeliveryInfoSection({
             <div>
               <label className="block text-[13px] font-bold text-[#1a1a1a] mb-1.5">Email Address*</label>
               <input
-                type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                type="email" 
+                required 
+                name="email"
+                autoComplete="email"
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address"
-                className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors"
+                className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
               />
             </div>
 
@@ -147,10 +177,14 @@ export default function DeliveryInfoSection({
                     <label className="block text-[13px] font-bold text-[#1a1a1a] mb-1.5">Address Line 1*</label>
                     <div className="relative">
                       <input
-                        type="text" required value={addressLine1}
+                        type="text" 
+                        required 
+                        name="addressLine1"
+                        autoComplete="address-line1"
+                        value={addressLine1}
                         onChange={(e) => onAddressLine1Change ? onAddressLine1Change(e.target.value) : setAddressLine1(e.target.value)}
                         placeholder="House No., Street Name"
-                        className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors"
+                        className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
                       />
                       {suggestionsLoading && (
                         <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
@@ -181,9 +215,13 @@ export default function DeliveryInfoSection({
                   <div>
                     <label className="block text-[13px] font-bold text-[#1a1a1a] mb-1.5">Address Line 2</label>
                     <input
-                      type="text" value={addressLine2} onChange={(e) => setAddressLine2(e.target.value)}
+                      type="text" 
+                      name="addressLine2"
+                      autoComplete="address-line2"
+                      value={addressLine2} 
+                      onChange={(e) => setAddressLine2(e.target.value)}
                       placeholder="Apartment, Suite, etc. (Optional)"
-                      className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors"
+                      className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
                     />
                   </div>
                 </div>
@@ -192,16 +230,24 @@ export default function DeliveryInfoSection({
                   <div>
                     <label className="block text-[13px] font-bold text-[#1a1a1a] mb-1.5">City*</label>
                     <input
-                      type="text" required value={city} onChange={(e) => setCity(e.target.value)}
+                      type="text" 
+                      required 
+                      name="city"
+                      autoComplete="address-level2"
+                      value={city} 
+                      onChange={(e) => setCity(e.target.value)}
                       placeholder="Enter city"
-                      className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors"
+                      className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
                     />
                   </div>
                   <div>
                     <label className="block text-[13px] font-bold text-[#1a1a1a] mb-1.5">State*</label>
                     <select
-                      value={state} onChange={(e) => setState(e.target.value)}
-                      className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors appearance-none bg-no-repeat bg-[right_16px_center]"
+                      value={state} 
+                      name="state"
+                      autoComplete="address-level1"
+                      onChange={(e) => setState(e.target.value)}
+                      className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors appearance-none bg-no-repeat bg-[right_16px_center] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
                       style={{
                         backgroundImage:
                           "url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")",
@@ -217,10 +263,14 @@ export default function DeliveryInfoSection({
                   <div>
                     <label className="block text-[13px] font-bold text-[#1a1a1a] mb-1.5">Zip Code*</label>
                     <input
-                      type="text" required value={zipCode}
+                      type="text" 
+                      required 
+                      name="zipCode"
+                      autoComplete="postal-code"
+                      value={zipCode}
                       onChange={(e) => setZipCode(e.target.value.replace(/\D/g, '').substring(0, 5))}
                       placeholder="Enter zip code"
-                      className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors"
+                      className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
                     />
                   </div>
                 </div>
@@ -235,10 +285,12 @@ export default function DeliveryInfoSection({
                 <div>
                   <label className="block text-[13px] font-bold text-[#1a1a1a] mb-1.5">Delivery Instructions (Optional)</label>
                   <textarea
-                    value={deliveryInstructions} onChange={(e) => setDeliveryInstructions(e.target.value)}
+                    value={deliveryInstructions} 
+                    name="deliveryInstructions"
+                    onChange={(e) => setDeliveryInstructions(e.target.value)}
                     placeholder="Any special instructions for delivery? Gate code, leave at door..."
                     rows={3}
-                    className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors resize-none"
+                    className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors resize-none [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
                   />
                 </div>
               </>
@@ -270,7 +322,17 @@ export default function DeliveryInfoSection({
                 <span className="leading-relaxed">{quoteError}</span>
               </div>
             )}
-          </div>
+
+            {/* The Continue Button is now inside the form */}
+            {/* <div className="flex items-center justify-end pt-4 mt-2 border-t border-[#e5e7eb]">
+              <button 
+                type="submit" 
+                className="font-bold text-[14px] text-[#ffffff] bg-[#7a0b10] hover:bg-[#5e080c] py-2.5 px-6 rounded-lg shadow-sm flex items-center gap-2 ll-interactive ll-focus-ring"
+              >
+                Continue to Payment <span>&rarr;</span>
+              </button>
+            </div> */}
+          </form>
         </div>
       ) : (
         <div className="text-sm font-sans flex items-start justify-between mt-4 animate-in fade-in duration-200">

@@ -8,6 +8,26 @@ import logger from '../utils/logger.js';
  */
 export default async (req, res, next) => {
   try {
+    // If the auth middleware already derived tenantDb from the JWT token, trust it
+    // and skip header-based tenant selection to prevent spoofing.
+    if (req.tenantDb) {
+      // tenantDb was already set by a prior middleware (e.g. auth.js from JWT).
+      // Just ensure req.getModel exists and move on.
+      if (!req.getModel) {
+        req.getModel = (modelName) => {
+          if (req.tenantDb === mongoose.connection) {
+            return mongoose.model(modelName);
+          }
+          if (!req.tenantDb.models[modelName]) {
+            const defaultModel = mongoose.model(modelName);
+            req.tenantDb.model(modelName, defaultModel.schema);
+          }
+          return req.tenantDb.model(modelName);
+        };
+      }
+      return next();
+    }
+
     const tenantId = req.headers['x-tenant-id'] || 'marketplace';
 
     if (tenantId === 'marketplace') {

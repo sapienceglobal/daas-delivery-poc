@@ -39,7 +39,7 @@ export default function CheckoutStepper({ step }) {
 
                 {idx < 3 && (
                   <div
-                    className={`absolute top-5 left-[50%] right-[-50%] border-t-[2px] border-dotted -z-10 ${
+                    className={`absolute top-5 left-[calc(50%+24px)] right-[calc(-50%+24px)] border-t-[2px] border-dotted -z-10 ${
                       isCompleted ? 'border-[#7a0b10]' : 'border-[#d1d5db]'
                     }`}
                   />

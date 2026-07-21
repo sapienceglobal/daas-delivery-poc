@@ -120,8 +120,8 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative z-10 w-full ${sizes[size]} glass-panel rounded-2xl p-6 animate-slide-up max-h-[90vh] overflow-y-auto ${className}`}>
+      <div className="absolute inset-0 bg-transparent" onClick={onClose} />
+      <div className={`relative z-10 w-full ${sizes[size]} glass-panel rounded-2xl p-6 animate-slide-up max-h-[90vh] overflow-y-auto shadow-[0_0_40px_rgba(0,0,0,0.15)] border-2 border-[#eadfdb] ring-4 ring-[#eadfdb]/30 ${className}`}>
         <div className="flex items-center justify-between mb-4">
           {title && <h3 className="text-lg font-bold text-brand-text">{title}</h3>}
           <button

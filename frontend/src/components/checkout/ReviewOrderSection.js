@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, MapPin, Phone, CreditCard, ShoppingBag, Receipt, User, FileText } from 'lucide-react';
 
 export default function ReviewOrderSection({
@@ -20,8 +22,23 @@ export default function ReviewOrderSection({
   loyaltyDiscount,
   orderType,
   courierNotes,
+  specialInstructions,
 }) {
-  if (step !== 3) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (step === 3) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [step]);
+
+  if (!mounted || step !== 3) return null;
 
   const isDelivery = orderType === 'delivery';
 
@@ -39,7 +56,7 @@ export default function ReviewOrderSection({
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-300">
       
       {/* Modal Container */}
@@ -65,7 +82,7 @@ export default function ReviewOrderSection({
           
           {/* 1. Customer & Location Details Card */}
           <div className="bg-[#f9fafb] rounded-xl border border-[#e5e7eb] p-4 space-y-3">
-            <h3 className="text-xs uppercase font-extrabold text-[#7a0b10] tracking-wider mb-2 flex items-center gap-1.5">
+            <h3 className="text-xs uppercase font-extrabold text-[#7a0b10] tracking-wider mb-2 flex items-center gap-1">
               <User className="w-3.5 h-3.5" />
               {isDelivery ? 'Delivery Information' : 'Pickup Information'}
             </h3>
@@ -97,6 +114,13 @@ export default function ReviewOrderSection({
               <div className="border-t border-[#e5e7eb] pt-3 mt-1 space-y-1">
                 <span className="text-[11px] font-bold text-[#6b7280] uppercase tracking-wider block">Courier Instructions</span>
                 <span className="text-[13px] text-[#4b5563] italic">"{courierNotes}"</span>
+              </div>
+            )}
+
+            {specialInstructions && (
+              <div className="border-t border-[#e5e7eb] pt-3 mt-1 space-y-1">
+                <span className="text-[11px] font-bold text-[#6b7280] uppercase tracking-wider block">Kitchen Instructions</span>
+                <span className="text-[13px] text-[#7a0b10] italic">"{specialInstructions}"</span>
               </div>
             )}
           </div>
@@ -218,6 +242,7 @@ export default function ReviewOrderSection({
 
       </div>
 
-    </div>
+    </div>,
+    document.body
   );
 }

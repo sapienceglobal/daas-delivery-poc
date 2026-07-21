@@ -14,7 +14,7 @@ export default function OrderSummaryCard({
     <div className="rounded-2xl border border-[#e5e7eb] bg-[#ffffff] p-6 shadow-sm ll-slide-panel">
       <h3 className="text-[22px] font-bold font-serif text-[#7a0b10] mb-6">Order Summary</h3>
 
-      <div className="space-y-6 max-h-[350px] overflow-y-auto pr-2 mb-6 scrollbar-thin">
+      <div className="flex flex-col gap-5 max-h-[290px] overflow-y-auto pr-1 mb-6 ll-soft-scroll ll-stagger mt-1">
         {items.map((item, idx) => (
           <div key={idx} className="flex gap-4 items-start">
             <img
@@ -27,7 +27,7 @@ export default function OrderSummaryCard({
               <h4 className="font-bold text-[15px] text-[#1a1a1a] leading-tight truncate mb-1">
                 {item.name}
               </h4>
-              <span className="text-[14px] font-medium text-[#1a1a1a] block mb-2.5">
+              <span className="text-[14px] font-medium text-[#1a1a1a] block mb-2">
                 ${((item.selectedSize?.price || item.price) + (item.addOns || []).reduce((sum, a) => sum + (a.price || 0), 0)).toFixed(2)}
               </span>
               
@@ -60,7 +60,7 @@ export default function OrderSummaryCard({
         ))}
       </div>
 
-      <div className="border-t border-dashed border-[#d1d5db] pt-5 pb-5 space-y-3.5">
+      <div className="border-t border-dashed border-[#d1d5db] pt-5 pb-5 space-y-3">
         <div className="flex justify-between items-center text-[14px]">
           <span className="text-[#1a1a1a] font-medium">Subtotal ({itemCount} Items)</span>
           <span className="font-bold text-[#1a1a1a]">${subtotal.toFixed(2)}</span>
@@ -68,8 +68,12 @@ export default function OrderSummaryCard({
 
         {orderType === 'delivery' && (
           <div className="flex justify-between items-center text-[14px]">
-            <span className="text-[#1a1a1a] font-medium flex items-center gap-1">
-              Delivery Fee <Info className="w-4 h-4 text-[#9ca3af]" />
+            <span className="text-[#1a1a1a] font-medium flex items-center gap-1 relative group cursor-help">
+              Delivery Fee <Info className="w-4 h-4 text-[#9ca3af] group-hover:text-[#7a0b10] transition-colors" />
+              <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-52 bg-[#1a1a1a] text-[#ffffff] text-[11px] font-normal p-2.5 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-200 leading-snug">
+                Fee charged for delivery based on distance and local market conditions.
+                <div className="absolute top-full left-6 border-4 border-transparent border-t-[#1a1a1a]"></div>
+              </div>
             </span>
             <span className="font-bold text-[#1a1a1a]">
               {quoteLoading ? '...' : deliveryFee === null ? 'Unavailable' : deliveryFee === 0 ? 'FREE' : `$${deliveryFee.toFixed(2)}`}
@@ -78,8 +82,12 @@ export default function OrderSummaryCard({
         )}
 
         <div className="flex justify-between items-center text-[14px]">
-          <span className="text-[#1a1a1a] font-medium flex items-center gap-1">
-            Taxes & Charges <Info className="w-4 h-4 text-[#9ca3af]" />
+          <span className="text-[#1a1a1a] font-medium flex items-center gap-1 relative group cursor-help">
+            Taxes & Charges <Info className="w-4 h-4 text-[#9ca3af] group-hover:text-[#7a0b10] transition-colors" />
+            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-52 bg-[#1a1a1a] text-[#ffffff] text-[11px] font-normal p-2.5 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-200 leading-snug">
+              Estimated state and local sales taxes applied to your order.
+              <div className="absolute top-full left-6 border-4 border-transparent border-t-[#1a1a1a]"></div>
+            </div>
           </span>
           <span className="font-bold text-[#1a1a1a]">${tax.toFixed(2)}</span>
         </div>
@@ -90,8 +98,12 @@ export default function OrderSummaryCard({
         </div>
         
         <div className="flex justify-between items-center text-[14px]">
-          <span className="text-[#1a1a1a] font-medium flex items-center gap-1">
-            Service Fee (3%) <Info className="w-4 h-4 text-[#9ca3af]" />
+          <span className="text-[#1a1a1a] font-medium flex items-center gap-1 relative group cursor-help">
+            Service Fee (3%) <Info className="w-4 h-4 text-[#9ca3af] group-hover:text-[#7a0b10] transition-colors" />
+            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 bg-[#1a1a1a] text-[#ffffff] text-[11px] font-normal p-2.5 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-200 leading-snug">
+              This fee helps us operate our platform, improve the app, and provide 24/7 customer support.
+              <div className="absolute top-full left-6 border-4 border-transparent border-t-[#1a1a1a]"></div>
+            </div>
           </span>
           <span className="font-bold text-[#1a1a1a]">${serviceFee.toFixed(2)}</span>
         </div>
@@ -102,12 +114,14 @@ export default function OrderSummaryCard({
           <Tag className="w-4 h-4 text-[#4b5563]" /> Apply Coupon
         </div>
         
-        <div className="flex gap-2.5">
+        <div className="flex gap-2">
           <input
             placeholder="Enter coupon code"
+            name="couponCode"
+            autoComplete="off"
             value={couponCode}
             onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-            className="flex-1 rounded-lg border border-[#e5e7eb] bg-[#ffffff] px-3.5 py-2.5 text-[14px] text-[#1a1a1a] placeholder-[#9ca3af] focus:outline-none focus:border-[#7a0b10] transition-colors"
+            className="flex-1 rounded-lg border border-[#e5e7eb] bg-[#ffffff] px-3 py-2 text-[14px] text-[#1a1a1a] placeholder-[#9ca3af] focus:outline-none focus:border-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
           />
           <button
             type="button"

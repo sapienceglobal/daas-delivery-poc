@@ -10,24 +10,36 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
 
-  // Initialize from localStorage, then verify against the backend so stale
-  // browser user data never becomes the source of truth.
+  // M2: Token is stored only in httpOnly cookie (set by server).
+  // localStorage stores user profile data only (never the token).
+  // On init, we try to call /me. If the httpOnly cookie is valid, it works.
+  // If not, we clear local state.
   useEffect(() => {
     let cancelled = false;
 
     const clearAuthStorage = () => {
-      localStorage.removeItem('marketplace_token');
       localStorage.removeItem('marketplace_user');
-      document.cookie = "marketplace_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      localStorage.removeItem('marketplace_token');
       document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     };
 
     const initializeAuth = async () => {
-      const storedToken = localStorage.getItem('marketplace_token');
       const storedUser = localStorage.getItem('marketplace_user');
+      const storedToken = localStorage.getItem('marketplace_token');
 
-      if (!storedToken || !storedUser) {
-        setLoading(false);
+      if (!storedUser) {
+        // No cached user data — try /me in case httpOnly cookie is still valid
+        try {
+          const data = await authAPI.getMe();
+          const userData = data.data;
+          if (cancelled) return;
+          localStorage.setItem('marketplace_user', JSON.stringify(userData));
+          document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
+          setUser(userData);
+        } catch {
+          // No valid session — user is logged out
+        }
+        if (!cancelled) setLoading(false);
         return;
       }
 
@@ -35,11 +47,12 @@ export function AuthProvider({ children }) {
         const parsed = JSON.parse(storedUser);
         if (cancelled) return;
 
-        setToken(storedToken);
+        // Optimistic: show cached user immediately
         setUser(parsed);
-        document.cookie = `marketplace_token=${storedToken}; path=/; max-age=604800; SameSite=Lax`;
+        if (storedToken) setToken(storedToken);
         document.cookie = `user_role=${parsed.role}; path=/; max-age=604800; SameSite=Lax`;
 
+        // Verify against backend (httpOnly cookie is sent automatically)
         const data = await authAPI.getMe();
         const userData = data.data;
         if (cancelled) return;
@@ -50,7 +63,6 @@ export function AuthProvider({ children }) {
       } catch {
         if (cancelled) return;
         clearAuthStorage();
-        setToken(null);
         setUser(null);
       } finally {
         if (!cancelled) setLoading(false);
@@ -68,9 +80,8 @@ export function AuthProvider({ children }) {
     const data = await authAPI.login({ email, password });
     const { token: newToken, user: userData } = data;
 
-    localStorage.setItem('marketplace_token', newToken);
     localStorage.setItem('marketplace_user', JSON.stringify(userData));
-    document.cookie = `marketplace_token=${newToken}; path=/; max-age=604800; SameSite=Lax`;
+    localStorage.setItem('marketplace_token', newToken);
     document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
     setToken(newToken);
     setUser(userData);
@@ -81,9 +92,8 @@ export function AuthProvider({ children }) {
     const data = await authAPI.googleLogin({ credential, role });
     const { token: newToken, user: userData } = data;
 
-    localStorage.setItem('marketplace_token', newToken);
     localStorage.setItem('marketplace_user', JSON.stringify(userData));
-    document.cookie = `marketplace_token=${newToken}; path=/; max-age=604800; SameSite=Lax`;
+    localStorage.setItem('marketplace_token', newToken);
     document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
     setToken(newToken);
     setUser(userData);
@@ -94,9 +104,8 @@ export function AuthProvider({ children }) {
     const data = await authAPI.register(formData);
     const { token: newToken, user: userData } = data;
 
-    localStorage.setItem('marketplace_token', newToken);
     localStorage.setItem('marketplace_user', JSON.stringify(userData));
-    document.cookie = `marketplace_token=${newToken}; path=/; max-age=604800; SameSite=Lax`;
+    localStorage.setItem('marketplace_token', newToken);
     document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
     setToken(newToken);
     setUser(userData);
@@ -109,9 +118,8 @@ export function AuthProvider({ children }) {
     } catch {
       // ignore logout API errors
     }
-    localStorage.removeItem('marketplace_token');
     localStorage.removeItem('marketplace_user');
-    document.cookie = "marketplace_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    localStorage.removeItem('marketplace_token');
     document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     setToken(null);
     setUser(null);
@@ -121,12 +129,16 @@ export function AuthProvider({ children }) {
     try {
       const data = await authAPI.getMe();
       const userData = data.data;
-      localStorage.setItem('marketplace_user', JSON.stringify(userData));
-      document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
-      setUser(userData);
+      if (userData) {
+        localStorage.setItem('marketplace_user', JSON.stringify(userData));
+        document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
+        setUser(userData);
+      }
       return userData;
-    } catch {
-      logout();
+    } catch (err) {
+      if (err?.status === 401 || err?.statusCode === 401 || String(err?.message).includes('401')) {
+        logout();
+      }
       return null;
     }
   }, [logout]);

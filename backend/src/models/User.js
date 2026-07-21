@@ -139,9 +139,39 @@ const UserSchema = new mongoose.Schema({
     default: null
   },
 
-  // ── Stripe Customer ───────────────────────────────────────────────────
+  // ── Login Lockout ─────────────────────────────────────────────────────
+  failedLoginAttempts: {
+    type: Number,
+    default: 0
+  },
+  loginLockedUntil: {
+    type: Date,
+    default: null
+  },
+
+  // ── Stripe Customer & Payments ─────────────────────────────────────────
   stripeCustomerId: {
     type: String,
+    default: null
+  },
+  savedCards: [{
+    cardId: { type: String, required: true },
+    brand: { type: String, required: true }, // visa, mastercard, etc.
+    last4: { type: String, required: true },
+    expMonth: { type: Number, required: true },
+    expYear: { type: Number, required: true },
+    isDefault: { type: Boolean, default: false }
+  }],
+
+  // ── Referrals ─────────────────────────────────────────────────────────
+  referralCode: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     default: null
   }
 }, { timestamps: true });
@@ -149,6 +179,7 @@ const UserSchema = new mongoose.Schema({
 // ── Indexes ─────────────────────────────────────────────────────────────────
 UserSchema.index({ role: 1 });
 UserSchema.index({ 'socialLogin.googleId': 1 }, { sparse: true });
+UserSchema.index({ referralCode: 1 }, { sparse: true });
 
 // ── Password hashing (scrypt) ───────────────────────────────────────────────
 UserSchema.methods.setPassword = function (password) {
@@ -187,6 +218,8 @@ UserSchema.methods.toSafeJSON = function () {
   delete obj.passwordAlgorithm;
   delete obj.resetPasswordToken;
   delete obj.resetPasswordExpire;
+  delete obj.failedLoginAttempts;
+  delete obj.loginLockedUntil;
   delete obj.__v;
   return obj;
 };

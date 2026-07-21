@@ -27,17 +27,18 @@ export function CartProvider({ children }) {
   const { user, loading: authLoading } = useAuth();
   const [items, setItems] = useState([]);
   const [restaurant, setRestaurant] = useState(null);
+  const [specialInstructions, setSpecialInstructions] = useState('');
   const [hydratedOwner, setHydratedOwner] = useState(null);
   const [serverHydratedOwner, setServerHydratedOwner] = useState(null);
-  const latestCartRef = useRef({ items: [], restaurant: null, owner: null });
+  const latestCartRef = useRef({ items: [], restaurant: null, specialInstructions: '', owner: null });
   const applyingServerCartRef = useRef(false);
   const saveTimerRef = useRef(null);
 
   const storageKeys = useMemo(() => buildCartStorageKeys(user?._id), [user?._id]);
 
   useEffect(() => {
-    latestCartRef.current = { items, restaurant, owner: hydratedOwner };
-  }, [items, restaurant, hydratedOwner]);
+    latestCartRef.current = { items, restaurant, specialInstructions, owner: hydratedOwner };
+  }, [items, restaurant, specialInstructions, hydratedOwner]);
 
   // Load the cart for the active tenant + active user. This prevents one
   // customer's browser cart from appearing after another customer logs in.
@@ -47,26 +48,32 @@ export function CartProvider({ children }) {
     try {
       let storedItems = localStorage.getItem(storageKeys.items);
       let storedRestaurant = localStorage.getItem(storageKeys.restaurant);
+      let storedInstructions = localStorage.getItem(storageKeys.items + '_instructions');
       const latestCart = latestCartRef.current;
 
       if (user?._id && !storedItems && latestCart.owner === 'guest' && latestCart.items.length > 0) {
         storedItems = JSON.stringify(latestCart.items);
         storedRestaurant = latestCart.restaurant ? JSON.stringify(latestCart.restaurant) : null;
+        storedInstructions = latestCart.specialInstructions;
       }
 
       if (!user?._id && !storedItems) {
         storedItems = localStorage.getItem(LEGACY_CART_STORAGE_KEY);
         storedRestaurant = localStorage.getItem(LEGACY_CART_RESTAURANT_KEY);
+        storedInstructions = localStorage.getItem(LEGACY_CART_STORAGE_KEY + '_instructions');
       }
 
       setItems(storedItems ? JSON.parse(storedItems) : []);
       setRestaurant(storedRestaurant ? JSON.parse(storedRestaurant) : null);
+      setSpecialInstructions(storedInstructions || '');
       setServerHydratedOwner(user?._id ? null : storageKeys.owner);
     } catch {
       localStorage.removeItem(storageKeys.items);
       localStorage.removeItem(storageKeys.restaurant);
+      localStorage.removeItem(storageKeys.items + '_instructions');
       setItems([]);
       setRestaurant(null);
+      setSpecialInstructions('');
       setServerHydratedOwner(user?._id ? null : storageKeys.owner);
     } finally {
       setHydratedOwner(storageKeys.owner);
@@ -120,8 +127,10 @@ export function CartProvider({ children }) {
   useEffect(() => {
     if (authLoading || hydratedOwner !== storageKeys.owner) return;
     localStorage.setItem(storageKeys.items, JSON.stringify(items));
+    localStorage.setItem(storageKeys.items + '_instructions', specialInstructions);
     localStorage.removeItem(LEGACY_CART_STORAGE_KEY);
-  }, [authLoading, hydratedOwner, items, storageKeys.items, storageKeys.owner]);
+    localStorage.removeItem(LEGACY_CART_STORAGE_KEY + '_instructions');
+  }, [authLoading, hydratedOwner, items, specialInstructions, storageKeys.items, storageKeys.owner]);
 
   useEffect(() => {
     if (authLoading || hydratedOwner !== storageKeys.owner) return;
@@ -146,13 +155,13 @@ export function CartProvider({ children }) {
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      authAPI.updateCart({ items, restaurant }).catch(() => {});
+      authAPI.updateCart({ items, restaurant, specialInstructions }).catch(() => {});
     }, 450);
 
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [authLoading, hydratedOwner, items, restaurant, serverHydratedOwner, storageKeys.owner, user?._id]);
+  }, [authLoading, hydratedOwner, items, restaurant, specialInstructions, serverHydratedOwner, storageKeys.owner, user?._id]);
 
   const addItem = useCallback((item, restaurantData) => {
     // If adding from a different restaurant in marketplace mode, clear cart first
@@ -272,6 +281,8 @@ export function CartProvider({ children }) {
     restaurant,
     itemCount,
     subtotal,
+    specialInstructions,
+    setSpecialInstructions,
     addItem,
     switchRestaurant,
     updateQuantity,
