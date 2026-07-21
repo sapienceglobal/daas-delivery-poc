@@ -11,9 +11,10 @@ const getApiBaseUrl = () => {
     const hostname = window.location.hostname;
     
     // If the frontend was built with localhost (or defaulted to it), but is being accessed from a remote IP (like a VPS),
-    // we MUST override the API URL to point to the same remote host on port 5000 to prevent CORS and Private Network Access errors.
+    // If the frontend was built with localhost (or defaulted to it), but is being accessed from a remote IP (like a VPS),
+    // we MUST override the API URL to point to the same remote host on port 5001 to prevent CORS and Private Network Access errors.
     if ((!envUrl || envUrl.includes('localhost')) && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return `${window.location.protocol}//${hostname}:5000`;
+      return `${window.location.protocol}//${hostname}:5001`;
     }
   }
   
@@ -21,7 +22,7 @@ const getApiBaseUrl = () => {
     return envUrl;
   }
 
-  return 'http://localhost:5000';
+  return 'http://localhost:5001';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

@@ -12,7 +12,7 @@ const webhookRoutes = require('./routes/webhookRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const authRoutes = require('./routes/authRoutes');
 
-const PORT = Number(process.env.PORT || 5000);
+const PORT = Number(process.env.PORT || 5001);
 const isProduction = process.env.NODE_ENV === 'production';
 const defaultAllowedOrigins = [
   'http://localhost:3000',
