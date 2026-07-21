@@ -110,11 +110,13 @@ export default function LassiLoungeFooter() {
           >
             <Image src={findUs.mapImage} alt="Map showing Lassi Lounge location" fill sizes="240px" className="object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
           
-            <div className="absolute right-2 top-2 bottom-2 left-[30%] bg-[#FCF9F4] rounded-md shadow-sm p-3 flex flex-row items-center gap-2">
-               <MapPin size={32} className="text-[#C8102E] shrink-0" fill="#C8102E" strokeWidth={1} />
-               <div className="flex flex-col">
-                  <p className="text-sm font-bold text-black leading-tight">Lassi Lounge</p>
-                  <p className="text-[10px] text-gray-600 leading-snug mt-1 font-medium">{findUs.address}</p>
+            <div className="absolute bottom-2 left-2 right-2 bg-[#FCF9F4] rounded-md shadow border border-[#1a1a1a]/10 p-2.5 flex flex-row items-center gap-2.5 group-hover:-translate-y-0.5 transition-transform duration-300">
+               <div className="bg-[#C8102E]/10 p-1.5 rounded-full shrink-0">
+                 <MapPin size={20} className="text-[#C8102E]" fill="#C8102E" strokeWidth={1} />
+               </div>
+               <div className="flex flex-col flex-1 min-w-0">
+                  <p className="text-[13px] font-extrabold text-[#1a1a1a] leading-tight truncate">Lassi Lounge</p>
+                  <p className="text-[11px] text-[#1a1a1a]/70 leading-tight mt-0.5 font-medium truncate">{findUs.address}</p>
                </div>
             </div>
           </Link>

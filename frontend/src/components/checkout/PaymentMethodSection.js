@@ -86,10 +86,12 @@ export default function PaymentMethodSection({
                 </h4>
                 {/* Brand Logos */}
                 <div className="flex gap-2 items-center">
-                  <img src="https://cdn.worldvectorlogo.com/logos/visa.svg" className="h-[14px] w-auto object-contain bg-[#ffffff] rounded px-[2px]" alt="Visa" />
+                  <div className="bg-[#ffffff] rounded px-1.5 h-5 flex items-center justify-center">
+                    <span className="font-black italic text-[13px] text-[#1434CB] tracking-tighter leading-none">VISA</span>
+                  </div>
                   <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-5 w-auto object-contain bg-[#ffffff] rounded px-[2px]" alt="Mastercard" />
                   <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg" className="h-5 w-auto object-contain bg-[#ffffff] rounded px-[2px]" alt="Amex" />
-                  <img src="https://cdn.worldvectorlogo.com/logos/discover.svg" className="h-4 w-auto object-contain bg-[#ffffff] rounded px-[2px]" alt="Discover" />
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/5/57/Discover_Card_logo.svg" className="h-4 w-auto object-contain bg-[#ffffff] rounded px-[2px]" alt="Discover" />
                 </div>
               </div>
             </button>

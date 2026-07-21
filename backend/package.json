@@ -2,8 +2,7 @@
   "name": "restaurant-commerce-platform",
   "version": "2.0.0",
   "description": "Production-grade Restaurant Commerce Platform — SaaS backend with DoorDash Drive API integration",
-  "type": "module",
-  "main": "server.new.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.new.js",
     "dev": "nodemon server.new.js",
