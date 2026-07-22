@@ -91,6 +91,11 @@ export default function CartSidebar({
                             + {item.addOns.map(a => a.name).join(', ')}
                           </span>
                         )}
+                        {item.specialInstructions && (
+                          <span className="text-[11px] text-[#7a0b10]/80 italic block mt-0.5 leading-snug">
+                            Note: "{item.specialInstructions}"
+                          </span>
+                        )}
 
                         <p className="text-[13px] text-[#1a1a1a]/80 font-bold mt-1 font-sans">
                           ${((item.selectedSize?.price || item.price) + (item.addOns || []).reduce((sum, a) => sum + (a.price || 0), 0)).toFixed(2)}

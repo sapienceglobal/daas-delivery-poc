@@ -46,7 +46,7 @@ export default function TestimonialsSection() {
   // No need for out of bounds check anymore since pageCount = reviews.length
 
   return (
-    <section className="bg-background-alt on-cream pt-12 pb-16">
+    <section className="bg-background-alt on-cream pt-8 pb-16">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
 
         <div className="flex items-center justify-center gap-4 mb-10">

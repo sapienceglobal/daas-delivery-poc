@@ -9,14 +9,13 @@ import {
   Home, LayoutGrid, List, ShoppingCart, X,
   ChevronRight
 } from 'lucide-react';
-import { restaurantAPI, authAPI } from '@/lib/api';
+import Fuse from 'fuse.js';
+import { restaurantAPI, authAPI, aiAPI } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { createPortal } from 'react-dom';
-import {
-  GlassCard, Badge, Button, Modal, StarRating,
-  Skeleton, showToast
-} from '@/components/ui';
+import { showToast, Skeleton, Modal, ItemDetailModal, PortalModal, GlassCard, Badge, Button, StarRating } from '@/components/ui';
+
+import Loading from '@/app/loading';
 
 // Lassi Lounge Branded Modular Components
 import MenuHero from '@/components/branded/lassi-lounge/menu/MenuHero';
@@ -52,6 +51,8 @@ export default function RestaurantPage() {
   const [aiPicks, setAiPicks] = useState(null);
   const [loadingAi, setLoadingAi] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [isAiSearching, setIsAiSearching] = useState(false);
   const [couponApplied, setCouponApplied] = useState(false); 
   const [repeatModal, setRepeatModal] = useState(null); // { item, lastCartItem }
   
@@ -101,6 +102,52 @@ export default function RestaurantPage() {
     }
   };
 
+  // Instant Fuzzy Search using Fuse.js
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    const allItems = (menu || []).reduce((acc, cat) => {
+      // Pass category name down to items so they can be matched
+      const itemsWithCat = (cat.items || []).map(i => ({ ...i, catName: cat.name || cat.catName }));
+      return acc.concat(itemsWithCat);
+    }, []);
+
+    const fuse = new Fuse(allItems, {
+      keys: ['name', 'description', 'tags', 'catName'],
+      threshold: 0.4, // typo tolerance
+      ignoreLocation: true,
+    });
+    
+    const results = fuse.search(searchQuery).map(res => res.item);
+    setSearchResults(results);
+  }, [searchQuery, menu]);
+
+  // Deep Semantic Search using AI
+  const handleAiSearch = async () => {
+    if (!searchQuery.trim() || !restaurant?._id) return;
+    setIsAiSearching(true);
+    try {
+      const res = await aiAPI.searchMenu(restaurant._id, searchQuery);
+      const matchIds = res.data?.results || [];
+      const allItems = (menu || []).reduce((acc, cat) => acc.concat(cat.items || []), []);
+      const matchedItems = matchIds.map(id => allItems.find(i => i._id === id || i.id === id)).filter(Boolean);
+      
+      if (matchedItems.length > 0) {
+        setSearchResults(matchedItems);
+        showToast('AI found best matches!', 'success');
+      } else {
+        setSearchResults([]);
+        showToast('AI found no matching items', 'error');
+      }
+    } catch (err) {
+      console.error('AI Search failed:', err);
+      showToast('AI Search failed', 'error');
+    } finally {
+      setIsAiSearching(false);
+    }
+  };
   const handleSmartAdd = (item, qty = 1) => {
     const hasCustomizations =
       (item.sizeVariations && item.sizeVariations.length > 0) ||
@@ -112,7 +159,7 @@ export default function RestaurantPage() {
     }
   };
 
-  const handleAddToCart = (item, quantity = 1, selectedSize = null, addOns = []) => {
+  const handleAddToCart = (item, quantity = 1, selectedSize = null, addOns = [], specialInstructions = '') => {
     const cartItem = {
       menuItemId: item._id,
       name: item.name,
@@ -121,6 +168,7 @@ export default function RestaurantPage() {
       quantity,
       selectedSize,
       addOns,
+      specialInstructions: specialInstructions || '',
     };
 
     const result = addItem(cartItem, {
@@ -190,7 +238,7 @@ export default function RestaurantPage() {
     });
   };
 
-  if (loading) return <RestaurantSkeleton />;
+  if (loading) return <Loading />;
   if (!restaurant) return <div className="text-center py-16 text-[#6b7280]">Restaurant not found</div>;
 
   const isSingleRestaurantMode = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
@@ -198,10 +246,11 @@ export default function RestaurantPage() {
   if (isSingleRestaurantMode) {
     const categories = menu || [];
     const currentCategory = categories.find(cat => cat._id === activeCategory) || categories[0];
-    const filteredItems = (currentCategory?.items || []).filter(item =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    // If searchQuery is present, we show the fuzzy search results (or AI results).
+    // Otherwise, we show the items from the active category.
+    const filteredItems = searchQuery.trim() 
+      ? (searchResults || []) 
+      : (currentCategory?.items || []);
 
     const deliveryFee = restaurant?.deliveryFee !== undefined ? restaurant.deliveryFee : 2.99;
     const taxes = subtotal * 0.0875;
@@ -229,15 +278,27 @@ export default function RestaurantPage() {
             </div>
 
             {/* Right: Search Bar */}
-            <div className="relative w-full md:w-[360px]">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9ca3af] ml-2" />
-              <input
-                type="text"
-                placeholder="Search for dishes..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-[#e5e7eb] rounded-md text-[13px] focus:outline-none focus:border-[#7a0b10] focus:ring-4 focus:ring-[#7a0b10]/10 transition-all text-[#1a1a1a] placeholder-[#9ca3af] bg-[#ffffff] shadow-sm"
-              />
+            <div className="relative w-full md:w-[420px] flex items-center gap-2">
+              <div className="relative w-full">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9ca3af] ml-2" />
+                <input
+                  type="text"
+                  placeholder="Search dishes (Press Enter for AI)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
+                  maxLength={60}
+                  className="w-full pl-10 pr-4 py-2 border border-[#e5e7eb] rounded-md text-[13px] focus:outline-none focus:border-[#7a0b10] focus:ring-4 focus:ring-[#7a0b10]/10 transition-all text-[#1a1a1a] placeholder-[#9ca3af] bg-[#ffffff] shadow-sm"
+                />
+              </div>
+              <Button 
+                onClick={handleAiSearch} 
+                loading={isAiSearching} 
+                variant="primary" 
+                className="whitespace-nowrap px-4 py-2 !rounded-md text-[13px] h-[38px] bg-[#7a0b10] border-none text-white shadow-md shadow-[#7a0b10]/20 hover:brightness-110"
+              >
+                Ask AI ✨
+              </Button>
             </div>
           </div>
         </div>
@@ -264,10 +325,14 @@ export default function RestaurantPage() {
                     }
                     // Then update category state — content changes after position is already correct
                     setActiveCategory(id);
+                    
+                    // CLEAR the search query so the user returns to normal category browsing
+                    setSearchQuery('');
                   }}
                   setSearchQuery={setSearchQuery}
                   couponApplied={couponApplied}
                   setCouponApplied={setCouponApplied}
+                  searchQuery={searchQuery}
                 />
               </div>
             </div>
@@ -276,6 +341,7 @@ export default function RestaurantPage() {
             <div ref={dishGridRef} className="flex-1 w-full min-w-0">
               <DishGrid
                 filteredItems={filteredItems}
+                searchQuery={searchQuery}
                 currentCategory={currentCategory}
                 isAuthenticated={isAuthenticated}
                 user={user}
@@ -592,114 +658,7 @@ export default function RestaurantPage() {
   }
 }
 
-// ── Item Detail Modal (Fixed Colors) ──────────────────────────────────────────
-
-function ItemDetailModal({ item, onClose, onAdd }) {
-  const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState(item.sizeVariations?.[0] || null);
-  const [selectedAddOns, setSelectedAddOns] = useState([]);
-
-  const basePrice = selectedSize?.price || item.price;
-  const addOnTotal = selectedAddOns.reduce((s, a) => s + (a.price || 0), 0);
-  const lineTotal = (basePrice + addOnTotal) * quantity;
-
-  const toggleAddOn = (addon) => {
-    setSelectedAddOns(prev => {
-      const exists = prev.find(a => a.name === addon.name);
-      return exists ? prev.filter(a => a.name !== addon.name) : [...prev, addon];
-    });
-  };
-
-  const hasCustomizations =
-    (item.sizeVariations && item.sizeVariations.length > 0) ||
-    (item.addOns && item.addOns.length > 0);
-
-  return (
- <PortalModal isOpen={true} onClose={onClose} title={hasCustomizations ? `Customize — ${item.name}` : item.name} size="md">
-      <img src={item.image || getDishImage(item.name)} alt={item.name} className="w-full h-48 object-cover rounded-xl mb-4 ll-pop" />
-
-      <p className="text-[13px] text-[#6b7280] mb-5 leading-relaxed">{item.description}</p>
-
-      <div className="flex flex-wrap gap-2 mb-5">
-        {item.isVeg && <span className="text-[10px] bg-green-100 text-green-800 font-bold px-2 py-1 rounded-md uppercase tracking-wider">Vegetarian</span>}
-        {item.isVegan && <span className="text-[10px] bg-green-100 text-green-800 font-bold px-2 py-1 rounded-md uppercase tracking-wider">Vegan</span>}
-        {item.isSpicy && <span className="text-[10px] bg-red-100 text-red-800 font-bold px-2 py-1 rounded-md uppercase tracking-wider">Spicy</span>}
-        {item.isGlutenFree && <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-1 rounded-md uppercase tracking-wider">Gluten-Free</span>}
-        {item.isBestseller && <span className="text-[10px] bg-[#e8a020] text-[#1a1a1a] font-bold px-2 py-1 rounded-md uppercase tracking-wider">Bestseller</span>}
-      </div>
-
-      {/* Size Variations */}
-      {item.sizeVariations?.length > 0 && (
-        <div className="mb-5">
-          <h4 className="text-[13px] font-bold text-[#1a1a1a] mb-2.5">Size</h4>
-          <div className="flex flex-wrap gap-2.5">
-            {item.sizeVariations.map(size => (
-              <button
-                key={size.name}
-                onClick={() => setSelectedSize(size)}
-                className={`rounded-xl px-4 py-2.5 text-[12px] font-bold border shadow-sm ll-interactive ll-focus-ring
-                  ${selectedSize?.name === size.name
-                    ? 'bg-[#7a0b10] text-[#ffffff] border-[#7a0b10]'
-                    : 'bg-[#ffffff] text-[#6b7280] border-[#e5e7eb] hover:border-[#7a0b10]'
-                  }`}
-              >
-                {size.name} — ${size.price.toFixed(2)}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Add-ons */}
-      {item.addOns?.length > 0 && (
-        <div className="mb-5">
-          <h4 className="text-[13px] font-bold text-[#1a1a1a] mb-2.5">Add-ons</h4>
-          <div className="space-y-2.5">
-            {item.addOns.map(addon => {
-              const isSelected = selectedAddOns.some(a => a.name === addon.name);
-              return (
-                <button
-                  key={addon.name}
-                  onClick={() => toggleAddOn(addon)}
-                  className={`w-full flex items-center justify-between rounded-xl px-4 py-3 text-[13px] border shadow-sm ll-interactive ll-focus-ring
-                    ${isSelected
-                      ? 'bg-[#7a0b10]/10 text-[#7a0b10] border-[#7a0b10]/30 font-bold'
-                      : 'bg-[#ffffff] text-[#6b7280] border-[#e5e7eb] hover:border-[#7a0b10]/30 font-medium'
-                    }`}
-                >
-                  <span>{addon.name}</span>
-                  <span className={isSelected ? 'text-[#7a0b10]' : 'text-[#1a1a1a]'}>+${addon.price.toFixed(2)}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Quantity & Add to Cart */}
-      <div className="flex items-center justify-between mt-6 pt-5 border-t border-[#e5e7eb]">
-        <div className="flex items-center border border-[#e5e7eb] rounded-lg h-11 bg-[#ffffff] shadow-sm">
-          <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-3.5 text-[#7a0b10] hover:bg-[#f9fafb] h-full flex items-center justify-center transition-colors ll-focus-ring" aria-label="Decrease quantity">
-            <Minus className="h-4 w-4" strokeWidth={2.5} />
-          </button>
-          <div className="w-px h-full bg-[#e5e7eb]"></div>
-          <span className="text-[15px] font-bold text-[#1a1a1a] w-10 text-center">{quantity}</span>
-          <div className="w-px h-full bg-[#e5e7eb]"></div>
-          <button onClick={() => setQuantity(quantity + 1)} className="px-3.5 text-[#7a0b10] hover:bg-[#f9fafb] h-full flex items-center justify-center transition-colors ll-focus-ring" aria-label="Increase quantity">
-            <Plus className="h-4 w-4" strokeWidth={2.5} />
-          </button>
-        </div>
-
-        <button 
-          onClick={() => { onAdd(item, quantity, selectedSize, selectedAddOns); onClose(); }}
-          className="bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff] font-bold h-11 py-2 px-5 rounded-lg shadow-md text-[13px] tracking-wider uppercase flex items-center justify-center gap-2 ll-interactive ll-focus-ring"
-        >
-          Add to Cart — ${lineTotal.toFixed(2)}
-        </button>
-      </div>
-    </PortalModal>
-  );
-}
+// ── Removed ItemDetailModal (now imported from @/components/ui) ───────────────────
 
 // ── Repeat Customization Modal ──────────────────────────────────────────────
 
@@ -770,40 +729,4 @@ function RestaurantSkeleton() {
     </div>
   );
 }
-// ── Safe Portal Modal (Fixes Scroll & UI issues) ──────────────────────────
-
-function PortalModal({ isOpen, onClose, title, children, size = 'md' }) {
-  const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
-    if (isOpen) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
-    return () => { document.body.style.overflow = ''; };
-  }, [isOpen]);
-
-  if (!isOpen || !mounted) return null;
-
-  const sizes = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl' };
-
-  return createPortal(
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 select-none">
-      <div className="absolute inset-0 bg-[#000000]/60 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative z-10 w-full ${sizes[size] || sizes.md} bg-[#ffffff] border border-[#e5e7eb] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200`}>
-        
-        <div className="flex items-center justify-between p-5 sm:p-6 pb-3 shrink-0 border-b border-[#e5e7eb]/50">
-          {title && <h3 className="text-[20px] font-bold font-serif text-[#1a1a1a]">{title}</h3>}
-          <button onClick={onClose} className="ml-auto rounded-lg p-2 text-[#6b7280] hover:text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        
-        <div className="p-5 sm:p-6 overflow-y-auto">
-          {children}
-        </div>
-        
-      </div>
-    </div>,
-    document.body
-  );
-}
+// ── Removed PortalModal (now imported from @/components/ui) ───────────────────

@@ -10,32 +10,37 @@ const ReviewSchema = new mongoose.Schema({
   restaurantId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Restaurant',
-    required: [true, 'Restaurant ID is required']
+    required: false
   },
   orderId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Order',
-    required: [true, 'Order ID is required']
+    required: false
+  },
+  itemId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'MenuItem',
+    required: false
   },
 
   // ── Ratings (1-5 stars, separate dimensions) ──────────────────────────
   foodRating: {
     type: Number,
-    required: [true, 'Food rating is required'],
     min: 1,
-    max: 5
+    max: 5,
+    default: 5
   },
   deliveryRating: {
     type: Number,
     min: 1,
-    max: 5,
-    default: null
+    max: 5
   },
   overallRating: {
     type: Number,
-    required: [true, 'Overall rating is required'],
+    required: [true, 'Rating is required'],
     min: 1,
-    max: 5
+    max: 5,
+    default: 5
   },
 
   // ── Review Text ───────────────────────────────────────────────────────
@@ -76,8 +81,26 @@ const ReviewSchema = new mongoose.Schema({
 
 // ── Indexes ─────────────────────────────────────────────────────────────────
 ReviewSchema.index({ restaurantId: 1, createdAt: -1 });
+ReviewSchema.index({ itemId: 1, createdAt: -1 });
+ReviewSchema.index({ userId: 1, itemId: 1 });
 ReviewSchema.index({ userId: 1 });
-ReviewSchema.index({ orderId: 1 }, { unique: true });  // one review per order
+ReviewSchema.index({ orderId: 1 }, { 
+  unique: true, 
+  partialFilterExpression: { orderId: { $type: 'objectId' } } 
+});
 
 const Review = mongoose.model('Review', ReviewSchema);
+
+// Drop legacy index if it exists and sync
+setTimeout(async () => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      await Review.collection.dropIndex('orderId_1');
+      await Review.syncIndexes();
+    }
+  } catch (err) {
+    // Ignore if index doesn't exist
+  }
+}, 3000);
+
 export default Review;

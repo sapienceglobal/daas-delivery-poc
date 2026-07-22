@@ -9,6 +9,8 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { showToast, Skeleton } from '@/components/ui';
 
+import Loading from '@/app/loading';
+
 // Custom subcomponents
 import Breadcrumbs from '@/components/menu-detail/Breadcrumbs';
 import ProductInfo from '@/components/menu-detail/ProductInfo';
@@ -61,7 +63,7 @@ export default function ItemDetailPage() {
         if (itemRes.data?.sizeVariations?.length > 0) {
           setSelectedSize(itemRes.data.sizeVariations[0]);
         } else {
-          setSelectedSize({ name: 'Full Portion', price: itemRes.data.price });
+          setSelectedSize(null);
         }
       } catch (err) {
         showToast('Failed to load item details', 'error');
@@ -82,8 +84,7 @@ export default function ItemDetailPage() {
       (i.name && item?.name && i.name.toLowerCase().trim() === item.name.toLowerCase().trim());
     
     const sameSize = !hasSizeVars ||
-      (i.selectedSize?.name || i.selectedSize?.label || null) === (selectedSize?.name || selectedSize?.label || null) ||
-      (!i.selectedSize && (selectedSize?.name === 'Full Portion' || selectedSize?.name === item?.sizeVariations?.[0]?.name));
+      (i.selectedSize?.name || i.selectedSize?.label || null) === (selectedSize?.name || selectedSize?.label || null);
 
     const sameAddons = (!i.addOns || i.addOns.length === 0) && (!selectedAddOns || selectedAddOns.length === 0) ? true :
       JSON.stringify(i.addOns || []) === JSON.stringify(selectedAddOns || []);
@@ -166,15 +167,21 @@ const handleIncrement = () => {
   };
 
   const handleQuickAdd = (recItem) => {
-    // Quick Add adds the recommended item directly with default settings
-    const recItemIndex = items.findIndex(i =>
-      i.menuItemId === recItem._id &&
-      i.selectedSize?.name === 'Full Portion' &&
-      JSON.stringify(i.addOns || []) === JSON.stringify([])
-    );
+    const targetId = recItem._id || recItem.id;
 
-    if (recItemIndex > -1) {
-      updateQuantity(recItemIndex, items[recItemIndex].quantity + 1);
+    // Check for existing matching item in cart
+    const matchingIndices = items
+      .map((cartItem, idx) => ({ cartItem, idx }))
+      .filter(({ cartItem }) => {
+        const iId = cartItem.menuItemId || cartItem._id || cartItem.id;
+        return (targetId && iId && iId === targetId) ||
+          (cartItem.name && recItem.name && cartItem.name.toLowerCase().trim() === recItem.name.toLowerCase().trim());
+      });
+
+    if (matchingIndices.length > 0) {
+      const lastIdx = matchingIndices[matchingIndices.length - 1].idx;
+      const currentQty = items[lastIdx].quantity || items[lastIdx].qty || 1;
+      updateQuantity(lastIdx, currentQty + 1);
       showToast(`Increased quantity of ${recItem.name} in cart`, 'success');
       return;
     }
@@ -183,12 +190,14 @@ const handleIncrement = () => {
       menuItemId: recItem._id,
       name: recItem.name,
       price: recItem.price,
+      image: recItem.image,
       quantity: 1,
-      selectedSize: { name: 'Full Portion', price: recItem.price },
+      selectedSize: null,
       addOns: [],
       specialInstructions: '',
       lineTotal: recItem.price
     };
+
     const res = addItem(newCartItem, restaurant);
     if (res?.conflict) {
       setPendingCartItem(newCartItem);
@@ -200,14 +209,7 @@ const handleIncrement = () => {
 
   const isFavorite = user?.favoriteItems?.some(f => (f._id || f) === item?._id);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-[#9ca3af]" />
-        <span className="text-[14px] text-[#6b7280] font-bold">Loading item details...</span>
-      </div>
-    );
-  }
+  if (loading) return <Loading />;
 
   if (!item) {
     return (
@@ -307,8 +309,12 @@ const handleIncrement = () => {
         {/* Customer Reviews Section */}
         <div className="pt-8">
           <ReviewsSection
+            itemId={itemId}
+            restaurantId={restaurantId}
             reviews={reviews}
             isSingleRestaurant={isSingleRestaurant}
+            user={user}
+            isAuthenticated={isAuthenticated}
           />
         </div>
 

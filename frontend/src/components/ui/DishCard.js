@@ -2,8 +2,25 @@
 
 import Image from 'next/image';
 import { Plus, Minus } from 'lucide-react';
+import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
-import { showToast } from '@/components/ui';
+import { showToast, ItemDetailModal } from '@/components/ui';
+
+const getDishImage = (itemName = '') => {
+  const name = itemName.toLowerCase();
+  if (name.includes('butter chicken')) return '/images/branded/lassi-lounge/dishes/butter-chicken.jpg';
+  if (name.includes('rogan josh') || name.includes('lamb')) return '/images/branded/lassi-lounge/dishes/lamb-rogan-josh.jpg';
+  if (name.includes('paneer tikka')) return '/images/branded/lassi-lounge/dishes/paneer-tikka.jpg';
+  if (name.includes('biryani')) return '/images/branded/lassi-lounge/dishes/chicken-biryani.jpg';
+  if (name.includes('dal makhani')) return '/images/branded/lassi-lounge/dishes/dal-makhani.jpg';
+  if (name.includes('lassi')) return '/images/branded/lassi-lounge/dishes/mango-lassi.jpg';
+  if (name.includes('roll') || name.includes('spring')) return '/images/branded/lassi-lounge/dishes/veg-spring-rolls.png';
+  if (name.includes('tikka masala')) return 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=400&q=80';
+  if (name.includes('palak paneer')) return 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=400&q=80';
+  if (name.includes('naan') || name.includes('bread')) return 'https://images.unsplash.com/photo-1605333396914-22b0c36b1328?auto=format&fit=crop&w=400&q=80';
+  if (name.includes('corn')) return 'https://images.unsplash.com/photo-1626804475297-41609ea004eb?auto=format&fit=crop&w=400&q=80';
+  return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
+};
 
 /**
  * DishCard — image, name, description, price, and dynamic "- qty +" or "+" add button.
@@ -25,8 +42,19 @@ export default function DishCard({ item }) {
 
   const cartQty = matchingItems.reduce((sum, i) => sum + (i.quantity || i.qty || 0), 0);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const hasCustomizations =
+    (item.sizeVariations && item.sizeVariations.length > 0) ||
+    (item.addOns && item.addOns.length > 0);
+
   const handleAddToCart = (e) => {
     if (e) e.stopPropagation();
+
+    if (hasCustomizations) {
+      setIsModalOpen(true);
+      return;
+    }
 
     if (matchingItems.length > 0) {
       const lastMatchingItem = matchingItems[matchingItems.length - 1];
@@ -43,7 +71,7 @@ export default function DishCard({ item }) {
         image: item.image,
         quantity: 1,
         qty: 1,
-        selectedSize: item.sizes?.[0] ? { name: item.sizes[0].label || item.sizes[0].name, price: item.sizes[0].price } : null,
+        selectedSize: null,
         addOns: [],
         lineTotal: displayPrice
       });
@@ -73,8 +101,8 @@ export default function DishCard({ item }) {
     <div className="bg-card rounded-2xl overflow-hidden shadow-md flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 group border border-border/40 select-none">
       <div className="w-full h-32 relative overflow-hidden bg-surface">
         <Image
-          src={item.image}
-          alt={item.name}
+          src={item.image || getDishImage(item.name)}
+          alt={item.name || 'Dish'}
           fill
           sizes="(min-width: 1024px) 16vw, 45vw"
           className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -127,6 +155,28 @@ export default function DishCard({ item }) {
     )}
   </div>
 </div>
+      {isModalOpen && (
+        <ItemDetailModal
+          item={item}
+          onClose={() => setIsModalOpen(false)}
+          onAdd={(itemToAdd, quantity, selectedSize, selectedAddOns, specialInstructions) => {
+            const basePrice = selectedSize?.price || itemToAdd.price;
+            const addOnsTotal = selectedAddOns.reduce((sum, addon) => sum + addon.price, 0);
+            addItem({
+              menuItemId: targetId || 'dish-' + Date.now(),
+              name: itemToAdd.name,
+              price: basePrice,
+              quantity,
+              qty: quantity,
+              selectedSize,
+              addOns: selectedAddOns,
+              specialInstructions: specialInstructions || '',
+              lineTotal: (basePrice + addOnsTotal) * quantity
+            });
+            showToast(`${itemToAdd.name} added to cart`, 'success');
+          }}
+        />
+      )}
     </div>
   );
 }

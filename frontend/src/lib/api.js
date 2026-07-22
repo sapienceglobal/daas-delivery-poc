@@ -196,7 +196,10 @@ export const orderAPI = {
 export const reviewAPI = {
   getByRestaurant: (restaurantId, params = '') => api.get(`/api/reviews/restaurant/${restaurantId}${params ? '?' + params : ''}`),
   getItemReviews: (itemId) => api.get(`/api/reviews/item/${itemId}`),
+  getMyItemReview: (itemId) => api.get(`/api/reviews/item/${itemId}/my-review`),
   create: (data) => api.post('/api/reviews', data),
+  update: (id, data) => api.put(`/api/reviews/${id}`, data),
+  delete: (id) => api.delete(`/api/reviews/${id}`),
   reply: (id, text) => api.post(`/api/reviews/${id}/reply`, { text }),
   markHelpful: (id) => api.post(`/api/reviews/${id}/helpful`),
 };
@@ -340,6 +343,7 @@ export const aiAPI = {
   predictSales: (restaurantId) => api.post('/api/ai/predict', { restaurantId }),
   smartPricing: (restaurantId) => api.post('/api/ai/smart-pricing', { restaurantId }),
   recommendFood: (restaurantId, pastOrdersContext) => api.post('/api/ai/recommend', { restaurantId, pastOrdersContext }),
+  searchMenu: (restaurantId, query) => api.post('/api/ai/search', { restaurantId, query }),
 };
 
 // ── Reservation API ──────────────────────────────────────────────────────────

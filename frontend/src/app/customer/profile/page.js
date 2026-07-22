@@ -17,6 +17,8 @@ import AddressModal from '@/components/shared/AddressModal';
 // Naye modularized components ko import karein
 import LassiProfilePage from '@/components/profile/LassiProfilePage';
 
+import Loading from '@/app/loading';
+
 const isSingleRestaurantMode = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
 
 export default function ProfilePage() {
@@ -35,11 +37,7 @@ export default function ProfilePage() {
   }, [loading, isAuthenticated]);
 
   if (loading || !user) {
-    return (
-      <div className="min-h-screen bg-[#fbfaf7] flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-[#7a0b10]" />
-      </div>
-    );
+    return <Loading />;
   }
 
   // Single-Restaurant (Lassi Lounge) route ko naye structure ki taraf point karein

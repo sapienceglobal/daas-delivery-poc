@@ -81,16 +81,6 @@ export const signatureDishesContent = {
       description: 'Fragrant basmati rice cooked with chicken & aromatic spices.',
       price: 15.99,
       image: '/images/branded/lassi-lounge/dishes/chicken-biryani.jpg',
-      // Example customizable item — has sizes, so tapping "+" opens
-      // ItemCustomizationModal instead of adding directly.
-      sizes: [
-        { id: 'half', label: 'Half', price: 15.99 },
-        { id: 'full', label: 'Full', price: 24.99 },
-      ],
-      addOns: [
-        { id: 'extra-raita', label: 'Extra Raita', price: 1.5 },
-        { id: 'boiled-egg', label: 'Boiled Egg', price: 1.0 },
-      ],
     },
     {
       id: 'dal-makhani',

@@ -23,7 +23,8 @@ export default function DishGrid({
   items = [],
   handleCartAdd,
   handleCartDecrement,
-  toggleFavorite
+  toggleFavorite,
+  searchQuery = ''
 }) {
   const router = useRouter();
   const [viewMode, setViewMode] = useState('grid');
@@ -43,13 +44,15 @@ export default function DishGrid({
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end justify-between bg-transparent pb-4 border-b border-[#e5e7eb]/80">
         
         {/* Left Side: Title & Item Count */}
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2">
-             <div className="text-[#e8a020] mt-1.5 flex items-center justify-center">
+        <div className="flex flex-col flex-1 min-w-0 w-full pr-4">
+          <div className="flex items-center gap-2 min-w-0 w-full">
+             <div className="shrink-0 text-[#e8a020] mt-1.5 flex items-center justify-center">
                <svg width="22" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
              </div>
-             <h2 className="text-[28px] md:text-[32px] font-serif font-black text-[#1a1a1a] leading-none">
-               {currentCategory?.name || 'Appetizers'}
+             <h2 className="text-[28px] md:text-[32px] font-serif font-black text-[#1a1a1a] leading-none truncate w-full">
+               {searchQuery.trim() 
+                 ? `Search Results for "${searchQuery.length > 25 ? searchQuery.substring(0, 25) + '...' : searchQuery}"` 
+                 : (currentCategory?.name || 'Appetizers')}
              </h2>
           </div>
           <div className="flex items-center gap-2 ml-1.5 mt-1.5">
@@ -63,9 +66,9 @@ export default function DishGrid({
         </div>
 
         {/* Right Side: Sort & View Toggles (FIXED UI) */}
-       <div className="flex items-center gap-4">
+       <div className="flex items-center gap-4 shrink-0">
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <span className="text-[13px] font-medium text-[#1a1a1a] whitespace-nowrap">Sort By:</span>
               
             

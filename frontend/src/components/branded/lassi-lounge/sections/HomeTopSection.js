@@ -25,7 +25,7 @@ export default function HomeTopSection() {
       {/* =========================================
           1. HERO SECTION (DARK LAYER)
           ========================================= */}
-      {/* यहाँ pt-40/lg:pt-56 (Top Spacing) और min-h-[750px] (Height) ऐड किया गया है */}
+  
       <section className="relative w-full pt-30 pb-32 md:pt-38 md:pb-30 lg:pt-56 lg:pb-44 flex flex-col justify-center overflow-hidden z-10 min-h-[600px] lg:min-h-[720px]">
 
         {/* Full-width Background Image */}

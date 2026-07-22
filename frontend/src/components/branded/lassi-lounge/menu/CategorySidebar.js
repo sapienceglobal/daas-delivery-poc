@@ -19,7 +19,8 @@ export default function CategorySidebar({
   setActiveCategory, 
   setSearchQuery,
   couponApplied,
-  setCouponApplied
+  setCouponApplied,
+  searchQuery = ''
 }) {
   return (
     <div className="space-y-6 ll-reveal">
@@ -31,7 +32,7 @@ export default function CategorySidebar({
         </div>
         <nav className="flex flex-col">
           {categories.map((cat) => {
-            const isActive = activeCategory === cat._id;
+            const isActive = !searchQuery.trim() && activeCategory === cat._id;
             const Icon = getCategoryIcon(cat.name);
             
             return (

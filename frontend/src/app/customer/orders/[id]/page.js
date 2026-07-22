@@ -7,7 +7,8 @@ import { ChevronLeft, RefreshCw, Star, ArrowRight, ShieldAlert, Award } from 'lu
 import { orderAPI } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Button, Skeleton, StarRating, showToast } from '@/components/ui';
+import { showToast, GlassCard, Badge, Button } from '@/components/ui';
+import Loading from '@/app/loading';
 
 // Modular components
 import OrderHeaderBanner from '@/components/orders/OrderHeaderBanner';
@@ -128,7 +129,7 @@ export default function OrderDetailPage() {
     }
   };
 
-  if (loading) return <OrderSkeleton />;
+  if (loading) return <Loading />;
   if (!order) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center bg-[#f9fafb] text-[#1a1a1a]">
@@ -332,27 +333,6 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-    </div>
-  );
-}
-
-function OrderSkeleton() {
-  return (
-    <div className="min-h-screen bg-[#f9fafb] py-8">
-      <div className="mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8 space-y-6">
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-40 rounded-2xl" />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 space-y-6">
-            <Skeleton className="h-72 rounded-2xl" />
-            <Skeleton className="h-48 rounded-2xl" />
-          </div>
-          <div className="lg:col-span-4 space-y-6">
-            <Skeleton className="h-80 rounded-2xl" />
-            <Skeleton className="h-40 rounded-2xl" />
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

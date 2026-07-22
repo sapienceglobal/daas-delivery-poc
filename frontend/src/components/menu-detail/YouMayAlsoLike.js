@@ -1,6 +1,7 @@
 'use client';
 
 import { Star, ShoppingCart, ChevronLeft, ChevronRight, Minus, Plus } from 'lucide-react';
+import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext'; // Cart Context Import kiya
 
@@ -21,7 +22,7 @@ export default function YouMayAlsoLike({
 
   const recommendations = menuItems
     .filter((item) => item._id !== currentItemId)
-    .slice(0, 4);
+    .slice(0, 8); // Show up to 8 recommendations so the slider is useful
 
   if (recommendations.length === 0) {
     return null;
@@ -41,6 +42,21 @@ export default function YouMayAlsoLike({
     if (name.includes('dal makhani')) return '/images/branded/lassi-lounge/dishes/dal-makhani.jpg';
     if (name.includes('lassi')) return '/images/branded/lassi-lounge/dishes/mango-lassi.jpg';
     return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
+    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
+  };
+
+  const scrollContainerRef = useRef(null);
+
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
   };
 
   return (
@@ -60,25 +76,42 @@ export default function YouMayAlsoLike({
         </div>
       </div>
 
-      {/* Cards Grid */}
-      <div className="relative flex items-center gap-2">
-        <button className="absolute -left-5 z-10 w-10 h-10 rounded-full border border-[#e5e7eb] bg-[#ffffff] hover:bg-[#f9fafb] flex items-center justify-center text-[#4b5563] shadow-sm hidden md:flex">
-          <ChevronLeft className="w-5 h-5" />
+      {/* Cards Grid / Slider */}
+      <div className="relative flex items-center group/slider">
+        {/* Left Scroll Button */}
+        <button 
+          onClick={scrollLeft}
+          className="absolute -left-4 md:-left-5 z-10 w-10 h-10 rounded-full border border-[#e5e7eb] bg-[#ffffff] hover:bg-[#f9fafb] flex items-center justify-center text-[#4b5563] shadow-md opacity-0 group-hover/slider:opacity-100 transition-opacity duration-300"
+          aria-label="Scroll left"
+        >
+          <ChevronLeft className="w-6 h-6" />
         </button>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5 w-full">
+        {/* Scrollable Container */}
+        <div 
+          ref={scrollContainerRef}
+          className="flex overflow-x-auto gap-4 md:gap-5 w-full pb-4 pt-2 px-1 snap-x snap-mandatory hide-scrollbar"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
           {recommendations.map((rec) => {
-            // Check if item is already in cart
-            const cartItemIndex = items.findIndex(i => i.menuItemId === rec._id || i._id === rec._id);
-            const cartQty = cartItemIndex > -1 ? items[cartItemIndex].quantity || items[cartItemIndex].qty || 0 : 0;
+            const recId = rec._id || rec.id;
+            const matchingItems = items.filter(i => {
+              const iId = i.menuItemId || i._id || i.id;
+              return (recId && iId && iId === recId) ||
+                (i.name && rec.name && i.name.toLowerCase().trim() === rec.name.toLowerCase().trim());
+            });
+
+            const cartQty = matchingItems.reduce((sum, i) => sum + (i.quantity || i.qty || 1), 0);
+            const lastMatchingIndex = matchingItems.length > 0 ? items.indexOf(matchingItems[matchingItems.length - 1]) : -1;
 
             const handleDecrement = (e) => {
               e.stopPropagation();
-              if (cartItemIndex > -1) {
-                if (cartQty > 1) {
-                  updateQuantity(cartItemIndex, cartQty - 1);
+              if (lastMatchingIndex > -1) {
+                const currentQty = items[lastMatchingIndex].quantity || items[lastMatchingIndex].qty || 1;
+                if (currentQty > 1) {
+                  updateQuantity(lastMatchingIndex, currentQty - 1);
                 } else {
-                  removeItem(cartItemIndex);
+                  removeItem(lastMatchingIndex);
                 }
               }
             };
@@ -87,7 +120,7 @@ export default function YouMayAlsoLike({
               <div
                 key={rec._id}
                 onClick={() => handleCardClick(rec._id)}
-                className="group cursor-pointer rounded-2xl border border-[#e5e7eb] bg-[#ffffff] overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col"
+                className="group cursor-pointer rounded-2xl border border-[#e5e7eb] bg-[#ffffff] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(122,11,16,0.12)] transition-all duration-300 flex flex-col flex-none w-[160px] md:w-[220px] lg:w-[240px] snap-start"
               >
                 {/* Product Image */}
                 <div className="aspect-[4/3] w-full overflow-hidden bg-[#f3f4f6] relative">
@@ -156,8 +189,13 @@ export default function YouMayAlsoLike({
           })}
         </div>
 
-        <button className="absolute -right-5 z-10 w-10 h-10 rounded-full border border-[#e5e7eb] bg-[#ffffff] hover:bg-[#f9fafb] flex items-center justify-center text-[#4b5563] shadow-sm hidden md:flex">
-          <ChevronRight className="w-5 h-5" />
+        {/* Right Scroll Button */}
+        <button 
+          onClick={scrollRight}
+          className="absolute -right-4 md:-right-5 z-10 w-10 h-10 rounded-full border border-[#e5e7eb] bg-[#ffffff] hover:bg-[#f9fafb] flex items-center justify-center text-[#4b5563] shadow-md opacity-0 group-hover/slider:opacity-100 transition-opacity duration-300"
+          aria-label="Scroll right"
+        >
+          <ChevronRight className="w-6 h-6" />
         </button>
       </div>
     </div>

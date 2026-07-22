@@ -10,25 +10,9 @@ export default function CustomizationForm({
   setSpecialInstructions,
   isSingleRestaurant
 }) {
-  // Default sizes if none are present in item object
-  const sizeOptions = item.sizeVariations?.length > 0
-    ? item.sizeVariations
-    : [
-        { name: 'Half Portion', price: item.price - 5 > 0 ? item.price - 5 : 8.99 },
-        { name: 'Full Portion', price: item.price },
-        { name: 'Family Portion (Serves 4)', price: item.price + 11 }
-      ];
-
-  // Default addons if none are present in item object
-  const addOnOptions = item.addOns?.length > 0
-    ? item.addOns
-    : [
-        { name: 'Extra Paneer', price: 3.00 },
-        { name: 'Extra Cheese', price: 2.00 },
-        { name: 'Mint Chutney', price: 1.00 },
-        { name: 'Mayonnaise Dip', price: 1.00 },
-        { name: 'Tandoori Roti (2 pcs)', price: 2.50 }
-      ];
+  // Use real backend data only - no dummy fallbacks!
+  const sizeOptions = item.sizeVariations || [];
+  const addOnOptions = item.addOns || [];
 
   const handleAddOnChange = (addon) => {
     const isChecked = selectedAddOns.some(a => a.name === addon.name);
@@ -77,41 +61,45 @@ export default function CustomizationForm({
           </div>
 
           <div className="space-y-4">
-            {sizeOptions.map((size, idx) => {
-              const isSelected = selectedSize?.name === size.name;
-              return (
-                <label
-                  key={idx}
-                  className="flex items-center justify-between cursor-pointer group"
-                >
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="radio"
-                      name="size-option"
-                      checked={isSelected}
-                      onChange={() => setSelectedSize(size)}
-                      className="sr-only"
-                    />
-                    <div className={`w-[18px] h-[18px] rounded-full border-[2px] flex items-center justify-center transition-all ${
-                      isSelected
-                        ? `border-[${primaryColorHex}]`
-                        : 'border-[#d1d5db] group-hover:border-[#9ca3af]'
-                    }`}
-                    style={isSelected ? { borderColor: primaryColorHex } : {}}
-                    >
-                      {isSelected && (
-                        <div 
-                          className="w-2 h-2 rounded-full" 
-                          style={{ backgroundColor: primaryColorHex }} 
-                        />
-                      )}
+            {sizeOptions.length === 0 ? (
+              <p className="text-[13px] text-[#6b7280] italic">No size variations available for this item.</p>
+            ) : (
+              sizeOptions.map((size, idx) => {
+                const isSelected = selectedSize?.name === size.name;
+                return (
+                  <label
+                    key={idx}
+                    className="flex items-center justify-between cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="radio"
+                        name="size-option"
+                        checked={isSelected}
+                        onChange={() => setSelectedSize(size)}
+                        className="sr-only"
+                      />
+                      <div className={`w-[18px] h-[18px] rounded-full border-[2px] flex items-center justify-center transition-all ${
+                        isSelected
+                          ? `border-[${primaryColorHex}]`
+                          : 'border-[#d1d5db] group-hover:border-[#9ca3af]'
+                      }`}
+                      style={isSelected ? { borderColor: primaryColorHex } : {}}
+                      >
+                        {isSelected && (
+                          <div 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ backgroundColor: primaryColorHex }} 
+                          />
+                        )}
+                      </div>
+                      <span className="text-[14px] font-medium text-[#1a1a1a]">{size.name}</span>
                     </div>
-                    <span className="text-[14px] font-medium text-[#1a1a1a]">{size.name}</span>
-                  </div>
-                  <span className="text-[14px] font-bold text-[#1a1a1a]">${size.price.toFixed(2)}</span>
-                </label>
-              );
-            })}
+                    <span className="text-[14px] font-bold text-[#1a1a1a]">${size.price.toFixed(2)}</span>
+                  </label>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -131,39 +119,43 @@ export default function CustomizationForm({
           </div>
 
           <div className="space-y-4">
-            {addOnOptions.map((addon, idx) => {
-              const isChecked = selectedAddOns.some(a => a.name === addon.name);
-              return (
-                <label
-                  key={idx}
-                  className="flex items-center justify-between cursor-pointer group"
-                >
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => handleAddOnChange(addon)}
-                      className="sr-only"
-                    />
-                    <div className={`w-[18px] h-[18px] rounded-[4px] border-[2px] flex items-center justify-center transition-all ${
-                      isChecked
-                        ? `border-[${primaryColorHex}]`
-                        : 'border-[#d1d5db] bg-[#ffffff] group-hover:border-[#9ca3af]'
-                    }`}
-                    style={isChecked ? { borderColor: primaryColorHex, backgroundColor: primaryColorHex } : {}}
-                    >
-                      {isChecked && (
-                        <svg className="w-3 h-3 text-[#ffffff]" fill="none" stroke="currentColor" strokeWidth="3.5" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
+            {addOnOptions.length === 0 ? (
+              <p className="text-[13px] text-[#6b7280] italic">No extra add-ons available for this item.</p>
+            ) : (
+              addOnOptions.map((addon, idx) => {
+                const isChecked = selectedAddOns.some(a => a.name === addon.name);
+                return (
+                  <label
+                    key={idx}
+                    className="flex items-center justify-between cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleAddOnChange(addon)}
+                        className="sr-only"
+                      />
+                      <div className={`w-[18px] h-[18px] rounded-[4px] border-[2px] flex items-center justify-center transition-all ${
+                        isChecked
+                          ? `border-[${primaryColorHex}]`
+                          : 'border-[#d1d5db] bg-[#ffffff] group-hover:border-[#9ca3af]'
+                      }`}
+                      style={isChecked ? { borderColor: primaryColorHex, backgroundColor: primaryColorHex } : {}}
+                      >
+                        {isChecked && (
+                          <svg className="w-3 h-3 text-[#ffffff]" fill="none" stroke="currentColor" strokeWidth="3.5" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-[14px] font-medium text-[#1a1a1a]">{addon.name}</span>
                     </div>
-                    <span className="text-[14px] font-medium text-[#1a1a1a]">{addon.name}</span>
-                  </div>
-                  <span className="text-[14px] font-bold text-[#1a1a1a]">${addon.price.toFixed(2)}</span>
-                </label>
-              );
-            })}
+                    <span className="text-[14px] font-bold text-[#1a1a1a]">${addon.price.toFixed(2)}</span>
+                  </label>
+                );
+              })
+            )}
           </div>
         </div>
 

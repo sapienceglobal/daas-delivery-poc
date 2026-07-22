@@ -4,6 +4,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import Order from '../models/Order.js';
 import MenuItem from '../models/MenuItem.js';
+import Category from '../models/Category.js';
 
 export const predictSales = asyncHandler(async (req, response) => {
   const { restaurantId } = req.body;
@@ -150,5 +151,87 @@ export const recommendFood = asyncHandler(async (req, response) => {
     res.success(response, { data: output });
   } catch (error) {
     throw new AppError('AI recommendation failed', 500);
+  }
+});
+
+// Semantic Menu Search
+export const searchMenu = asyncHandler(async (req, response) => {
+  const { restaurantId, query } = req.body;
+  
+  if (!query || !restaurantId) {
+    return res.error(response, 400, 'Missing restaurantId or query');
+  }
+
+  // 1. Fetch menu items for this restaurant
+  const items = await MenuItem.find({ restaurantId, isAvailable: true }).select('name description tags cuisine price _id');
+  if (!items || items.length === 0) {
+    return res.success(response, 200, 'No items to search', { results: [] });
+  }
+
+  const simplifiedMenu = items.map(i => ({
+    id: i._id.toString(),
+    name: i.name,
+    description: i.description || '',
+    tags: i.tags || []
+  }));
+
+  const prompt = `
+    You are an AI semantic search engine for a restaurant menu.
+    The user searched for: "${query}"
+    
+    IMPORTANT: The user's query might be in English, Hindi, or Hinglish (Hindi written in English alphabet). 
+    Translate their intent internally. For example:
+    - "kuch meetha" or "mithai" means "something sweet" or "dessert".
+    - "kuch namkeen" means "salty", "savory", or "snacks".
+    - "teekha" means "spicy".
+    
+    Here is the restaurant menu in JSON format:
+    ${JSON.stringify(simplifiedMenu)}
+    
+    Return the IDs of the items that semantically match the user's query.
+    For example, if they search "sweet" or "kuch meetha", return desserts (like Mango Lassi, Gulab Jamun, etc). 
+    If they search "spicy", return items with spicy tags (like Biryani, curries).
+    If they search a category like "bread", return naan/roti.
+    If the search is completely unrelated or nonsensical, return an empty array.
+    Order the results by relevance (best match first). Return maximum 10 items.
+    
+    Output strictly in this JSON format:
+    {
+      "results": ["id1", "id2", "id3"]
+    }
+  `;
+
+  if (!process.env.OPENAI_API_KEY) {
+    throw new AppError('OpenAI API Key is missing', 500);
+  }
+
+  try {
+    const aiResponse = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.1, // low temp for search consistency
+        response_format: { type: 'json_object' }
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const resultText = aiResponse.data.choices[0].message.content;
+    const parsed = JSON.parse(resultText);
+    
+    if (parsed.results) {
+      res.success(response, { results: parsed.results });
+    } else {
+      res.success(response, { results: [] });
+    }
+  } catch (error) {
+    console.error('AI Search Error:', error.response?.data || error.message);
+    throw new AppError('Failed to perform semantic search', 500);
   }
 });
