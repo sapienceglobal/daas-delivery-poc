@@ -1,15 +1,15 @@
-  /**
- * Centralized API client for the Restaurant Commerce Platform.
- * All API calls go through this module for consistent error handling,
- * token management, and base URL resolution.
- */
+/**
+* Centralized API client for the Restaurant Commerce Platform.
+* All API calls go through this module for consistent error handling,
+* token management, and base URL resolution.
+*/
 
 const getApiBaseUrl = () => {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  
+
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    
+
     // If the frontend was built with localhost (or defaulted to it), but is being accessed from a remote IP (like a VPS),
     // If the frontend was built with localhost (or defaulted to it), but is being accessed from a remote IP (like a VPS),
     // we MUST override the API URL to point to the same remote host on port 5001 to prevent CORS and Private Network Access errors.
@@ -17,7 +17,7 @@ const getApiBaseUrl = () => {
       return `${window.location.protocol}//${hostname}:5001`;
     }
   }
-  
+
   if (envUrl) {
     return envUrl;
   }
@@ -103,7 +103,7 @@ export const authAPI = {
   changePassword: (data) => api.put('/api/auth/me/password', data),
   forgotPassword: (email) => api.post('/api/auth/forgot-password', { email }),
   resetPassword: (token, password) => api.post(`/api/auth/reset-password/${token}`, { password }),
-  
+
   // Addresses
   addAddress: (data) => api.post('/api/auth/me/addresses', data),
   editAddress: (id, data) => api.put(`/api/auth/me/addresses/${id}`, data),
@@ -313,7 +313,7 @@ export const employeeAPI = {
   clockInWithPin: (data) => api.post('/api/employees/pin/clock-in', data),
   clockOutWithPin: (data) => api.post('/api/employees/pin/clock-out', data),
   verifyPin: (data) => api.post('/api/employees/pin/verify', data),
-  getPayroll: (restaurantId, startDate, endDate) => 
+  getPayroll: (restaurantId, startDate, endDate) =>
     api.get(`/api/employees/restaurant/${restaurantId}/payroll?startDate=${startDate}&endDate=${endDate}`),
   updateSchedule: (id, schedule) => api.put(`/api/employees/${id}/schedule`, { schedule }),
 };
