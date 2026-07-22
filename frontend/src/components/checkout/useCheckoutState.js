@@ -349,8 +349,15 @@ export function useCheckoutState() {
         setQuoteError(null);
       } catch (err) {
         console.error('DEBUG CHECKOUT: getDeliveryQuote failed:', err);
-        setDeliveryQuote(null);
-        setQuoteError(err.message || 'Delivery unavailable for this location');
+        const errorMsg = err.response?.data?.message || err.message || 'Delivery quote failed';
+        setQuoteError(errorMsg);
+        
+        // Auto-heal stale carts (e.g. after database resets)
+        if (errorMsg === 'Restaurant not found' || errorMsg.includes('no longer available')) {
+          clearCart();
+          showToast('Cart expired due to menu updates. Please start a new order.', 'error');
+          router.push('/');
+        }
       } finally {
         setQuoteLoading(false);
       }
@@ -601,7 +608,15 @@ export function useCheckoutState() {
       showToast('Order placed successfully!', 'success');
       router.push(`/customer/orders/${data.data._id}`);
     } catch (err) {
-      showToast(err.message || 'Failed to place order', 'error');
+      console.error('Checkout failed:', err);
+      const errorMsg = err.response?.data?.message || err.message || 'Checkout failed';
+      showToast(errorMsg, 'error');
+      
+      // Auto-heal stale carts during checkout
+      if (errorMsg === 'Restaurant not found' || errorMsg.includes('no longer available')) {
+        clearCart();
+        router.push('/');
+      }
     } finally {
       setShowPaymentModal(false);
     }

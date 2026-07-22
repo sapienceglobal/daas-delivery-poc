@@ -91,7 +91,7 @@ export const getRestaurantReservations = async (req, res) => {
 
     // Auth check: Merchant must own this restaurant
     if (req.user.role === 'merchant') {
-      if (restaurant.merchantId.toString() !== req.user._id.toString()) {
+      if (restaurant.ownerId?.toString() !== req.user._id.toString()) {
         return res.status(403).json({ success: false, message: 'Not authorized to view these reservations' });
       }
     }
@@ -124,7 +124,7 @@ export const updateReservationStatus = async (req, res) => {
     // Verify ownership
     if (req.user.role === 'merchant') {
       const restaurant = await Restaurant.findById(reservation.restaurantId);
-      if (restaurant.merchantId.toString() !== req.user._id.toString()) {
+      if (restaurant.ownerId?.toString() !== req.user._id.toString()) {
         return res.status(403).json({ success: false, message: 'Not authorized to update this reservation' });
       }
     }

@@ -32,6 +32,14 @@ const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace') =
   const token = generateToken(user._id, tenantId);
   const secureCookie = process.env.COOKIE_SECURE === 'true' ||
     (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
+  const body = {
+    success: true,
+    user: user.toSafeJSON()
+  };
+
+  if (process.env.RETURN_AUTH_TOKEN === 'true' || process.env.NODE_ENV !== 'production') {
+    body.token = token;
+  }
 
   response
     .status(statusCode)
@@ -42,11 +50,7 @@ const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace') =
       sameSite: secureCookie ? 'none' : 'lax',
       path: '/'
     })
-    .json({
-      success: true,
-      token,
-      user: user.toSafeJSON()
-    });
+    .json(body);
 };
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
@@ -72,7 +76,7 @@ export const register = asyncHandler(async (req, response) => {
     );
   }
 
-  const tenantId = req.headers['x-tenant-id'] || 'marketplace';
+  const tenantId = req.tenantId || 'marketplace';
   const UserModel = req.getModel('User');
 
   const existing = await UserModel.findOne({ email });
@@ -103,7 +107,7 @@ export const login = asyncHandler(async (req, response) => {
     throw new AppError('Please provide email and password.', 400);
   }
 
-  const tenantId = req.headers['x-tenant-id'] || 'marketplace';
+  const tenantId = req.tenantId || 'marketplace';
   const UserModel = req.getModel('User');
 
   const user = await UserModel.findOne({ email });
@@ -160,7 +164,7 @@ export const googleLogin = asyncHandler(async (req, response) => {
     throw new AppError('Google login is not configured on the server yet.', 500);
   }
 
-  const tenantId = req.headers['x-tenant-id'] || 'marketplace';
+  const tenantId = req.tenantId || 'marketplace';
   const UserModel = req.getModel('User');
 
   const ticket = await googleClient.verifyIdToken({
@@ -318,7 +322,7 @@ export const resetPassword = asyncHandler(async (req, response) => {
   user.resetPasswordExpire = null;
   await user.save();
 
-  const tenantId = req.headers['x-tenant-id'] || 'marketplace';
+  const tenantId = req.tenantId || 'marketplace';
   sendTokenCookie(user, 200, response, tenantId);
 });
 
@@ -487,7 +491,7 @@ export const getSavedCart = asyncHandler(async (req, response) => {
 });
 
 export const updateSavedCart = asyncHandler(async (req, response) => {
-  const tenantId = req.headers['x-tenant-id'] || 'marketplace';
+  const tenantId = req.tenantId || 'marketplace';
   const savedCart = sanitizeSavedCart({ ...req.body, tenantId });
   const user = await req.getModel('User').findByIdAndUpdate(
     req.user._id,
@@ -499,7 +503,7 @@ export const updateSavedCart = asyncHandler(async (req, response) => {
 });
 
 export const clearSavedCart = asyncHandler(async (req, response) => {
-  const tenantId = req.headers['x-tenant-id'] || 'marketplace';
+  const tenantId = req.tenantId || 'marketplace';
   const user = await req.getModel('User').findByIdAndUpdate(
     req.user._id,
     { savedCart: { tenantId, restaurant: null, items: [], updatedAt: new Date() } },

@@ -1,0 +1,7 @@
+{"level":"warn","message":"APP_SECRET is not set. Browser API requests will rely on auth, CORS, and rate limits.","service":"restaurant-platform","timestamp":"2026-07-22T11:04:20.627Z"}
+{"level":"info","message":"MongoDB Connected: ac-easwkco-shard-00-00.3ynbxui.mongodb.net","service":"restaurant-platform","timestamp":"2026-07-22T11:04:21.083Z"}
+{"level":"info","message":"Demo data seeding is disabled","service":"restaurant-platform","timestamp":"2026-07-22T11:04:21.094Z"}
+{"level":"info","message":"MongoDB Change Streams initialized for real-time order sync","service":"restaurant-platform","timestamp":"2026-07-22T11:04:21.100Z"}
+{"level":"info","message":"DoorDash delivery polling enabled every 30000ms","service":"restaurant-platform","timestamp":"2026-07-22T11:04:21.101Z"}
+{"level":"info","message":"Restaurant Commerce Platform running on port 5001","service":"restaurant-platform","timestamp":"2026-07-22T11:04:21.114Z"}
+{"level":"info","message":"Database connected — APIs ready","service":"restaurant-platform","timestamp":"2026-07-22T11:04:21.115Z"}

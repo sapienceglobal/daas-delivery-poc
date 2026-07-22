@@ -101,9 +101,8 @@ app.use(mongoSanitize());
 // ── App Secret Security Middleware ──────────────────────────────────────────
 const APP_SECRET = process.env.APP_SECRET;
 if (!APP_SECRET) {
-  logger.warn('APP_SECRET is not set. Using default — NOT SAFE FOR PRODUCTION.');
+  logger.warn('APP_SECRET is not set. Browser API requests will rely on auth, CORS, and rate limits.');
 }
-const resolvedAppSecret = APP_SECRET || 'DAAS_MOBILE_SECRET_2026';
 app.use('/api', (req, res, next) => {
   // Exempt webhooks from secret check (they have their own HMAC)
   if (req.path.includes('webhook')) return next();
@@ -111,9 +110,12 @@ app.use('/api', (req, res, next) => {
   if (req.path.includes('health')) return next();
   // Exempt static uploads GET requests
   if (req.path.includes('upload') && req.method === 'GET') return next();
+  // Browser requests cannot keep an app secret confidential; use CORS + auth cookies.
+  if (req.headers.origin) return next();
+  if (!APP_SECRET) return next();
 
   const clientSecret = req.headers['x-app-secret'];
-  if (clientSecret !== resolvedAppSecret) {
+  if (clientSecret !== APP_SECRET) {
     return res.status(403).json({ success: false, message: 'Forbidden: Invalid App Secret' });
   }
   next();

@@ -144,11 +144,8 @@ export default function OrderStatusCard({ order }) {
         Order Status
       </h2>
 
-      {/* Steps List */}
-      <div className="relative pl-6 space-y-8">
-        
-        {/* Connection line background */}
-        <div className="absolute left-[33px] top-4 bottom-4 w-0.5 bg-[#e5e7eb] -z-10" />
+        {/* Steps List */}
+        <div className="relative pl-6 space-y-8">
 
         {steps.map((s, idx) => {
           const { isCompleted, isActive, time } = getStepState(idx);
@@ -157,20 +154,28 @@ export default function OrderStatusCard({ order }) {
             <div key={s.id} className="relative flex items-start gap-4 animate-in fade-in duration-300">
               
               {/* Left connector lines & indicator dots */}
-              <div className="absolute -left-[27px] top-0.5 z-10">
+              <div 
+                className="absolute -left-[27px] top-0.5 z-10 flex flex-col items-center"
+                style={{ bottom: idx < steps.length - 1 ? '-34px' : 'auto' }}
+              >
                 {isCompleted ? (
-                  <div className="w-7 h-7 rounded-full bg-[#1fae64] text-[#ffffff] flex items-center justify-center shadow-sm">
+                  <div className="w-7 h-7 rounded-full bg-[#1fae64] text-[#ffffff] flex items-center justify-center shadow-sm shrink-0">
                     <Check className="w-4 h-4 stroke-[3]" />
                   </div>
                 ) : isActive ? (
-                  <div className="w-7 h-7 rounded-full bg-[#ffffff] border-2 border-[#7a0b10] text-[#7a0b10] flex items-center justify-center shadow-sm relative">
+                  <div className="w-7 h-7 rounded-full bg-[#ffffff] border-2 border-[#7a0b10] text-[#7a0b10] flex items-center justify-center shadow-sm relative shrink-0">
                     <div className="w-3 h-3 rounded-full bg-[#7a0b10]" />
                     <Loader2 className="w-7 h-7 absolute text-[#7a0b10]/30 animate-spin -z-10" />
                   </div>
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-[#ffffff] border-2 border-[#d1d5db] flex items-center justify-center shadow-sm">
+                  <div className="w-7 h-7 rounded-full bg-[#ffffff] border-2 border-[#d1d5db] flex items-center justify-center shadow-sm shrink-0">
                     <div className="w-2.5 h-2.5 rounded-full bg-[#d1d5db]" />
                   </div>
+                )}
+                
+                {/* Connector Line to Next Step */}
+                {idx < steps.length - 1 && (
+                  <div className={`w-0.5 flex-1 ${isCompleted ? 'bg-[#1fae64]' : 'bg-[#e5e7eb]'} -z-10`} />
                 )}
               </div>
 

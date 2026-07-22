@@ -32,26 +32,18 @@ export const API_BASE_URL = getApiBaseUrl();
  */
 const request = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
+  const appSecret = process.env.NEXT_PUBLIC_APP_SECRET;
 
   const headers = {
     'Content-Type': 'application/json',
-    'x-app-secret': process.env.NEXT_PUBLIC_APP_SECRET || 'DAAS_MOBILE_SECRET_2026',
     'x-tenant-id': process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true' ? 'lassi-lounge' : 'marketplace',
+    ...(appSecret ? { 'x-app-secret': appSecret } : {}),
     ...options.headers,
   };
 
   // Don't set Content-Type for FormData (browser sets it with boundary)
-  if (!(options.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
-  }
-
-  // M2 fallback: If httpOnly cookie fails cross-port, use token from localStorage
-  let token = null;
-  if (typeof window !== 'undefined') {
-    token = localStorage.getItem('marketplace_token');
-  }
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (options.body instanceof FormData) {
+    delete headers['Content-Type'];
   }
 
   const config = {
@@ -362,4 +354,3 @@ export const aiAPI = {
 //   getRestaurantInquiries: (restaurantId) => api.get(`/api/catering/restaurant/${restaurantId}`),
 //   updateStatus: (id, status) => api.put(`/api/catering/${id}/status`, { status }),
 // };
-

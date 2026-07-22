@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState, useCallback } f
 import { API_BASE_URL } from '@/lib/api';
 
 const SocketContext = createContext(null);
+const SOCKET_APP_SECRET = process.env.NEXT_PUBLIC_APP_SECRET;
 
 export function SocketProvider({ children }) {
   const [isConnected, setIsConnected] = useState(false);
@@ -24,12 +25,8 @@ export function SocketProvider({ children }) {
           reconnection: true,
           reconnectionDelay: 1000,
           reconnectionAttempts: 10,
-          auth: {
-            appSecret: 'DAAS_MOBILE_SECRET_2026'
-          },
-          extraHeaders: {
-            'x-app-secret': 'DAAS_MOBILE_SECRET_2026'
-          }
+          ...(SOCKET_APP_SECRET ? { auth: { appSecret: SOCKET_APP_SECRET } } : {}),
+          ...(SOCKET_APP_SECRET ? { extraHeaders: { 'x-app-secret': SOCKET_APP_SECRET } } : {})
         });
 
         socket.on('connect', () => {

@@ -2,12 +2,14 @@ import 'dotenv/config';
 import http from 'http';
 import { Server as SocketServer } from 'socket.io';
 import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
 import app from './src/app.js';
 import connectDB from './src/config/db.js';
 import seedDemoData from './src/config/seed.js';
 import { initChangeStreams } from './src/config/changeStreams.js';
 import { startDoorDashPolling } from './src/services/doordashSyncService.js';
 import logger from './src/utils/logger.js';
+import { getTenantModel, resolveTenantId } from './src/utils/tenant.js';
 
 const PORT = Number(process.env.PORT || 5000);
 const isProduction = process.env.NODE_ENV === 'production';
@@ -54,27 +56,124 @@ const io = new SocketServer(server, {
 // Attach io to Express app so controllers can emit events
 app.set('io', io);
 
-const APP_SECRET = process.env.APP_SECRET || 'DAAS_MOBILE_SECRET_2026';
-io.use((socket, next) => {
+const parseCookies = (cookieHeader = '') => cookieHeader
+  .split(';')
+  .map((part) => part.trim())
+  .filter(Boolean)
+  .reduce((cookies, part) => {
+    const separatorIndex = part.indexOf('=');
+    if (separatorIndex === -1) return cookies;
+    const key = decodeURIComponent(part.slice(0, separatorIndex));
+    const value = decodeURIComponent(part.slice(separatorIndex + 1));
+    cookies[key] = value;
+    return cookies;
+  }, {});
+
+const getSocketToken = (socket) => {
+  const cookies = parseCookies(socket.handshake.headers.cookie || '');
+  if (cookies.token || cookies.marketplace_token) return cookies.token || cookies.marketplace_token;
+  if (socket.handshake.auth?.token) return socket.handshake.auth.token;
+
+  const authHeader = socket.handshake.headers.authorization || '';
+  if (authHeader.startsWith('Bearer ')) return authHeader.slice(7);
+  return null;
+};
+
+const canManageRestaurant = (user, restaurantId) => {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  return user.role === 'merchant' && user.restaurantId?.toString() === restaurantId?.toString();
+};
+
+const APP_SECRET = process.env.APP_SECRET;
+io.use(async (socket, next) => {
   const secret = socket.handshake.auth?.appSecret || socket.handshake.headers['x-app-secret'];
-  if (secret === APP_SECRET) return next();
-  return next(new Error('Authentication error: Invalid App Secret'));
+  const hasBrowserOrigin = Boolean(socket.handshake.headers.origin);
+
+  if (!hasBrowserOrigin && APP_SECRET && secret !== APP_SECRET) {
+    return next(new Error('Authentication error: Invalid App Secret'));
+  }
+
+  const token = getSocketToken(socket);
+  if (!token) {
+    try {
+      socket.data.user = null;
+      socket.data.tenantId = resolveTenantId(socket.handshake.headers['x-tenant-id'] || 'marketplace');
+      return next();
+    } catch {
+      return next(new Error('Authentication error: Invalid tenant'));
+    }
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET');
+    const tenantId = resolveTenantId(decoded.tenantId || 'marketplace');
+    const User = getTenantModel(tenantId, 'User');
+    const user = await User.findById(decoded.id).select('_id role restaurantId isActive').lean();
+
+    if (!user || user.isActive === false) {
+      return next(new Error('Authentication error: Invalid user'));
+    }
+
+    socket.data.user = user;
+    socket.data.tenantId = tenantId;
+    return next();
+  } catch {
+    return next(new Error('Authentication error: Invalid token'));
+  }
 });
 
 io.on('connection', (socket) => {
   logger.debug(`Socket connected: ${socket.id}`);
 
   socket.on('join_restaurant', (restaurantId) => {
+    if (!canManageRestaurant(socket.data.user, restaurantId)) {
+      socket.emit('room_error', { room: 'restaurant', message: 'Not authorized for this restaurant room' });
+      return;
+    }
+
     socket.join(restaurantId.toString());
     logger.debug(`Socket ${socket.id} joined restaurant room: ${restaurantId}`);
   });
 
-  socket.on('join_order', (orderId) => {
-    socket.join(`order_${orderId}`);
-    logger.debug(`Socket ${socket.id} joined order room: ${orderId}`);
+  socket.on('join_order', async (orderId) => {
+    try {
+      const user = socket.data.user;
+      if (!user || !mongoose.Types.ObjectId.isValid(orderId)) {
+        socket.emit('room_error', { room: 'order', message: 'Not authorized for this order room' });
+        return;
+      }
+
+      const Order = getTenantModel(socket.data.tenantId || 'marketplace', 'Order');
+      const order = await Order.findById(orderId).select('userId restaurantId').lean();
+      const canJoin =
+        order &&
+        (
+          user.role === 'admin' ||
+          (user.role === 'customer' && order.userId?.toString() === user._id.toString()) ||
+          canManageRestaurant(user, order.restaurantId)
+        );
+
+      if (!canJoin) {
+        socket.emit('room_error', { room: 'order', message: 'Not authorized for this order room' });
+        return;
+      }
+
+      socket.join(`order_${orderId}`);
+      logger.debug(`Socket ${socket.id} joined order room: ${orderId}`);
+    } catch (error) {
+      logger.warn('Socket join_order authorization failed', { error: error.message });
+      socket.emit('room_error', { room: 'order', message: 'Unable to join order room' });
+    }
   });
 
   socket.on('join_driver', (driverId) => {
+    const user = socket.data.user;
+    if (!user || (user.role !== 'driver' && user.role !== 'admin') || (user.role === 'driver' && user._id.toString() !== driverId.toString())) {
+      socket.emit('room_error', { room: 'driver', message: 'Not authorized for this driver room' });
+      return;
+    }
+
     socket.join(`driver_${driverId}`);
     logger.debug(`Socket ${socket.id} joined driver room: ${driverId}`);
   });

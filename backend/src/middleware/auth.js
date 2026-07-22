@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
-import mongoose from 'mongoose';
-import User from '../models/User.js';
 import { AppError } from './errorHandler.js';
+import { bindTenantContext } from '../utils/tenant.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -32,14 +31,8 @@ export const protect = async (req, _res, next) => {
   try {
     const decoded = jwt.verify(token, resolvedJwtSecret);
 
-    // Switch the request tenant db connection dynamically based on the signed JWT token payload
-    const tenantId = decoded.tenantId || 'marketplace';
-    if (tenantId === 'marketplace') {
-      req.tenantDb = mongoose.connection;
-    } else {
-      const dbName = `daas_poc_${tenantId.replace(/[^a-zA-Z0-9_]/g, '_')}`;
-      req.tenantDb = mongoose.connection.useDb(dbName, { useCache: true });
-    }
+    // Protected routes always trust the signed JWT tenant, never the browser header.
+    bindTenantContext(req, decoded.tenantId || 'marketplace');
 
     const user = await req.getModel('User').findById(decoded.id).select('-password -salt');
 
