@@ -32,7 +32,7 @@ function LoginPageContent() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
-    name: '', email: '', password: '', phone: '', role: 'customer'
+    name: '', email: '', password: '', phone: '', role: 'customer', rememberMe: true
   });
   const [errors, setErrors] = useState({});
 
@@ -91,7 +91,7 @@ function LoginPageContent() {
         userData = await register(form);
         showToast('Account created successfully!', 'success');
       } else {
-        userData = await login(form.email, form.password);
+        userData = await login(form.email, form.password, form.rememberMe);
         showToast('Welcome back!', 'success');
       }
 
@@ -240,6 +240,22 @@ function LoginPageContent() {
                 {errors.password && <p className="text-red-500 text-[11px] mt-1 font-bold">{errors.password}</p>}
               </div>
 
+              {!isRegister && (
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    type="checkbox"
+                    id="rememberMeSingle"
+                    name="rememberMe"
+                    checked={form.rememberMe}
+                    onChange={(e) => setForm(prev => ({ ...prev, rememberMe: e.target.checked }))}
+                    className="w-4 h-4 rounded border-[#eadfdb] text-[#7a0b10] focus:ring-[#7a0b10] cursor-pointer"
+                  />
+                  <label htmlFor="rememberMeSingle" className="text-[13px] text-[#4b5563] cursor-pointer select-none">
+                    Remember me
+                  </label>
+                </div>
+              )}
+
               <div className="pt-2">
                 <button
                   type="submit"
@@ -376,6 +392,22 @@ function LoginPageContent() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+
+            {!isRegister && (
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="checkbox"
+                  id="rememberMeMarket"
+                  name="rememberMe"
+                  checked={form.rememberMe}
+                  onChange={(e) => setForm(prev => ({ ...prev, rememberMe: e.target.checked }))}
+                  className="w-4 h-4 rounded border-brand-border text-brand-cyan focus:ring-brand-cyan bg-brand-surface cursor-pointer"
+                />
+                <label htmlFor="rememberMeMarket" className="text-sm text-brand-muted cursor-pointer select-none">
+                  Remember me
+                </label>
+              </div>
+            )}
 
             {isRegister && !isSingleMode && (
               <div className="space-y-1.5">

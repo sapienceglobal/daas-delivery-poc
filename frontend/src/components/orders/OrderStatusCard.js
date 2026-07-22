@@ -80,32 +80,31 @@ export default function OrderStatusCard({ order }) {
         },
       ];
 
+  // Status rank for sequence comparison
+  const statusRank = isDelivery
+    ? {
+        pending: 0,
+        accepted: 1,
+        preparing: 2,
+        ready: 3,
+        picked_up: 4,
+        delivered: 5,
+        cancelled: -1,
+      }
+    : {
+        pending: 0,
+        accepted: 1,
+        preparing: 2,
+        ready: 3,
+        delivered: 4,
+        cancelled: -1,
+      };
+
+  const currentStatus = order.status;
+  const currentRank = statusRank[currentStatus] ?? 0;
+
   // Helper to resolve status progress
   const getStepState = (stepIndex) => {
-    const currentStatus = order.status;
-    
-    // Status rank for sequence comparison
-    const statusRank = isDelivery
-      ? {
-          pending: 0,
-          accepted: 1,
-          preparing: 2,
-          ready: 3,
-          picked_up: 4,
-          delivered: 5,
-          cancelled: -1,
-        }
-      : {
-          pending: 0,
-          accepted: 1,
-          preparing: 2,
-          ready: 3,
-          delivered: 4,
-          cancelled: -1,
-        };
-
-    const currentRank = statusRank[currentStatus] ?? 0;
-
     let isCompleted = false;
     let isActive = false;
 
@@ -175,7 +174,7 @@ export default function OrderStatusCard({ order }) {
                 
                 {/* Connector Line to Next Step */}
                 {idx < steps.length - 1 && (
-                  <div className={`w-0.5 flex-1 ${isCompleted ? 'bg-[#1fae64]' : 'bg-[#e5e7eb]'} -z-10`} />
+                  <div className={`w-0.5 flex-1 ${currentRank > idx ? 'bg-[#1fae64]' : 'bg-[#e5e7eb]'} -z-10`} />
                 )}
               </div>
 

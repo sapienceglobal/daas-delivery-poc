@@ -28,7 +28,7 @@ export const ensureCanManageRestaurant = (reqOrUser, restaurantId) => {
 
 const generateToken = (id, tenantId = 'marketplace') => jwt.sign({ id, tenantId }, JWT_SECRET, { expiresIn: '7d' });
 
-const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace') => {
+const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace', rememberMe = true) => {
   const token = generateToken(user._id, tenantId);
   const secureCookie = process.env.COOKIE_SECURE === 'true' ||
     (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
@@ -41,15 +41,22 @@ const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace') =
     body.token = token;
   }
 
+  const cookieOptions = {
+    httpOnly: true,
+    secure: secureCookie,
+    sameSite: secureCookie ? 'none' : 'lax',
+    path: '/'
+  };
+
+  // Industry Standard: If rememberMe is checked, persist the cookie (e.g. 30 days).
+  // If not checked, omit 'expires' so it becomes a Session Cookie that deletes on browser close.
+  if (rememberMe) {
+    cookieOptions.expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  }
+
   response
     .status(statusCode)
-    .cookie('token', token, {
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      httpOnly: true,
-      secure: secureCookie,
-      sameSite: secureCookie ? 'none' : 'lax',
-      path: '/'
-    })
+    .cookie('token', token, cookieOptions)
     .json(body);
 };
 
@@ -101,7 +108,7 @@ export const register = asyncHandler(async (req, response) => {
 });
 
 export const login = asyncHandler(async (req, response) => {
-  const { email, password } = req.body;
+  const { email, password, rememberMe = true } = req.body;
 
   if (!email || !password) {
     throw new AppError('Please provide email and password.', 400);
@@ -153,7 +160,7 @@ export const login = asyncHandler(async (req, response) => {
   user.lastLogin = new Date();
   await user.save();
 
-  sendTokenCookie(user, 200, response, tenantId);
+  sendTokenCookie(user, 200, response, tenantId, rememberMe);
 });
 
 export const googleLogin = asyncHandler(async (req, response) => {

@@ -25,8 +25,8 @@ export default function PaymentSimulatorModal({ isOpen, onClose, amount, checkou
   if (!mounted || !isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="w-full max-w-lg bg-[#ffffff] border border-[#e5e7eb] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] ll-slide-panel">
+    <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="w-full max-w-lg bg-[#ffffff] border border-[#e5e7eb] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[90vh] ll-slide-panel">
         <div className="bg-[#fffcfb] border-b border-[#e5e7eb] px-6 py-4 flex items-center justify-between">
           <h2 className="text-[20px] font-bold font-serif text-[#7a0b10] flex items-center gap-2">
             <Lock className="w-5 h-5" />
@@ -40,10 +40,12 @@ export default function PaymentSimulatorModal({ isOpen, onClose, amount, checkou
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin ll-soft-scroll font-sans bg-[#fdfcfb]">
-          <StripeProvider amount={amount} checkoutData={checkoutData}>
-            <CheckoutForm amount={amount} onSuccess={onSuccess} onCancel={onClose} />
-          </StripeProvider>
+        <div className="flex-1 flex flex-col min-h-0 font-sans bg-[#fdfcfb]">
+          <div className="p-6 flex-1 flex flex-col min-h-0">
+            <StripeProvider amount={amount} checkoutData={checkoutData}>
+              <CheckoutForm amount={amount} onSuccess={onSuccess} onCancel={onClose} />
+            </StripeProvider>
+          </div>
         </div>
       </div>
     </div>,

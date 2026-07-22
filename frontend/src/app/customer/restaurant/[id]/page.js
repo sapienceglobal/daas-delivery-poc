@@ -666,23 +666,23 @@ function RepeatCustomizationModal({ isOpen, onClose, lastCartItem, onRepeat, onC
   if (!isOpen || !lastCartItem) return null;
 
   return (
-  <PortalModal isOpen={isOpen} onClose={onClose} title="Repeat Customization?" size="sm">
-      <div className="space-y-4">
-        <p className="text-[13px] text-gray-500 font-sans leading-relaxed">
+    <PortalModal isOpen={isOpen} onClose={onClose} title="Repeat Customization?" size="sm">
+      <div className="space-y-5 text-[#1a1a1a]">
+        <p className="text-[14px] text-[#4b5563] font-sans leading-relaxed">
           You already have this item in the cart with the following customization. Would you like to repeat it or customize it again?
         </p>
         
         {/* Customization Details card */}
-        <div className="bg-[#fcfaf5] border border-[#e5e7eb] rounded-xl p-4 shadow-sm ll-pop">
-          <h4 className="text-[14px] font-extrabold text-[#1a1a1a] mb-1 font-sans">{lastCartItem.name}</h4>
+        <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-xl p-4 shadow-sm">
+          <h4 className="text-[15px] font-extrabold text-[#1a1a1a] mb-1 font-sans">{lastCartItem.name}</h4>
           {lastCartItem.selectedSize && (
-            <p className="text-[12px] text-[#7a0b10] font-bold">
+            <p className="text-[13px] text-[#7a0b10] font-bold">
               Size: {lastCartItem.selectedSize.name}
             </p>
           )}
           {lastCartItem.addOns && lastCartItem.addOns.length > 0 && (
-            <p className="text-[11px] text-gray-600 mt-1.5 font-sans leading-snug">
-              Add-ons: {lastCartItem.addOns.map(a => a.name).join(', ')}
+            <p className="text-[12px] text-[#4b5563] mt-2 font-sans leading-snug">
+              <span className="font-bold text-[#1a1a1a]">Add-ons:</span> {lastCartItem.addOns.map(a => a.name).join(', ')}
             </p>
           )}
         </div>
@@ -691,13 +691,13 @@ function RepeatCustomizationModal({ isOpen, onClose, lastCartItem, onRepeat, onC
         <div className="flex gap-3 pt-2">
           <button
             onClick={onChooseNew}
-            className="flex-1 bg-[#ffffff] text-[#7a0b10] border border-[#7a0b10] hover:bg-[#7a0b10]/5 font-bold py-2.5 rounded-lg text-[13px] uppercase tracking-wide ll-interactive ll-focus-ring"
+            className="flex-1 bg-[#ffffff] text-[#7a0b10] border border-[#7a0b10] hover:bg-[#fffaf9] font-bold py-3 rounded-lg text-[13px] uppercase tracking-wider transition-colors"
           >
             Choose New
           </button>
           <button
             onClick={onRepeat}
-            className="flex-1 bg-[#7a0b10] hover:bg-[#5e080c] text-white font-bold py-2.5 rounded-lg text-[13px] uppercase tracking-wide shadow-sm ll-interactive ll-focus-ring"
+            className="flex-1 bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff] font-bold py-3 rounded-lg text-[13px] uppercase tracking-wider shadow-md transition-colors"
           >
             Repeat Last
           </button>

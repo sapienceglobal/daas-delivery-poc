@@ -68,13 +68,16 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const login = useCallback(async (email, password) => {
-    const data = await authAPI.login({ email, password });
+  const login = useCallback(async (email, password, rememberMe = true) => {
+    const data = await authAPI.login({ email, password, rememberMe });
     const { user: userData } = data;
 
     localStorage.setItem('marketplace_user', JSON.stringify(userData));
     localStorage.removeItem('marketplace_token');
-    document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
+    
+    const cookieAge = rememberMe ? 'max-age=2592000;' : '';
+    document.cookie = `user_role=${userData.role}; path=/; ${cookieAge} SameSite=Lax`;
+    
     setUser(userData);
     return userData;
   }, []);

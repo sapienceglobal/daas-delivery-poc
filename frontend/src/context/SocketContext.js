@@ -2,12 +2,14 @@
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { API_BASE_URL } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 const SocketContext = createContext(null);
 const SOCKET_APP_SECRET = process.env.NEXT_PUBLIC_APP_SECRET;
 
 export function SocketProvider({ children }) {
   const [isConnected, setIsConnected] = useState(false);
+  const { isAuthenticated } = useAuth();
   const socketRef = useRef(null);
   const listenersRef = useRef(new Map());
   const restaurantRoomsRef = useRef(new Set());
@@ -20,7 +22,7 @@ export function SocketProvider({ children }) {
       try {
         const { io } = await import('socket.io-client');
         socket = io(API_BASE_URL, {
-          transports: ['websocket', 'polling'],
+          transports: ['polling', 'websocket'],
           withCredentials: true,
           reconnection: true,
           reconnectionDelay: 1000,
@@ -59,7 +61,7 @@ export function SocketProvider({ children }) {
         socket.disconnect();
       }
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const joinRoom = useCallback((room) => {
     if (!room) return;
