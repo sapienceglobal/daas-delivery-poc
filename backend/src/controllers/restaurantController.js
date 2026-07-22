@@ -114,12 +114,18 @@ export const getCuisines = asyncHandler(async (_req, response) => {
 
 export const getRestaurantById = asyncHandler(async (req, response) => {
   let restaurant;
-  const isObjectId = mongoose.Types.ObjectId.isValid(req.params.id);
+  
+  // FIX: Ab yeh sirf exactly 24-character wale real ObjectIds ko hi allow karega
+  const isObjectId = mongoose.Types.ObjectId.isValid(req.params.id) && String(req.params.id).length === 24;
 
   if (isObjectId) {
     restaurant = await Restaurant.findById(req.params.id).lean();
   } else if (req.params.id === 'lassi-lounge') {
+    // Agar id 24 char ki nahi hai aur 'lassi-lounge' hai, tab yeh chalega
     restaurant = await Restaurant.findOne({ name: { $regex: /^lassi lounge$/i } }).lean();
+  } else {
+    // Agar future me koi aur naam pass hota hai (jaise slug)
+    restaurant = await Restaurant.findOne({ slug: req.params.id }).lean(); 
   }
 
   if (!restaurant) throw new AppError('Restaurant not found', 404);

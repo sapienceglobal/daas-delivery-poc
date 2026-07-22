@@ -33,19 +33,32 @@ export function PortalModal({ isOpen, onClose, title, children, size = 'md' }) {
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.paddingRight = `${scrollbarWidth}px`;
       document.body.style.overflow = 'hidden';
-      requestAnimationFrame(() => setShow(true));
+      // Safe delay for initial render before animating in
+      timeoutId = setTimeout(() => setShow(true), 50);
     } else {
       setShow(false);
       document.body.style.overflow = '';
       document.body.style.paddingRight = '';
       timeoutId = setTimeout(() => setMounted(false), 300);
     }
-    return () => {
+    return () => { 
       clearTimeout(timeoutId);
-      document.body.style.overflow = '';
+      document.body.style.overflow = ''; 
       document.body.style.paddingRight = '';
     };
   }, [isOpen]);
+
+  const handleClose = () => {
+    // Trigger exit animation
+    setShow(false);
+    // Cleanup body styles immediately so background can scroll
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+    // Wait for animation to finish before telling parent to unmount
+    setTimeout(() => {
+      if (onClose) onClose();
+    }, 300);
+  };
 
   if (!mounted) return null;
 
@@ -53,15 +66,15 @@ export function PortalModal({ isOpen, onClose, title, children, size = 'md' }) {
 
   return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 select-none">
-      <div
-        className={`absolute inset-0 bg-[#000000]/60 backdrop-blur-sm transition-opacity duration-300 ${show ? 'opacity-100' : 'opacity-0'}`}
-        onClick={onClose}
+      <div 
+        className={`absolute inset-0 bg-[#000000]/60 backdrop-blur-sm transition-opacity duration-300 ease-out ${show ? 'opacity-100' : 'opacity-0'}`} 
+        onClick={handleClose} 
       />
-      <div className={`relative z-10 w-full ${sizes[size] || sizes.md} bg-[#ffffff] border border-[#e5e7eb] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ${show ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'}`}>
-
+      <div className={`relative z-10 w-full ${sizes[size] || sizes.md} bg-[#ffffff] border border-[#e5e7eb] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ease-out ${show ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'}`}>
+        
         <div className="flex items-center justify-between p-5 sm:p-6 pb-3 shrink-0 border-b border-[#e5e7eb]/50">
           {title && <h3 className="text-[20px] font-bold font-serif text-[#1a1a1a]">{title}</h3>}
-          <button onClick={onClose} className="ml-auto rounded-lg p-2 text-[#6b7280] hover:text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors">
+          <button onClick={handleClose} className="ml-auto rounded-lg p-2 text-[#6b7280] hover:text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
