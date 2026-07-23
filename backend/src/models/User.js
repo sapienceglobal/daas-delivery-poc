@@ -173,6 +173,16 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     default: null
+  },
+
+  // ── Authentication & Security ───────────────────────────────────────────
+  resetPasswordToken: {
+    type: String,
+    default: null
+  },
+  resetPasswordExpires: {
+    type: Date,
+    default: null
   }
 }, { timestamps: true });
 
@@ -206,7 +216,7 @@ UserSchema.methods.needsPasswordRehash = function () {
 UserSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString('hex');
   this.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-  this.resetPasswordExpire = Date.now() + 30 * 60 * 1000; // 30 minutes
+  this.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 60 minutes
   return resetToken;
 };
 

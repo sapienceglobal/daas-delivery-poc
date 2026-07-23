@@ -1,5 +1,5 @@
 'use client';
-import { Minus, Plus, ShieldCheck, Tag, Info, X } from 'lucide-react';
+import { Minus, Plus, ShieldCheck, Tag, Info, X, Check } from 'lucide-react';
 
 export default function OrderSummaryCard({
   t,
@@ -154,13 +154,13 @@ export default function OrderSummaryCard({
             <span className="text-[#6b7280] text-[12px] mt-0.5">Points: {user.loyaltyPoints} (${(user.loyaltyPoints / 100).toFixed(2)})</span>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-[13px] font-medium text-[#1a1a1a] cursor-pointer select-none">Use Points</label>
-            <input
-              type="checkbox"
-              checked={useLoyaltyPoints}
-              onChange={(e) => setUseLoyaltyPoints(e.target.checked)}
-              className="rounded border-[#d1d5db] text-[#7a0b10] focus:ring-[#7a0b10] w-4 h-4 cursor-pointer"
-            />
+            <label onClick={() => setUseLoyaltyPoints(!useLoyaltyPoints)} className="text-[13px] font-medium text-[#1a1a1a] cursor-pointer select-none">Use Points</label>
+            <div
+              onClick={() => setUseLoyaltyPoints(!useLoyaltyPoints)}
+              className={`w-4 h-4 rounded border flex items-center justify-center cursor-pointer transition-colors ${useLoyaltyPoints ? 'bg-[#7a0b10] border-[#7a0b10]' : 'bg-white border-[#d1d5db]'}`}
+            >
+              {useLoyaltyPoints && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+            </div>
           </div>
         </div>
       )}

@@ -1,67 +1,71 @@
 import logger from '../utils/logger.js';
 
+import nodemailer from 'nodemailer';
+
 /**
- * Email service using SendGrid.
+ * Email service using Nodemailer and Gmail.
  *
- * When SENDGRID_API_KEY is not set, emails are logged to console instead of
+ * When EMAIL_APP_PASSWORD is not set, emails are logged to console instead of
  * sent — safe for development and staging environments.
  */
 
-let sgMail = null;
+let transporter = null;
 
-const initSendGrid = async () => {
-  if (sgMail) return sgMail;
+const initTransporter = () => {
+  if (transporter) return transporter;
 
-  const apiKey = process.env.SENDGRID_API_KEY;
-  if (!apiKey) {
-    logger.warn('SENDGRID_API_KEY not set — emails will be logged to console');
+  const appPassword = process.env.EMAIL_APP_PASSWORD;
+  const fromEmail = process.env.FROM_EMAIL;
+
+  if (!appPassword || !fromEmail) {
+    logger.warn('EMAIL_APP_PASSWORD or FROM_EMAIL not set — emails will be logged to console');
     return null;
   }
 
-  try {
-    const sg = await import('@sendgrid/mail');
-    sgMail = sg.default;
-    sgMail.setApiKey(apiKey);
-    logger.info('SendGrid initialized');
-    return sgMail;
-  } catch {
-    logger.warn('SendGrid package not installed — emails will be logged to console');
-    return null;
-  }
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: fromEmail,
+      pass: appPassword
+    }
+  });
+
+  logger.info('Nodemailer Gmail transporter initialized');
+  return transporter;
 };
 
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@restaurant-platform.com';
-const FROM_NAME = process.env.FROM_NAME || 'Restaurant Commerce Platform';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'projects.sapience@gmail.com';
+const FROM_NAME = process.env.FROM_NAME || 'Lassi Lounge';
 
 /**
  * Send a single email.
  */
 export const sendEmail = async ({ to, subject, text, html }) => {
-  const client = await initSendGrid();
+  const mailer = initTransporter();
 
   const msg = {
+    from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
     to,
-    from: { email: FROM_EMAIL, name: FROM_NAME },
     subject,
     text,
     html
   };
 
-  if (!client) {
+  if (!mailer) {
     logger.info(`[Email Preview] To: ${to} | Subject: ${subject}`);
     logger.debug(`[Email Preview] Body: ${text || html}`);
     return { delivered: false, preview: true };
   }
 
   try {
-    await client.send(msg);
+    await mailer.sendMail(msg);
     logger.info(`Email sent to ${to}: ${subject}`);
     return { delivered: true };
   } catch (error) {
-    logger.error('SendGrid email failed', {
+    logger.error('Nodemailer email failed', {
       to,
       subject,
-      error: error.response?.body?.errors || error.message
+      error: error.message
     });
     throw error;
   }

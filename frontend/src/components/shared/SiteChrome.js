@@ -11,7 +11,7 @@ const SINGLE_MODE = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
 export default function SiteChrome({ children }) {
   const pathname = usePathname();
   const isAdminOrMerchant = pathname.startsWith('/admin') || pathname.startsWith('/merchant');
-  const isAuthPage = pathname.startsWith('/login');
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password') || pathname.startsWith('/forgot-password');
 
   if (isAuthPage) {
     return (

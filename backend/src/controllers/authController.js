@@ -314,7 +314,7 @@ export const resetPassword = asyncHandler(async (req, response) => {
 
   const user = await req.getModel('User').findOne({
     resetPasswordToken: hashedToken,
-    resetPasswordExpire: { $gt: Date.now() }
+    resetPasswordExpires: { $gt: Date.now() }
   });
 
   if (!user) throw new AppError('Invalid or expired reset token.', 400);
@@ -326,7 +326,7 @@ export const resetPassword = asyncHandler(async (req, response) => {
 
   user.setPassword(password);
   user.resetPasswordToken = null;
-  user.resetPasswordExpire = null;
+  user.resetPasswordExpires = null;
   await user.save();
 
   const tenantId = req.tenantId || 'marketplace';
@@ -557,3 +557,4 @@ export const toggleFavoriteItem = asyncHandler(async (req, response) => {
     message: index > -1 ? 'Removed from favorites' : 'Added to favorites'
   });
 });
+

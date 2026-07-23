@@ -3,11 +3,12 @@
 import { useState, Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, User, Phone, Eye, EyeOff, ChefHat, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, Phone, Eye, EyeOff, ChefHat, ArrowRight, Loader2, Check } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { GlassCard, Input, Button, showToast, Badge } from '@/components/ui';
 import { GoogleLogin } from '@react-oauth/google';
 import { z } from 'zod';
+import ForgotPasswordModal from './ForgotPasswordModal';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email format'),
@@ -30,6 +31,7 @@ function LoginPageContent() {
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
   const [form, setForm] = useState({
     name: '', email: '', password: '', phone: '', role: 'customer', rememberMe: true
@@ -38,11 +40,12 @@ function LoginPageContent() {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
-      if (user.role === 'admin') router.push('/admin');
-      else if (user.role === 'merchant') router.push('/merchant');
-      else router.push(redirectPath || '/customer');
+      // Use window.location.href instead of router.push to bypass Next.js router cache
+      // which aggressively caches middleware redirects, causing infinite loops.
+      const dest = redirectPath || (user.role === 'admin' ? '/admin' : user.role === 'merchant' ? '/merchant' : '/customer');
+      window.location.href = dest;
     }
-  }, [authLoading, isAuthenticated, user, router, redirectPath]);
+  }, [authLoading, isAuthenticated, user, redirectPath]);
 
   // If we are authenticated, return a loader while we redirect
   if (isAuthenticated) {
@@ -95,13 +98,10 @@ function LoginPageContent() {
         showToast('Welcome back!', 'success');
       }
 
-      // Role-based routing
-      if (userData?.role === 'merchant') {
-        router.push('/merchant');
-      } else if (userData?.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push(redirectPath || (isSingleMode ? '/customer/restaurant/lassi-lounge' : '/customer'));
+      // Role-based routing is handled by the useEffect above, which uses window.location.href
+      // We don't need to push here, just wait for the useEffect to trigger
+      if (!isRegister) {
+        // Just for visual feedback while useEffect triggers
       }
     } catch (err) {
       showToast(err.message || 'Authentication failed', 'error');
@@ -116,9 +116,7 @@ function LoginPageContent() {
       const userData = await googleLogin(credentialResponse.credential, form.role);
       showToast(isRegister ? 'Account created via Google!' : 'Signed in via Google!', 'success');
       
-      if (userData.role === 'admin') router.push('/admin');
-      else if (userData.role === 'merchant') router.push('/merchant');
-      else router.push(redirectPath || (isSingleMode ? '/customer/restaurant/lassi-lounge' : '/customer/profile'));
+      // Handled by the useEffect above
     } catch (err) {
       showToast(err.message || 'Google authentication failed', 'error');
     } finally {
@@ -242,15 +240,13 @@ function LoginPageContent() {
 
               {!isRegister && (
                 <div className="flex items-center gap-2 mt-1">
-                  <input
-                    type="checkbox"
-                    id="rememberMeSingle"
-                    name="rememberMe"
-                    checked={form.rememberMe}
-                    onChange={(e) => setForm(prev => ({ ...prev, rememberMe: e.target.checked }))}
-                    className="w-4 h-4 rounded border-[#eadfdb] text-[#7a0b10] focus:ring-[#7a0b10] cursor-pointer"
-                  />
-                  <label htmlFor="rememberMeSingle" className="text-[13px] text-[#4b5563] cursor-pointer select-none">
+                  <div
+                    onClick={() => setForm(prev => ({ ...prev, rememberMe: !prev.rememberMe }))}
+                    className={`w-4 h-4 rounded border flex items-center justify-center cursor-pointer transition-colors ${form.rememberMe ? 'bg-[#7a0b10] border-[#7a0b10]' : 'bg-[#f9f9f9] border-[#eadfdb]'}`}
+                  >
+                    {form.rememberMe && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                  </div>
+                  <label onClick={() => setForm(prev => ({ ...prev, rememberMe: !prev.rememberMe }))} className="text-[13px] text-[#4b5563] cursor-pointer select-none">
                     Remember me
                   </label>
                 </div>
@@ -288,13 +284,14 @@ function LoginPageContent() {
 
             {!isRegister && (
               <div className="mt-6 text-center">
-                <Link href="/forgot-password" className="text-[13px] font-bold text-[#7a0b10] hover:underline">
+                <button type="button" onClick={() => setIsForgotModalOpen(true)} className="text-[13px] font-bold text-[#7a0b10] hover:underline">
                   Forgot your password?
-                </Link>
+                </button>
               </div>
             )}
           </div>
         </div>
+        <ForgotPasswordModal isOpen={isForgotModalOpen} onClose={() => setIsForgotModalOpen(false)} defaultEmail={form.email} />
       </div>
     );
   }
@@ -394,16 +391,14 @@ function LoginPageContent() {
             </div>
 
             {!isRegister && (
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="checkbox"
-                  id="rememberMeMarket"
-                  name="rememberMe"
-                  checked={form.rememberMe}
-                  onChange={(e) => setForm(prev => ({ ...prev, rememberMe: e.target.checked }))}
-                  className="w-4 h-4 rounded border-brand-border text-brand-cyan focus:ring-brand-cyan bg-brand-surface cursor-pointer"
-                />
-                <label htmlFor="rememberMeMarket" className="text-sm text-brand-muted cursor-pointer select-none">
+              <div className="flex items-center gap-2">
+                <div
+                  onClick={() => setForm(prev => ({ ...prev, rememberMe: !prev.rememberMe }))}
+                  className={`w-4 h-4 rounded border flex items-center justify-center cursor-pointer transition-colors ${form.rememberMe ? 'bg-brand-primary border-brand-primary' : 'bg-white border-brand-divider'}`}
+                >
+                  {form.rememberMe && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                </div>
+                <label onClick={() => setForm(prev => ({ ...prev, rememberMe: !prev.rememberMe }))} className="text-sm text-brand-muted cursor-pointer select-none">
                   Remember me
                 </label>
               </div>
@@ -459,14 +454,15 @@ function LoginPageContent() {
 
           {!isRegister && (
             <div className="mt-4 text-center">
-              <Link href="/forgot-password" className="text-xs text-brand-muted hover:text-brand-cyan transition-colors">
+              <button type="button" onClick={() => setIsForgotModalOpen(true)} className="text-xs text-brand-muted hover:text-brand-cyan transition-colors">
                 Forgot your password?
-              </Link>
+              </button>
             </div>
           )}
 
         </div>
       </GlassCard>
+      <ForgotPasswordModal isOpen={isForgotModalOpen} onClose={() => setIsForgotModalOpen(false)} defaultEmail={form.email} />
     </div>
   );
 }
