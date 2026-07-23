@@ -156,6 +156,7 @@ const UserSchema = new mongoose.Schema({
   },
   savedCards: [{
     cardId: { type: String, required: true },
+    title: { type: String, default: 'Personal Card' },
     brand: { type: String, required: true }, // visa, mastercard, etc.
     last4: { type: String, required: true },
     expMonth: { type: Number, required: true },
@@ -189,7 +190,6 @@ const UserSchema = new mongoose.Schema({
 // ── Indexes ─────────────────────────────────────────────────────────────────
 UserSchema.index({ role: 1 });
 UserSchema.index({ 'socialLogin.googleId': 1 }, { sparse: true });
-UserSchema.index({ referralCode: 1 }, { sparse: true });
 
 // ── Password hashing (scrypt) ───────────────────────────────────────────────
 UserSchema.methods.setPassword = function (password) {

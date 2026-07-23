@@ -242,6 +242,7 @@ export const paymentAPI = {
     '/api/payments/create-intent',
     checkout || { amount, orderId }
   ),
+  createSetupIntent: () => api.post('/api/payments/create-setup-intent'),
 };
 
 // ── Inventory & Supplier API ────────────────────────────────────────────────

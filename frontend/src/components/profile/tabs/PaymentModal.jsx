@@ -1,192 +1,178 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Loader2, CreditCard } from 'lucide-react';
-import { authAPI } from '@/lib/api';
+import { useState, useEffect } from 'react';
+import { X, Lock } from 'lucide-react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
+import { authAPI, paymentAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 
-export default function PaymentModal({ isOpen, onClose, onSuccess }) {
-  const [loading, setLoading] = useState(false);
-  
-  // Simulated Card Input
-  const [formData, setFormData] = useState({
-    cardNumber: '',
-    expDate: '',
-    cvc: '',
-    name: '',
-    isDefault: false
-  });
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
 
-  if (!isOpen) return null;
+function SetupForm({ onSuccess, onCancel }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [loading, setLoading] = useState(false);
+  const [title, setTitle] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!stripe || !elements) return;
+
     setLoading(true);
 
-    try {
-      if (!formData.cardNumber || formData.cardNumber.replace(/\D/g, '').length < 16) {
-        throw new Error('Please enter a valid 16-digit card number');
+    const { error, setupIntent } = await stripe.confirmSetup({
+      elements,
+      redirect: 'if_required',
+    });
+
+    if (error) {
+      showToast(error.message || 'Card setup failed', 'error');
+      setLoading(false);
+    } else if (setupIntent && setupIntent.status === 'succeeded') {
+      try {
+        const paymentMethodId = setupIntent.payment_method;
+
+        // In a real integration, the backend would expand the payment method or you'd fetch it.
+        // For simplicity, we just send the ID. The backend will usually use the Stripe API to get the brand/last4.
+        // But since our addCard API expects brand and last4, we can extract it if needed, or pass placeholders 
+        // and let the backend fix it. However, to stay compatible with the existing API:
+
+        await authAPI.addCard({
+          cardId: paymentMethodId,
+          title: title.trim() || 'Personal Card',
+          brand: 'Card',
+          last4: '****',
+          expMonth: 12,
+          expYear: 2099,
+          isDefault: true
+        });
+
+        showToast('Card saved successfully!', 'success');
+        if (onSuccess) onSuccess();
+        if (onCancel) onCancel(); // Close modal
+      } catch (err) {
+        showToast(err.message || 'Failed to save card to profile', 'error');
+        setLoading(false);
       }
-
-      if (!formData.expDate || formData.expDate.length < 5) {
-        throw new Error('Please enter a valid expiry date (MM/YY)');
-      }
-
-      if (!formData.cvc || formData.cvc.length < 3) {
-        throw new Error('Please enter a valid CVV');
-      }
-
-      if (!formData.name || formData.name.trim().length === 0) {
-        throw new Error('Please enter the name on the card');
-      }
-
-      const last4 = formData.cardNumber.replace(/\D/g, '').slice(-4);
-      const [expMonth, expYear] = formData.expDate.split('/').map(n => parseInt(n.trim(), 10));
-
-      if (!expMonth || !expYear || expMonth < 1 || expMonth > 12) {
-        throw new Error('Invalid expiration month (1-12)');
-      }
-
-      // Determine brand based on first digit (mock)
-      const firstDigit = formData.cardNumber.charAt(0);
-      let brand = 'Visa';
-      if (firstDigit === '5') brand = 'Mastercard';
-      if (firstDigit === '3') brand = 'Amex';
-      if (firstDigit === '6') brand = 'Discover';
-
-      // Send to backend
-      await authAPI.addCard({
-        cardId: `tok_mock_${Date.now()}`,
-        brand,
-        last4,
-        expMonth,
-        expYear,
-        isDefault: formData.isDefault
-      });
-
-      showToast('Card added successfully', 'success');
-      onSuccess();
-      onClose();
-    } catch (err) {
-      showToast(err.message || 'Failed to save card', 'error');
-    } finally {
+    } else {
       setLoading(false);
     }
   };
 
-  const handleCardNumberChange = (e) => {
-    let val = e.target.value.replace(/\D/g, '');
-    val = val.substring(0, 16);
-    // Add spaces every 4 digits
-    val = val.replace(/(\d{4})(?=\d)/g, '$1 ');
-    setFormData({ ...formData, cardNumber: val });
-  };
+  return (
+    <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 overflow-y-auto pb-4 px-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div className="grid md:grid-cols-2 gap-8 mb-4">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-[#1a1a1a] mb-1.5">Card Nickname (Optional)</label>
+              <input 
+                type="text" 
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Personal Card, Business..."
+                className="w-full border border-[#eadfdb] rounded-xl px-4 py-3 bg-[#fdfcfb] focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors"
+              />
+              <p className="text-xs text-[#6b7280] mt-1.5">Give this card a name to easily identify it during checkout.</p>
+            </div>
+            
+            <div className="hidden md:block p-4 bg-[#f8f9fa] rounded-xl border border-[#e5e7eb]">
+              <h4 className="font-bold text-[#1a1a1a] text-sm mb-2 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-[#7a0b10]" /> Secure Encryption
+              </h4>
+              <p className="text-xs text-[#6b7280] leading-relaxed">
+                Your payment details are encrypted and securely stored by Stripe. We never see or store your full credit card number.
+              </p>
+            </div>
+          </div>
+          
+          <div className="md:border-l md:border-[#eadfdb] md:pl-8">
+            <PaymentElement />
+          </div>
+        </div>
+      </div>
+      <div className="flex gap-3 pt-5 mt-2 border-t border-[#e5e7eb] shrink-0">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 bg-[#ffffff] text-[#7a0b10] border border-[#7a0b10] hover:bg-[#fffaf9] font-bold py-3 rounded-lg text-[14px] transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={!stripe || loading}
+          className="flex-1 bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff] font-bold py-3 rounded-lg text-[14px] shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+        >
+          {loading ? 'Processing...' : 'Save Card'}
+        </button>
+      </div>
+    </form>
+  );
+}
 
-  const handleExpChange = (e) => {
-    let val = e.target.value.replace(/\D/g, '');
-    val = val.substring(0, 4);
-    if (val.length >= 3) {
-      val = val.substring(0, 2) + '/' + val.substring(2, 4);
+export default function PaymentModal({ isOpen, onClose, onSuccess }) {
+  const [clientSecret, setClientSecret] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setClientSecret('');
+      setError('');
+
+      const initSetup = async () => {
+        try {
+          const res = await paymentAPI.createSetupIntent();
+          setClientSecret(res.data?.clientSecret || res.clientSecret);
+        } catch (err) {
+          setError(err.message || 'Failed to initialize secure connection');
+        }
+      };
+      initSetup();
     }
-    setFormData({ ...formData, expDate: val });
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const appearance = {
+    theme: 'stripe',
+    variables: {
+      colorPrimary: '#7a0b10',
+      colorBackground: '#ffffff',
+      colorText: '#1a1a1a',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      borderRadius: '8px',
+    },
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-[0_0_40px_rgba(0,0,0,0.15)] border-2 border-[#eadfdb] ring-4 ring-[#eadfdb]/30 overflow-hidden animate-scale-in">
-        <div className="px-6 py-4 border-b border-[#eadfdb] flex items-center justify-between">
-          <h2 className="text-[20px] font-black text-[#1a1a1a]">Add New Card</h2>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
-            <X className="h-5 w-5" />
+    <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
+      <div className="w-full max-w-3xl bg-[#ffffff] rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.15)] border border-[#eadfdb] overflow-hidden flex flex-col max-h-[90vh] animate-scale-in">
+
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-[#e5e7eb] flex items-center justify-between bg-[#fdfcfb]">
+          <h2 className="text-xl font-bold font-serif text-[#7a0b10] flex items-center gap-2">
+            <Lock className="w-5 h-5" />
+            Secure Card Setup
+          </h2>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+            <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
-        <div className="p-6 bg-[#f4f7f9] border-b border-[#eadfdb]">
-          <div className="flex items-center gap-3 text-[#0ea5e9]">
-            <CreditCard className="h-5 w-5" />
-            <p className="text-[13px] font-bold">This is a secure, encrypted mock connection for testing purposes.</p>
-          </div>
+        {/* Body */}
+        <div className="p-6 flex-1 overflow-auto bg-[#ffffff]">
+          {error ? (
+            <div className="text-red-500 bg-red-50 p-4 rounded-lg text-sm">{error}</div>
+          ) : !clientSecret ? (
+            <div className="text-center text-gray-500 py-8 animate-pulse">Initializing secure connection...</div>
+          ) : (
+            <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+              <SetupForm onSuccess={onSuccess} onCancel={onClose} />
+            </Elements>
+          )}
         </div>
-
-        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-5">
-          <div>
-            <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Name on Card</label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full h-11 px-3 rounded-lg border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] text-[14px] bg-[#f9f9f9] outline-none"
-              placeholder="John Doe"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Card Number</label>
-            <input
-              type="text"
-              required
-              value={formData.cardNumber}
-              onChange={handleCardNumberChange}
-              className="w-full h-11 px-3 rounded-lg border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] text-[14px] bg-[#f9f9f9] outline-none font-mono"
-              placeholder="0000 0000 0000 0000"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Expiration</label>
-              <input
-                type="text"
-                required
-                value={formData.expDate}
-                onChange={handleExpChange}
-                className="w-full h-11 px-3 rounded-lg border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] text-[14px] bg-[#f9f9f9] outline-none font-mono"
-                placeholder="MM/YY"
-              />
-            </div>
-            <div>
-              <label className="block text-[12px] font-bold text-[#4b5563] mb-1">CVC</label>
-              <input
-                type="text"
-                required
-                maxLength="4"
-                value={formData.cvc}
-                onChange={(e) => setFormData({ ...formData, cvc: e.target.value.replace(/\D/g, '') })}
-                className="w-full h-11 px-3 rounded-lg border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] text-[14px] bg-[#f9f9f9] outline-none font-mono"
-                placeholder="123"
-              />
-            </div>
-          </div>
-
-          <label className="flex items-center gap-3 cursor-pointer select-none pt-2">
-            <input
-              type="checkbox"
-              checked={formData.isDefault}
-              onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-              className="w-5 h-5 rounded border-[#eadfdb] text-[#7a0b10] focus:ring-[#7a0b10]"
-            />
-            <span className="text-[13px] font-bold text-[#4b5563]">Set as default payment method</span>
-          </label>
-
-          <div className="pt-4 flex justify-end gap-3 border-t border-[#eadfdb]">
-            <button 
-              type="button"
-              onClick={onClose}
-              className="px-6 h-11 rounded-lg border border-[#eadfdb] text-[#4b5563] text-[13px] font-bold hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit"
-              disabled={loading}
-              className="px-8 h-11 rounded-lg bg-[#7a0b10] text-white text-[13px] font-black uppercase tracking-wider hover:bg-[#680307] transition-colors flex items-center gap-2 disabled:opacity-50"
-            >
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Save Card
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );

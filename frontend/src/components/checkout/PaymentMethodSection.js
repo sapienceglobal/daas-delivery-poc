@@ -51,9 +51,10 @@ export default function PaymentMethodSection({
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <h4 className={`font-bold text-[14px] leading-tight mb-[10px] capitalize ${paymentMethod === `saved_card_${card._id}` ? 'text-[#1a1a1a]' : 'text-[#4b5563]'}`}>
-                    {card.brand} •••• {card.last4}
+                  <h4 className={`font-bold text-[14px] leading-tight mb-[6px] truncate ${paymentMethod === `saved_card_${card._id}` ? 'text-[#1a1a1a]' : 'text-[#4b5563]'}`}>
+                    {card.title || 'Personal Card'}
                   </h4>
+                  <p className="text-[12px] text-[#6b7280] capitalize mb-[2px]">{card.brand} •••• {card.last4}</p>
                   <p className="text-[12px] text-[#6b7280]">Expires {card.expMonth.toString().padStart(2, '0')}/{card.expYear}</p>
                 </div>
               </button>
@@ -300,7 +301,7 @@ export default function PaymentMethodSection({
           <p className="font-medium text-[#1a1a1a] flex items-center gap-2">
             <span className="text-[#6b7280]">Payment Method:</span>
             {paymentMethod.startsWith('saved_card_') 
-              ? `Saved Card (${user?.savedCards?.find(c => `saved_card_${c._id}` === paymentMethod)?.brand || 'Card'} •••• ${user?.savedCards?.find(c => `saved_card_${c._id}` === paymentMethod)?.last4 || '****'})`
+              ? `${user?.savedCards?.find(c => `saved_card_${c._id}` === paymentMethod)?.title || 'Saved Card'} (${user?.savedCards?.find(c => `saved_card_${c._id}` === paymentMethod)?.brand || 'Card'} •••• ${user?.savedCards?.find(c => `saved_card_${c._id}` === paymentMethod)?.last4 || '****'})`
               : paymentMethod === 'credit_card' 
                 ? `Credit / Debit Card (*${cardNo.slice(-4)})` 
                 : paymentMethod === 'apple_pay' ? 'Apple Pay' : 'Google Pay'}

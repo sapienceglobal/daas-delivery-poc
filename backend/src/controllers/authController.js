@@ -404,7 +404,7 @@ export const setDefaultAddress = asyncHandler(async (req, response) => {
 // ── Payments ────────────────────────────────────────────────────────────────
 
 export const addCard = asyncHandler(async (req, response) => {
-  const { cardId, brand, last4, expMonth, expYear, isDefault } = req.body;
+  const { cardId, title, brand, last4, expMonth, expYear, isDefault } = req.body;
   if (!cardId || !brand || !last4) throw new AppError('Card details missing.', 400);
 
   const user = await req.getModel('User').findById(req.user._id);
@@ -414,7 +414,7 @@ export const addCard = asyncHandler(async (req, response) => {
   }
 
   user.savedCards.push({ 
-    cardId, brand, last4, expMonth, expYear, 
+    cardId, title: title || 'Personal Card', brand, last4, expMonth, expYear, 
     isDefault: isDefault || user.savedCards.length === 0 
   });
   

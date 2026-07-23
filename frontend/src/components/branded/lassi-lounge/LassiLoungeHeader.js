@@ -55,9 +55,9 @@ export default function LassiLoungeHeader() {
 
         {/* Right icons */}
         <div className="flex items-center gap-4">
-          <Link href={isAuthenticated ? "/customer/profile?tab=dashboard" : "/login"} aria-label="Profile" className="text-text hover:text-accent-500">
+          <a href={isAuthenticated ? "/customer/profile?tab=dashboard" : "/login"} aria-label="Profile" className="text-text hover:text-accent-500">
             <User size={20} />
-          </Link>
+          </a>
           <Link href="/customer/checkout" aria-label="Cart" className="relative text-text hover:text-accent-500">
             <ShoppingCart size={20} />
             {cartCount > 0 && (

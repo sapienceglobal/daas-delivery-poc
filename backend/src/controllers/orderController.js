@@ -172,14 +172,11 @@ const getTrustedDeliveryQuote = async ({ restaurant, address, subtotal, schedule
   } catch (err) {
     const errReason = err.response?.data?.reason || err.response?.data?.error?.reason;
     if (errReason === 'distance_too_long' || err.message === 'OUT_OF_SERVICE_AREA') {
-      logger.warn('DoorDash distance_too_long or out of bounds (possible geocoding confusion). Falling back to default fee.', {
+      logger.warn('DoorDash rejected quote due to distance_too_long', {
         address,
         restaurantId: restaurant._id
       });
-      return {
-        deliveryFee: roundMoney(restaurant.deliveryFee || 0),
-        quote: null
-      };
+      throw new AppError('Delivery is not available for this location. The distance is too far.', 400);
     }
     
     // For all other DoorDash errors (including fake seed addresses that DoorDash can't resolve),

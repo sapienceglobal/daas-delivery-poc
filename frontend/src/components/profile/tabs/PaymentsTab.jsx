@@ -111,8 +111,8 @@ export default function PaymentsTab({ user, updateUser }) {
                     {getBrandIcon(card.brand)}
                   </div>
                   <div>
-                    <h3 className="text-[15px] font-bold text-[#1a1a1a] capitalize">{card.brand}</h3>
-                    <p className="text-[14px] text-[#6b7280] font-mono mt-0.5">•••• •••• •••• {card.last4}</p>
+                    <h3 className="text-[15px] font-bold text-[#1a1a1a]">{card.title || 'Personal Card'}</h3>
+                    <p className="text-[14px] text-[#6b7280] capitalize mt-0.5">{card.brand} •••• {card.last4}</p>
                   </div>
                 </div>
                 <div className="text-right">

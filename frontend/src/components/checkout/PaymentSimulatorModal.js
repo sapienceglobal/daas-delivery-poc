@@ -25,7 +25,7 @@ export default function PaymentSimulatorModal({ isOpen, onClose, amount, checkou
   if (!mounted || !isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="w-full max-w-lg bg-[#ffffff] border border-[#e5e7eb] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[90vh] ll-slide-panel">
         <div className="bg-[#fffcfb] border-b border-[#e5e7eb] px-6 py-4 flex items-center justify-between">
           <h2 className="text-[20px] font-bold font-serif text-[#7a0b10] flex items-center gap-2">

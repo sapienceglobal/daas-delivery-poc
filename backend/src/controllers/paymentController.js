@@ -1,4 +1,4 @@
-import { createPaymentIntent, handleWebhook } from '../services/stripeService.js';
+import { createPaymentIntent, createSetupIntent as createStripeSetupIntent, handleWebhook } from '../services/stripeService.js';
 import Order from '../models/Order.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import logger from '../utils/logger.js';
@@ -13,6 +13,14 @@ const getTrustedDeliveryFee = async ({ restaurant, address, subtotal, scheduledT
     const quote = await getDeliveryQuoteAPI(restaurant.address, address, subtotal || 10, scheduledTime);
     return roundMoney((quote.deliveryFee || 0) / 100);
   } catch (err) {
+    const errReason = err.response?.data?.reason || err.response?.data?.error?.reason;
+    if (errReason === 'distance_too_long' || err.message === 'OUT_OF_SERVICE_AREA') {
+      logger.warn('DoorDash rejected quote due to distance_too_long during payment intent', {
+        address,
+        restaurantId: restaurant._id
+      });
+      throw new AppError('Delivery is not available for this location. The distance is too far.', 400);
+    }
     logger.warn('DoorDash quote unavailable while creating payment intent, using restaurant default fee', {
       restaurantId: restaurant._id,
       error: err.response?.data || err.message
@@ -87,6 +95,28 @@ export const createIntent = asyncHandler(async (req, res) => {
     clientSecret: paymentIntent.client_secret,
     paymentIntentId: paymentIntent.id,
     amount: verifiedAmount
+  });
+});
+
+/**
+ * @desc    Create a Stripe Setup Intent (for saving cards)
+ * @route   POST /api/payments/create-setup-intent
+ * @access  Private
+ */
+export const createSetupIntent = asyncHandler(async (req, res) => {
+  const metadata = {
+    userId: req.user?._id?.toString()
+  };
+
+  const setupIntent = await createStripeSetupIntent(metadata);
+
+  res.status(200).json({
+    data: {
+      clientSecret: setupIntent.client_secret,
+      setupIntentId: setupIntent.id
+    },
+    clientSecret: setupIntent.client_secret,
+    setupIntentId: setupIntent.id
   });
 });
 

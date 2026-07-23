@@ -32,6 +32,20 @@ export const createPaymentIntent = async (amount, metadata = {}) => {
 };
 
 /**
+ * Create a Setup Intent for saving a card without charging
+ */
+export const createSetupIntent = async (metadata = {}) => {
+  if (!stripe) throw new Error('Stripe is not configured');
+
+  const setupIntent = await stripe.setupIntents.create({
+    metadata,
+    payment_method_types: ['card'],
+  });
+
+  return setupIntent;
+};
+
+/**
  * Retrieve a Payment Intent from Stripe for server-side verification.
  */
 export const retrievePaymentIntent = async (paymentIntentId) => {
