@@ -178,7 +178,7 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl shadow-[0_0_40px_rgba(0,0,0,0.15)] border border-[#eadfdb] overflow-visible animate-scale-in flex flex-col max-h-[90vh]">
         <div className="px-6 py-4 border-b border-[#eadfdb] flex items-center justify-between shrink-0">
           <h2 className="text-[20px] font-black text-[#1a1a1a]">
@@ -322,7 +322,7 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
               <button 
                 type="submit"
                 disabled={loading}
-                className="px-8 h-11 rounded-lg bg-[#7a0b10] text-white text-[13px] font-black uppercase tracking-wider hover:bg-[#680307] transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="px-5 h-11 py-2 rounded-lg bg-[#7a0b10] text-white text-[13px] font-black uppercase tracking-wider hover:bg-[#680307] transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 Save Address
