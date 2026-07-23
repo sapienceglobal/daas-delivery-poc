@@ -211,23 +211,94 @@ function LoyaltyTab({ user }) {
 
 function AddressesTab({ user, updateUser }) {
   const [showAdd, setShowAdd] = useState(false);
-  const [showSearchModal, setShowSearchModal] = useState(false);
   const [form, setForm] = useState({ label: 'Home' });
   const [loading, setLoading] = useState(false);
 
-  const handleSelectAddress = async (selectedData) => {
-    setShowSearchModal(false);
+  // Address fields matching checkout
+  const [addressLine1, setAddressLine1] = useState('');
+  const [addressLine2, setAddressLine2] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('CA');
+  const [zipCode, setZipCode] = useState('');
+  const [lat, setLat] = useState(null);
+  const [lng, setLng] = useState(null);
+
+  // Auto-suggestion state
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState(null);
+
+  const US_STATES = [
+    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+  ];
+
+  const handleAddressLine1Change = (val) => {
+    setAddressLine1(val);
+    if (searchTimeout) clearTimeout(searchTimeout);
+
+    if (val.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    setSuggestionsLoading(true);
+    const to = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&addressdetails=1&limit=5`,
+          { headers: { 'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0' } }
+        );
+        const data = await res.json();
+        setSuggestions(data || []);
+      } catch (err) {
+        console.error('Nominatim search error:', err);
+      } finally {
+        setSuggestionsLoading(false);
+      }
+    }, 500);
+    setSearchTimeout(to);
+  };
+
+  const handleSelectSuggestion = (suggestion) => {
+    const parts = suggestion.display_name.split(',').map((p) => p.trim());
+    const addr = suggestion.address || {};
+    const road = addr.road || '';
+    const houseNumber = addr.house_number || '';
+    const line1 = `${houseNumber} ${road}`.trim() || parts.slice(0, 2).join(', ');
+
+    const cityVal = addr.city || addr.town || addr.village || addr.suburb || '';
+    const stateVal = (addr.state || '').substring(0, 2).toUpperCase() || 'NY';
+    const postcodeVal = addr.postcode || '';
+
+    setAddressLine1(line1);
+    setCity(cityVal);
+    setState(stateVal);
+    setZipCode(postcodeVal.substring(0, 5));
+    setLat(parseFloat(suggestion.lat));
+    setLng(parseFloat(suggestion.lon));
+    setSuggestions([]);
+  };
+
+  const handleSaveAddress = async (e) => {
+    e.preventDefault();
     setLoading(true);
     try {
+      const compiledAddress = [addressLine1, addressLine2, city, state, zipCode].filter(Boolean).join(', ');
       const payload = {
         label: form.label,
-        address: selectedData.address,
-        lat: selectedData.lat,
-        lng: selectedData.lng
+        address: compiledAddress,
+        lat: lat || 0,
+        lng: lng || 0
       };
       const data = await authAPI.addAddress(payload);
       updateUser({ savedAddresses: data.data });
       setForm({ label: 'Home' });
+      setAddressLine1(''); setAddressLine2(''); setCity(''); setZipCode('');
+      setLat(null); setLng(null);
       setShowAdd(false);
       showToast('Address added', 'success');
     } catch (err) {
@@ -248,7 +319,7 @@ function AddressesTab({ user, updateUser }) {
   };
 
   return (
-    <div className="space-y-4 max-w-lg">
+    <div className="space-y-4 max-w-2xl">
       {user.savedAddresses?.map(addr => (
         <GlassCard key={addr._id} className="flex items-center justify-between">
           <div>
@@ -265,35 +336,130 @@ function AddressesTab({ user, updateUser }) {
       ))}
 
       {!showAdd ? (
-        <Button variant="secondary" onClick={() => setShowAdd(true)} icon={Plus}>Add Address</Button>
+        <Button variant="secondary" onClick={() => setShowAdd(true)} icon={Plus}>Add New Address</Button>
       ) : (
-        <GlassCard className="space-y-3 relative">
+        <GlassCard className="space-y-5 relative">
           {loading && (
             <div className="absolute inset-0 bg-brand-bg/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
               <Loader2 className="h-6 w-6 text-brand-cyan animate-spin" />
             </div>
           )}
-          <div className="flex gap-2">
-            {['Home', 'Work', 'Other'].map(lbl => (
-              <button key={lbl} onClick={() => setForm(p => ({ ...p, label: lbl }))}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all
-                  ${form.label === lbl ? 'bg-brand-cyan/10 text-brand-cyan border-brand-cyan/30' : 'text-brand-muted border-brand-border'}`}>
-                {lbl}
-              </button>
-            ))}
+          
+          <div>
+            <label className="block text-[13px] font-bold text-[#1a1a1a] dark:text-gray-200 mb-2">Save as</label>
+            <div className="flex gap-2">
+              {['Home', 'Work', 'Other'].map(lbl => (
+                <button key={lbl} onClick={() => setForm(p => ({ ...p, label: lbl }))}
+                  type="button"
+                  className={`rounded-lg px-4 py-2 text-xs font-semibold border transition-all
+                    ${form.label === lbl ? 'bg-brand-cyan/10 text-brand-cyan border-brand-cyan/30' : 'text-brand-muted border-brand-border hover:bg-brand-muted/5'}`}>
+                  {lbl}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button className="flex-1" onClick={() => setShowSearchModal(true)} icon={MapPin} variant="secondary">Search & Select Address...</Button>
-            <Button variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Button>
-          </div>
+
+          <form onSubmit={handleSaveAddress} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2 relative">
+                <label className="block text-[13px] font-bold text-[#1a1a1a] dark:text-gray-200 mb-1.5">Address Line 1*</label>
+                <div className="relative">
+                  <input
+                    type="text" 
+                    required 
+                    name="addressLine1"
+                    autoComplete="off"
+                    value={addressLine1}
+                    onChange={(e) => handleAddressLine1Change(e.target.value)}
+                    placeholder="House No., Street Name"
+                    className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors"
+                  />
+                  {suggestionsLoading && (
+                    <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                      <Loader2 className="w-4 h-4 text-[#6b7280] animate-spin" />
+                    </div>
+                  )}
+
+                  {/* Autocomplete Suggestions Dropdown */}
+                  {suggestions && suggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 rounded-xl border border-[#e5e7eb] bg-[#ffffff] shadow-xl z-[100] overflow-hidden max-h-[220px] overflow-y-auto ll-pop ll-soft-scroll">
+                      <ul className="divide-y divide-[#e5e7eb]">
+                        {suggestions.map((s, idx) => (
+                          <li key={idx}>
+                            <button
+                              type="button"
+                              onClick={() => handleSelectSuggestion(s)}
+                              className="w-full text-left px-4 py-3.5 text-xs font-bold hover:bg-[#f9fafb] text-[#1a1a1a] transition-colors block truncate focus:outline-none focus:bg-[#f9fafb]"
+                            >
+                              {s.display_name}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-[#1a1a1a] dark:text-gray-200 mb-1.5">Address Line 2</label>
+                <input
+                  type="text" 
+                  name="addressLine2"
+                  value={addressLine2} 
+                  onChange={(e) => setAddressLine2(e.target.value)}
+                  placeholder="Apt, Suite, etc. (Optional)"
+                  className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-[13px] font-bold text-[#1a1a1a] dark:text-gray-200 mb-1.5">City*</label>
+                <input
+                  type="text" 
+                  required 
+                  name="city"
+                  value={city} 
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Enter city"
+                  className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-[#1a1a1a] dark:text-gray-200 mb-1.5">State*</label>
+                <select
+                  value={state} 
+                  name="state"
+                  onChange={(e) => setState(e.target.value)}
+                  className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors appearance-none"
+                >
+                  {US_STATES.map((st) => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[13px] font-bold text-[#1a1a1a] dark:text-gray-200 mb-1.5">Zip Code*</label>
+                <input
+                  type="text" 
+                  required 
+                  name="zipCode"
+                  value={zipCode} 
+                  onChange={(e) => setZipCode(e.target.value)}
+                  placeholder="Enter zip code"
+                  className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button type="submit" className="flex-1 bg-[#4a0b0d] hover:bg-[#340708] text-white">Save Address</Button>
+              <Button type="button" variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Button>
+            </div>
+          </form>
         </GlassCard>
       )}
-
-      <AddressModal
-        isOpen={showSearchModal}
-        onClose={() => setShowSearchModal(false)}
-        onSelect={handleSelectAddress}
-      />
     </div>
   );
 }

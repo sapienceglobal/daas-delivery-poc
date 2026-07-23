@@ -138,9 +138,19 @@ export function CartProvider({ children }) {
       localStorage.setItem(storageKeys.restaurant, JSON.stringify(restaurant));
     } else {
       localStorage.removeItem(storageKeys.restaurant);
+      
+      // Auto-fetch default restaurant in single-restaurant mode
+      if (process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true') {
+        fetch('/api/restaurants/lassi-lounge')
+          .then(res => res.json())
+          .then(data => {
+            if (data?.data) setRestaurant(data.data);
+          })
+          .catch(console.error);
+      }
     }
     localStorage.removeItem(LEGACY_CART_RESTAURANT_KEY);
-  }, [authLoading, hydratedOwner, restaurant, storageKeys.restaurant, storageKeys.owner]);
+  }, [authLoading, hydratedOwner, restaurant, storageKeys.owner, storageKeys.restaurant]);
 
   useEffect(() => {
     if (
@@ -262,14 +272,19 @@ export function CartProvider({ children }) {
   const removeItem = useCallback((index) => {
     setItems(prev => {
       const updated = prev.filter((_, i) => i !== index);
-      if (updated.length === 0) setRestaurant(null);
+      if (updated.length === 0 && process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE !== 'true') {
+        setRestaurant(null);
+      }
       return updated;
     });
   }, []);
 
   const clearCart = useCallback(() => {
     setItems([]);
-    setRestaurant(null);
+    if (process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE !== 'true') {
+      setRestaurant(null);
+    }
+    setSpecialInstructions('');
   }, []);
 
   // ── Computed values ───────────────────────────────────────────────────

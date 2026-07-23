@@ -1,4 +1,5 @@
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Gift, Utensils, Coffee, Pizza, Salad, Flame, CakeSlice } from 'lucide-react';
 
 // यह फंक्शन कैटेगरी के नाम के हिसाब से सही आइकॉन रिटर्न करेगा
@@ -20,8 +21,11 @@ export default function CategorySidebar({
   setSearchQuery,
   couponApplied,
   setCouponApplied,
-  searchQuery = ''
+  searchQuery = '',
+  isViewOnly = false
 }) {
+  const router = useRouter();
+
   return (
     <div className="space-y-6 ll-reveal">
       
@@ -97,10 +101,16 @@ export default function CategorySidebar({
           </div>
           
           <button 
-            onClick={() => setCouponApplied(true)} 
+            onClick={() => {
+              if (isViewOnly) {
+                router.push('/customer/restaurant/lassi-lounge?tab=order');
+              } else {
+                setCouponApplied(true);
+              }
+            }} 
             className="bg-[#e8a020] hover:bg-[#d68f13] text-[#1a1a1a] text-[11px] uppercase tracking-wide font-black w-full rounded-md py-2.5 shadow-[0_4px_15px_rgba(232,160,32,0.2)] ll-interactive ll-focus-ring"
           >
-            {couponApplied ? 'APPLIED!' : 'ORDER NOW'}
+            {isViewOnly ? 'ORDER NOW' : (couponApplied ? 'APPLIED!' : 'APPLY')}
           </button>
         </div>
         

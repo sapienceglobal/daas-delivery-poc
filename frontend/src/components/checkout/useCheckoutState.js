@@ -141,15 +141,47 @@ export function useCheckoutState() {
   }, [isAuthenticated, refreshUser]);
 
   const handleSelectSavedAddress = (addrObj) => {
-    const parts = addrObj.address.split(',').map((p) => p.trim());
-    if (parts.length >= 3) {
-      setAddressLine1(parts[0]);
-      setCity(parts[1]);
-      setState(parts[2].substring(0, 2).toUpperCase());
-      setZipCode(parts[3] ? parts[3].replace(/\D/g, '').substring(0, 5) : '');
+    if (!addrObj.address) return;
+
+    // Default everything to blank first
+    setAddressLine1('');
+    setAddressLine2('');
+    setCity('');
+    setState('CA');
+    setZipCode('');
+
+    // Try robust regex first: looks for State + Zip at the end
+    // E.g., "..., CA 94102" or "..., CA, 94102"
+    const zipRegex = /([A-Za-z]{2})(?:,)?\s+(\d{5})(?:-\d{4})?$/;
+    let match = addrObj.address.match(zipRegex);
+    
+    if (match) {
+      setState(match[1].toUpperCase());
+      setZipCode(match[2]);
+      
+      // Remove the matched state/zip from the rest of the string
+      let rest = addrObj.address.replace(zipRegex, '').trim();
+      if (rest.endsWith(',')) rest = rest.slice(0, -1).trim();
+      
+      // Now split the rest by commas
+      const parts = rest.split(',').map(p => p.trim()).filter(Boolean);
+      
+      if (parts.length > 0) {
+        setCity(parts[parts.length - 1]); // Last remaining part is city
+        parts.pop();
+      }
+      
+      if (parts.length > 0) {
+        setAddressLine1(parts[0]);
+        if (parts.length > 1) {
+          setAddressLine2(parts.slice(1).join(', '));
+        }
+      }
     } else {
+      // Fallback if no zip code pattern is found
       setAddressLine1(addrObj.address);
     }
+    
     setAddressLat(addrObj.lat);
     setAddressLng(addrObj.lng || null);
     setAddressVerified(true);

@@ -110,7 +110,7 @@ export default function LassiLoungeFooter() {
       
             className="relative block h-32 w-full rounded-lg overflow-hidden bg-[#2A2A2A] shadow-md group"
           >
-            <Image src={findUs.mapImage} alt="Map showing Lassi Lounge location" fill sizes="240px" className="object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+            <Image src={findUs.mapImage} alt="Map showing Lassi Lounge location" fill sizes="240px" priority className="object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
           
             <div className="absolute bottom-2 left-2 right-2 bg-[#FCF9F4] rounded-md shadow border border-[#1a1a1a]/10 p-2.5 flex flex-row items-center gap-2.5 group-hover:-translate-y-0.5 transition-transform duration-300">
                <div className="bg-[#C8102E]/10 p-1.5 rounded-full shrink-0">

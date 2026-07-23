@@ -69,6 +69,13 @@ if (process.env.TRUST_PROXY) {
 // ── Global Middleware ───────────────────────────────────────────────────────
 app.use(helmet());
 
+app.use(cors({
+  origin: corsOrigin,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'x-app-secret', 'x-tenant-id', 'x-restaurant-id', 'X-Requested-With']
+}));
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 300, // limit each IP to 300 requests per windowMs
@@ -77,13 +84,6 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 app.use('/api/', apiLimiter);
-
-app.use(cors({
-  origin: corsOrigin,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'x-app-secret', 'x-tenant-id', 'x-restaurant-id', 'X-Requested-With']
-}));
 
 app.use(cookieParser());
 app.use(tenantDb);

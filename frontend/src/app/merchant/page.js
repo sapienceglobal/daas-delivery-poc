@@ -1022,6 +1022,37 @@ export default function MerchantDashboard() {
           </GlassCard>
 
           <GlassCard>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-brand-text uppercase tracking-wider mb-1">Preparation Time</h3>
+                <p className="text-xs text-brand-muted">Current average prep time in minutes.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="5"
+                  max="120"
+                  defaultValue={restaurant?.prepTime || 15}
+                  onBlur={async (e) => {
+                    const val = Number(e.target.value);
+                    if (val === restaurant?.prepTime) return;
+                    try {
+                      const res = await restaurantAPI.update(restaurant._id, { prepTime: val });
+                      setRestaurant(res.data);
+                      showToast('Prep Time updated', 'success');
+                    } catch (err) {
+                      showToast(err.message, 'error');
+                      e.target.value = restaurant?.prepTime || 15;
+                    }
+                  }}
+                  className="w-20 bg-brand-bg border border-brand-border rounded-lg px-3 py-1.5 text-sm text-brand-text text-center focus:border-brand-cyan focus:outline-none"
+                />
+                <span className="text-xs text-brand-muted font-bold">MINS</span>
+              </div>
+            </div>
+          </GlassCard>
+
+          <GlassCard>
             <div className="flex items-center justify-between gap-3 mb-4">
               <h3 className="text-sm font-bold text-brand-text uppercase tracking-wider">Business Verification</h3>
               <Badge color={restaurant?.onboardingStatus === 'approved' ? 'green' : restaurant?.onboardingStatus === 'rejected' ? 'red' : 'yellow'}>

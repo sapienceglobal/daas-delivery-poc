@@ -193,8 +193,8 @@ export const testimonialsContent = {
 export const navLinks = [
   { label: 'Home', href: '/customer' },
   { label: 'About Us', href: '/customer/about-us' },
-  { label: 'Menu', href: '/customer/restaurant/lassi-lounge?tab=menu' },
-  { label: 'My Orders', href: '/customer/profile?tab=orders' },
+  { label: 'Order Online', href: '/customer/restaurant/lassi-lounge?tab=menu' },
+  { label: 'Menu', href: '/customer/restaurant/lassi-lounge/menu' },
   { label: 'Book a Table', href: '/customer/restaurant/lassi-lounge/book-a-table' },
   { label: 'Catering', href: '/customer/restaurant/lassi-lounge/catering' },
   { label: 'Events', href: '/customer/restaurant/lassi-lounge/events' },
@@ -244,7 +244,7 @@ export const heroContent = {
   description:
     'Experience the rich and authentic flavors of India. From traditional favorites to modern delights, every dish is made with love.',
   primaryCta: { label: 'Order Online', href: '/customer/restaurant/lassi-lounge?mode=delivery' },
-  secondaryCta: { label: 'View Menu', href: '/customer/restaurant/lassi-lounge' },
+  secondaryCta: { label: 'View Menu', href: '/customer/restaurant/lassi-lounge/menu' },
   heroImage: {
     src: '/images/branded/lassi-lounge/hero-spread.jpg',
     alt: 'Butter chicken, biryani, naan basket and mango lassi spread at Lassi Lounge',

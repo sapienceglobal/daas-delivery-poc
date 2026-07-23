@@ -18,10 +18,9 @@ import { showToast, Skeleton, Modal, ItemDetailModal, PortalModal, GlassCard, Ba
 import Loading from '@/app/loading';
 
 // Lassi Lounge Branded Modular Components
-import OrderOnlineHero from '@/components/branded/lassi-lounge/menu/OrderOnlineHero';
+import MenuHero from '@/components/branded/lassi-lounge/menu/MenuHero';
 import CategorySidebar from '@/components/branded/lassi-lounge/menu/CategorySidebar';
 import DishGrid from '@/components/branded/lassi-lounge/menu/DishGrid';
-import CartSidebar from '@/components/branded/lassi-lounge/menu/CartSidebar';
 
 const getDishImage = (itemName) => {
   const name = itemName.toLowerCase();
@@ -261,7 +260,7 @@ export default function RestaurantPage() {
       <div className="min-h-screen bg-[#fdfbf7] flex flex-col font-sans ll-page-enter">
         
         {/* ─── 1. HERO SECTION ─── */}
-        <OrderOnlineHero />
+        <MenuHero />
 
         {/* ─── 2. BREADCRUMBS & SEARCH ROW ─── */}
         <div ref={menuTopRef} className="bg-[#ffffff] border-b border-[#e5e7eb] py-4 sticky top-0 z-30 shadow-[0_8px_24px_rgba(122,11,16,0.05)]">
@@ -333,12 +332,13 @@ export default function RestaurantPage() {
                   couponApplied={couponApplied}
                   setCouponApplied={setCouponApplied}
                   searchQuery={searchQuery}
+                  isViewOnly={true}
                 />
               </div>
             </div>
             
             {/* === MIDDLE CONTENT: DISHES GRID === */}
-            <div ref={dishGridRef} className="flex-1 w-full min-w-0">
+            <div ref={dishGridRef} className="lg:col-span-9 w-full min-w-0">
               <DishGrid
                 filteredItems={filteredItems}
                 searchQuery={searchQuery}
@@ -359,34 +359,10 @@ export default function RestaurantPage() {
                 }}
               />
             </div>
-
-            {/* === RIGHT SIDEBAR: CART DETAILS === */}
-          
-            <div className="w-full lg:w-[320px] shrink-0">
-              <div className="lg:sticky lg:top-[72px]">
-                <CartSidebar
-                  items={items}
-                  itemCount={itemCount}
-                  subtotal={subtotal}
-                  taxes={taxes}
-                  deliveryFee={deliveryFee}
-                  discount={discount}
-                  totalAmount={totalAmount}
-                  couponApplied={couponApplied}
-                  setCouponApplied={setCouponApplied}
-                  updateQuantity={updateQuantity}
-                  router={router}
-                  specialInstructions={specialInstructions}
-                  setSpecialInstructions={setSpecialInstructions}
-                />
-              </div>
-            </div>
-
           </div>
         </div>
 
         {/* ─── 4. BOTTOM TRUST STRIP ─── */}
-        {/* इसे इनलाइन कर दिया गया है ताकि यह इमेज जैसा परफेक्ट दिखे */}
         <div className="bg-[#fcfaf5] border-t border-[#e5e7eb] py-10 mt-auto">
           <div className="mx-auto max-w-[1550px] px-4 md:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-left md:divide-x divide-[#e5e7eb]">
             {[
@@ -441,12 +417,12 @@ export default function RestaurantPage() {
 
         {/* Conflict Modal */}
         {conflictModal && (
-        <PortalModal 
-  isOpen={true} 
-  onClose={() => setConflictModal(null)} 
-  title="Clear Cart?" 
-  size="sm"
->
+          <Modal 
+            isOpen={true} 
+            onClose={() => setConflictModal(null)} 
+            title="Clear Cart?" 
+            size="sm"
+          >
             <div className="space-y-4">
               <p className="text-[13px] text-gray-500 font-sans leading-relaxed">
                 Your cart contains items from another restaurant. Would you like to clear your cart and start a new order?
@@ -471,24 +447,7 @@ export default function RestaurantPage() {
                 </button>
               </div>
             </div>
-          </PortalModal>
-        )}
-
-        {itemCount > 0 && (
-          <div className="fixed bottom-4 left-4 right-4 z-40 lg:hidden ll-slide-panel">
-            <button
-              onClick={() => router.push('/customer/checkout')}
-              className="w-full rounded-2xl bg-[#5c060a] text-white shadow-[0_18px_40px_rgba(92,6,10,0.28)] px-5 py-4 flex items-center justify-between ll-interactive ll-focus-ring"
-            >
-              <span className="text-left">
-                <span className="block text-[11px] uppercase tracking-widest text-white/70 font-bold">{itemCount} items</span>
-                <span className="block text-[16px] font-black">${totalAmount.toFixed(2)}</span>
-              </span>
-              <span className="text-[12px] font-black uppercase tracking-wider flex items-center gap-2">
-                Checkout <ArrowRight className="h-4 w-4" />
-              </span>
-            </button>
-          </div>
+          </Modal>
         )}
       </div>
     );
@@ -542,6 +501,7 @@ export default function RestaurantPage() {
                 setSearchQuery={setSearchQuery}
                 couponApplied={couponApplied}
                 setCouponApplied={setCouponApplied}
+                isViewOnly={true}
               />
             </div>
 
@@ -566,27 +526,9 @@ export default function RestaurantPage() {
                 }}
               />
             </div>
-
-            {/* Cart Sidebar */}
-            <div className="w-full lg:w-[320px] shrink-0">
-              <div className="sticky top-24">
-                <CartSidebar
-                  items={items}
-                  itemCount={itemCount}
-                  subtotal={subtotal}
-                  taxes={taxes}
-                  deliveryFee={deliveryFee}
-                  discount={discount}
-                  totalAmount={totalAmount}
-                  couponApplied={couponApplied}
-                  setCouponApplied={setCouponApplied}
-                  updateQuantity={updateQuantity}
-                  router={router}
-                />
-              </div>
-            </div>
           </div>
         </div>
+
 
         {/* Item Detail Modal */}
         {selectedItem && (

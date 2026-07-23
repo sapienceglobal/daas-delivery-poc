@@ -183,7 +183,7 @@ export const updateRestaurant = asyncHandler(async (req, response) => {
     'name', 'description', 'cuisine', 'phone', 'email', 'website',
     'address', 'location', 'deliveryFee', 'minimumOrder', 'deliveryRadius',
     'acceptsOnlineOrders', 'acceptsDineIn', 'acceptsPickup', 'autoAcceptOrders',
-    'preparationTime'
+    'preparationTime', 'prepTime'
   ];
 
   for (const key of allowed) {

@@ -43,6 +43,7 @@ const RestaurantSchema = new mongoose.Schema({
   reviewCount: { type: Number, default: 0, min: 0 },
 
   // ── Delivery Info ─────────────────────────────────────────────────────
+  prepTime: { type: Number, default: 15 }, // Estimated prep time in minutes
   deliveryTime: { type: String, default: '20-30 min' },
   distance: { type: String, default: '1.0 miles' },
   deliveryFee: { type: Number, default: 0, min: 0 },

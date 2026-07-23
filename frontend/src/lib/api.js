@@ -128,6 +128,7 @@ export const authAPI = {
 export const restaurantAPI = {
   getAll: (params = '') => api.get(`/api/restaurants${params ? '?' + params : ''}`),
   getById: (id) => api.get(`/api/restaurants/${id}`),
+  getEta: (id, address) => api.get(`/api/restaurants/${id}/eta${address ? `?address=${encodeURIComponent(address)}` : ''}`),
   getNearby: (lat, lng, maxDistance) => api.get(`/api/restaurants/nearby?lat=${lat}&lng=${lng}&maxDistance=${maxDistance || 15}`),
   search: (q) => api.get(`/api/restaurants/search?q=${encodeURIComponent(q)}`),
   getCuisines: () => api.get('/api/restaurants/cuisines'),

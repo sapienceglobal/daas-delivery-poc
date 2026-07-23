@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { protect, authorize } from '../middleware/auth.js';
 import * as restaurantController from '../controllers/restaurantController.js';
+import { getRestaurantETA } from '../controllers/etaController.js';
 
 const router = Router();
 
@@ -11,6 +12,7 @@ router.get('/search', restaurantController.searchRestaurants);
 router.get('/cuisines', restaurantController.getCuisines);
 router.get('/merchant/my', protect, authorize('merchant'), restaurantController.getMerchantRestaurant);
 router.get('/:id', restaurantController.getRestaurantById);
+router.get('/:id/eta', getRestaurantETA);
 
 // ── Merchant Routes ─────────────────────────────────────────────────────────
 router.post('/', protect, authorize('merchant', 'admin'), restaurantController.createRestaurant);

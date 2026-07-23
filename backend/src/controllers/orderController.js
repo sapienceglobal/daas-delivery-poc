@@ -170,9 +170,16 @@ const getTrustedDeliveryQuote = async ({ restaurant, address, subtotal, schedule
       quote
     };
   } catch (err) {
-    // Only block if our own simulation explicitly rejects it
-    if (err.message === 'OUT_OF_SERVICE_AREA') {
-      throw new AppError('Delivery is not available for this location. It is outside our service area.', 400);
+    const errReason = err.response?.data?.reason || err.response?.data?.error?.reason;
+    if (errReason === 'distance_too_long' || err.message === 'OUT_OF_SERVICE_AREA') {
+      logger.warn('DoorDash distance_too_long or out of bounds (possible geocoding confusion). Falling back to default fee.', {
+        address,
+        restaurantId: restaurant._id
+      });
+      return {
+        deliveryFee: roundMoney(restaurant.deliveryFee || 0),
+        quote: null
+      };
     }
     
     // For all other DoorDash errors (including fake seed addresses that DoorDash can't resolve),
