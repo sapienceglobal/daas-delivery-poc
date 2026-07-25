@@ -4,14 +4,14 @@ import { CalendarHeart, ArrowRight } from 'lucide-react';
 
 export default function EventsCta({ onQuote }) {
   return (
-    <section className="w-full bg-[#fdfaf6] pb-10 px-6 md:px-10">
+    <section className="w-full bg-[#fdfaf6] pb-10 px-4 md:px-10">
       <div className="max-w-[1300px] mx-auto">
-        <div className="bg-[#7a0b10] rounded-xl p-8 md:p-10 flex flex-col md:flex-row items-center justify-between shadow-lg relative overflow-hidden">
+        <div className="bg-[#7a0b10] rounded-xl p-6 md:p-10 flex flex-col md:flex-row items-center justify-between shadow-lg relative overflow-hidden text-center md:text-left">
           
           {/* subtle background pattern */}
           <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
 
-          <div className="flex items-center space-x-6 relative z-10 mb-6 md:mb-0">
+          <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 relative z-10 mb-6 md:mb-0">
             <div className="w-16 h-16 rounded-xl border border-white/30 flex items-center justify-center text-[#facc15] shrink-0 bg-white/10 backdrop-blur-sm">
               <CalendarHeart className="w-8 h-8" />
             </div>
@@ -27,7 +27,7 @@ export default function EventsCta({ onQuote }) {
 
           <button 
             onClick={onQuote}
-            className="group flex items-center space-x-2 bg-[#facc15] text-[#7a0b10] px-8 py-4 rounded-md font-bold hover:bg-yellow-300 transition-colors shrink-0 relative z-10 shadow-md"
+            className="group flex items-center space-x-2 bg-[#facc15] text-[#7a0b10] px-6 md:px-8 py-3.5 md:py-4 rounded-md font-bold hover:bg-yellow-300 transition-colors shrink-0 relative z-10 shadow-md w-full md:w-auto justify-center"
           >
             <span>GET A FREE QUOTE</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />

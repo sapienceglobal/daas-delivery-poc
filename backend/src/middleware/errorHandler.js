@@ -63,6 +63,11 @@ export const errorHandler = (err, req, res, _next) => {
       stack: err.stack,
       ip: req.ip
     });
+    
+    // Security Hardening: Hide internal error details in production
+    if (process.env.NODE_ENV === 'production' && !err.isOperational) {
+      message = 'An unexpected internal error occurred. Please try again later.';
+    }
   } else {
     logger.warn(`[${req.method}] ${req.originalUrl} — ${statusCode} ${message}`);
   }
@@ -70,6 +75,6 @@ export const errorHandler = (err, req, res, _next) => {
   res.status(statusCode).json({
     success: false,
     message,
-    ...(process.env.SHOW_STACK_TRACES === 'true' && { stack: err.stack })
+    ...(process.env.NODE_ENV !== 'production' && process.env.SHOW_STACK_TRACES === 'true' && { stack: err.stack })
   });
 };

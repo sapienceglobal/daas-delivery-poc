@@ -14,10 +14,10 @@ const getCategoryIcon = (categoryName) => {
   return Utensils; // Default icon
 };
 
-export default function CategorySidebar({ 
-  categories, 
-  activeCategory, 
-  setActiveCategory, 
+export default function CategorySidebar({
+  categories,
+  activeCategory,
+  setActiveCategory,
   setSearchQuery,
   couponApplied,
   setCouponApplied,
@@ -28,17 +28,17 @@ export default function CategorySidebar({
 
   return (
     <div className="space-y-6 ll-reveal">
-      
+
       {/* ─── 1. CATEGORIES LIST ─── */}
-      <div className="bg-[#ffffff] rounded-lg border border-[#e5e7eb] shadow-sm overflow-hidden">
-        <div className="bg-[#7a0b10] text-[#ffffff] px-5 py-3 font-bold uppercase tracking-wider text-[11px]">
+      <div className="bg-[#ffffff] rounded-lg lg:border lg:border-[#e5e7eb] lg:shadow-sm overflow-hidden">
+        <div className="hidden lg:block bg-[#7a0b10] text-[#ffffff] px-5 py-3 font-bold uppercase tracking-wider text-[11px]">
           CATEGORIES
         </div>
-        <nav className="flex flex-col">
+        <nav className="flex flex-row overflow-x-auto no-scrollbar lg:flex-col snap-x snap-mandatory px-4 lg:px-0 gap-2 lg:gap-0 pb-2 lg:pb-0">
           {categories.map((cat) => {
             const isActive = !searchQuery.trim() && activeCategory === cat._id;
             const Icon = getCategoryIcon(cat.name);
-            
+
             return (
               <button
                 key={cat._id}
@@ -46,20 +46,20 @@ export default function CategorySidebar({
                   setActiveCategory(cat._id);
                   setSearchQuery('');
                 }}
-                className={`w-full flex items-center justify-between px-5 py-3 text-[13px] font-bold border-b border-[#f3f4f6] last:border-0 ll-interactive ll-focus-ring
+                className={`shrink-0 snap-start flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 text-[13px] font-bold border lg:border-0 lg:border-b border-[#e5e7eb] lg:border-[#f3f4f6] rounded-full lg:rounded-none lg:w-full lg:justify-between last:border-0 ll-interactive ll-focus-ring whitespace-nowrap
                   ${isActive
-                    ? 'bg-[#e8a020] text-[#1a1a1a]'
+                    ? 'bg-[#e8a020] text-[#1a1a1a] border-[#e8a020]'
                     : 'bg-[#ffffff] text-[#1a1a1a] hover:bg-[#f9fafb] hover:text-[#cd131b]'
                   }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 lg:gap-3">
                   {/* आइकॉन का कलर एक्टिव स्टेट के हिसाब से बदलेगा */}
                   <Icon className={`w-4 h-4 stroke-[2px] ${isActive ? 'text-[#1a1a1a]' : 'text-[#7a0b10]'}`} />
                   <span>{cat.name}</span>
                 </div>
-                
+
                 {/* काउंट बैज */}
-                <span className={`text-[10px] rounded-full px-2 py-0.5 font-bold ${isActive ? 'bg-black/15 text-[#1a1a1a]' : 'bg-[#f3f4f6] text-[#6b7280]'}`}>
+                <span className={`hidden lg:inline-block text-[10px] rounded-full px-2 py-0.5 font-bold ${isActive ? 'bg-black/15 text-[#1a1a1a]' : 'bg-[#f3f4f6] text-[#6b7280]'}`}>
                   {cat.items?.length || 0}
                 </span>
               </button>
@@ -68,13 +68,13 @@ export default function CategorySidebar({
         </nav>
       </div>
 
-      {/* ─── 2. PROMO OFFER CARD ─── */}
-      <div className="relative rounded-xl p-6 text-center text-[#ffffff] overflow-hidden shadow-lg border border-[#222222] mt-6">
-        
+      {/* ─── 2. PROMO OFFER CARD (Desktop Only) ─── */}
+      <div className="hidden lg:block relative rounded-xl p-6 text-center text-[#ffffff] overflow-hidden shadow-lg border border-[#222222] mt-6">
+
         {/* बैकग्राउंड इमेज और डार्क ओवरले (मसालों वाले बैकग्राउंड के लिए) */}
-        <div 
+        <div
           className="absolute inset-0 opacity-30 bg-cover bg-center mix-blend-luminosity"
-          style={{ backgroundImage: "url('/images/branded/lassi-lounge/menu-hero.jpg')" }} 
+          style={{ backgroundImage: "url('/images/branded/lassi-lounge/menu-hero.jpg')" }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#111111]/90 via-[#0a0a0a]/95 to-[#000000] -z-10" />
 
@@ -85,37 +85,37 @@ export default function CategorySidebar({
             <Gift className="h-8 w-8 stroke-[1.5]" />
             <span className="opacity-50 font-light ml-3 text-lg">✨</span>
           </div>
-          
+
           <h4 className="text-[16px] font-serif font-black tracking-wide text-[#ffffff] mb-1">
             GET 10% OFF
           </h4>
           <p className="text-[9px] text-[#a1a1aa] uppercase tracking-widest font-bold mb-5">
             ON YOUR FIRST ORDER!
           </p>
-          
+
           <div className="mb-5">
             <span className="block text-[#a1a1aa] text-[10px] mb-1.5">Use Code:</span>
             <div className="border border-dashed border-[#e8a020] rounded-md py-1.5 px-6 inline-block text-[13px] font-bold tracking-widest text-[#e8a020]">
               LASSI10
             </div>
           </div>
-          
-          <button 
+
+          <button
             onClick={() => {
               if (isViewOnly) {
                 router.push('/customer/restaurant/lassi-lounge?tab=order');
               } else {
                 setCouponApplied(true);
               }
-            }} 
+            }}
             className="bg-[#e8a020] hover:bg-[#d68f13] text-[#1a1a1a] text-[11px] uppercase tracking-wide font-black w-full rounded-md py-2.5 shadow-[0_4px_15px_rgba(232,160,32,0.2)] ll-interactive ll-focus-ring"
           >
             {isViewOnly ? 'ORDER NOW' : (couponApplied ? 'APPLIED!' : 'APPLY')}
           </button>
         </div>
-        
+
       </div>
-      
+
     </div>
   );
 }

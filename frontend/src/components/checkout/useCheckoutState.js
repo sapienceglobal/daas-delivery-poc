@@ -627,10 +627,19 @@ export function useCheckoutState() {
 
   const executeOrderCreation = async (paymentIntentId = null) => {
     try {
+      let finalPaymentMethod = paymentMethod;
+      let savedCardId = undefined;
+      
+      if (paymentMethod && paymentMethod.startsWith('saved_card_')) {
+        savedCardId = paymentMethod.replace('saved_card_', '');
+        finalPaymentMethod = 'credit_card';
+      }
+
       const orderData = {
         ...checkoutPayload,
         address: compiledAddress,
-        paymentMethod,
+        paymentMethod: finalPaymentMethod,
+        savedCardId,
         courierNotes: deliveryInstructions || undefined,
         stripePaymentIntentId: paymentIntentId,
       };

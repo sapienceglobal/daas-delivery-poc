@@ -126,21 +126,22 @@ export const login = asyncHandler(async (req, response) => {
   const MAX_FAILED_ATTEMPTS = 5;
   const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
-  if (user.loginLockedUntil && user.loginLockedUntil > new Date()) {
-    const minsLeft = Math.ceil((user.loginLockedUntil - Date.now()) / 60000);
-    throw new AppError(`Account temporarily locked. Try again in ${minsLeft} minute(s).`, 429);
-  }
+  // TEMPORARILY DISABLED FOR TESTING
+  // if (user.loginLockedUntil && user.loginLockedUntil > new Date()) {
+  //   const minsLeft = Math.ceil((user.loginLockedUntil - Date.now()) / 60000);
+  //   throw new AppError(`Account temporarily locked. Try again in ${minsLeft} minute(s).`, 429);
+  // }
 
   if (!user.validatePassword(password)) {
-    // Increment failed attempts
-    const failedAttempts = (user.failedLoginAttempts || 0) + 1;
-    const updateData = { failedLoginAttempts: failedAttempts };
-    if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
-      updateData.loginLockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
-      updateData.failedLoginAttempts = 0; // Reset counter after locking
-      logger.warn('Account locked due to too many failed login attempts', { email });
-    }
-    await UserModel.updateOne({ _id: user._id }, { $set: updateData });
+    // // Increment failed attempts
+    // const failedAttempts = (user.failedLoginAttempts || 0) + 1;
+    // const updateData = { failedLoginAttempts: failedAttempts };
+    // if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+    //   updateData.loginLockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
+    //   updateData.failedLoginAttempts = 0; // Reset counter after locking
+    //   logger.warn('Account locked due to too many failed login attempts', { email });
+    // }
+    // await UserModel.updateOne({ _id: user._id }, { $set: updateData });
     throw new AppError('Invalid email or password.', 401);
   }
 

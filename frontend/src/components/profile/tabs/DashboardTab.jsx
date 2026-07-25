@@ -15,8 +15,8 @@ export default function DashboardTab({ user, onNavigate }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-[24px] font-black text-[#1a1a1a]">Overview</h2>
-          <p className="text-[14px] text-[#6b7280]">Welcome back, {user?.name?.split(' ')[0]}!</p>
+          <h2 className="text-[20px] sm:text-[24px] font-black text-[#1a1a1a]">Overview</h2>
+          <p className="text-[13px] sm:text-[14px] text-[#6b7280]">Welcome back, {user?.name?.split(' ')[0]}!</p>
         </div>
       </div>
 
@@ -24,7 +24,7 @@ export default function DashboardTab({ user, onNavigate }) {
         {/* Loyalty Points */}
         <div 
           onClick={() => onNavigate('loyalty')}
-          className="bg-white rounded-2xl p-6 border border-[#eadfdb] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#b47b80] transition-colors group"
+          className="bg-white rounded-2xl p-4 sm:p-6 border border-[#eadfdb] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#b47b80] transition-colors group"
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-[#fcf3e3] flex items-center justify-center">
@@ -41,7 +41,7 @@ export default function DashboardTab({ user, onNavigate }) {
         {/* Orders */}
         <div 
           onClick={() => onNavigate('orders')}
-          className="bg-white rounded-2xl p-6 border border-[#eadfdb] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#b47b80] transition-colors group"
+          className="bg-white rounded-2xl p-4 sm:p-6 border border-[#eadfdb] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#b47b80] transition-colors group"
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-[#f4f7f9] flex items-center justify-center">
@@ -58,9 +58,9 @@ export default function DashboardTab({ user, onNavigate }) {
         {/* Default Address */}
         <div 
           onClick={() => onNavigate('addresses')}
-          className="bg-white rounded-2xl p-6 border border-[#eadfdb] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#b47b80] transition-colors group"
+          className="bg-white rounded-2xl p-4 sm:p-6 border border-[#eadfdb] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#b47b80] transition-colors group min-w-0"
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 min-w-0">
             <div className="w-12 h-12 rounded-full bg-[#f1fae8] flex items-center justify-center shrink-0">
               <MapPin className="h-6 w-6 text-[#65a30d]" />
             </div>
@@ -79,7 +79,7 @@ export default function DashboardTab({ user, onNavigate }) {
         {/* Payment Methods */}
         <div 
           onClick={() => onNavigate('payments')}
-          className="bg-white rounded-2xl p-6 border border-[#eadfdb] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#b47b80] transition-colors group"
+          className="bg-white rounded-2xl p-4 sm:p-6 border border-[#eadfdb] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#b47b80] transition-colors group"
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-[#fdf2f2] flex items-center justify-center">

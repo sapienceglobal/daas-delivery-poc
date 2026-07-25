@@ -1,4 +1,4 @@
-import { createPaymentIntent, createSetupIntent as createStripeSetupIntent, handleWebhook } from '../services/stripeService.js';
+import { createPaymentIntent, createSetupIntent as createStripeSetupIntent, handleWebhook, createCustomer } from '../services/stripeService.js';
 import Order from '../models/Order.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import logger from '../utils/logger.js';
@@ -40,7 +40,21 @@ export const createIntent = asyncHandler(async (req, res) => {
   let verifiedAmount = Number(amount);
   const metadata = {};
   if (orderId) metadata.orderId = orderId.toString();
+
+  let stripeCustomerId = req.user?.stripeCustomerId || null;
+  if (req.user && !stripeCustomerId) {
+    try {
+      const customer = await createCustomer(req.user.email, req.user.name || 'DaaS User', { userId: req.user._id.toString() });
+      stripeCustomerId = customer.id;
+      req.user.stripeCustomerId = stripeCustomerId;
+      await req.user.save();
+    } catch (err) {
+      logger.warn('Failed to create stripe customer during createIntent', err);
+    }
+  }
+
   if (req.user?._id) metadata.userId = req.user._id.toString();
+  if (req.tenantDb?.name) metadata.tenantDbName = req.tenantDb.name;
 
   if (restaurantId && items?.length) {
     const prePricing = await calculateOrderPricing({
@@ -84,7 +98,7 @@ export const createIntent = asyncHandler(async (req, res) => {
     throw new Error('Amount is required');
   }
 
-  const paymentIntent = await createPaymentIntent(verifiedAmount, metadata);
+  const paymentIntent = await createPaymentIntent(verifiedAmount, metadata, stripeCustomerId);
 
   res.status(200).json({
     data: {
@@ -107,8 +121,23 @@ export const createSetupIntent = asyncHandler(async (req, res) => {
   const metadata = {
     userId: req.user?._id?.toString()
   };
+  if (req.tenantDb?.name) {
+    metadata.tenantDbName = req.tenantDb.name;
+  }
 
-  const setupIntent = await createStripeSetupIntent(metadata);
+  let stripeCustomerId = req.user?.stripeCustomerId || null;
+  if (req.user && !stripeCustomerId) {
+    try {
+      const customer = await createCustomer(req.user.email, req.user.name || 'DaaS User', { userId: req.user._id.toString() });
+      stripeCustomerId = customer.id;
+      req.user.stripeCustomerId = stripeCustomerId;
+      await req.user.save();
+    } catch (err) {
+      logger.warn('Failed to create stripe customer during createSetupIntent', err);
+    }
+  }
+
+  const setupIntent = await createStripeSetupIntent(metadata, stripeCustomerId);
 
   res.status(200).json({
     data: {

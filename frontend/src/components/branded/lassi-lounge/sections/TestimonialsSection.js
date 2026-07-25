@@ -19,6 +19,29 @@ export default function TestimonialsSection() {
   const { eyebrow, reviews } = testimonialsContent;
   const [cardsPerPage, setCardsPerPage] = useState(3);
   const [page, setPage] = useState(0);
+  
+  // Swipe handling states
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) goToPage(page + 1);
+    if (isRightSwipe) goToPage(page - 1);
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -64,7 +87,11 @@ export default function TestimonialsSection() {
             <ChevronLeft size={24} />
           </button>
 
-          <div className="flex-1 overflow-hidden px-1 py-2 -mx-1">
+          <div className="flex-1 overflow-hidden px-1 py-2 -mx-1"
+               onTouchStart={onTouchStart}
+               onTouchMove={onTouchMove}
+               onTouchEnd={onTouchEnd}
+          >
             <div 
               className="flex"
               style={{ 

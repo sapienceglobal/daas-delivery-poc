@@ -27,7 +27,7 @@ const FEATURES = [
 
 export default function EventsHero() {
   return (
-    <section className="relative w-full h-[450px] md:h-[500px] flex items-center justify-start overflow-hidden pt-10">
+    <section className="relative w-full h-[520px] sm:h-[450px] md:h-[500px] flex items-center justify-start overflow-hidden pt-10">
       {/* Background Image */}
       <div 
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
@@ -47,7 +47,7 @@ export default function EventsHero() {
             Make Every Occasion
           </h2>
           
-          <h1 className="text-[52px] md:text-[76px] font-bold uppercase text-white tracking-tight leading-[0.9] mb-2" style={{ fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
+          <h1 className="text-[42px] sm:text-[52px] md:text-[76px] font-bold uppercase text-white tracking-tight leading-[0.9] mb-2" style={{ fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
             EXTRA SPECIAL
           </h1>
           

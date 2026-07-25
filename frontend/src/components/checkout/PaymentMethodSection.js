@@ -271,26 +271,25 @@ export default function PaymentMethodSection({
             </div>
             </div>
 
-            <div className="flex items-center justify-between pt-6 mt-2 border-t border-[#e5e7eb]">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-6 mt-2 border-t border-[#e5e7eb]">
               <button 
                 type="button"
                 onClick={onBack} 
-                className="font-bold text-[14px] text-[#7a0b10] bg-[#ffffff] border border-[#e5e7eb] hover:bg-[#fffaf9] hover:border-[#7a0b10] py-2.5 px-6 rounded-lg flex items-center gap-2 ll-interactive ll-focus-ring"
+                className="w-full sm:w-auto font-bold text-[14px] text-[#7a0b10] bg-[#ffffff] border border-[#e5e7eb] hover:bg-[#fffaf9] hover:border-[#7a0b10] py-2.5 px-6 rounded-lg flex items-center justify-center gap-2 ll-interactive ll-focus-ring"
               >
                 <span>&larr;</span> Back to Cart
               </button>
-              {!(orderType === 'delivery' && quoteError) ? (
-                <button
-                  type="submit"
-                  className="font-bold text-[14px] text-[#ffffff] bg-[#7a0b10] hover:bg-[#5e080c] py-2 px-6 rounded-lg shadow-sm flex items-center gap-2 ll-interactive ll-focus-ring"
-                >
-                  Review Order <span>&rarr;</span>
-                </button>
-              ) : (
-                <span className="text-[13px] font-bold text-[#ef4444] bg-[#fef2f2] border border-[#fca5a5] px-4 py-2.5 rounded-lg select-none">
-                  Delivery Unavailable
-                </span>
-              )}
+              <button
+                type="submit"
+                disabled={orderType === 'delivery' && quoteError}
+                className={`w-full sm:w-auto font-bold text-[14px] text-[#ffffff] py-2 px-6 rounded-lg flex items-center justify-center gap-2 shadow-sm ${
+                  orderType === 'delivery' && quoteError 
+                    ? 'bg-[#d1d5db] cursor-not-allowed text-[#9ca3af] shadow-none' 
+                    : 'bg-[#7a0b10] hover:bg-[#5e080c] ll-interactive ll-focus-ring'
+                }`}
+              >
+                Review Order <span>&rarr;</span>
+              </button>
             </div>
           </form>
         </div>

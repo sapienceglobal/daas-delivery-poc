@@ -23,19 +23,19 @@ export default function BookTableHero() {
           
           {/* Subheading - Golden Cursive */}
           <h2 
-            className="text-[34px] md:text-[46px] text-[#e8a020] mb-0 drop-shadow-md font-medium tracking-wide"
+            className="text-[28px] md:text-[46px] text-[#e8a020] mb-0 drop-shadow-md font-medium tracking-wide"
             style={{ fontFamily: "'Dancing Script', 'Great Vibes', cursive, serif", fontStyle: 'italic' }}
           >
             Reserve Your Table
           </h2>
           
           {/* Main Heading - Tall, Bold, Tight Spacing */}
-          <h1 className="text-[64px] md:text-[88px] font-black text-white uppercase tracking-tighter leading-[0.85] mb-5 drop-shadow-2xl font-sans" style={{ transform: 'scaleY(1.05)', transformOrigin: 'left' }}>
+          <h1 className="text-[48px] md:text-[88px] font-black text-white uppercase tracking-tighter leading-[0.85] mb-4 md:mb-5 drop-shadow-2xl font-sans" style={{ transform: 'scaleY(1.05)', transformOrigin: 'left' }}>
             BOOK A TABLE
           </h1>
           
           {/* Description Paragraph - Exact Line Wrap matching the image */}
-          <p className="max-w-[430px] text-[15px] md:text-[17px] text-white/90 leading-[1.6] font-medium drop-shadow-md">
+          <p className="max-w-[430px] text-[14px] md:text-[17px] text-white/90 leading-[1.5] md:leading-[1.6] font-medium drop-shadow-md">
             Whether it's a cozy dinner for two or a celebration with your loved ones, we've got the perfect spot for you.
           </p>
           

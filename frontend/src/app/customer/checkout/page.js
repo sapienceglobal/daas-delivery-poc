@@ -45,10 +45,10 @@ export default function CheckoutPage() {
 
       <CheckoutStepper step={c.step} />
 
-      <div className="mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8 py-8 flex-1">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
+      <div className="mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8 py-4 lg:py-8 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-start relative">
           
-          <div className="lg:col-span-8 space-y-6 ll-stagger">
+          <div className="lg:col-span-8 space-y-6 ll-stagger order-2 lg:order-1">
             <DeliveryInfoSection
               step={c.step} setStep={c.setStep} t={t}
               fullName={c.fullName} setFullName={c.setFullName}
@@ -65,6 +65,7 @@ export default function CheckoutPage() {
               onSelectSavedAddress={c.handleSelectSavedAddress}
               onUseCurrentLocation={c.handleUseCurrentLocation}
               restaurant={c.restaurant}
+              subtotal={c.subtotal}
               compiledAddress={c.compiledAddress}
               onContinue={c.handleContinueToPayment}
               onAddressLine1Change={c.handleAddressLine1Change}
@@ -92,7 +93,7 @@ export default function CheckoutPage() {
 
           </div>
 
-          <div className="lg:col-span-4 space-y-6 ll-reveal">
+          <div className="lg:col-span-4 space-y-6 ll-reveal order-1 lg:order-2">
             <div className="sticky top-24 space-y-5">
               <OrderSummaryCard
                 t={t}
@@ -105,14 +106,21 @@ export default function CheckoutPage() {
                 user={c.user} useLoyaltyPoints={c.useLoyaltyPoints} setUseLoyaltyPoints={c.setUseLoyaltyPoints}
                 total={c.total}
                 quoteError={c.quoteError}
+                minOrderAmount={c.restaurant?.minOrderAmount || 0}
               />
-
-              {c.isSingleRestaurantMode && <LoyaltySignupBanner />}
-
-              <SupportCard isSingleRestaurantMode={c.isSingleRestaurantMode} t={t} />
+              <div className="hidden lg:block space-y-5">
+                {c.isSingleRestaurantMode && <LoyaltySignupBanner />}
+                <SupportCard isSingleRestaurantMode={c.isSingleRestaurantMode} t={t} />
+              </div>
             </div>
           </div>
           
+        </div>
+
+        {/* Mobile only: Loyalty and Support at the bottom of the grid */}
+        <div className="lg:hidden mt-6 space-y-5">
+          {c.isSingleRestaurantMode && <LoyaltySignupBanner />}
+          <SupportCard isSingleRestaurantMode={c.isSingleRestaurantMode} t={t} />
         </div>
       </div>
 

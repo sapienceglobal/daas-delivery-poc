@@ -17,10 +17,10 @@ export default function OrderHistoryCard({ order, onReorder, onViewDetails }) {
   const canReorder = order.status !== 'cancelled';
 
   return (
-    <article className="rounded-2xl border border-[#e8dcd8] bg-[#fffdfa] p-5 shadow-sm grid grid-cols-1 xl:grid-cols-[160px_190px_1fr_140px] gap-6 items-center hover:shadow-md transition-shadow duration-300">
+    <article className="rounded-2xl border border-[#e8dcd8] bg-[#fffdfa] p-4 xl:p-5 shadow-sm grid grid-cols-1 xl:grid-cols-[160px_190px_1fr_140px] gap-4 xl:gap-6 items-center hover:shadow-md transition-shadow duration-300">
       
       {/* Col 1: Order ID & Date/Time */}
-      <div className="xl:border-r border-[#e8dcd8] xl:pr-5 h-full flex flex-col justify-center">
+      <div className="border-b border-[#e8dcd8] pb-4 xl:border-b-0 xl:pb-0 xl:border-r xl:pr-5 h-full flex flex-col justify-center">
         <p className="text-[11px] font-bold text-[#6b7280] uppercase tracking-wider">Order ID</p>
         <h3 className="mt-1 text-[18px] font-black text-[#7a0b10] leading-tight break-words">
           {formatOrderId(order)}
@@ -32,7 +32,7 @@ export default function OrderHistoryCard({ order, onReorder, onViewDetails }) {
       </div>
 
       {/* Col 2: Status & Address & Total */}
-      <div className="xl:border-r border-[#e8dcd8] xl:pr-5 h-full flex flex-col justify-center items-start">
+      <div className="border-b border-[#e8dcd8] pb-4 xl:border-b-0 xl:pb-0 xl:border-r xl:pr-5 h-full flex flex-col justify-center items-start">
         <span className={`inline-flex items-center gap-2 rounded-lg px-3 py-1 text-[12.5px] font-black tracking-wide ${statusMeta.className}`}>
           <StatusIcon className="h-4 w-4" /> {statusMeta.label}
         </span>
@@ -74,7 +74,7 @@ export default function OrderHistoryCard({ order, onReorder, onViewDetails }) {
       </div>
 
       {/* Col 4: Action Buttons */}
-      <div className="flex xl:flex-col items-center xl:items-stretch justify-center gap-4 h-full pt-4 xl:pt-0">
+      <div className="flex flex-col sm:flex-row xl:flex-col items-center xl:items-stretch justify-center gap-3 xl:gap-4 h-full pt-4 xl:pt-0">
         {canReorder && (
           <button
             onClick={onReorder}

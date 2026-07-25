@@ -129,11 +129,11 @@ module.exports = {
       xl:   cssVar('shadow-xl'),
       '2xl': cssVar('shadow-2xl'),
     },
-    transitionDuration: theme.transitionDuration,
-    transitionTimingFunction: theme.transitionTimingFunction,
     zIndex: theme.zIndex,
 
     extend: {
+      transitionDuration: theme.transitionDuration,
+      transitionTimingFunction: theme.transitionTimingFunction,
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0', transform: 'translateY(8px)' },

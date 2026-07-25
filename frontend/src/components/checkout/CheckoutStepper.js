@@ -9,7 +9,7 @@ const STEPS = [
 
 export default function CheckoutStepper({ step }) {
   return (
-    <div className="py-8 bg-[#ffffff] border-b border-[#e5e7eb]">
+    <div className="hidden lg:block py-8 bg-[#ffffff] border-b border-[#e5e7eb]">
       <div className="mx-auto max-w-[900px] px-4">
         <div className="flex items-center justify-between relative">
           {STEPS.map((s, idx) => {
@@ -28,7 +28,7 @@ export default function CheckoutStepper({ step }) {
                   {isCompleted ? <Check className="h-5 w-5 text-[#ffffff]" strokeWidth={3} /> : s.num}
                 </div>
                 <span
-                  className={`text-[13px] mt-3 text-center tracking-wide ${
+                  className={`hidden md:block text-[13px] mt-3 text-center tracking-wide ${
                     isActive
                       ? 'text-[#1a1a1a] font-bold'
                       : 'text-[#4b5563] font-medium'

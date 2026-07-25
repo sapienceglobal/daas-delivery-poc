@@ -54,8 +54,8 @@ export default function BookTablePage({ restaurantId, initialUser }) {
       <BookTableHero />
 
       {/* Main Content Layout */}
-      <main className="mx-auto max-w-[1200px] px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-10 items-start">
+      <main className="mx-auto max-w-[1200px] px-4 md:px-6 py-8 md:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 md:gap-10 items-start">
           
           {/* Left Column: Form */}
           <div className="w-full">

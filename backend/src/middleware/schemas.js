@@ -110,6 +110,7 @@ export const createOrderSchema = Joi.object({
   scheduledTime: Joi.string().allow(null).optional(),
   tableNumber: Joi.alternatives().try(Joi.string(), Joi.number()).allow(null).optional(),
   stripePaymentIntentId: Joi.string().max(200).allow('', null).optional(),
+  savedCardId: Joi.string().max(200).allow('', null).optional(),
   useLoyaltyPoints: Joi.boolean().default(false)
 });
 

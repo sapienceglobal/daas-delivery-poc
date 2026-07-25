@@ -30,6 +30,7 @@ export function CartProvider({ children }) {
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [hydratedOwner, setHydratedOwner] = useState(null);
   const [serverHydratedOwner, setServerHydratedOwner] = useState(null);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const latestCartRef = useRef({ items: [], restaurant: null, specialInstructions: '', owner: null });
   const applyingServerCartRef = useRef(false);
   const saveTimerRef = useRef(null);
@@ -287,6 +288,9 @@ export function CartProvider({ children }) {
     setSpecialInstructions('');
   }, []);
 
+  const openCart = useCallback(() => setIsCartOpen(true), []);
+  const closeCart = useCallback(() => setIsCartOpen(false), []);
+
   // ── Computed values ───────────────────────────────────────────────────
   const itemCount = items.reduce((sum, i) => sum + (i.quantity || i.qty || 0), 0);
   const subtotal = items.reduce((sum, i) => sum + (i.lineTotal || ((i.price || 0) * (i.quantity || i.qty || 1))), 0);
@@ -303,6 +307,9 @@ export function CartProvider({ children }) {
     updateQuantity,
     removeItem,
     clearCart,
+    isCartOpen,
+    openCart,
+    closeCart,
   };
 
   return (

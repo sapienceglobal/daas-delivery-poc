@@ -41,22 +41,22 @@ export default function LoyaltyTab({ user }) {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-[24px] font-black text-[#1a1a1a]">Loyalty Points</h2>
-        <p className="text-[14px] text-[#6b7280]">Earn points with every order and redeem them for rewards.</p>
+        <h2 className="text-[20px] sm:text-[24px] font-black text-[#1a1a1a]">Loyalty Points</h2>
+        <p className="text-[13px] sm:text-[14px] text-[#6b7280]">Earn points with every order and redeem them for rewards.</p>
       </div>
 
       {/* Main Points Card */}
-      <div className="bg-[#600508] rounded-3xl p-8 md:p-10 text-white relative overflow-hidden shadow-lg border border-[#7a0b10]">
+      <div className="bg-[#600508] rounded-3xl p-6 md:p-10 text-white relative overflow-hidden shadow-lg border border-[#7a0b10]">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#7a0b10] rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/3" />
         
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8">
           <div>
-            <p className="text-[14px] font-bold text-white/80 uppercase tracking-widest mb-2 flex items-center gap-2">
-              <Award className="h-5 w-5 text-[#f5a623]" />
+            <p className="text-[13px] sm:text-[14px] font-bold text-white/80 uppercase tracking-widest mb-1 sm:mb-2 flex items-center gap-2">
+              <Award className="h-4 w-4 sm:h-5 sm:w-5 text-[#f5a623]" />
               {tier} Member
             </p>
-            <h3 className="text-[48px] font-black leading-none mb-2">{points}</h3>
-            <p className="text-[15px] text-white/90 font-medium">Available Points</p>
+            <h3 className="text-[36px] sm:text-[48px] font-black leading-none mb-1 sm:mb-2">{points}</h3>
+            <p className="text-[14px] sm:text-[15px] text-white/90 font-medium">Available Points</p>
           </div>
 
           <div className="flex-1 max-w-sm bg-black/20 rounded-2xl p-5 border border-white/10 backdrop-blur-md">

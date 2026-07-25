@@ -263,7 +263,7 @@ export default function RestaurantPage() {
         <MenuHero />
 
         {/* ─── 2. BREADCRUMBS & SEARCH ROW ─── */}
-        <div ref={menuTopRef} className="bg-[#ffffff] border-b border-[#e5e7eb] py-4 sticky top-0 z-30 shadow-[0_8px_24px_rgba(122,11,16,0.05)]">
+        <div ref={menuTopRef} className="bg-[#ffffff] border-b border-[#e5e7eb] py-4 sticky lg:relative top-[56px] lg:top-auto z-[60] lg:z-10 shadow-[0_8px_24px_rgba(122,11,16,0.05)]">
           {/* max-w-[1550px] इस्तेमाल किया है ताकि लेआउट इमेज की तरह वाइड (wide) दिखे */}
           <div className="mx-auto max-w-[1550px] px-4 md:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
             
@@ -338,7 +338,7 @@ export default function RestaurantPage() {
             </div>
             
             {/* === MIDDLE CONTENT: DISHES GRID === */}
-            <div ref={dishGridRef} className="lg:col-span-9 w-full min-w-0">
+            <div ref={dishGridRef} className="flex-1 w-full min-w-0">
               <DishGrid
                 filteredItems={filteredItems}
                 searchQuery={searchQuery}
@@ -371,13 +371,13 @@ export default function RestaurantPage() {
               { icon: ChefHat, label: 'Expert Chefs', desc: 'Our chefs bring passion & perfection in every dish.' },
               { icon: ShieldCheck, label: 'Hygienic Kitchen', desc: 'Clean, safe & hygienic kitchen you can trust.' }
             ].map((feat, idx) => (
-              <div key={idx} className={`flex items-start gap-4 px-4 ll-reveal ${idx === 0 ? 'pl-0' : ''}`}>
+              <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3 sm:gap-4 px-0 md:px-4 ll-reveal">
                 <div className="p-3 bg-[#ffffff] border border-[#e5e7eb] rounded-xl shadow-sm shrink-0">
                    <feat.icon className="h-6 w-6 text-[#7a0b10] stroke-[1.5]" />
                 </div>
                 <div>
                   <h4 className="text-[12px] font-black text-[#1a1a1a] uppercase tracking-wider">{feat.label}</h4>
-                  <p className="text-[11px] text-[#6b7280] mt-1.5 leading-relaxed pr-2">{feat.desc}</p>
+                  <p className="text-[11px] text-[#6b7280] mt-1.5 leading-relaxed">{feat.desc}</p>
                 </div>
               </div>
             ))}

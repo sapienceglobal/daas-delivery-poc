@@ -20,7 +20,10 @@ export default function DeliveryInfoSection({
   restaurant, compiledAddress,
   onContinue,
   onAddressLine1Change, suggestions = [], suggestionsLoading, onSelectSuggestion, quoteError, quoteLoading, isLocationLoading,
+  subtotal = 0,
 }) {
+  const minOrderAmount = restaurant?.minOrderAmount || 0;
+  const isMinOrderMet = subtotal >= minOrderAmount;
   return (
     <div className={`rounded-2xl border border-[#e5e7eb] bg-[#ffffff] p-6 shadow-sm ll-interactive ${step === 3 ? 'opacity-85' : ''}`}>
       <div className="flex items-center justify-between mb-6">
@@ -277,9 +280,9 @@ export default function DeliveryInfoSection({
                 </div>
 
                 {/* ORIGINAL QUOTE ERROR LOGIC RETAINED */}
-                {quoteError && (
+                {quoteError && !quoteError.toLowerCase().includes('minimum') && (
                   <p className="text-[#ef4444] text-[11px] font-bold mt-1 flex items-center gap-1 animate-in fade-in duration-200">
-                    <span>&bull;</span> Delivery is unavailable for this location
+                    <span>&bull;</span> {typeof quoteError === 'string' && quoteError !== 'Delivery quote failed' ? quoteError : 'Delivery is unavailable for this location'}
                   </p>
                 )}
 
@@ -316,23 +319,14 @@ export default function DeliveryInfoSection({
               </div>
             )}
 
-            {/* ORIGINAL QUOTE ERROR LOGIC RETAINED */}
-            {orderType === 'delivery' && quoteError && (
+            {/* Minimum Order Amount Error (Contextual to Restaurant Policy) */}
+            {orderType === 'delivery' && quoteError && quoteError.toLowerCase().includes('minimum') && (
               <div className="p-4 bg-[#fef2f2] border border-[#fca5a5] rounded-xl text-[#ef4444] text-xs font-bold mt-4 flex items-start gap-2.5 ll-pop">
                 <span className="text-[14px]">⚠️</span>
                 <span className="leading-relaxed">{quoteError}</span>
               </div>
             )}
 
-            {/* The Continue Button is now inside the form */}
-            {/* <div className="flex items-center justify-end pt-4 mt-2 border-t border-[#e5e7eb]">
-              <button 
-                type="submit" 
-                className="font-bold text-[14px] text-[#ffffff] bg-[#7a0b10] hover:bg-[#5e080c] py-2.5 px-6 rounded-lg shadow-sm flex items-center gap-2 ll-interactive ll-focus-ring"
-              >
-                Continue to Payment <span>&rarr;</span>
-              </button>
-            </div> */}
           </form>
         </div>
       ) : (

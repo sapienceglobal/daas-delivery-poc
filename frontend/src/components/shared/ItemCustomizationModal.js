@@ -51,7 +51,7 @@ export default function ItemCustomizationModal({ item, onClose }) {
 
   // Use createPortal to break out of all parent CSS transforms and stack contexts
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 select-none">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 select-none animate-in fade-in duration-200">
       
       {/* Dark Blur Overlay */}
       <div 

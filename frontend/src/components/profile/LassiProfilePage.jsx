@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ProfileHero from './shared/ProfileHero';
 import AccountSidebar from './shared/AccountSidebar';
-import TrustStrip from './shared/TrustStrip';
 import MyOrdersTab from './tabs/orders/MyOrdersTab';
 import DashboardTab from './tabs/DashboardTab';
 import MyProfileTab from './tabs/MyProfileTab';
@@ -43,10 +42,10 @@ export default function LassiProfilePage({ user, logout, updateUser }) {
 
       {/* Yaha maine max-w-[1160px] ko hata kar max-w-[1440px] kar diya hai 
           taaki left-right ka space kam ho jaye */}
-      <main className="mx-auto max-w-[1440px] px-4 md:px-8 lg:px-12 py-8">
+      <main className="mx-auto max-w-[1440px] px-4 md:px-8 lg:px-12 py-4 md:py-8">
         
         {/* Grid layout jisme left me sidebar (280px) aur right me baaki jagah (1fr) hai */}
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4 md:gap-8 items-start">
           
           {/* Left Sidebar */}
           <AccountSidebar
@@ -70,11 +69,6 @@ export default function LassiProfilePage({ user, logout, updateUser }) {
             {activeNav === 'notifications' && <NotificationsTab user={user} updateUser={updateUser} />}
             {activeNav === 'refer' && <ReferTab user={user} />}
           </div>
-        </div>
-
-        {/* Bottom Trust Strip */}
-        <div className="mt-10">
-          <TrustStrip />
         </div>
       </main>
     </div>

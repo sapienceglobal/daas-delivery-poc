@@ -75,7 +75,7 @@ export default function ReservationForm({ onSubmit }) {
   const formRef = useRef(null);
 
   return (
-    <div ref={formRef} className="bg-white rounded-2xl border border-[#eadfdb] shadow-[0_4px_24px_rgba(0,0,0,0.02)] p-6 md:p-10">
+    <div ref={formRef} className="bg-white rounded-2xl border border-[#eadfdb] shadow-[0_4px_24px_rgba(0,0,0,0.02)] p-4 sm:p-6 md:p-10">
       
       {/* Header */}
       <div className="flex items-center gap-4 mb-10">
@@ -83,7 +83,7 @@ export default function ReservationForm({ onSubmit }) {
           <Calendar className="h-6 w-6 text-white" strokeWidth={2} />
         </div>
         <div className="flex items-center gap-4 flex-1">
-          <h2 className="text-[26px] font-serif font-black text-[#7a0b10] tracking-tight">Make a Reservation</h2>
+          <h2 className="text-[22px] sm:text-[26px] font-serif font-black text-[#7a0b10] tracking-tight">Make a Reservation</h2>
           <div className="flex-1 flex items-center hidden md:flex">
              <div className="h-[1px] bg-[#eadfdb] flex-1"></div>
              <div className="w-2 h-2 rounded-full border border-[#b47b80] mx-1"></div>
@@ -94,8 +94,8 @@ export default function ReservationForm({ onSubmit }) {
         </div>
       </div>
 
-      {/* Progress Steps */}
-      <div className="flex items-center justify-between relative mb-12 max-w-2xl mx-auto">
+      {/* Progress Steps (Desktop Only) */}
+      <div className="hidden md:flex items-center justify-between relative mb-12 max-w-2xl mx-auto">
         {STEPS.map((s, idx) => {
           const isActive = currentStep === s.id;
           const isPast = currentStep > s.id;

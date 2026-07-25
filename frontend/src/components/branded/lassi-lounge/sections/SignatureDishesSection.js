@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import DishCard from '@/components/ui/DishCard';
@@ -18,6 +19,7 @@ export default function SignatureDishesSection() {
 
   const [dishes, setDishes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     async function loadRealSignatureDishes() {
@@ -51,7 +53,7 @@ export default function SignatureDishesSection() {
   }, []);
 
   return (
-    <section className="bg-background-alt on-cream w-full pb-2 pt-4 select-none">
+    <section className="bg-background-alt on-cream w-full pb-2 pt-4 select-none overflow-x-hidden">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-3">
@@ -82,7 +84,15 @@ export default function SignatureDishesSection() {
             ))
           ) : (
             (dishes || []).map((dish) => (
-              <div key={dish._id || dish.id} className="animate-in fade-in zoom-in-95 duration-500 ease-out fill-mode-both">
+              <div 
+                key={dish._id || dish.id} 
+                onClick={() => {
+                  const itemId = dish._id || dish.id;
+                  const resId = dish.restaurantId || 'lassi-lounge';
+                  router.push(`/customer/restaurant/${resId}/item/${itemId}`);
+                }}
+                className="animate-in fade-in zoom-in-95 duration-500 ease-out fill-mode-both cursor-pointer"
+              >
                 <DishCard item={dish} />
               </div>
             ))

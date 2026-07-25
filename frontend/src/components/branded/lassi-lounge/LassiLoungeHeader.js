@@ -1,8 +1,7 @@
 'use client';
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, ShoppingCart, Menu, X } from 'lucide-react';
+import { User, ShoppingCart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { navLinks } from './config';
@@ -15,10 +14,9 @@ import { navLinks } from './config';
  * like checkout/orders — no separate cart state.
  */
 export default function LassiLoungeHeader() {
-  const { items } = useCart();
+  const { items, openCart } = useCart();
   const { isAuthenticated } = useAuth();
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -53,47 +51,21 @@ export default function LassiLoungeHeader() {
           })}
         </nav>
 
-        {/* Right icons */}
+        {/* Right icons (Visible on all screens) */}
         <div className="flex items-center gap-4">
           <a href={isAuthenticated ? "/customer/profile?tab=dashboard" : "/login"} aria-label="Profile" className="text-text hover:text-accent-500">
             <User size={20} />
           </a>
-          <Link href="/customer/checkout" aria-label="Cart" className="relative text-text hover:text-accent-500">
+          <button onClick={openCart} aria-label="Cart" className="relative text-text hover:text-accent-500 bg-transparent border-none p-0 cursor-pointer">
             <ShoppingCart size={20} />
             {cartCount > 0 && (
               <span className="absolute -top-2 -right-2 bg-primary-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                 {cartCount}
               </span>
             )}
-          </Link>
-
-          {/* Mobile menu toggle */}
-          <button
-            type="button"
-            className="lg:hidden text-text"
-            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-            onClick={() => setMobileOpen((prev) => !prev)}
-          >
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
-
-      {/* Mobile nav */}
-      {mobileOpen && (
-        <nav className="lg:hidden flex flex-col gap-3 px-6 pb-4">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMobileOpen(false)}
-              className="text-sm font-semibold text-text hover:text-accent-500"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-      )}
     </header>
   );
 }

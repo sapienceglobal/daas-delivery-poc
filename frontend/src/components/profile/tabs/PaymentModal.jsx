@@ -148,7 +148,7 @@ export default function PaymentModal({ isOpen, onClose, onSuccess }) {
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
-      <div className="w-full max-w-3xl bg-[#ffffff] rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.15)] border border-[#eadfdb] overflow-hidden flex flex-col max-h-[90vh] animate-scale-in">
+      <div className="w-full max-w-3xl bg-[#ffffff] rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.15)] border border-[#eadfdb] overflow-hidden flex flex-col max-h-[90vh] animate-fadeIn">
 
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#e5e7eb] flex items-center justify-between bg-[#fdfcfb]">

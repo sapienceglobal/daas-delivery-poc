@@ -62,13 +62,13 @@ export default function EventInquiryModal({ isOpen, onClose, restaurantId, initi
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-24 pb-8">
+    <div className="fixed inset-0 z-[100] flex items-end md:items-start justify-center p-0 md:p-4 md:pt-24 md:pb-8">
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
       
-      <div className="relative bg-white rounded-2xl w-full max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto ll-soft-scroll shadow-2xl z-10">
+      <div className="relative bg-white rounded-t-2xl md:rounded-2xl w-full max-w-2xl max-h-[90vh] md:max-h-[calc(100vh-8rem)] overflow-y-auto ll-soft-scroll shadow-2xl z-10">
         <div className="sticky top-0 bg-white/95 backdrop-blur-md px-6 py-4 border-b border-[#eadfdb] flex items-center justify-between z-20">
           <div>
             <h2 className="text-[20px] font-black text-[#7a0b10]">Customize Your Event</h2>

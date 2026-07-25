@@ -65,7 +65,10 @@ export function PortalModal({ isOpen, onClose, title, children, size = 'md' }) {
   const sizes = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl' };
 
   return createPortal(
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 select-none">
+    <div 
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 select-none"
+      onClick={(e) => e.stopPropagation()}
+    >
       <div 
         className={`absolute inset-0 bg-[#000000]/60 backdrop-blur-sm transition-opacity duration-300 ease-out ${show ? 'opacity-100' : 'opacity-0'}`} 
         onClick={handleClose} 

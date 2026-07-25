@@ -5,6 +5,8 @@ import { Header } from './Header';
 import { Footer } from './Footer';
 import LassiLoungeHeader from '@/components/branded/lassi-lounge/LassiLoungeHeader';
 import LassiLoungeFooter from '@/components/branded/lassi-lounge/LassiLoungeFooter';
+import CartSidebar from '@/components/ui/CartSidebar';
+import MobileBottomNav from '@/components/shared/MobileBottomNav';
 
 const SINGLE_MODE = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
 
@@ -24,8 +26,10 @@ export default function SiteChrome({ children }) {
   // Industry Standard: Wrap everything in a flex-col with min-h-screen
   if (SINGLE_MODE && !isAdminOrMerchant) {
     return (
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen pb-16 lg:pb-0 relative">
         <LassiLoungeHeader />
+        <CartSidebar />
+        <MobileBottomNav />
         {children}
         <LassiLoungeFooter />
       </div>
@@ -33,8 +37,10 @@ export default function SiteChrome({ children }) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen pb-16 lg:pb-0 relative">
       <Header />
+      <CartSidebar />
+      <MobileBottomNav />
       {children}
       <Footer />
     </div>

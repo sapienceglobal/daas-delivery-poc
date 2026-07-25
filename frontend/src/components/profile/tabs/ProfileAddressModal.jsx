@@ -179,7 +179,7 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-[0_0_40px_rgba(0,0,0,0.15)] border border-[#eadfdb] overflow-visible animate-scale-in flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-[0_0_40px_rgba(0,0,0,0.15)] border border-[#eadfdb] overflow-visible animate-fadeIn flex flex-col max-h-[90vh]">
         <div className="px-6 py-4 border-b border-[#eadfdb] flex items-center justify-between shrink-0">
           <h2 className="text-[20px] font-black text-[#1a1a1a]">
             {addressToEdit ? 'Edit Address' : 'Add New Address'}

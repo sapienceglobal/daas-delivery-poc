@@ -48,10 +48,10 @@ export default function PerfectSettingGrid() {
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+      {/* Grid / Carousel */}
+      <div className="flex flex-row overflow-x-auto snap-x snap-mandatory no-scrollbar md:grid md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 pb-4 -mx-6 px-6 md:mx-0 md:px-0">
         {OCCASIONS.map((occ, idx) => (
-          <div key={idx} className="group cursor-pointer">
+          <div key={idx} className="group cursor-pointer shrink-0 snap-center w-[240px] md:w-auto">
             <div className="overflow-hidden rounded-xl border border-[#eadfdb] bg-white shadow-sm mb-4 aspect-[4/3]">
               <img 
                 src={occ.image} 

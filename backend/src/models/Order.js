@@ -198,7 +198,8 @@ OrderSchema.pre('save', function (next) {
   }
 
   if (!this.externalDeliveryId) {
-    this.externalDeliveryId = `DD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const dbName = this.constructor.db ? this.constructor.db.name : 'daas_poc';
+    this.externalDeliveryId = `DD-${dbName}-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
   }
 
   // Map cart items to DoorDash product fields

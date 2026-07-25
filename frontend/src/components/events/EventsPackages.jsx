@@ -48,7 +48,7 @@ const PACKAGES = [
 
 export default function EventsPackages({ onCustomize }) {
   return (
-    <section className="w-full bg-[#fdfaf6] pb-10 px-6 md:px-10">
+    <section className="w-full bg-[#fdfaf6] pb-10 px-4 md:px-10 overflow-hidden">
       <div className="max-w-[1300px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-10 items-start">
         
         {/* Left Side: Intro */}
@@ -75,13 +75,13 @@ export default function EventsPackages({ onCustomize }) {
         </div>
 
         {/* Right Side: Packages */}
-        <div className="lg:w-[74%] w-full grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="lg:w-[74%] w-full flex flex-row overflow-x-auto snap-x snap-mandatory no-scrollbar md:grid md:grid-cols-3 gap-4 md:gap-5 pb-6 -mx-4 px-4 md:mx-0 md:px-0 md:pb-0">
           {PACKAGES.map((pkg, idx) => (
             <div 
               key={idx} 
-              className={`bg-[#fffdfa] rounded-xl overflow-hidden flex flex-col relative transition-transform duration-300 ${
+              className={`bg-[#fffdfa] rounded-xl overflow-hidden flex flex-col relative transition-transform duration-300 shrink-0 snap-center w-[280px] md:w-auto ${
                 pkg.isPopular 
-                  ? 'border-[1.5px] border-[#7a0b10] shadow-[0_8px_24px_rgba(122,11,16,0.12)] -translate-y-2' 
+                  ? 'border-[1.5px] border-[#7a0b10] shadow-[0_8px_24px_rgba(122,11,16,0.12)] md:-translate-y-2' 
                   : 'border border-[#f0e6e2] shadow-sm hover:shadow-md hover:-translate-y-1 mt-2'
               }`}
             >

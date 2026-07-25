@@ -21,6 +21,17 @@ const statusMap = {
   canceled: 'cancelled'
 };
 
+const statusRank = {
+  pending: 0,
+  accepted: 1,
+  driver_assigned: 2,
+  preparing: 3,
+  ready: 4,
+  picked_up: 5,
+  delivered: 6,
+  cancelled: -1
+};
+
 const getDoorDashStatus = (payload = {}) => {
   return String(
     payload.delivery_status ||
@@ -49,11 +60,18 @@ export const applyDoorDashDeliveryUpdate = (order, payload = {}) => {
   const mappedStatus = statusMap[rawStatus];
 
   if (mappedStatus && order.status !== mappedStatus) {
-    order.status = mappedStatus;
-    order.statusUpdates.push({
-      status: mappedStatus,
-      description: `DoorDash: ${rawStatus}`
-    });
+    const currentRank = statusRank[order.status] ?? 0;
+    const newRank = statusRank[mappedStatus] ?? 0;
+    
+    // Only update if the new status is a forward progression, or if it's a cancellation.
+    // Do not downgrade a manual 'accepted' or 'preparing' status back to 'pending'.
+    if (newRank > currentRank || mappedStatus === 'cancelled') {
+      order.status = mappedStatus;
+      order.statusUpdates.push({
+        status: mappedStatus,
+        description: `DoorDash: ${rawStatus}`
+      });
+    }
   }
 
   const dasher = getDasher(payload);

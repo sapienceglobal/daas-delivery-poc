@@ -95,7 +95,7 @@ export default function DishGrid({
             </div>
           
           {/* Functional Grid/List View Toggles - PERFECT SIZING */}
-          <div className="flex gap-2 ml-1">
+          <div className="hidden sm:flex gap-2 ml-1">
             <button 
               onClick={() => setViewMode('grid')}
               className={`w-[36px] h-[36px] flex items-center justify-center rounded-md border shadow-sm ll-interactive ll-focus-ring

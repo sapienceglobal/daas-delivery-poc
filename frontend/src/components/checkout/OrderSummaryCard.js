@@ -7,9 +7,9 @@ export default function OrderSummaryCard({
   orderType, deliveryFee, quoteLoading, tax, platformFee, serviceFee,
   couponCode, setCouponCode, onApplyCoupon, couponLoading, couponApplied, couponDiscount, onRemoveCoupon,
   user, useLoyaltyPoints, setUseLoyaltyPoints,
-  total,
-  quoteError,
+  total, quoteError, minOrderAmount = 0
 }) {
+  const isMinOrderMet = subtotal >= minOrderAmount;
   return (
     <div className="rounded-2xl border border-[#e5e7eb] bg-[#ffffff] p-6 shadow-sm ll-slide-panel">
       <h3 className="text-[22px] font-bold font-serif text-[#7a0b10] mb-6">Order Summary</h3>
@@ -168,15 +168,9 @@ export default function OrderSummaryCard({
       <div className="border-t border-dashed border-[#d1d5db] pt-6 pb-2 flex items-center justify-between">
         <span className="text-[16px] font-bold uppercase tracking-wider text-[#1a1a1a]">Total Amount</span>
         <span className="text-[28px] font-bold text-[#7a0b10]">
-          {deliveryFee === null ? 'N/A' : `$${total.toFixed(2)}`}
+          {deliveryFee === null && orderType === 'delivery' ? 'N/A' : `$${total.toFixed(2)}`}
         </span>
       </div>
-
-      {orderType === 'delivery' && quoteError && (
-        <div className="text-[#ef4444] text-[12px] font-bold text-center p-2.5 bg-[#fef2f2] border border-[#fca5a5] rounded-xl mt-3 select-none">
-          Delivery is unavailable for this location
-        </div>
-      )}
 
       <div className="mt-6 p-4 rounded-xl bg-[#fffaf9] border border-[#f5ebe9] flex items-start gap-3">
         <ShieldCheck className="h-6 w-6 text-[#7a0b10] shrink-0 mt-0.5" strokeWidth={1.5} />

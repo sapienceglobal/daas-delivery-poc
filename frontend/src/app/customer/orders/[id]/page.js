@@ -15,6 +15,7 @@ import OrderHeaderBanner from '@/components/orders/OrderHeaderBanner';
 import OrderDetailsCard from '@/components/orders/OrderDetailsCard';
 import OrderStatusCard from '@/components/orders/OrderStatusCard';
 import DeliveryInfoCard from '@/components/orders/DeliveryInfoCard';
+import LiveCourierTrackingCard from '@/components/orders/LiveCourierTrackingCard';
 import HelpCard from '@/components/orders/HelpCard';
 import PromoBanner from '@/components/orders/PromoBanner';
 import RecommendationsCarousel from '@/components/orders/RecommendationsCarousel';
@@ -163,10 +164,16 @@ export default function OrderDetailPage() {
 
       {/* Two Column Grid */}
       <div className="mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Live Map (Appears first on mobile, hidden on desktop since it renders in DeliveryInfoCard) */}
+        <div className="lg:hidden mb-5">
+          <LiveCourierTrackingCard order={order} />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-start">
           
           {/* Left Column (Details and Delivery) */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-8 space-y-6 order-2 lg:order-1">
             
             {/* Order Items */}
             <OrderDetailsCard order={order} />
@@ -218,16 +225,18 @@ export default function OrderDetailPage() {
           </div>
 
           {/* Right Column (Status and Help/Promos) */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-4 space-y-6 order-1 lg:order-2">
             
             {/* Timeline order tracking status */}
             <OrderStatusCard order={order} />
 
-            {/* Need Help? Box */}
-            <HelpCard isSingleRestaurantMode={isSingleRestaurantMode} />
+            <div className="hidden lg:block space-y-6">
+              {/* Need Help? Box */}
+              <HelpCard isSingleRestaurantMode={isSingleRestaurantMode} />
 
-            {/* Lassi Lounge reward promo block */}
-            <PromoBanner isSingleRestaurantMode={isSingleRestaurantMode} />
+              {/* Lassi Lounge reward promo block */}
+              <PromoBanner isSingleRestaurantMode={isSingleRestaurantMode} />
+            </div>
 
             {/* Dev Simulator Controls Card */}
             {(isAdmin || isMerchant) && (
@@ -276,6 +285,12 @@ export default function OrderDetailPage() {
 
           </div>
 
+        </div>
+
+        {/* Support section placed below everything on mobile */}
+        <div className="lg:hidden w-full space-y-5 mt-6 mb-4">
+          <HelpCard isSingleRestaurantMode={isSingleRestaurantMode} />
+          <PromoBanner isSingleRestaurantMode={isSingleRestaurantMode} />
         </div>
 
         {/* Dynamic Carousel: You May Also Like */}

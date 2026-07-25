@@ -29,8 +29,8 @@ export default function FavoritesTab({ user, updateUser }) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-[24px] font-black text-[#1a1a1a]">Favorites</h2>
-          <p className="text-[14px] text-[#6b7280]">Your saved {isSingleMode ? 'dishes' : 'restaurants and dishes'}</p>
+          <h2 className="text-[20px] sm:text-[24px] font-black text-[#1a1a1a]">Favorites</h2>
+          <p className="text-[13px] sm:text-[14px] text-[#6b7280]">Your saved {isSingleMode ? 'dishes' : 'restaurants and dishes'}</p>
         </div>
       </div>
 
@@ -64,12 +64,12 @@ export default function FavoritesTab({ user, updateUser }) {
       <div className="pt-2">
         {activeTab === 'restaurants' && (
           favoriteRestaurants.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-[#eadfdb] p-12 text-center shadow-sm">
+            <div className="bg-white rounded-2xl border border-[#eadfdb] p-8 sm:p-12 text-center shadow-sm">
               <div className="w-16 h-16 rounded-full bg-[#fdf2f2] flex items-center justify-center mx-auto mb-4">
                 <Heart className="h-8 w-8 text-[#ef4444]" />
               </div>
-              <h3 className="text-[18px] font-bold text-[#1a1a1a] mb-2">No favorite restaurants yet</h3>
-              <p className="text-[14px] text-[#6b7280] mb-6">Explore the marketplace and save your favorites.</p>
+              <h3 className="text-[16px] sm:text-[18px] font-bold text-[#1a1a1a] mb-2">No favorite restaurants yet</h3>
+              <p className="text-[13px] sm:text-[14px] text-[#6b7280] mb-6">Explore the marketplace and save your favorites.</p>
               <button
                 onClick={() => router.push('/')}
                 className="h-11 px-4 py-2 rounded-lg bg-[#7a0b10] text-white text-[13px] font-black uppercase tracking-wider hover:bg-[#680307] transition-colors inline-flex items-center gap-2"

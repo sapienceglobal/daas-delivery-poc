@@ -58,8 +58,8 @@ export default function MyProfileTab({ user, updateUser }) {
   return (
     <div className="space-y-8">
       {/* Basic Info */}
-      <div className="bg-white rounded-2xl border border-[#eadfdb] shadow-sm p-6 md:p-8">
-        <h3 className="text-[20px] font-black text-[#1a1a1a] mb-6">Personal Information</h3>
+      <div className="bg-white rounded-2xl border border-[#eadfdb] shadow-sm p-4 sm:p-6 md:p-8">
+        <h3 className="text-[18px] sm:text-[20px] font-black text-[#1a1a1a] mb-4 sm:mb-6">Personal Information</h3>
         <form onSubmit={handleProfileUpdate} noValidate className="space-y-5 max-w-2xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
@@ -105,7 +105,7 @@ export default function MyProfileTab({ user, updateUser }) {
       </div>
 
       {/* Security */}
-      <div className="bg-white rounded-2xl border border-[#eadfdb] shadow-sm p-6 md:p-8">
+      <div className="bg-white rounded-2xl border border-[#eadfdb] shadow-sm p-4 sm:p-6 md:p-8">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-full bg-[#fdf2f2] flex items-center justify-center shrink-0">
             <Key className="h-5 w-5 text-[#ef4444]" />

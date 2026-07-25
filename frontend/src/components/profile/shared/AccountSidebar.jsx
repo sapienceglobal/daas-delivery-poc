@@ -23,12 +23,12 @@ export default function AccountSidebar({ user, activeNav, onNavClick, onOrderNow
   const points = user?.loyaltyPoints || 120;
 
   return (
-    <aside className="space-y-6 lg:sticky lg:top-24 w-full">
+    <aside className="space-y-4 lg:space-y-6 lg:sticky lg:top-24 w-full">
       {/* 1. Main Navigation Container */}
       <div className="overflow-hidden rounded-2xl border border-[#eadfdb] bg-white shadow-[0_2px_15px_rgba(0,0,0,0.04)]">
         
         {/* Top User Profile Header Box */}
-        <div className="bg-[#600508] p-6 text-white flex items-center gap-4">
+        <div className="bg-[#600508] p-4 lg:p-6 text-white flex items-center gap-3 lg:gap-4">
           <div className="h-[64px] w-[64px] rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm">
             <User className="h-9 w-9 text-[#600508]" strokeWidth={2} />
           </div>
@@ -42,7 +42,7 @@ export default function AccountSidebar({ user, activeNav, onNavClick, onOrderNow
         </div>
 
         {/* Navigation Menu */}
-        <nav className="py-2.5">
+        <nav className="flex flex-row lg:flex-col overflow-x-auto snap-x snap-mandatory no-scrollbar space-x-3 lg:space-x-0 lg:space-y-0.5 p-3 lg:py-2.5 lg:px-0">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeNav === item.id;
@@ -52,10 +52,10 @@ export default function AccountSidebar({ user, activeNav, onNavClick, onOrderNow
               <button
                 key={item.id}
                 onClick={() => onNavClick(item.id)}
-                className={`w-full flex items-center justify-between pl-5 pr-6 py-[13px] text-left text-[14.5px] transition-colors border-l-[4px] ${
+                className={`shrink-0 snap-start flex items-center justify-between lg:w-full gap-3 lg:gap-0 px-5 py-2.5 lg:pl-5 lg:pr-6 lg:py-[13px] text-left text-[13px] lg:text-[14.5px] transition-colors border lg:border-y-0 lg:border-r-0 lg:border-l-[4px] rounded-full lg:rounded-none whitespace-nowrap ${
                   isActive
                     ? 'border-[#7a0b10] bg-[#fcf3e3] text-[#7a0b10] font-bold'
-                    : 'border-transparent text-[#333333] font-medium hover:bg-[#fbfaf7]'
+                    : 'border-[#eadfdb] lg:border-transparent text-[#333333] font-medium hover:bg-[#fbfaf7]'
                 }`}
               >
                 <span className="flex items-center gap-4">
@@ -77,9 +77,9 @@ export default function AccountSidebar({ user, activeNav, onNavClick, onOrderNow
         </nav>
       </div>
 
-      {/* 2. Side Promo Banner */}
+      {/* 2. Side Promo Banner (Hidden on Mobile) */}
       <div 
-        className="relative overflow-hidden rounded-2xl min-h-[310px] p-6 text-white shadow-sm flex flex-col justify-between group cursor-pointer border border-[#eadfdb]" 
+        className="hidden lg:flex relative overflow-hidden rounded-2xl min-h-[310px] p-6 text-white shadow-sm flex-col justify-between group cursor-pointer border border-[#eadfdb]" 
         onClick={onOrderNow}
       >
         <div

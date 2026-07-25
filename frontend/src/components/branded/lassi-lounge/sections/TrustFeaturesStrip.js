@@ -16,10 +16,10 @@ export default function TrustFeaturesStrip() {
     <section className="bg-background-alt on-cream pb-16 pt-6">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         
-        <div className="bg-[#FCF9F4] rounded-2xl shadow-sm border border-[#F0E6D8] py-6 flex flex-col lg:flex-row items-center justify-between divide-y lg:divide-y-0 lg:divide-x divide-[#F0E6D8]">
+        <div className="bg-[#FCF9F4] rounded-2xl shadow-sm border border-[#F0E6D8] py-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:gap-y-6 lg:gap-y-0 lg:divide-x divide-[#F0E6D8]">
           
           {features.map((feature) => (
-            <div key={feature.id} className="flex-1 w-full px-6 py-4 lg:py-0">
+            <div key={feature.id} className="w-full px-6 py-4 sm:py-2 lg:py-0 flex justify-start sm:justify-center lg:justify-start">
               <FeatureIconItem
                 icon={FEATURE_ICONS[feature.id] ?? Truck}
                 title={feature.title}

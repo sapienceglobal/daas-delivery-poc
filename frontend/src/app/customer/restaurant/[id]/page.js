@@ -53,12 +53,12 @@ export default function RestaurantPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [isAiSearching, setIsAiSearching] = useState(false);
-  const [couponApplied, setCouponApplied] = useState(false); 
+  const [couponApplied, setCouponApplied] = useState(false);
   const [repeatModal, setRepeatModal] = useState(null); // { item, lastCartItem }
-  
+
   const menuTopRef = useRef(null);
   const dishGridRef = useRef(null);
-  
+
   // Local state for quantity selector in card before adding to cart
   const [localQuantities, setLocalQuantities] = useState({});
 
@@ -119,7 +119,7 @@ export default function RestaurantPage() {
       threshold: 0.4, // typo tolerance
       ignoreLocation: true,
     });
-    
+
     const results = fuse.search(searchQuery).map(res => res.item);
     setSearchResults(results);
   }, [searchQuery, menu]);
@@ -133,7 +133,7 @@ export default function RestaurantPage() {
       const matchIds = res.data?.results || [];
       const allItems = (menu || []).reduce((acc, cat) => acc.concat(cat.items || []), []);
       const matchedItems = matchIds.map(id => allItems.find(i => i._id === id || i.id === id)).filter(Boolean);
-      
+
       if (matchedItems.length > 0) {
         setSearchResults(matchedItems);
         showToast('AI found best matches!', 'success');
@@ -213,12 +213,12 @@ export default function RestaurantPage() {
   const handleCartDecrement = (item) => {
     const targetId = item.menuItemId || item._id || item.id;
     const lastIndex = items.map((i, idx) => ({ ...i, originalIdx: idx }))
-                         .reverse()
-                         .find(i => {
-                           const iId = i.menuItemId || i._id || i.id;
-                           return (targetId && iId && iId === targetId) || (i.name && item.name && i.name.toLowerCase().trim() === item.name.toLowerCase().trim());
-                         })
-                         ?.originalIdx;
+      .reverse()
+      .find(i => {
+        const iId = i.menuItemId || i._id || i.id;
+        return (targetId && iId && iId === targetId) || (i.name && item.name && i.name.toLowerCase().trim() === item.name.toLowerCase().trim());
+      })
+      ?.originalIdx;
 
     if (lastIndex !== undefined) {
       const currentQty = items[lastIndex].quantity || items[lastIndex].qty || 1;
@@ -248,8 +248,8 @@ export default function RestaurantPage() {
     const currentCategory = categories.find(cat => cat._id === activeCategory) || categories[0];
     // If searchQuery is present, we show the fuzzy search results (or AI results).
     // Otherwise, we show the items from the active category.
-    const filteredItems = searchQuery.trim() 
-      ? (searchResults || []) 
+    const filteredItems = searchQuery.trim()
+      ? (searchResults || [])
       : (currentCategory?.items || []);
 
     const deliveryFee = restaurant?.deliveryFee !== undefined ? restaurant.deliveryFee : 2.99;
@@ -259,15 +259,15 @@ export default function RestaurantPage() {
 
     return (
       <div className="min-h-screen bg-[#fdfbf7] flex flex-col font-sans ll-page-enter">
-        
+
         {/* ─── 1. HERO SECTION ─── */}
         <OrderOnlineHero />
 
         {/* ─── 2. BREADCRUMBS & SEARCH ROW ─── */}
-        <div ref={menuTopRef} className="bg-[#ffffff] border-b border-[#e5e7eb] py-4 sticky top-0 z-30 shadow-[0_8px_24px_rgba(122,11,16,0.05)]">
+        <div ref={menuTopRef} className="bg-[#ffffff] border-b border-[#e5e7eb] py-4 sticky lg:relative top-[56px] lg:top-auto z-[60] lg:z-10 shadow-[0_8px_24px_rgba(122,11,16,0.05)]">
           {/* max-w-[1550px] इस्तेमाल किया है ताकि लेआउट इमेज की तरह वाइड (wide) दिखे */}
           <div className="mx-auto max-w-[1550px] px-4 md:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            
+
             {/* Left: Breadcrumbs */}
             <div className="flex items-center text-[13px] text-[#6b7280] font-medium gap-1 w-full md:w-auto">
               <button className="flex items-center gap-2 hover:text-[#7a0b10] transition-colors ll-focus-ring" onClick={() => router.push('/customer')}>
@@ -291,10 +291,10 @@ export default function RestaurantPage() {
                   className="w-full pl-10 pr-4 py-2 border border-[#e5e7eb] rounded-md text-[13px] focus:outline-none focus:border-[#7a0b10] focus:ring-4 focus:ring-[#7a0b10]/10 transition-all text-[#1a1a1a] placeholder-[#9ca3af] bg-[#ffffff] shadow-sm"
                 />
               </div>
-              <Button 
-                onClick={handleAiSearch} 
-                loading={isAiSearching} 
-                variant="primary" 
+              <Button
+                onClick={handleAiSearch}
+                loading={isAiSearching}
+                variant="primary"
                 className="whitespace-nowrap px-4 py-2 !rounded-md text-[13px] h-[38px] bg-[#7a0b10] border-none text-white shadow-md shadow-[#7a0b10]/20 hover:brightness-110"
               >
                 Ask AI ✨
@@ -305,10 +305,10 @@ export default function RestaurantPage() {
 
         {/* ─── 3. MAIN CONTENT AREA (FLEX LAYOUT) ─── */}
         <div className="mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8 py-8">
-          
+
           {/* Grid की जगह Flex का इस्तेमाल किया है ताकि कॉलम्स की चौड़ाई परफेक्ट रहे */}
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-            
+
             {/* === LEFT SIDEBAR: CATEGORIES === */}
             <div className="w-full lg:w-[240px] shrink-0">
               <div className="lg:sticky lg:top-[72px]">
@@ -325,7 +325,7 @@ export default function RestaurantPage() {
                     }
                     // Then update category state — content changes after position is already correct
                     setActiveCategory(id);
-                    
+
                     // CLEAR the search query so the user returns to normal category browsing
                     setSearchQuery('');
                   }}
@@ -336,7 +336,7 @@ export default function RestaurantPage() {
                 />
               </div>
             </div>
-            
+
             {/* === MIDDLE CONTENT: DISHES GRID === */}
             <div ref={dishGridRef} className="flex-1 w-full min-w-0">
               <DishGrid
@@ -361,7 +361,7 @@ export default function RestaurantPage() {
             </div>
 
             {/* === RIGHT SIDEBAR: CART DETAILS === */}
-          
+
             <div className="w-full lg:w-[320px] shrink-0">
               <div className="lg:sticky lg:top-[72px]">
                 <CartSidebar
@@ -395,13 +395,13 @@ export default function RestaurantPage() {
               { icon: ChefHat, label: 'Expert Chefs', desc: 'Our chefs bring passion & perfection in every dish.' },
               { icon: ShieldCheck, label: 'Hygienic Kitchen', desc: 'Clean, safe & hygienic kitchen you can trust.' }
             ].map((feat, idx) => (
-              <div key={idx} className={`flex items-start gap-4 px-4 ll-reveal ${idx === 0 ? 'pl-0' : ''}`}>
+              <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3 sm:gap-4 px-0 md:px-4 ll-reveal">
                 <div className="p-3 bg-[#ffffff] border border-[#e5e7eb] rounded-xl shadow-sm shrink-0">
-                   <feat.icon className="h-6 w-6 text-[#7a0b10] stroke-[1.5]" />
+                  <feat.icon className="h-6 w-6 text-[#7a0b10] stroke-[1.5]" />
                 </div>
                 <div>
                   <h4 className="text-[12px] font-black text-[#1a1a1a] uppercase tracking-wider">{feat.label}</h4>
-                  <p className="text-[11px] text-[#6b7280] mt-1.5 leading-relaxed pr-2">{feat.desc}</p>
+                  <p className="text-[11px] text-[#6b7280] mt-1.5 leading-relaxed">{feat.desc}</p>
                 </div>
               </div>
             ))}
@@ -441,17 +441,17 @@ export default function RestaurantPage() {
 
         {/* Conflict Modal */}
         {conflictModal && (
-        <PortalModal 
-  isOpen={true} 
-  onClose={() => setConflictModal(null)} 
-  title="Clear Cart?" 
-  size="sm"
->
+          <PortalModal
+            isOpen={true}
+            onClose={() => setConflictModal(null)}
+            title="Clear Cart?"
+            size="sm"
+          >
             <div className="space-y-4">
               <p className="text-[13px] text-gray-500 font-sans leading-relaxed">
                 Your cart contains items from another restaurant. Would you like to clear your cart and start a new order?
               </p>
-              
+
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setConflictModal(null)}
@@ -474,22 +474,7 @@ export default function RestaurantPage() {
           </PortalModal>
         )}
 
-        {itemCount > 0 && (
-          <div className="fixed bottom-4 left-4 right-4 z-40 lg:hidden ll-slide-panel">
-            <button
-              onClick={() => router.push('/customer/checkout')}
-              className="w-full rounded-2xl bg-[#5c060a] text-white shadow-[0_18px_40px_rgba(92,6,10,0.28)] px-5 py-4 flex items-center justify-between ll-interactive ll-focus-ring"
-            >
-              <span className="text-left">
-                <span className="block text-[11px] uppercase tracking-widest text-white/70 font-bold">{itemCount} items</span>
-                <span className="block text-[16px] font-black">${totalAmount.toFixed(2)}</span>
-              </span>
-              <span className="text-[12px] font-black uppercase tracking-wider flex items-center gap-2">
-                Checkout <ArrowRight className="h-4 w-4" />
-              </span>
-            </button>
-          </div>
-        )}
+
       </div>
     );
   } else {
@@ -621,17 +606,17 @@ export default function RestaurantPage() {
 
         {/* Conflict Modal */}
         {conflictModal && (
-          <Modal 
-            isOpen={true} 
-            onClose={() => setConflictModal(null)} 
-            title="Clear Cart?" 
+          <Modal
+            isOpen={true}
+            onClose={() => setConflictModal(null)}
+            title="Clear Cart?"
             size="sm"
           >
             <div className="space-y-4">
               <p className="text-[13px] text-gray-500 font-sans leading-relaxed">
                 Your cart contains items from another restaurant. Would you like to clear your cart and start a new order?
               </p>
-              
+
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setConflictModal(null)}
@@ -671,7 +656,7 @@ function RepeatCustomizationModal({ isOpen, onClose, lastCartItem, onRepeat, onC
         <p className="text-[14px] text-[#4b5563] font-sans leading-relaxed">
           You already have this item in the cart with the following customization. Would you like to repeat it or customize it again?
         </p>
-        
+
         {/* Customization Details card */}
         <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-xl p-4 shadow-sm">
           <h4 className="text-[15px] font-extrabold text-[#1a1a1a] mb-1 font-sans">{lastCartItem.name}</h4>
@@ -686,7 +671,7 @@ function RepeatCustomizationModal({ isOpen, onClose, lastCartItem, onRepeat, onC
             </p>
           )}
         </div>
-        
+
         {/* Buttons */}
         <div className="flex gap-3 pt-2">
           <button

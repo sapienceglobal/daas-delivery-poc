@@ -70,12 +70,12 @@ export default function PaymentsTab({ user, updateUser }) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-[24px] font-black text-[#1a1a1a]">Payment Methods</h2>
-          <p className="text-[14px] text-[#6b7280]">Manage your saved cards for faster checkout</p>
+          <h2 className="text-[20px] sm:text-[24px] font-black text-[#1a1a1a]">Payment Methods</h2>
+          <p className="text-[13px] sm:text-[14px] text-[#6b7280]">Manage your saved cards for faster checkout</p>
         </div>
         <button
           onClick={handleAdd}
-          className="h-11 px-6 py-2 rounded-lg bg-[#7a0b10] text-white text-[13px] font-black uppercase tracking-wider hover:bg-[#680307] transition-colors flex items-center justify-center gap-2"
+          className="w-full sm:w-auto h-11 px-6 py-2 rounded-lg bg-[#7a0b10] text-white text-[13px] font-black uppercase tracking-wider hover:bg-[#680307] transition-colors flex items-center justify-center gap-2"
         >
           <Plus className="h-4 w-4" />
           Add New Card
@@ -95,7 +95,7 @@ export default function PaymentsTab({ user, updateUser }) {
           {cards.map((card) => (
             <div 
               key={card._id}
-              className={`bg-white rounded-2xl p-6 border shadow-sm transition-colors relative ${
+              className={`bg-white rounded-2xl p-4 sm:p-6 border shadow-sm transition-colors relative ${
                 card.isDefault ? 'border-[#7a0b10] ring-1 ring-[#7a0b10]' : 'border-[#eadfdb] hover:border-[#b47b80]'
               }`}
             >

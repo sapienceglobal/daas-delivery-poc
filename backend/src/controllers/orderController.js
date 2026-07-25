@@ -10,7 +10,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import { triggerDeliveryAPI, getDeliveryQuoteAPI, checkServiceabilityAPI, cancelDeliveryAPI } from '../services/doordashService.js';
 import { buildOrderSocketPayload, syncDoorDashDelivery } from '../services/doordashSyncService.js';
-import { retrievePaymentIntent, refundPayment as refundStripePayment } from '../services/stripeService.js';
+import { retrievePaymentIntent, refundPayment as refundStripePayment, chargeSavedCard } from '../services/stripeService.js';
 import { calculateOrderPricing, roundMoney } from '../services/orderPricing.js';
 import { sendOrderConfirmationEmail } from '../services/emailService.js';
 import { createNotification } from './notificationController.js';
@@ -206,7 +206,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     restaurantId, items, address, addressLat, addressLng,
     orderType = 'delivery', paymentMethod = 'credit_card',
     tip = 0, couponCode, courierNotes, specialInstructions, scheduledTime, tableNumber,
-    stripePaymentIntentId, useLoyaltyPoints = false
+    stripePaymentIntentId, useLoyaltyPoints = false, savedCardId
   } = req.body;
 
   if (!restaurantId || !items?.length) {
@@ -239,7 +239,7 @@ export const createOrder = asyncHandler(async (req, response) => {
   }
 
   // Geo-distance serviceability check for delivery orders
-  if (orderType === 'delivery' && addressLat != null && addressLng != null) {
+  if (orderType === 'delivery' && addressLat && addressLng && Number(addressLat) !== 0 && Number(addressLng) !== 0) {
     const restaurant = await Restaurant.findById(restaurantId);
     if (restaurant?.location?.coordinates) {
       const [restLng, restLat] = restaurant.location.coordinates;
@@ -288,9 +288,29 @@ export const createOrder = asyncHandler(async (req, response) => {
   });
 
   const { restaurant } = pricing;
+  let finalStripePaymentIntentId = stripePaymentIntentId;
+
+  if (savedCardId && !finalStripePaymentIntentId && paymentMethod === 'credit_card') {
+    if (!req.user.stripeCustomerId) {
+      throw new AppError('No Stripe customer associated with this user', 400);
+    }
+
+    const savedCard = req.user.savedCards?.find(c => c._id.toString() === savedCardId || c.cardId === savedCardId);
+    if (!savedCard) {
+      throw new AppError('Saved card not found in your profile', 400);
+    }
+    const stripePaymentMethodId = savedCard.cardId;
+
+    const charge = await chargeSavedCard(pricing.total, req.user.stripeCustomerId, stripePaymentMethodId, {
+      userId: req.user._id.toString(),
+      tenantDbName: req.tenantDb?.name || 'daas_poc'
+    });
+    finalStripePaymentIntentId = charge.id;
+  }
+
   const { paymentStatus } = await verifyCardPayment({
     paymentMethod,
-    stripePaymentIntentId,
+    stripePaymentIntentId: finalStripePaymentIntentId,
     expectedTotal: pricing.total,
     userId: req.user._id
   });
@@ -328,7 +348,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     courierNotes: sanitizedCourierNotes,
     specialInstructions: specialInstructions ? xss(String(specialInstructions).slice(0, 500)) : '',
     scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
-    stripePaymentIntentId: stripePaymentIntentId || null
+    stripePaymentIntentId: finalStripePaymentIntentId || null
   });
 
   await order.save();
@@ -558,7 +578,7 @@ export const getDeliveryQuote = asyncHandler(async (req, response) => {
   // If the frontend sent lat/lng, check if the delivery address is within 15 miles of the restaurant.
   // This is the same check the homepage uses to decide whether to show restaurants.
   const MAX_DELIVERY_MILES = 15;
-  if (addressLat != null && addressLng != null && restaurant.location?.coordinates) {
+  if (addressLat && addressLng && Number(addressLat) !== 0 && Number(addressLng) !== 0 && restaurant.location?.coordinates) {
     const [restLng, restLat] = restaurant.location.coordinates;
     const toRad = (deg) => (deg * Math.PI) / 180;
     const R = 3958.8; // Earth radius in miles

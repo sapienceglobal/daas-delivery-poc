@@ -45,9 +45,15 @@ router.post('/', asyncHandler(async (req, response) => {
     return response.status(200).json({ received: true });
   }
 
-  const order = await Order.findOne({ externalDeliveryId: externalId });
+  // externalId format: DD-dbName-timestamp-random
+  const parts = externalId.split('-');
+  const dbName = parts.length >= 2 ? parts[1] : 'daas_poc';
+  const targetDb = req.app.locals.mongoose ? req.app.locals.mongoose.connection.useDb(dbName, { useCache: true }) : Order.db.useDb(dbName, { useCache: true });
+  const TenantOrder = targetDb.model('Order', Order.schema);
+
+  const order = await TenantOrder.findOne({ externalDeliveryId: externalId });
   if (!order) {
-    logger.warn(`Webhook: no order found for ${externalId}`);
+    logger.warn(`Webhook: no order found for ${externalId} in db ${dbName}`);
     return response.status(200).json({ received: true });
   }
 

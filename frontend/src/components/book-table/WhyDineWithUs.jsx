@@ -27,7 +27,7 @@ const REASONS = [
 
 export default function WhyDineWithUs() {
   return (
-    <div className="bg-white rounded-2xl border border-[#eadfdb] shadow-[0_4px_24px_rgba(0,0,0,0.02)] p-8">
+    <div className="bg-white rounded-2xl border border-[#eadfdb] shadow-[0_4px_24px_rgba(0,0,0,0.02)] p-5 md:p-8">
       
       {/* Header */}
       <div className="flex items-center justify-center gap-4 mb-8">

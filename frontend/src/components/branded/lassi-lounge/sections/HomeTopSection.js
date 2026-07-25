@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Bike, Utensils, ChevronRight, ArrowRight, ArrowLeft } from 'lucide-react';
@@ -8,6 +9,18 @@ import { menuCategoryContent, deliveryPartnersContent, heroContent } from '../co
 
 export default function HomeTopSection() {
   const router = useRouter();
+  const partnersScrollRef = useRef(null);
+
+  useEffect(() => {
+    if (partnersScrollRef.current) {
+      // Small timeout ensures the DOM has fully painted the widths
+      setTimeout(() => {
+        const container = partnersScrollRef.current;
+        const scrollTarget = (container.scrollWidth - container.clientWidth) / 2;
+        container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+      }, 100);
+    }
+  }, []);
 
   const handleScroll = (id) => {
     const el = document.getElementById(id);
@@ -25,7 +38,7 @@ export default function HomeTopSection() {
       {/* =========================================
           1. HERO SECTION (DARK LAYER)
           ========================================= */}
-  
+
       <section className="relative w-full pt-30 pb-32 md:pt-38 md:pb-30 lg:pt-56 lg:pb-44 flex flex-col justify-center overflow-hidden z-10 min-h-[600px] lg:min-h-[720px]">
 
         {/* Full-width Background Image */}
@@ -116,9 +129,9 @@ export default function HomeTopSection() {
 
             <div className="flex flex-col xl:flex-row items-center justify-between gap-4 xl:gap-6">
 
-              <div className="flex flex-wrap md:flex-nowrap justify-center md:justify-between gap-6 md:gap-4 flex-1 w-full">
+              <div className="flex flex-nowrap overflow-x-auto md:overflow-visible no-scrollbar pb-4 md:pb-0 justify-start md:justify-between gap-6 md:gap-4 flex-1 w-full snap-x snap-mandatory px-2 md:px-0 scroll-smooth">
                 {categories.map((category) => (
-                  <div key={category.id} onClick={() => router.push(viewFullMenuCta.href)} className="group flex flex-col items-center gap-2 cursor-pointer">
+                  <div key={category.id} onClick={() => router.push(viewFullMenuCta.href)} className="group flex flex-col items-center gap-2 cursor-pointer shrink-0 snap-center">
                     <div className="relative w-[75px] h-[75px] md:w-[85px] md:h-[85px] rounded-full p-[2px] border border-[#e8a020] bg-transparent transition-transform duration-300 group-hover:-translate-y-1">
                       <div className="w-full h-full rounded-full border-[3px] border-[#fcfaf5] bg-white overflow-hidden shadow-sm">
                         <img
@@ -173,22 +186,25 @@ export default function HomeTopSection() {
 
             <div className="hidden xl:block w-[1px] h-24 bg-white/20 mx-6"></div>
 
-            <div className="flex flex-wrap sm:flex-nowrap items-center justify-center gap-3 md:gap-4 w-full xl:w-auto mt-8 xl:mt-0">
+            <div
+              ref={partnersScrollRef}
+              className="flex flex-row overflow-x-auto snap-x snap-mandatory no-scrollbar items-center justify-start xl:justify-center gap-3 md:gap-4 w-full xl:w-auto mt-8 xl:mt-0 pb-2 xl:pb-0 -mx-4 px-4 xl:mx-0 xl:px-0"
+            >
 
-              <a href={partners[0].href} target="_blank" rel="noopener noreferrer" className="bg-black hover:bg-neutral-900 rounded-2xl shadow-xl flex items-center justify-center w-[150px] sm:w-[170px] lg:w-[190px] h-[85px] lg:h-[95px] transition-transform hover:-translate-y-1">
+              <a href={partners[0].href} target="_blank" rel="noopener noreferrer" className="shrink-0 snap-center bg-black hover:bg-neutral-900 rounded-2xl shadow-xl flex items-center justify-center w-[150px] sm:w-[170px] lg:w-[190px] h-[85px] lg:h-[95px] transition-transform hover:-translate-y-1">
                 <span className="font-bold text-white text-2xl md:text-3xl tracking-tighter flex flex-col items-center leading-none font-sans">
                   Uber <span className="text-[#06c167] mt-1">Eats</span>
                 </span>
               </a>
 
-              <a href={partners[1].href} target="_blank" rel="noopener noreferrer" className="bg-white hover:bg-gray-50 rounded-2xl shadow-xl flex items-center justify-center w-[150px] sm:w-[170px] lg:w-[190px] h-[85px] lg:h-[95px] transition-transform hover:-translate-y-1">
+              <a href={partners[1].href} target="_blank" rel="noopener noreferrer" className="shrink-0 snap-center bg-white hover:bg-gray-50 rounded-2xl shadow-xl flex items-center justify-center w-[150px] sm:w-[170px] lg:w-[190px] h-[85px] lg:h-[95px] transition-transform hover:-translate-y-1">
                 <span className="font-black text-[#ff3008] text-base md:text-lg tracking-widest font-sans uppercase flex flex-col items-center">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="#ff3008" xmlns="http://www.w3.org/2000/svg" className="mb-1.5"><path d="M22.956 16.037c0 4.148-4.708 6.44-8.868 6.44-4.887 0-9.824-2.83-9.824-6.44 0-4.149 4.706-6.44 8.867-6.44 4.889 0 9.825 2.829 9.825 6.44zm-14.93-9.043c0-4.147 4.708-6.44 8.867-6.44 4.889 0 9.825 2.83 9.825 6.44 0 4.149-4.707 6.44-8.868 6.44-4.887 0-9.824-2.829-9.824-6.44z" /></svg>
                   DOORDASH
                 </span>
               </a>
 
-              <a href={partners[2].href} target="_blank" rel="noopener noreferrer" className="bg-white hover:bg-gray-50 rounded-2xl shadow-xl flex items-center justify-center w-[150px] sm:w-[170px] lg:w-[190px] h-[85px] lg:h-[95px] transition-transform hover:-translate-y-1">
+              <a href={partners[2].href} target="_blank" rel="noopener noreferrer" className="shrink-0 snap-center bg-white hover:bg-gray-50 rounded-2xl shadow-xl flex items-center justify-center w-[150px] sm:w-[170px] lg:w-[190px] h-[85px] lg:h-[95px] transition-transform hover:-translate-y-1">
                 <span className="font-black text-[#f28100] text-2xl md:text-3xl tracking-tight font-sans uppercase">
                   GRUBHUB
                 </span>

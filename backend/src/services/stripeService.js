@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import mongoose from 'mongoose';
 import logger from '../utils/logger.js';
 import Order from '../models/Order.js';
 
@@ -14,18 +15,52 @@ if (process.env.STRIPE_SECRET_KEY) {
 }
 
 /**
+ * Create a Stripe Customer
+ */
+export const createCustomer = async (email, name, metadata = {}) => {
+  if (!stripe) throw new Error('Stripe is not configured');
+  const customer = await stripe.customers.create({ email, name, metadata });
+  return customer;
+};
+
+/**
  * Create a Payment Intent
  */
-export const createPaymentIntent = async (amount, metadata = {}) => {
+export const createPaymentIntent = async (amount, metadata = {}, customerId = null) => {
   if (!stripe) throw new Error('Stripe is not configured');
 
-  const paymentIntent = await stripe.paymentIntents.create({
+  const options = {
     amount: Math.round(amount * 100), // Stripe expects cents
     currency: 'usd',
     metadata,
     automatic_payment_methods: {
       enabled: true,
     },
+  };
+
+  if (customerId) {
+    options.customer = customerId;
+  }
+
+  const paymentIntent = await stripe.paymentIntents.create(options);
+
+  return paymentIntent;
+};
+
+/**
+ * Charge a saved card synchronously (off-session or direct on-session)
+ */
+export const chargeSavedCard = async (amount, customerId, paymentMethodId, metadata = {}) => {
+  if (!stripe) throw new Error('Stripe is not configured');
+
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: Math.round(amount * 100),
+    currency: 'usd',
+    customer: customerId,
+    payment_method: paymentMethodId,
+    off_session: true, // We attempt it off-session to avoid 3DS if possible
+    confirm: true,
+    metadata,
   });
 
   return paymentIntent;
@@ -34,13 +69,19 @@ export const createPaymentIntent = async (amount, metadata = {}) => {
 /**
  * Create a Setup Intent for saving a card without charging
  */
-export const createSetupIntent = async (metadata = {}) => {
+export const createSetupIntent = async (metadata = {}, customerId = null) => {
   if (!stripe) throw new Error('Stripe is not configured');
 
-  const setupIntent = await stripe.setupIntents.create({
+  const options = {
     metadata,
     payment_method_types: ['card'],
-  });
+  };
+
+  if (customerId) {
+    options.customer = customerId;
+  }
+
+  const setupIntent = await stripe.setupIntents.create(options);
 
   return setupIntent;
 };
@@ -72,13 +113,16 @@ export const handleWebhook = async (rawBody, signature, secret) => {
     case 'payment_intent.succeeded': {
       const paymentIntent = event.data.object;
       const orderId = paymentIntent.metadata.orderId;
+      const dbName = paymentIntent.metadata.tenantDbName || 'daas_poc';
       
-      if (orderId) {
-        await Order.findByIdAndUpdate(orderId, {
+      if (orderId && orderId !== 'pending') {
+        const targetDb = mongoose.connection.useDb(dbName, { useCache: true });
+        const TenantOrder = targetDb.model('Order', Order.schema);
+        await TenantOrder.findByIdAndUpdate(orderId, {
           paymentStatus: 'paid',
           stripePaymentIntentId: paymentIntent.id
         });
-        logger.info(`Payment Intent Succeeded: ${paymentIntent.id} for Order: ${orderId}`);
+        logger.info(`Payment Intent Succeeded: ${paymentIntent.id} for Order: ${orderId} in db ${dbName}`);
       }
       break;
     }
@@ -86,13 +130,16 @@ export const handleWebhook = async (rawBody, signature, secret) => {
     case 'payment_intent.payment_failed': {
       const paymentIntent = event.data.object;
       const orderId = paymentIntent.metadata.orderId;
+      const dbName = paymentIntent.metadata.tenantDbName || 'daas_poc';
       
-      if (orderId) {
-        await Order.findByIdAndUpdate(orderId, {
+      if (orderId && orderId !== 'pending') {
+        const targetDb = mongoose.connection.useDb(dbName, { useCache: true });
+        const TenantOrder = targetDb.model('Order', Order.schema);
+        await TenantOrder.findByIdAndUpdate(orderId, {
           paymentStatus: 'failed',
           stripePaymentIntentId: paymentIntent.id
         });
-        logger.error(`Payment Intent Failed: ${paymentIntent.id} for Order: ${orderId}`);
+        logger.error(`Payment Intent Failed: ${paymentIntent.id} for Order: ${orderId} in db ${dbName}`);
       }
       break;
     }
@@ -121,7 +168,10 @@ export const refundPayment = async (paymentIntentId, amount = null) => {
 };
 
 export default {
+  createCustomer,
   createPaymentIntent,
+  createSetupIntent,
+  chargeSavedCard,
   retrievePaymentIntent,
   handleWebhook,
   refundPayment
