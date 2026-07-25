@@ -178,7 +178,7 @@ const getTrustedDeliveryQuote = async ({ restaurant, address, subtotal, schedule
       });
       throw new AppError('Delivery is not available for this location. The distance is too far.', 400);
     }
-    
+
     // For all other DoorDash errors (including fake seed addresses that DoorDash can't resolve),
     // fall back to the restaurant's default delivery fee so the PoC works.
     logger.warn('DoorDash quote unavailable, using restaurant default delivery fee', {
@@ -268,11 +268,11 @@ export const createOrder = asyncHandler(async (req, response) => {
 
   const deliveryQuote = orderType === 'delivery'
     ? await getTrustedDeliveryQuote({
-        restaurant: prePricing.restaurant,
-        address,
-        subtotal: prePricing.subtotal,
-        scheduledTime
-      })
+      restaurant: prePricing.restaurant,
+      address,
+      subtotal: prePricing.subtotal,
+      scheduledTime
+    })
     : { deliveryFee: 0, quote: null };
 
   const pricing = await calculateOrderPricing({
@@ -356,14 +356,14 @@ export const createOrder = asyncHandler(async (req, response) => {
   if (order.orderType === 'dine_in' && order.tableNumber) {
     const table = await Table.findOneAndUpdate(
       { restaurantId: restaurant._id, tableNumber: order.tableNumber },
-      { 
-        status: 'occupied', 
-        currentOrderId: order._id, 
-        occupiedAt: new Date() 
+      {
+        status: 'occupied',
+        currentOrderId: order._id,
+        occupiedAt: new Date()
       },
       { new: true }
     ).populate('currentOrderId', 'orderNumber status subtotal items');
-    
+
     if (table) {
       const io = req.app.get('io');
       if (io) io.to(restaurant._id.toString()).emit('table_update', table);
@@ -442,7 +442,7 @@ export const createOrder = asyncHandler(async (req, response) => {
 
   // Send confirmation email (fire and forget)
   if (req.user.email) {
-    sendOrderConfirmationEmail(req.user.email, order).catch(() => {});
+    sendOrderConfirmationEmail(req.user.email, order).catch(() => { });
   }
 
   res.created(response, { data: order });
@@ -586,7 +586,7 @@ export const getDeliveryQuote = asyncHandler(async (req, response) => {
     const dLon = toRad(addressLng - restLng);
     const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(restLat)) * Math.cos(toRad(addressLat)) * Math.sin(dLon / 2) ** 2;
     const distanceMiles = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    
+
     if (distanceMiles > MAX_DELIVERY_MILES) {
       throw new AppError(
         `Delivery is not available for this location. It is ${Math.round(distanceMiles)} miles away — we deliver within ${MAX_DELIVERY_MILES} miles.`,
@@ -1001,7 +1001,7 @@ export const getActiveDriverOrder = asyncHandler(async (req, response) => {
 export const driverAcceptOrder = asyncHandler(async (req, response) => {
   const order = await Order.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
-  
+
   if (order.driverId) {
     throw new AppError('Order already accepted by another driver', 400);
   }

@@ -70,11 +70,11 @@ export const createIntent = asyncHandler(async (req, res) => {
 
     const deliveryFeeOverride = orderType === 'delivery'
       ? await getTrustedDeliveryFee({
-          restaurant: prePricing.restaurant,
-          address,
-          subtotal: prePricing.subtotal,
-          scheduledTime
-        })
+        restaurant: prePricing.restaurant,
+        address,
+        subtotal: prePricing.subtotal,
+        scheduledTime
+      })
       : null;
 
     const pricing = await calculateOrderPricing({

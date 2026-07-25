@@ -32,13 +32,17 @@ export default function CartSidebar() {
 
   useEffect(() => {
     if (isCartOpen) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
     } else {
       document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
       setDragY(0); // Reset when closed
     }
     return () => {
       document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
     };
   }, [isCartOpen]);
 
@@ -84,7 +88,7 @@ export default function CartSidebar() {
 
   const sidebarClass = isCartOpen
     ? "translate-y-0 sm:translate-x-0"
-    : "translate-y-full sm:translate-y-0 sm:translate-x-full";
+    : "translate-y-[150%] sm:translate-y-0 sm:translate-x-full";
 
   // Disable transition during drag so it sticks exactly to the finger
   const transitionClass = isDragging ? "" : "transition-transform duration-slow ease-in-out";

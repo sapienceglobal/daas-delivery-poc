@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { 
   Grid2X2, User, MapPin, ShoppingCart, Heart, CreditCard, 
   Gift, Bell, Users, LogOut, Phone, Calendar
@@ -21,6 +22,15 @@ const navItems = [
 
 export default function AccountSidebar({ user, activeNav, onNavClick, onOrderNow }) {
   const points = user?.loyaltyPoints || 120;
+  const navRef = useRef(null);
+
+  useEffect(() => {
+    if (!navRef.current) return;
+    const activeBtn = navRef.current.querySelector(`[data-nav-id="${activeNav}"]`);
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [activeNav]);
 
   return (
     <aside className="space-y-4 lg:space-y-6 lg:sticky lg:top-24 w-full">
@@ -42,7 +52,7 @@ export default function AccountSidebar({ user, activeNav, onNavClick, onOrderNow
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex flex-row lg:flex-col overflow-x-auto snap-x snap-mandatory no-scrollbar space-x-3 lg:space-x-0 lg:space-y-0.5 p-3 lg:py-2.5 lg:px-0">
+        <nav ref={navRef} className="flex flex-row lg:flex-col overflow-x-auto snap-x snap-mandatory no-scrollbar space-x-3 lg:space-x-0 lg:space-y-0.5 p-3 lg:py-2.5 lg:px-0">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeNav === item.id;
@@ -51,7 +61,11 @@ export default function AccountSidebar({ user, activeNav, onNavClick, onOrderNow
             return (
               <button
                 key={item.id}
-                onClick={() => onNavClick(item.id)}
+                data-nav-id={item.id}
+                onClick={(e) => {
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                  onNavClick(item.id);
+                }}
                 className={`shrink-0 snap-start flex items-center justify-between lg:w-full gap-3 lg:gap-0 px-5 py-2.5 lg:pl-5 lg:pr-6 lg:py-[13px] text-left text-[13px] lg:text-[14.5px] transition-colors border lg:border-y-0 lg:border-r-0 lg:border-l-[4px] rounded-full lg:rounded-none whitespace-nowrap ${
                   isActive
                     ? 'border-[#7a0b10] bg-[#fcf3e3] text-[#7a0b10] font-bold'

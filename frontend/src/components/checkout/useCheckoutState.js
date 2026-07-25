@@ -154,23 +154,23 @@ export function useCheckoutState() {
     // E.g., "..., CA 94102" or "..., CA, 94102"
     const zipRegex = /([A-Za-z]{2})(?:,)?\s+(\d{5})(?:-\d{4})?$/;
     let match = addrObj.address.match(zipRegex);
-    
+
     if (match) {
       setState(match[1].toUpperCase());
       setZipCode(match[2]);
-      
+
       // Remove the matched state/zip from the rest of the string
       let rest = addrObj.address.replace(zipRegex, '').trim();
       if (rest.endsWith(',')) rest = rest.slice(0, -1).trim();
-      
+
       // Now split the rest by commas
       const parts = rest.split(',').map(p => p.trim()).filter(Boolean);
-      
+
       if (parts.length > 0) {
         setCity(parts[parts.length - 1]); // Last remaining part is city
         parts.pop();
       }
-      
+
       if (parts.length > 0) {
         setAddressLine1(parts[0]);
         if (parts.length > 1) {
@@ -181,7 +181,7 @@ export function useCheckoutState() {
       // Fallback if no zip code pattern is found
       setAddressLine1(addrObj.address);
     }
-    
+
     setAddressLat(addrObj.lat);
     setAddressLng(addrObj.lng || null);
     setAddressVerified(true);
@@ -204,6 +204,7 @@ export function useCheckoutState() {
   }, [user]);
 
   const compiledAddress = useMemo(() => {
+    if (addressLine1 && !city && !zipCode) return addressLine1; // Full address string is inside addressLine1 from fallback
     if (!addressLine1.trim() || !city.trim() || !state.trim() || !zipCode.trim()) return '';
     return `${addressLine1}, ${addressLine2 ? addressLine2 + ', ' : ''}${city}, ${state} ${zipCode}`;
   }, [addressLine1, addressLine2, city, state, zipCode]);
@@ -383,7 +384,7 @@ export function useCheckoutState() {
         console.error('DEBUG CHECKOUT: getDeliveryQuote failed:', err);
         const errorMsg = err.response?.data?.message || err.message || 'Delivery quote failed';
         setQuoteError(errorMsg);
-        
+
         // Auto-heal stale carts (e.g. after database resets)
         if (errorMsg === 'Restaurant not found' || errorMsg.includes('no longer available')) {
           clearCart();
@@ -629,7 +630,7 @@ export function useCheckoutState() {
     try {
       let finalPaymentMethod = paymentMethod;
       let savedCardId = undefined;
-      
+
       if (paymentMethod && paymentMethod.startsWith('saved_card_')) {
         savedCardId = paymentMethod.replace('saved_card_', '');
         finalPaymentMethod = 'credit_card';
@@ -652,7 +653,7 @@ export function useCheckoutState() {
       console.error('Checkout failed:', err);
       const errorMsg = err.response?.data?.message || err.message || 'Checkout failed';
       showToast(errorMsg, 'error');
-      
+
       // Auto-heal stale carts during checkout
       if (errorMsg === 'Restaurant not found' || errorMsg.includes('no longer available')) {
         clearCart();

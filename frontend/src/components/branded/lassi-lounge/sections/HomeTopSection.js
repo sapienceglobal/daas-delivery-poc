@@ -3,13 +3,24 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Bike, Utensils, ChevronRight, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Bike, Utensils, ChevronRight, ChevronLeft, ArrowRight, ArrowLeft } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { menuCategoryContent, deliveryPartnersContent, heroContent } from '../config';
 
 export default function HomeTopSection() {
   const router = useRouter();
   const partnersScrollRef = useRef(null);
+  const categoriesScrollRef = useRef(null);
+
+  const scrollCategories = (direction) => {
+    if (categoriesScrollRef.current) {
+      const scrollAmount = 300;
+      categoriesScrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   useEffect(() => {
     if (partnersScrollRef.current) {
@@ -129,23 +140,41 @@ export default function HomeTopSection() {
 
             <div className="flex flex-col xl:flex-row items-center justify-between gap-4 xl:gap-6">
 
-              <div className="flex flex-nowrap overflow-x-auto md:overflow-visible no-scrollbar pb-4 md:pb-0 justify-start md:justify-between gap-6 md:gap-4 flex-1 w-full snap-x snap-mandatory px-2 md:px-0 scroll-smooth">
-                {categories.map((category) => (
-                  <div key={category.id} onClick={() => router.push(viewFullMenuCta.href)} className="group flex flex-col items-center gap-2 cursor-pointer shrink-0 snap-center">
-                    <div className="relative w-[75px] h-[75px] md:w-[85px] md:h-[85px] rounded-full p-[2px] border border-[#e8a020] bg-transparent transition-transform duration-300 group-hover:-translate-y-1">
-                      <div className="w-full h-full rounded-full border-[3px] border-[#fcfaf5] bg-white overflow-hidden shadow-sm">
-                        <img
-                          src={category.icon}
-                          alt={category.label}
-                          className="w-full h-full object-cover rounded-full"
-                        />
+              <div className="relative flex-1 w-full flex items-center min-w-0">
+                <div ref={categoriesScrollRef} className="flex flex-nowrap overflow-x-auto no-scrollbar pb-4 md:pb-0 justify-start gap-6 md:gap-8 flex-1 w-full snap-x snap-mandatory px-2 md:px-8 scroll-smooth">
+                  {categories.map((category) => (
+                    <div key={category.id} onClick={() => router.push(`${viewFullMenuCta.href}&categoryName=${encodeURIComponent(category.label)}`)} className="group flex flex-col items-center gap-2 cursor-pointer shrink-0 snap-center">
+                      <div className="relative w-[85px] h-[85px] md:w-[100px] md:h-[100px] rounded-full p-[2px] border border-[#e8a020] bg-transparent transition-transform duration-300 group-hover:-translate-y-1">
+                        <div className="w-full h-full rounded-full border-[3px] border-[#fcfaf5] bg-white overflow-hidden shadow-sm">
+                          <img
+                            src={category.icon}
+                            alt={category.label}
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        </div>
                       </div>
+                      <span className="text-[10px] md:text-[11px] font-bold tracking-widest text-[#0e0d0c] uppercase font-sans text-center whitespace-nowrap">
+                        {category.label}
+                      </span>
                     </div>
-                    <span className="text-[10px] md:text-[11px] font-bold tracking-widest text-[#0e0d0c] uppercase font-sans text-center">
-                      {category.label}
-                    </span>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+                {/* Left Arrow (Desktop Only) */}
+                <button 
+                  className="hidden md:flex absolute -left-5 z-50 bg-white/95 shadow-[0_4px_16px_rgba(0,0,0,0.15)] border border-[#e5e7eb] rounded-full w-11 h-11 items-center justify-center text-[#0e0d0c] hover:text-[#e8a020] hover:scale-105 transition-all ml-1"
+                  onClick={() => scrollCategories('left')}
+                >
+                  <ChevronLeft size={24} strokeWidth={2.5} />
+                </button>
+
+                {/* Right Arrow (Desktop Only) */}
+                <button 
+                  className="hidden md:flex absolute -right-5 z-50 bg-white/95 shadow-[0_4px_16px_rgba(0,0,0,0.15)] border border-[#e5e7eb] rounded-full w-11 h-11 items-center justify-center text-[#0e0d0c] hover:text-[#e8a020] hover:scale-105 transition-all mr-1"
+                  onClick={() => scrollCategories('right')}
+                >
+                  <ChevronRight size={24} strokeWidth={2.5} />
+                </button>
               </div>
 
               <div className="shrink-0 w-full xl:w-auto text-center mt-3 xl:mt-0">

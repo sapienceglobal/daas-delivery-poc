@@ -635,6 +635,30 @@ const seedDemoData = async () => {
       { catName: 'Beverages', catDesc: 'Indian drinks', items: [
         { name: 'Mango Lassi', description: 'Sweet yogurt beverage blended with ripe Alphonso mango pulp and a hint of cardamom', price: 4.49, calories: 280, preparationTime: 5, tags: ['drink', 'mango', 'yogurt'], isVeg: true, isGlutenFree: true, isBestseller: true, image: '/images/branded/lassi-lounge/dishes/mango-lassi.jpg', sizeVariations: [{ name: 'Regular', price: 4.49 }, { name: 'Large', price: 5.99 }], addOns: [], discount: { type: null, value: 0 } },
         { name: 'Masala Chai', description: 'Strong black tea brewed with whole spices — cardamom, cinnamon, ginger, cloves — and steamed milk', price: 2.99, calories: 90, preparationTime: 5, tags: ['tea', 'traditional'], isVeg: true, isGlutenFree: true, image: null, sizeVariations: [], addOns: [], discount: { type: null, value: 0 } }
+      ]},
+      { catName: 'Biryani & Rice', catDesc: 'Fragrant basmati rice dishes', items: [
+        { name: 'Vegetable Biryani', description: 'Mixed vegetables and basmati rice slow-cooked with aromatic spices', price: 12.99, calories: 550, preparationTime: 20, tags: ['biryani', 'vegetarian'], isVeg: true, image: null, sizeVariations: [], addOns: [], discount: { type: null, value: 0 } },
+        { name: 'Jeera Rice', description: 'Basmati rice tempered with cumin seeds and ghee', price: 4.99, calories: 300, preparationTime: 10, tags: ['rice', 'vegetarian'], isVeg: true, image: null, sizeVariations: [], addOns: [], discount: { type: null, value: 0 } }
+      ]},
+      { catName: 'Tandoori Specials', catDesc: 'Sizzling clay oven grills', items: [
+        { name: 'Tandoori Chicken', description: 'Half chicken marinated in yogurt and spices, roasted in the tandoor', price: 14.99, calories: 480, preparationTime: 25, tags: ['tandoori', 'chicken'], isSpicy: true, image: null, sizeVariations: [], addOns: [], discount: { type: null, value: 0 } },
+        { name: 'Seekh Kebab', description: 'Minced lamb skewers with spices and herbs, cooked in the tandoor', price: 15.99, calories: 520, preparationTime: 20, tags: ['kebab', 'lamb'], isSpicy: true, image: null, sizeVariations: [], addOns: [], discount: { type: null, value: 0 } }
+      ]},
+      { catName: 'Desserts', catDesc: 'Traditional Indian sweets', items: [
+        { name: 'Gulab Jamun', description: 'Soft milk dumplings soaked in rose and cardamom syrup', price: 4.99, calories: 350, preparationTime: 5, tags: ['dessert', 'sweet'], isVeg: true, image: null, sizeVariations: [], addOns: [], discount: { type: null, value: 0 } },
+        { name: 'Rasmalai', description: 'Cottage cheese patties in sweetened, thickened milk flavored with cardamom', price: 5.99, calories: 320, preparationTime: 5, tags: ['dessert', 'sweet'], isVeg: true, image: null, sizeVariations: [], addOns: [], discount: { type: null, value: 0 } }
+      ]},
+      { catName: 'Street Food & Chaat', catDesc: 'Savory street-style snacks', items: [
+        { name: 'Pani Puri', description: 'Crispy hollow puris filled with spiced potato and tangy tamarind water', price: 6.99, calories: 250, preparationTime: 10, tags: ['chaat', 'street food'], isVeg: true, image: null, sizeVariations: [], addOns: [], discount: { type: null, value: 0 } },
+        { name: 'Samosa Chaat', description: 'Crushed samosas topped with yogurt, chutneys, and spices', price: 7.99, calories: 450, preparationTime: 10, tags: ['chaat', 'street food'], isVeg: true, image: null, sizeVariations: [], addOns: [], discount: { type: null, value: 0 } }
+      ]},
+      { catName: 'Soups & Salads', catDesc: 'Light and refreshing', items: [
+        { name: 'Tomato Shorba', description: 'A light, spiced Indian tomato soup infused with cilantro', price: 5.99, calories: 150, preparationTime: 10, tags: ['soup', 'healthy'], isVeg: true, image: null, sizeVariations: [], addOns: [], discount: { type: null, value: 0 } },
+        { name: 'Kachumber Salad', description: 'Diced cucumbers, tomatoes, and onions with a lemon-cumin dressing', price: 4.49, calories: 80, preparationTime: 5, tags: ['salad', 'healthy'], isVeg: true, image: null, sizeVariations: [], addOns: [], discount: { type: null, value: 0 } }
+      ]},
+      { catName: 'Accompaniments', catDesc: 'Sides that complete the meal', items: [
+        { name: 'Cucumber Raita', description: 'Cool yogurt dip with grated cucumber and roasted cumin', price: 2.99, calories: 120, preparationTime: 5, tags: ['side', 'yogurt'], isVeg: true, image: null, sizeVariations: [], addOns: [], discount: { type: null, value: 0 } },
+        { name: 'Papadum (2 pcs)', description: 'Thin, crisp lentil wafers served with mint chutney', price: 1.99, calories: 90, preparationTime: 2, tags: ['side', 'crispy'], isVeg: true, image: null, sizeVariations: [], addOns: [], discount: { type: null, value: 0 } }
       ]}
     ]
   ];

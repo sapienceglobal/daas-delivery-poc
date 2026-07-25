@@ -42,7 +42,8 @@ export default function CategorySidebar({
             return (
               <button
                 key={cat._id}
-                onClick={() => {
+                onClick={(e) => {
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
                   setActiveCategory(cat._id);
                   setSearchQuery('');
                 }}

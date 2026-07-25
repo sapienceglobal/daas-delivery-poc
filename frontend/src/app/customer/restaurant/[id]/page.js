@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Star, Clock, MapPin, Phone, Globe, ChevronLeft,
   Plus, Minus, Flame, Leaf, ShoppingBag, Heart,
@@ -39,7 +39,9 @@ const getDishImage = (itemName) => {
 export default function RestaurantPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { addItem, switchRestaurant, restaurant: cartRestaurant, itemCount, items, subtotal, updateQuantity, removeItem, specialInstructions, setSpecialInstructions } = useCart();
+  const searchParams = useSearchParams();
+  const categoryName = searchParams.get('categoryName');
+  const { addItem, switchRestaurant, restaurant: cartRestaurant, itemCount, items, subtotal, updateQuantity, removeItem, specialInstructions, setSpecialInstructions, openCart } = useCart();
   const { user, updateUser, isAuthenticated } = useAuth();
 
   const [restaurant, setRestaurant] = useState(null);
@@ -69,7 +71,12 @@ export default function RestaurantPage() {
         setRestaurant(data.data);
         setMenu(data.data.menu || []);
         if (data.data.menu?.length > 0) {
-          setActiveCategory(data.data.menu[0]._id);
+          // If a categoryName is passed in URL, try to select it
+          let matchedCategory = null;
+          if (categoryName) {
+            matchedCategory = data.data.menu.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
+          }
+          setActiveCategory(matchedCategory ? matchedCategory._id : data.data.menu[0]._id);
         }
       } catch {
         showToast('Failed to load restaurant', 'error');
@@ -316,11 +323,11 @@ export default function RestaurantPage() {
                   categories={categories}
                   activeCategory={activeCategory}
                   setActiveCategory={(id) => {
-                    // Scroll FIRST (instantly) before React re-renders — avoids jerk from competing scroll+layout-shift
+                    // Scroll FIRST (smoothly) before React re-renders
                     if (dishGridRef.current) {
                       const rect = dishGridRef.current.getBoundingClientRect();
                       if (rect.top < 80) {
-                        window.scrollTo({ top: window.scrollY + rect.top - 80, behavior: 'instant' });
+                        window.scrollTo({ top: window.scrollY + rect.top - 80, behavior: 'smooth' });
                       }
                     }
                     // Then update category state — content changes after position is already correct

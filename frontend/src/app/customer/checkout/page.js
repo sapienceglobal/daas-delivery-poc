@@ -47,7 +47,7 @@ export default function CheckoutPage() {
 
       <div className="mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8 py-4 lg:py-8 flex-1">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-start relative">
-          
+
           <div className="lg:col-span-8 space-y-6 ll-stagger order-2 lg:order-1">
             <DeliveryInfoSection
               step={c.step} setStep={c.setStep} t={t}
@@ -114,7 +114,7 @@ export default function CheckoutPage() {
               </div>
             </div>
           </div>
-          
+
         </div>
 
         {/* Mobile only: Loyalty and Support at the bottom of the grid */}
@@ -124,11 +124,11 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <ReviewOrderSection 
-        step={c.step} 
-        t={t} 
-        onBack={() => c.setStep(2)} 
-        onPlaceOrder={c.handlePlaceOrder} 
+      <ReviewOrderSection
+        step={c.step}
+        t={t}
+        onBack={() => c.setStep(2)}
+        onPlaceOrder={c.handlePlaceOrder}
         total={c.total}
         compiledAddress={c.compiledAddress}
         fullName={c.fullName}

@@ -1,6 +1,7 @@
 import './globals.css';
 import { Providers } from '@/components/shared/Providers';
 import SiteChrome from '@/components/shared/SiteChrome';
+import ScrollToTop from '@/components/shared/ScrollToTop';
 
 export const metadata = {
   title: 'Restaurant Commerce Platform',
@@ -24,6 +25,7 @@ export default function RootLayout({ children }) {
       <body className="grid-bg min-h-screen bg-brand-bg text-brand-text antialiased selection:bg-brand-cyan selection:text-brand-bg"
         style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
         <Providers>
+          <ScrollToTop />
           {/* Decorative background glow elements */}
           <div className="pointer-events-none fixed left-[10%] top-[5%] -z-10 h-[350px] w-[350px] rounded-full bg-brand-cyan/10 opacity-40 blur-[80px]" />
           <div className="pointer-events-none fixed right-[15%] bottom-[10%] -z-10 h-[400px] w-[400px] rounded-full bg-brand-blue/10 opacity-30 blur-[100px]" />

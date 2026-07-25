@@ -114,7 +114,7 @@ export const handleWebhook = async (rawBody, signature, secret) => {
       const paymentIntent = event.data.object;
       const orderId = paymentIntent.metadata.orderId;
       const dbName = paymentIntent.metadata.tenantDbName || 'daas_poc';
-      
+
       if (orderId && orderId !== 'pending') {
         const targetDb = mongoose.connection.useDb(dbName, { useCache: true });
         const TenantOrder = targetDb.model('Order', Order.schema);
@@ -126,12 +126,12 @@ export const handleWebhook = async (rawBody, signature, secret) => {
       }
       break;
     }
-    
+
     case 'payment_intent.payment_failed': {
       const paymentIntent = event.data.object;
       const orderId = paymentIntent.metadata.orderId;
       const dbName = paymentIntent.metadata.tenantDbName || 'daas_poc';
-      
+
       if (orderId && orderId !== 'pending') {
         const targetDb = mongoose.connection.useDb(dbName, { useCache: true });
         const TenantOrder = targetDb.model('Order', Order.schema);
