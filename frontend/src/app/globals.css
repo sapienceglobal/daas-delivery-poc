@@ -10,11 +10,27 @@
 }
 
 body {
-  background-color: #080C14;
-  color: #F8FAFC;
   overflow-x: clip;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--background);
 }
+
+/* Hide horizontal scrollbar globally */
+::-webkit-scrollbar {
+  height: 0px; /* Hides horizontal scrollbar */
+  width: 6px;  /* Keeps vertical scrollbar visible but thin */
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
 /* Chrome Autofill Global Fix - delays the style application infinitely to keep Tailwind styles */
 input:-webkit-autofill,
 input:-webkit-autofill:hover, 

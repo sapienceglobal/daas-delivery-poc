@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { X, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -27,20 +27,49 @@ export default function CartSidebar() {
   const { isCartOpen, closeCart, items, subtotal, updateQuantity, removeItem } = useCart();
   const router = useRouter();
   const [touchStartY, setTouchStartY] = useState(null);
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (isCartOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      setDragY(0); // Reset when closed
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isCartOpen]);
 
   const handleTouchStart = (e) => {
     setTouchStartY(e.touches[0].clientY);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (touchStartY === null) return;
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - touchStartY;
+    // Only allow dragging downwards
+    if (diff > 0) {
+      setDragY(diff);
+    }
   };
 
   const handleTouchEnd = (e) => {
     if (touchStartY === null) return;
-    const touchEndY = e.changedTouches[0].clientY;
-    const diff = touchEndY - touchStartY;
     
-    // If swiped down by more than 50px, close the cart
-    if (diff > 50) {
+    setIsDragging(false);
+    
+    // If swiped down by more than 100px, close the cart
+    if (dragY > 100) {
       closeCart();
+    } else {
+      // Spring back
+      setDragY(0);
     }
+    
     setTouchStartY(null);
   };
 
@@ -57,6 +86,9 @@ export default function CartSidebar() {
     ? "translate-y-0 sm:translate-x-0"
     : "translate-y-full sm:translate-y-0 sm:translate-x-full";
 
+  // Disable transition during drag so it sticks exactly to the finger
+  const transitionClass = isDragging ? "" : "transition-transform duration-slow ease-in-out";
+
   return (
     <div className={`fixed inset-0 z-[100] ${isCartOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
       {/* Backdrop */}
@@ -67,13 +99,15 @@ export default function CartSidebar() {
 
       {/* Sidebar / Bottom Sheet */}
       <div 
-        className={`absolute bottom-0 sm:top-0 right-0 w-full h-[85vh] sm:h-full sm:w-[400px] bg-background shadow-2xl flex flex-col rounded-t-[24px] sm:rounded-none transform transition-transform duration-slow ease-in-out ${sidebarClass}`}
+        className={`absolute bottom-0 sm:top-0 right-0 w-full h-[85vh] sm:h-full sm:w-[400px] bg-background shadow-2xl flex flex-col rounded-t-[24px] sm:rounded-none transform ${transitionClass} ${sidebarClass}`}
+        style={{ transform: dragY > 0 && typeof window !== 'undefined' && window.innerWidth < 640 ? `translateY(${dragY}px)` : undefined }}
       >
         
         {/* Mobile handle indicator & Swipe Area */}
         <div 
-          className="sm:hidden w-full flex justify-center pt-3 pb-1"
+          className="sm:hidden w-full flex justify-center pt-3 pb-1 touch-none"
           onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
           <div className="w-12 h-1.5 bg-[#e5e7eb] rounded-full"></div>
@@ -81,8 +115,9 @@ export default function CartSidebar() {
 
         {/* Header */}
         <div 
-          className="flex items-center justify-between p-4 pt-2 sm:pt-4 border-b border-border"
+          className="flex items-center justify-between p-4 pt-2 sm:pt-4 border-b border-border touch-none"
           onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
           <h2 className="text-xl font-heading font-bold text-text flex items-center gap-2">
