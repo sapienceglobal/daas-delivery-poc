@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Gift, Utensils, Coffee, Pizza, Salad, Flame, CakeSlice } from 'lucide-react';
 
@@ -25,6 +25,16 @@ export default function CategorySidebar({
   isViewOnly = false
 }) {
   const router = useRouter();
+  const navRef = useRef(null);
+
+  useEffect(() => {
+    if (navRef.current && activeCategory && !searchQuery.trim()) {
+      const activeBtn = navRef.current.querySelector(`[data-category-id="${activeCategory}"]`);
+      if (activeBtn) {
+        activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [activeCategory, searchQuery]);
 
   return (
     <div className="space-y-6 ll-reveal">
@@ -34,7 +44,7 @@ export default function CategorySidebar({
         <div className="hidden lg:block bg-[#7a0b10] text-[#ffffff] px-5 py-3 font-bold uppercase tracking-wider text-[11px]">
           CATEGORIES
         </div>
-        <nav className="flex flex-row overflow-x-auto no-scrollbar lg:flex-col snap-x snap-mandatory px-4 lg:px-0 gap-2 lg:gap-0 pb-2 lg:pb-0">
+        <nav ref={navRef} className="flex flex-row overflow-x-auto no-scrollbar lg:flex-col snap-x snap-mandatory px-4 lg:px-0 gap-2 lg:gap-0 pb-2 lg:pb-0">
           {categories.map((cat) => {
             const isActive = !searchQuery.trim() && activeCategory === cat._id;
             const Icon = getCategoryIcon(cat.name);
@@ -42,6 +52,7 @@ export default function CategorySidebar({
             return (
               <button
                 key={cat._id}
+                data-category-id={cat._id}
                 onClick={(e) => {
                   e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
                   setActiveCategory(cat._id);
