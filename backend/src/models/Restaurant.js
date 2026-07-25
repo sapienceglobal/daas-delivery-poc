@@ -177,7 +177,7 @@ const RestaurantSchema = new mongoose.Schema({
 
 // ── Indexes ─────────────────────────────────────────────────────────────────
 RestaurantSchema.index({ location: '2dsphere' });
-RestaurantSchema.index({ slug: 1 });
+
 RestaurantSchema.index({ status: 1, isActive: 1 });
 RestaurantSchema.index({ cuisineTags: 1 });
 RestaurantSchema.index({ ownerId: 1 });

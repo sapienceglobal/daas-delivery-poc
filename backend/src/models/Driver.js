@@ -73,7 +73,7 @@ const DriverSchema = new mongoose.Schema({
 // ── Indexes ─────────────────────────────────────────────────────────────────
 DriverSchema.index({ currentLocation: '2dsphere' });
 DriverSchema.index({ status: 1, isApproved: 1, isActive: 1 });
-DriverSchema.index({ userId: 1 });
+
 
 const Driver = mongoose.model('Driver', DriverSchema);
 export default Driver;

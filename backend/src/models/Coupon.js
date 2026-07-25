@@ -66,7 +66,7 @@ const CouponSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // ── Indexes ─────────────────────────────────────────────────────────────────
-CouponSchema.index({ code: 1 });
+
 CouponSchema.index({ isActive: 1, endDate: 1 });
 
 /**

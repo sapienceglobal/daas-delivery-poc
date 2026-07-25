@@ -186,8 +186,8 @@ const OrderSchema = new mongoose.Schema({
 OrderSchema.index({ userId: 1, createdAt: -1 });
 OrderSchema.index({ restaurantId: 1, createdAt: -1 });
 OrderSchema.index({ status: 1 });
-OrderSchema.index({ orderNumber: 1 });
-OrderSchema.index({ externalDeliveryId: 1 }, { sparse: true });
+
+
 
 // ── Pre-save: generate order number & external ID ───────────────────────────
 OrderSchema.pre('save', function (next) {
