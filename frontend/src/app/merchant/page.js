@@ -76,11 +76,14 @@ export default function MerchantDashboard() {
 
   const loadDashboard = async () => {
     try {
-      const restaurantId = user?.restaurantId;
-      if (!restaurantId) { setLoading(false); return; }
+      if (!user?.restaurantId) { setLoading(false); return; }
 
-      const [restData, ordersData, menuData, financeData, resData, catData] = await Promise.all([
-        restaurantAPI.getById(restaurantId),
+      const restData = isMerchant
+        ? await restaurantAPI.getMyRestaurant()
+        : await restaurantAPI.getById(user.restaurantId);
+      const restaurantId = restData.data?._id || user.restaurantId;
+
+      const [ordersData, menuData, financeData, resData, catData] = await Promise.all([
         orderAPI.getRestaurantOrders(restaurantId),
         menuAPI.getByRestaurant(restaurantId),
         restaurantAPI.getFinance(restaurantId, 30),
@@ -119,14 +122,18 @@ export default function MerchantDashboard() {
         avgRating: restData.data?.rating || 0,
       });
 
-    } catch { showToast('Failed to load dashboard', 'error'); }
+    } catch (err) { 
+      console.error('Dashboard Load Error:', err);
+      showToast('Failed to load dashboard: ' + err.message, 'error'); 
+    }
     finally { setLoading(false); }
   };
 
   useEffect(() => {
-    if (!user?.restaurantId) return undefined;
+    const roomId = restaurant?._id || user?.restaurantId;
+    if (!roomId) return undefined;
 
-    joinRoom(user.restaurantId);
+    joinRoom(roomId);
     const handleRealtimeOrder = () => {
       showToast('Order update received!', 'success');
       loadDashboard();
@@ -139,7 +146,7 @@ export default function MerchantDashboard() {
       off('new_order', handleRealtimeOrder);
       off('order_updated', handleRealtimeOrder);
     };
-  }, [user?.restaurantId, joinRoom, on, off]);
+  }, [restaurant?._id, user?.restaurantId, joinRoom, on, off]);
 
   const handleUpdateStatus = async (orderId, status) => {
     try { await orderAPI.updateStatus(orderId, status); showToast(`Status → ${status}`, 'success'); loadDashboard(); }

@@ -1,11 +1,17 @@
 import CateringInquiry from '../models/CateringInquiry.js';
 import Restaurant from '../models/Restaurant.js';
 
+const getModels = (req) => ({
+  CateringInquiry: req.getModel?.('CateringInquiry') || CateringInquiry,
+  Restaurant: req.getModel?.('Restaurant') || Restaurant,
+});
+
 // @desc    Submit a new catering inquiry
 // @route   POST /api/catering
 // @access  Public
 export const createInquiry = async (req, res) => {
   try {
+    const { CateringInquiry, Restaurant } = getModels(req);
     const {
       restaurantId,
       customerName,
@@ -51,6 +57,7 @@ export const createInquiry = async (req, res) => {
 // @access  Private (Merchant/Admin)
 export const getRestaurantInquiries = async (req, res) => {
   try {
+    const { CateringInquiry, Restaurant } = getModels(req);
     const { restaurantId } = req.params;
 
     // Resolve restaurant by slug or ObjectId
@@ -90,6 +97,7 @@ export const getRestaurantInquiries = async (req, res) => {
 // @access  Private (Merchant/Admin)
 export const updateInquiryStatus = async (req, res) => {
   try {
+    const { CateringInquiry, Restaurant } = getModels(req);
     const { status } = req.body;
     let inquiry = await CateringInquiry.findById(req.params.id);
 
@@ -100,6 +108,9 @@ export const updateInquiryStatus = async (req, res) => {
     // Verify ownership
     if (req.user.role === 'merchant') {
       const restaurant = await Restaurant.findById(inquiry.restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ success: false, message: 'Restaurant not found' });
+      }
       if (restaurant.ownerId?.toString() !== req.user._id.toString()) {
         return res.status(403).json({ success: false, message: 'Not authorized to update this inquiry' });
       }

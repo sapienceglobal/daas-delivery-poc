@@ -1,11 +1,17 @@
 import Reservation from '../models/Reservation.js';
 import Restaurant from '../models/Restaurant.js';
 
+const getModels = (req) => ({
+  Reservation: req.getModel?.('Reservation') || Reservation,
+  Restaurant: req.getModel?.('Restaurant') || Restaurant,
+});
+
 // @desc    Create a new reservation
 // @route   POST /api/reservations
 // @access  Public / Private (if userId provided)
 export const createReservation = async (req, res) => {
   try {
+    const { Reservation, Restaurant } = getModels(req);
     const { 
       restaurantId, 
       customerName, 
@@ -56,6 +62,7 @@ export const createReservation = async (req, res) => {
 // @access  Private (Customer)
 export const getMyReservations = async (req, res) => {
   try {
+    const { Reservation } = getModels(req);
     const reservations = await Reservation.find({ userId: req.user._id })
       .populate('restaurantId', 'name address phone')
       .sort({ date: -1 });
@@ -75,6 +82,7 @@ export const getMyReservations = async (req, res) => {
 // @access  Private (Merchant/Admin)
 export const getRestaurantReservations = async (req, res) => {
   try {
+    const { Reservation, Restaurant } = getModels(req);
     const { restaurantId } = req.params;
     
     // Resolve restaurant by slug or ObjectId
@@ -114,6 +122,7 @@ export const getRestaurantReservations = async (req, res) => {
 // @access  Private (Merchant/Admin)
 export const updateReservationStatus = async (req, res) => {
   try {
+    const { Reservation, Restaurant } = getModels(req);
     const { status, tableId } = req.body;
     let reservation = await Reservation.findById(req.params.id);
 
@@ -124,6 +133,9 @@ export const updateReservationStatus = async (req, res) => {
     // Verify ownership
     if (req.user.role === 'merchant') {
       const restaurant = await Restaurant.findById(reservation.restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ success: false, message: 'Restaurant not found' });
+      }
       if (restaurant.ownerId?.toString() !== req.user._id.toString()) {
         return res.status(403).json({ success: false, message: 'Not authorized to update this reservation' });
       }

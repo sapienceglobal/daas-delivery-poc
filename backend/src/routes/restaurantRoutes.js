@@ -15,13 +15,13 @@ router.get('/:id', restaurantController.getRestaurantById);
 router.get('/:id/eta', getRestaurantETA);
 
 // ── Merchant Routes ─────────────────────────────────────────────────────────
-router.post('/', protect, authorize('merchant', 'admin'), restaurantController.createRestaurant);
-router.put('/:id', protect, authorize('merchant', 'admin'), restaurantController.updateRestaurant);
-router.put('/:id/banner', protect, authorize('merchant', 'admin'), restaurantController.updateBanner);
-router.put('/:id/hours', protect, authorize('merchant', 'admin'), restaurantController.updateOperatingHours);
-router.put('/:id/toggle', protect, authorize('merchant', 'admin'), restaurantController.toggleActive);
-router.get('/:id/finance', protect, authorize('merchant', 'admin'), restaurantController.getRestaurantFinance);
-router.put('/:id/onboarding', protect, authorize('merchant', 'admin'), restaurantController.submitOnboarding);
+router.post('/', protect, authorize('merchant'), restaurantController.createRestaurant);
+router.put('/:id', protect, authorize('merchant'), restaurantController.updateRestaurant);
+router.put('/:id/banner', protect, authorize('merchant'), restaurantController.updateBanner);
+router.put('/:id/hours', protect, authorize('merchant'), restaurantController.updateOperatingHours);
+router.put('/:id/toggle', protect, authorize('merchant'), restaurantController.toggleActive);
+router.get('/:id/finance', protect, authorize('merchant'), restaurantController.getRestaurantFinance);
+router.put('/:id/onboarding', protect, authorize('merchant'), restaurantController.submitOnboarding);
 
 // ── Admin Routes ────────────────────────────────────────────────────────────
 router.put('/:id/status', protect, authorize('admin'), restaurantController.updateStatus);

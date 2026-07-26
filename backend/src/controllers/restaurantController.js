@@ -15,9 +15,29 @@ const canReadRestaurant = (restaurant, user) => {
     user.restaurantId?.toString() === restaurant._id.toString();
 };
 
+const getModels = (req) => ({
+  Restaurant: req.getModel?.('Restaurant') || Restaurant,
+  Category: req.getModel?.('Category') || Category,
+  MenuItem: req.getModel?.('MenuItem') || MenuItem,
+  Order: req.getModel?.('Order') || Order,
+  Settlement: req.getModel?.('Settlement') || Settlement,
+});
+
+const resolveRestaurantByParam = async (req, restaurantId) => {
+  const { Restaurant } = getModels(req);
+  const isObjectId = mongoose.Types.ObjectId.isValid(restaurantId) && String(restaurantId).length === 24;
+
+  if (isObjectId) return Restaurant.findById(restaurantId);
+  if (restaurantId === 'lassi-lounge') {
+    return Restaurant.findOne({ name: { $regex: /^lassi lounge$/i } });
+  }
+  return Restaurant.findOne({ slug: restaurantId });
+};
+
 // ── Public ──────────────────────────────────────────────────────────────────
 
 export const getRestaurants = asyncHandler(async (req, response) => {
+  const { Restaurant } = getModels(req);
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
   const skip = (page - 1) * limit;
@@ -53,6 +73,7 @@ export const getRestaurants = asyncHandler(async (req, response) => {
 });
 
 export const getNearbyRestaurants = asyncHandler(async (req, response) => {
+  const { Restaurant } = getModels(req);
   const { lat, lng, maxDistance = 15 } = req.query;
 
   if (!lat || !lng) throw new AppError('lat and lng query parameters are required', 400);
@@ -71,6 +92,7 @@ export const getNearbyRestaurants = asyncHandler(async (req, response) => {
 });
 
 export const searchRestaurants = asyncHandler(async (req, response) => {
+  const { Restaurant, MenuItem } = getModels(req);
   const { q } = req.query;
   if (!q) throw new AppError('Search query (q) is required', 400);
 
@@ -104,6 +126,7 @@ export const searchRestaurants = asyncHandler(async (req, response) => {
 });
 
 export const getCuisines = asyncHandler(async (_req, response) => {
+  const { Restaurant } = getModels(_req);
   const cuisines = await Restaurant.distinct('cuisineTags', {
     status: 'approved',
     isActive: true
@@ -113,20 +136,9 @@ export const getCuisines = asyncHandler(async (_req, response) => {
 });
 
 export const getRestaurantById = asyncHandler(async (req, response) => {
-  let restaurant;
-  
-  // FIX: Ab yeh sirf exactly 24-character wale real ObjectIds ko hi allow karega
-  const isObjectId = mongoose.Types.ObjectId.isValid(req.params.id) && String(req.params.id).length === 24;
-
-  if (isObjectId) {
-    restaurant = await Restaurant.findById(req.params.id).lean();
-  } else if (req.params.id === 'lassi-lounge') {
-    // Agar id 24 char ki nahi hai aur 'lassi-lounge' hai, tab yeh chalega
-    restaurant = await Restaurant.findOne({ name: { $regex: /^lassi lounge$/i } }).lean();
-  } else {
-    // Agar future me koi aur naam pass hota hai (jaise slug)
-    restaurant = await Restaurant.findOne({ slug: req.params.id }).lean(); 
-  }
+  const { Category, MenuItem } = getModels(req);
+  const restaurantDoc = await resolveRestaurantByParam(req, req.params.id);
+  const restaurant = restaurantDoc?.toObject ? restaurantDoc.toObject() : restaurantDoc;
 
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
@@ -153,6 +165,7 @@ export const getRestaurantById = asyncHandler(async (req, response) => {
 // ── Merchant ────────────────────────────────────────────────────────────────
 
 export const createRestaurant = asyncHandler(async (req, response) => {
+  const { Restaurant } = getModels(req);
   const data = {
     ...req.body,
     ownerId: req.user._id,
@@ -171,6 +184,7 @@ export const createRestaurant = asyncHandler(async (req, response) => {
 });
 
 export const updateRestaurant = asyncHandler(async (req, response) => {
+  const { Restaurant } = getModels(req);
   const restaurant = await Restaurant.findById(req.params.id);
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
@@ -195,6 +209,7 @@ export const updateRestaurant = asyncHandler(async (req, response) => {
 });
 
 export const updateBanner = asyncHandler(async (req, response) => {
+  const { Restaurant } = getModels(req);
   const restaurant = await Restaurant.findById(req.params.id);
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
@@ -211,6 +226,7 @@ export const updateBanner = asyncHandler(async (req, response) => {
 });
 
 export const updateOperatingHours = asyncHandler(async (req, response) => {
+  const { Restaurant } = getModels(req);
   const restaurant = await Restaurant.findById(req.params.id);
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
@@ -227,6 +243,7 @@ export const updateOperatingHours = asyncHandler(async (req, response) => {
 });
 
 export const toggleActive = asyncHandler(async (req, response) => {
+  const { Restaurant } = getModels(req);
   const restaurant = await Restaurant.findById(req.params.id);
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
@@ -244,6 +261,7 @@ export const toggleActive = asyncHandler(async (req, response) => {
 });
 
 export const getRestaurantFinance = asyncHandler(async (req, response) => {
+  const { Restaurant, Order, Settlement } = getModels(req);
   const restaurant = await Restaurant.findById(req.params.id);
   if (!restaurant) throw new AppError('Restaurant not found', 404);
   if (!canReadRestaurant(restaurant, req.user)) {
@@ -312,6 +330,7 @@ export const getRestaurantFinance = asyncHandler(async (req, response) => {
 });
 
 export const submitOnboarding = asyncHandler(async (req, response) => {
+  const { Restaurant } = getModels(req);
   const restaurant = await Restaurant.findById(req.params.id);
   if (!restaurant) throw new AppError('Restaurant not found', 404);
   if (!canReadRestaurant(restaurant, req.user)) {
@@ -376,6 +395,7 @@ export const submitOnboarding = asyncHandler(async (req, response) => {
 // ── Admin ───────────────────────────────────────────────────────────────────
 
 export const reviewOnboarding = asyncHandler(async (req, response) => {
+  const { Restaurant } = getModels(req);
   const { decision, notes = '' } = req.body;
   if (!['approved', 'needs_changes', 'rejected'].includes(decision)) {
     throw new AppError('decision must be approved, needs_changes, or rejected', 400);
@@ -403,6 +423,7 @@ export const reviewOnboarding = asyncHandler(async (req, response) => {
 });
 
 export const reviewDocument = asyncHandler(async (req, response) => {
+  const { Restaurant } = getModels(req);
   const { verified, rejectionReason = '' } = req.body;
   const restaurant = await Restaurant.findById(req.params.id);
   if (!restaurant) throw new AppError('Restaurant not found', 404);
@@ -418,6 +439,7 @@ export const reviewDocument = asyncHandler(async (req, response) => {
 });
 
 export const updateStatus = asyncHandler(async (req, response) => {
+  const { Restaurant } = getModels(req);
   const { status } = req.body;
   if (!['approved', 'rejected', 'suspended', 'pending'].includes(status)) {
     throw new AppError('Invalid status', 400);
@@ -434,6 +456,7 @@ export const updateStatus = asyncHandler(async (req, response) => {
 });
 
 export const updateCommission = asyncHandler(async (req, response) => {
+  const { Restaurant } = getModels(req);
   const { commissionRate } = req.body;
   if (commissionRate === undefined || commissionRate < 0 || commissionRate > 1) {
     throw new AppError('Commission rate must be between 0 and 1', 400);
@@ -450,6 +473,7 @@ export const updateCommission = asyncHandler(async (req, response) => {
 });
 
 export const getMerchantRestaurant = asyncHandler(async (req, response) => {
+  const { Restaurant } = getModels(req);
   if (!req.user.restaurantId) {
     throw new AppError('No restaurant associated with this merchant account.', 404);
   }

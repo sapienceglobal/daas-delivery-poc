@@ -7,9 +7,15 @@ import * as res from '../utils/responseFormatter.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-const ensureOwner = async (restaurantId, user) => {
+const getModels = (req) => ({
+  Category: req.getModel?.('Category') || Category,
+  MenuItem: req.getModel?.('MenuItem') || MenuItem,
+  Restaurant: req.getModel?.('Restaurant') || Restaurant,
+});
+
+const ensureOwner = async (restaurantId, user, RestaurantModel) => {
   if (user.role === 'admin') return;
-  const restaurant = await Restaurant.findById(restaurantId);
+  const restaurant = await RestaurantModel.findById(restaurantId);
   if (!restaurant) throw new AppError('Restaurant not found', 404);
   if (restaurant.ownerId?.toString() !== user._id.toString()) {
     throw new AppError('You can only manage your own restaurant menu', 403);
@@ -19,6 +25,7 @@ const ensureOwner = async (restaurantId, user) => {
 // ── Public ──────────────────────────────────────────────────────────────────
 
 export const getMenuByRestaurant = asyncHandler(async (req, response) => {
+  const { Category, MenuItem } = getModels(req);
   const { restaurantId } = req.params;
 
   const categories = await Category.find({ restaurantId, isActive: true })
@@ -36,6 +43,7 @@ export const getMenuByRestaurant = asyncHandler(async (req, response) => {
 });
 
 export const getMenuItem = asyncHandler(async (req, response) => {
+  const { MenuItem } = getModels(req);
   const item = await MenuItem.findById(req.params.id)
     .populate('categoryId', 'name')
     .lean();
@@ -44,6 +52,7 @@ export const getMenuItem = asyncHandler(async (req, response) => {
 });
 
 export const getCategoriesByRestaurant = asyncHandler(async (req, response) => {
+  const { Category } = getModels(req);
   const categories = await Category.find({ restaurantId: req.params.restaurantId })
     .sort({ sortOrder: 1 }).lean();
   res.success(response, { data: categories });
@@ -52,20 +61,22 @@ export const getCategoriesByRestaurant = asyncHandler(async (req, response) => {
 // ── Category CRUD ───────────────────────────────────────────────────────────
 
 export const createCategory = asyncHandler(async (req, response) => {
+  const { Category, Restaurant } = getModels(req);
   const { restaurantId, name, description, image, sortOrder } = req.body;
   if (!restaurantId || !name) throw new AppError('restaurantId and name are required', 400);
 
-  await ensureOwner(restaurantId, req.user);
+  await ensureOwner(restaurantId, req.user, Restaurant);
 
   const category = await Category.create({ restaurantId, name, description, image, sortOrder });
   res.created(response, { data: category });
 });
 
 export const updateCategory = asyncHandler(async (req, response) => {
+  const { Category, Restaurant } = getModels(req);
   const category = await Category.findById(req.params.id);
   if (!category) throw new AppError('Category not found', 404);
 
-  await ensureOwner(category.restaurantId, req.user);
+  await ensureOwner(category.restaurantId, req.user, Restaurant);
 
   const allowed = ['name', 'description', 'image', 'sortOrder', 'isActive'];
   for (const key of allowed) {
@@ -77,10 +88,11 @@ export const updateCategory = asyncHandler(async (req, response) => {
 });
 
 export const deleteCategory = asyncHandler(async (req, response) => {
+  const { Category, MenuItem, Restaurant } = getModels(req);
   const category = await Category.findById(req.params.id);
   if (!category) throw new AppError('Category not found', 404);
 
-  await ensureOwner(category.restaurantId, req.user);
+  await ensureOwner(category.restaurantId, req.user, Restaurant);
 
   // Delete associated menu items
   await MenuItem.deleteMany({ categoryId: category._id });
@@ -92,12 +104,13 @@ export const deleteCategory = asyncHandler(async (req, response) => {
 // ── MenuItem CRUD ───────────────────────────────────────────────────────────
 
 export const createMenuItem = asyncHandler(async (req, response) => {
+  const { Category, MenuItem, Restaurant } = getModels(req);
   const { restaurantId, categoryId, name, price } = req.body;
   if (!restaurantId || !categoryId || !name || price === undefined) {
     throw new AppError('restaurantId, categoryId, name, and price are required', 400);
   }
 
-  await ensureOwner(restaurantId, req.user);
+  await ensureOwner(restaurantId, req.user, Restaurant);
 
   const categoryExists = await Category.findById(categoryId);
   if (!categoryExists) throw new AppError('Category not found', 404);
@@ -107,10 +120,11 @@ export const createMenuItem = asyncHandler(async (req, response) => {
 });
 
 export const updateMenuItem = asyncHandler(async (req, response) => {
+  const { MenuItem, Restaurant } = getModels(req);
   const item = await MenuItem.findById(req.params.id);
   if (!item) throw new AppError('Menu item not found', 404);
 
-  await ensureOwner(item.restaurantId, req.user);
+  await ensureOwner(item.restaurantId, req.user, Restaurant);
 
   const allowed = [
     'name', 'description', 'price', 'image', 'images', 'categoryId',
@@ -129,20 +143,22 @@ export const updateMenuItem = asyncHandler(async (req, response) => {
 });
 
 export const deleteMenuItem = asyncHandler(async (req, response) => {
+  const { MenuItem, Restaurant } = getModels(req);
   const item = await MenuItem.findById(req.params.id);
   if (!item) throw new AppError('Menu item not found', 404);
 
-  await ensureOwner(item.restaurantId, req.user);
+  await ensureOwner(item.restaurantId, req.user, Restaurant);
 
   await item.deleteOne();
   res.success(response, { message: 'Menu item deleted' });
 });
 
 export const toggleItemAvailability = asyncHandler(async (req, response) => {
+  const { MenuItem, Restaurant } = getModels(req);
   const item = await MenuItem.findById(req.params.id);
   if (!item) throw new AppError('Menu item not found', 404);
 
-  await ensureOwner(item.restaurantId, req.user);
+  await ensureOwner(item.restaurantId, req.user, Restaurant);
 
   item.isAvailable = !item.isAvailable;
   await item.save();
@@ -156,12 +172,13 @@ export const toggleItemAvailability = asyncHandler(async (req, response) => {
 // ── Bulk Import ─────────────────────────────────────────────────────────────
 
 export const bulkImportItems = asyncHandler(async (req, response) => {
+  const { Category, MenuItem, Restaurant } = getModels(req);
   const { restaurantId, items } = req.body;
   if (!restaurantId || !Array.isArray(items) || items.length === 0) {
     throw new AppError('restaurantId and items array are required', 400);
   }
 
-  await ensureOwner(restaurantId, req.user);
+  await ensureOwner(restaurantId, req.user, Restaurant);
 
   const created = [];
 

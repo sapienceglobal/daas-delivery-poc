@@ -18,7 +18,8 @@ export const getAllowedTenantIds = () => {
 };
 
 export const resolveTenantId = (tenantId) => {
-  const resolved = normalizeTenantId(tenantId);
+  const forcedTenantId = process.env.FORCE_TENANT_ID || process.env.DEPLOYMENT_TENANT_ID;
+  const resolved = normalizeTenantId(forcedTenantId || tenantId);
   const allowedTenantIds = getAllowedTenantIds();
 
   if (!TENANT_ID_PATTERN.test(resolved) || !allowedTenantIds.has(resolved)) {

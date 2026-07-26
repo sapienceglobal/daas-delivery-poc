@@ -71,7 +71,9 @@ export const register = asyncHandler(async (req, response) => {
     throw new AppError('Please provide name, email, and password.', 400);
   }
 
-  const allowedRoles = ['customer', 'merchant'];
+  const allowedRoles = process.env.ALLOW_PUBLIC_MERCHANT_SIGNUP === 'true'
+    ? ['customer', 'merchant']
+    : ['customer'];
   if (role && !allowedRoles.includes(role)) {
     throw new AppError('Invalid registration role.', 400);
   }
@@ -186,7 +188,9 @@ export const googleLogin = asyncHandler(async (req, response) => {
   let user = await UserModel.findOne({ email });
 
   if (!user) {
-    const allowedRoles = ['customer', 'merchant'];
+    const allowedRoles = process.env.ALLOW_PUBLIC_MERCHANT_SIGNUP === 'true'
+      ? ['customer', 'merchant']
+      : ['customer'];
     const finalRole = allowedRoles.includes(role) ? role : 'customer';
 
     user = new UserModel({
@@ -558,4 +562,3 @@ export const toggleFavoriteItem = asyncHandler(async (req, response) => {
     message: index > -1 ? 'Removed from favorites' : 'Added to favorites'
   });
 });
-
