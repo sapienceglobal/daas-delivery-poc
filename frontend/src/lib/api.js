@@ -5,24 +5,19 @@
 */
 
 const getApiBaseUrl = () => {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
-
+  // Always use relative URLs on the client so Next.js rewrites proxy it to the backend.
+  // This solves ALL CORS and Cross-Origin Cookie problems for live deployments over HTTP.
   if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-
-    // If the frontend was built with localhost (or defaulted to it), but is being accessed from a remote IP (like a VPS),
-    // If the frontend was built with localhost (or defaulted to it), but is being accessed from a remote IP (like a VPS),
-    // we MUST override the API URL to point to the same remote host on port 5001 to prevent CORS and Private Network Access errors.
-    if ((!envUrl || envUrl.includes('localhost')) && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return `${window.location.protocol}//${hostname}:5001`;
-    }
+    return '';
   }
 
+  // Server-side rendering (SSR) needs absolute URL
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
   if (envUrl) {
     return envUrl;
   }
 
-  return 'http://localhost:5001';
+  return 'http://127.0.0.1:5001';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
