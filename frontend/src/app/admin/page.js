@@ -15,7 +15,7 @@ import {
 import { downloadCSV } from '@/lib/exportUtils';
 
 export default function AdminDashboard() {
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, loading: authLoading, backendVerified } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
@@ -35,11 +35,15 @@ export default function AdminDashboard() {
     periodEnd: '',
   });
 
+  // H3 FIX: Gate on backendVerified — do NOT render admin content until the backend
+  // /me call confirms the role. This prevents localStorage role spoofing.
   useEffect(() => {
+    if (authLoading) return;
+    if (!backendVerified) return;
     if (!isAuthenticated) { router.push('/login'); return; }
     if (!isAdmin) { router.push('/'); return; }
     loadDashboard();
-  }, [isAuthenticated, isAdmin]);
+  }, [isAuthenticated, isAdmin, authLoading, backendVerified]);
 
   const loadDashboard = async () => {
     try {
@@ -151,7 +155,18 @@ export default function AdminDashboard() {
     });
   };
 
-  if (loading) return <AdminSkeleton />;
+  // H3 FIX: Never render admin content before backend verification is complete.
+  if (authLoading || !backendVerified || loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        </div>
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
+    );
+  }
 
   const tabs = [
     { value: 'overview', label: 'Overview', icon: TrendingUp },

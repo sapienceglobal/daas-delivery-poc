@@ -41,7 +41,7 @@ const ReservationSchema = new mongoose.Schema({
   },
   location: {
     type: String,
-    enum: ['Main Dining Area', 'Private Room', 'Outdoor Seating', 'Any'],
+    enum: ['Main Dining Area', 'Indoor', 'Private Room', 'Outdoor Seating', 'Any'],
     default: 'Any'
   },
   occasion: {

@@ -151,7 +151,9 @@ export const createReservationSchema = Joi.object({
   customerEmail: Joi.string().email().allow('', null).optional(),
   customerPhone: Joi.string().max(30).required(),
   specialRequests: Joi.string().max(500).allow('', null).optional(),
-  occasion: Joi.string().max(100).allow('', null).optional()
+  occasion: Joi.string().max(100).allow('', null).optional(),
+  location: Joi.string().allow('', null).optional(),
+  tableId: Joi.string().hex().length(24).allow('', null).optional()
 });
 
 // ── Catering Schemas ────────────────────────────────────────────────────────

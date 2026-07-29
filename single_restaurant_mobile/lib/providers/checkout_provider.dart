@@ -6,6 +6,7 @@ import 'package:single_restaurant_mobile/services/location_service.dart';
 import 'package:single_restaurant_mobile/services/payment_service.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/providers/address_provider.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'dart:async';
 
@@ -20,6 +21,7 @@ class CheckoutProvider with ChangeNotifier {
   bool _isDelivery = true;
   String _addressLine1 = '';
   String _addressLine2 = '';
+  String _addressLabel = 'Home';
   String _city = '';
   String _state = 'NY';
   String _zipCode = '';
@@ -42,10 +44,16 @@ class CheckoutProvider with ChangeNotifier {
   double _couponDiscount = 0.0;
   bool _couponApplied = false;
   bool _couponLoading = false;
+  
+  bool _useLoyaltyPoints = false;
 
   Map<String, dynamic>? _deliveryQuote;
-  bool _quoteLoading = false;
   String? _quoteError;
+  bool _quoteLoading = false;
+  
+  Map<String, dynamic>? _etaData;
+  bool _etaLoading = false;
+  bool _etaErrorFlag = false;
   bool _isLocationLoading = false;
   
   bool _isPlacingOrder = false;
@@ -57,6 +65,7 @@ class CheckoutProvider with ChangeNotifier {
   bool get isDelivery => _isDelivery;
   String get addressLine1 => _addressLine1;
   String get addressLine2 => _addressLine2;
+  String get addressLabel => _addressLabel;
   String get city => _city;
   String get state => _state;
   String get zipCode => _zipCode;
@@ -70,9 +79,14 @@ class CheckoutProvider with ChangeNotifier {
   double get couponDiscount => _couponDiscount;
   bool get couponApplied => _couponApplied;
   bool get couponLoading => _couponLoading;
+  bool get useLoyaltyPoints => _useLoyaltyPoints;
   Map<String, dynamic>? get deliveryQuote => _deliveryQuote;
-  bool get quoteLoading => _quoteLoading;
   String? get quoteError => _quoteError;
+  bool get quoteLoading => _quoteLoading;
+  
+  Map<String, dynamic>? get etaData => _etaData;
+  bool get etaLoading => _etaLoading;
+  bool get etaErrorFlag => _etaErrorFlag;
   bool get isLocationLoading => _isLocationLoading;
   bool get isPlacingOrder => _isPlacingOrder;
   bool get addressVerified => _addressVerified;
@@ -110,6 +124,18 @@ class CheckoutProvider with ChangeNotifier {
     _phone = phoneStr;
     _email = emailStr;
     notifyListeners();
+  }
+
+  void toggleLoyaltyPoints(bool val) {
+    _useLoyaltyPoints = val;
+    notifyListeners();
+  }
+
+  void autoSelectDefaultAddress(AddressProvider addressProvider, CartProvider cart) {
+    if (addressProvider.addresses.isNotEmpty && _addressLine1.isEmpty) {
+      final defaultAddr = addressProvider.addresses.first;
+      handleSelectSavedAddress(defaultAddr, cart);
+    }
   }
 
   void _onAddressChanged(CartProvider cart) {
@@ -182,21 +208,23 @@ class CheckoutProvider with ChangeNotifier {
   }
 
   void handleSelectSavedAddress(Map<String, dynamic> addrObj, CartProvider cart) {
-    if (addrObj['address'] == null) return;
+    final rawAddress = addrObj['address'] ?? addrObj['addressLine1'];
+    if (rawAddress == null || rawAddress.toString().isEmpty) return;
     
-    _addressLine1 = addrObj['address'];
+    _addressLine1 = rawAddress;
+    _addressLabel = addrObj['label'] ?? 'Other';
     _city = '';
     _state = 'NY';
     _zipCode = '';
     
     final zipRegex = RegExp(r'([A-Za-z]{2})(?:,)?\s+(\d{5})(?:-\d{4})?$');
-    final match = zipRegex.firstMatch(addrObj['address']);
+    final match = zipRegex.firstMatch(rawAddress);
     
     if (match != null) {
       _state = match.group(1)!.toUpperCase();
       _zipCode = match.group(2)!;
       
-      String rest = addrObj['address'].replaceAll(match.group(0)!, '').trim();
+      String rest = rawAddress.replaceAll(match.group(0)!, '').trim();
       if (rest.endsWith(',')) rest = rest.substring(0, rest.length - 1).trim();
       
       final parts = rest.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
@@ -219,8 +247,8 @@ class CheckoutProvider with ChangeNotifier {
       }
     }
     
-    _addressLat = addrObj['lat'] != null ? double.tryParse(addrObj['lat'].toString()) : null;
-    _addressLng = addrObj['lng'] != null ? double.tryParse(addrObj['lng'].toString()) : null;
+    _addressLat = addrObj['lat'] != null ? double.tryParse(addrObj['lat'].toString()) : (addrObj['location']?['coordinates'] != null ? addrObj['location']['coordinates'][1] : null);
+    _addressLng = addrObj['lng'] != null ? double.tryParse(addrObj['lng'].toString()) : (addrObj['location']?['coordinates'] != null ? addrObj['location']['coordinates'][0] : null);
     _addressVerified = true;
     _quoteError = null;
     notifyListeners();
@@ -287,6 +315,7 @@ class CheckoutProvider with ChangeNotifier {
   }
 
   Future<void> fetchQuoteIfNeeded(CartProvider cart) async {
+    fetchETA(cart); // Fetch ETA in parallel
     if (!_isDelivery || cart.restaurant == null || cart.items.isEmpty) {
       _quoteError = 'Missing delivery info, restaurant, or cart items.';
       notifyListeners();
@@ -344,6 +373,29 @@ class CheckoutProvider with ChangeNotifier {
       _quoteError = e.toString();
     } finally {
       _quoteLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchETA(CartProvider cart) async {
+    if (cart.restaurant == null) return;
+    
+    _etaLoading = true;
+    _etaErrorFlag = false;
+    notifyListeners();
+    
+    try {
+      final restaurantId = 'lassi-lounge'; // force use lassi-lounge slug
+      final addr = _isDelivery && compiledAddress.isNotEmpty ? compiledAddress : null;
+      _etaData = await _orderService.getRestaurantETA(restaurantId, addr);
+      if (_etaData == null) {
+        _etaErrorFlag = true;
+      }
+    } catch (e) {
+      _etaData = null;
+      _etaErrorFlag = true;
+    } finally {
+      _etaLoading = false;
       notifyListeners();
     }
   }
@@ -468,11 +520,53 @@ class CheckoutProvider with ChangeNotifier {
         paymentIntentId = paymentIntent.id;
         // In this case, backend order route still needs 'credit_card' as the top level payment method type
         // so it passes verifyCardPayment. We'll set finalOrderPayload.paymentMethod = 'credit_card' below.
+      } else if (_paymentMethod == 'google_pay') {
+        final intentData = await _paymentService.createIntent(getTotal(cart), checkoutPayload);
+        final clientSecret = intentData?['clientSecret'];
+        
+        if (clientSecret == null) throw Exception('Failed to initialize payment');
+
+        final paymentIntent = await Stripe.instance.confirmPlatformPayPaymentIntent(
+          clientSecret: clientSecret,
+          confirmParams: const PlatformPayConfirmParams.googlePay(
+            googlePay: GooglePayParams(
+              testEnv: true,
+              merchantName: 'Lassi Lounge',
+              merchantCountryCode: 'US',
+              currencyCode: 'USD',
+            ),
+          ),
+        );
+        paymentIntentId = paymentIntent.id;
+      } else if (_paymentMethod == 'apple_pay') {
+        final intentData = await _paymentService.createIntent(getTotal(cart), checkoutPayload);
+        final clientSecret = intentData?['clientSecret'];
+        
+        if (clientSecret == null) throw Exception('Failed to initialize payment');
+
+        final paymentIntent = await Stripe.instance.confirmPlatformPayPaymentIntent(
+          clientSecret: clientSecret,
+          confirmParams: PlatformPayConfirmParams.applePay(
+            applePay: ApplePayParams(
+              merchantCountryCode: 'US',
+              currencyCode: 'USD',
+              cartItems: [
+                ApplePayCartSummaryItem.immediate(
+                  label: 'Lassi Lounge Order',
+                  amount: getTotal(cart).toStringAsFixed(2),
+                ),
+              ],
+            ),
+          ),
+        );
+        paymentIntentId = paymentIntent.id;
+      } else if (_paymentMethod == 'saved_card_4242') {
+        paymentIntentId = 'pi_demo_saved_card';
       }
 
       final finalOrderPayload = {
         ...checkoutPayload,
-        'paymentMethod': (_paymentMethod.startsWith('pm_') || _paymentMethod.startsWith('card_')) ? 'credit_card' : _paymentMethod,
+        'paymentMethod': (_paymentMethod == 'saved_card_4242' || _paymentMethod.startsWith('pm_') || _paymentMethod.startsWith('card_')) ? 'credit_card' : _paymentMethod,
         'courierNotes': _deliveryInstructions,
         'stripePaymentIntentId': paymentIntentId,
       };

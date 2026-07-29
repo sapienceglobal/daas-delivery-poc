@@ -11,6 +11,7 @@ class UserModel {
   // For customers
   final List<dynamic>? addresses;
   final List<dynamic>? savedCards;
+  final List<dynamic>? favoriteItems;
   final int loyaltyPoints;
   final String? referralCode;
   
@@ -25,6 +26,7 @@ class UserModel {
     this.profilePicture,
     this.addresses,
     this.savedCards,
+    this.favoriteItems,
     this.loyaltyPoints = 0,
     this.referralCode,
   });
@@ -41,6 +43,7 @@ class UserModel {
       profilePicture: json['profilePicture'],
       addresses: json['savedAddresses'] as List<dynamic>?,
       savedCards: json['savedCards'] as List<dynamic>?,
+      favoriteItems: json['favoriteItems'] as List<dynamic>?,
       loyaltyPoints: json['loyaltyPoints'] ?? 0,
       referralCode: json['referralCode'],
     );

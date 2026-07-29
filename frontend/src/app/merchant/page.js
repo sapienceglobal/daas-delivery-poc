@@ -18,7 +18,7 @@ import {
 import Papa from 'papaparse';
 
 export default function MerchantDashboard() {
-  const { user, isMerchant, isAdmin, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isMerchant, isAdmin, isAuthenticated, loading: authLoading, backendVerified } = useAuth();
   const { joinRoom, on, off } = useSocket();
   const router = useRouter();
 
@@ -67,12 +67,16 @@ export default function MerchantDashboard() {
   });
   const [stats, setStats] = useState({ todayOrders: 0, todayRevenue: 0, activeOrders: 0, avgRating: 0 });
 
+  // H3 FIX: Gate on backendVerified — do NOT render dashboard until the backend
+  // /me call has confirmed the role. This prevents localStorage role spoofing from
+  // showing the merchant UI to unauthorized users even for a brief moment.
   useEffect(() => {
     if (authLoading) return;
+    if (!backendVerified) return; // Still waiting for backend confirmation
     if (!isAuthenticated) { router.push('/login'); return; }
     if (!isMerchant && !isAdmin) { router.push('/customer'); return; }
     loadDashboard();
-  }, [isAuthenticated, isMerchant, authLoading]);
+  }, [isAuthenticated, isMerchant, isAdmin, authLoading, backendVerified]);
 
   const loadDashboard = async () => {
     try {
@@ -416,7 +420,9 @@ export default function MerchantDashboard() {
     });
   };
 
-  if (loading) return <DashboardSkeleton />;
+  // H3 FIX: Show loading skeleton until backend verification is complete.
+  // This ensures no dashboard content is ever visible before the role is confirmed.
+  if (authLoading || !backendVerified || loading) return <DashboardSkeleton />;
 
   if (!user?.restaurantId) {
     return <EmptyState icon={Store} title="No Restaurant Linked" description="Create a restaurant to get started" />;

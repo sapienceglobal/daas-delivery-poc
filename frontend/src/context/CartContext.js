@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { authAPI } from '@/lib/api';
+import { authAPI, restaurantAPI } from '@/lib/api';
 
 const CartContext = createContext(null);
 
@@ -140,10 +140,11 @@ export function CartProvider({ children }) {
     } else {
       localStorage.removeItem(storageKeys.restaurant);
       
-      // Auto-fetch default restaurant in single-restaurant mode
+      // Auto-fetch default restaurant in single-restaurant mode.
+      // IMPORTANT: Use restaurantAPI (not raw fetch) so the correct backend
+      // base URL (port 5001) and x-tenant-id header are included.
       if (process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true') {
-        fetch('/api/restaurants/lassi-lounge')
-          .then(res => res.json())
+        restaurantAPI.getById('lassi-lounge')
           .then(data => {
             if (data?.data) setRestaurant(data.data);
           })

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
+import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 
 class MenuItemCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -19,12 +23,13 @@ class MenuItemCard extends StatelessWidget {
 
   String _getDishImage(String itemName) {
     final name = itemName.toLowerCase();
-    if (name.contains('butter chicken')) return 'assets/images/dishes/butter-chicken.jpg';
-    if (name.contains('rogan josh') || name.contains('lamb')) return 'assets/images/dishes/lamb-rogan-josh.jpg';
-    if (name.contains('paneer tikka')) return 'assets/images/dishes/paneer-tikka.jpg';
-    if (name.contains('biryani')) return 'assets/images/dishes/chicken-biryani.jpg';
-    if (name.contains('dal makhani')) return 'assets/images/dishes/dal-makhani.jpg';
-    if (name.contains('lassi')) return 'assets/images/dishes/mango-lassi.jpg';
+    final basePath = 'assets/images/branded/lassi-lounge/dishes';
+    if (name.contains('butter chicken')) return '$basePath/butter-chicken.jpg';
+    if (name.contains('rogan josh') || name.contains('lamb')) return '$basePath/lamb-rogan-josh.jpg';
+    if (name.contains('paneer tikka')) return '$basePath/paneer-tikka.jpg';
+    if (name.contains('biryani')) return '$basePath/chicken-biryani.jpg';
+    if (name.contains('dal makhani')) return '$basePath/dal-makhani.jpg';
+    if (name.contains('lassi')) return '$basePath/mango-lassi.jpg';
     // Using network fallback if local not found (assuming network config is fine)
     return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
   }
@@ -38,8 +43,15 @@ class MenuItemCard extends StatelessWidget {
     final name = item['name'] ?? 'Unknown Dish';
     final description = item['description'] ?? 'Crispy rolls stuffed with fresh vegetables & served hot.';
     
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ItemDetailScreen(item: item)),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -69,13 +81,32 @@ class MenuItemCard extends StatelessWidget {
                 Positioned(
                   top: 8,
                   right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.favorite_border, size: 16, color: Colors.grey.shade600),
+                  child: Consumer<AuthProvider>(
+                    builder: (context, authProvider, _) {
+                      final itemId = item['_id'] ?? item['id'] ?? '';
+                      final isFavorite = authProvider.isFavoriteItem(itemId);
+                      return GestureDetector(
+                        onTap: () async {
+                          if (authProvider.isAuthenticated) {
+                            await authProvider.toggleFavoriteItem(itemId);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please login to add favorites')));
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            size: 16,
+                            color: isFavorite ? Colors.red.shade900 : Colors.grey.shade600,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -166,7 +197,7 @@ class MenuItemCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),);
   }
 
   Widget _buildCartButton() {

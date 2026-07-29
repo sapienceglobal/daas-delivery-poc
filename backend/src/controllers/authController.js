@@ -26,10 +26,13 @@ export const ensureCanManageRestaurant = (reqOrUser, restaurantId) => {
   }
 };
 
-const generateToken = (id, tenantId = 'marketplace') => jwt.sign({ id, tenantId }, JWT_SECRET, { expiresIn: '7d' });
+// Role is embedded in JWT so Next.js Edge middleware can verify it without DB access.
+// The backend ALWAYS re-fetches the user from DB (auth.js protect middleware) —
+// the JWT role is only used for routing decisions, never trusted for data access.
+const generateToken = (id, role, tenantId = 'marketplace') => jwt.sign({ id, role, tenantId }, JWT_SECRET, { expiresIn: '7d' });
 
 const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace', rememberMe = true) => {
-  const token = generateToken(user._id, tenantId);
+  const token = generateToken(user._id, user.role, tenantId);
   const secureCookie = process.env.COOKIE_SECURE === 'true' ||
     (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
   const body = {
@@ -71,9 +74,13 @@ export const register = asyncHandler(async (req, response) => {
     throw new AppError('Please provide name, email, and password.', 400);
   }
 
-  const allowedRoles = process.env.ALLOW_PUBLIC_MERCHANT_SIGNUP === 'true'
-    ? ['customer', 'merchant']
-    : ['customer'];
+  // M3 FIX: ALLOW_PUBLIC_MERCHANT_SIGNUP defaults to false for security.
+  // In production, merchants should be onboarded by an admin, not self-registered.
+  const publicMerchantSignup = process.env.ALLOW_PUBLIC_MERCHANT_SIGNUP === 'true';
+  if (publicMerchantSignup && process.env.NODE_ENV === 'production') {
+    logger.warn('[SECURITY] ALLOW_PUBLIC_MERCHANT_SIGNUP is enabled in production. Anyone can self-register as a merchant.');
+  }
+  const allowedRoles = publicMerchantSignup ? ['customer', 'merchant'] : ['customer'];
   if (role && !allowedRoles.includes(role)) {
     throw new AppError('Invalid registration role.', 400);
   }
@@ -124,26 +131,25 @@ export const login = asyncHandler(async (req, response) => {
     throw new AppError('Invalid email or password.', 401);
   }
 
-  // H5: Account lockout after 5 failed attempts (15-minute cooldown)
+  // H1 FIX: Account lockout after 5 failed attempts (15-minute cooldown)
   const MAX_FAILED_ATTEMPTS = 5;
   const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
-  // TEMPORARILY DISABLED FOR TESTING
-  // if (user.loginLockedUntil && user.loginLockedUntil > new Date()) {
-  //   const minsLeft = Math.ceil((user.loginLockedUntil - Date.now()) / 60000);
-  //   throw new AppError(`Account temporarily locked. Try again in ${minsLeft} minute(s).`, 429);
-  // }
+  if (user.loginLockedUntil && user.loginLockedUntil > new Date()) {
+    const minsLeft = Math.ceil((user.loginLockedUntil - Date.now()) / 60000);
+    throw new AppError(`Account temporarily locked. Try again in ${minsLeft} minute(s).`, 429);
+  }
 
   if (!user.validatePassword(password)) {
-    // // Increment failed attempts
-    // const failedAttempts = (user.failedLoginAttempts || 0) + 1;
-    // const updateData = { failedLoginAttempts: failedAttempts };
-    // if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
-    //   updateData.loginLockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
-    //   updateData.failedLoginAttempts = 0; // Reset counter after locking
-    //   logger.warn('Account locked due to too many failed login attempts', { email });
-    // }
-    // await UserModel.updateOne({ _id: user._id }, { $set: updateData });
+    // Increment failed attempts and lock if threshold reached
+    const failedAttempts = (user.failedLoginAttempts || 0) + 1;
+    const updateData = { failedLoginAttempts: failedAttempts };
+    if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+      updateData.loginLockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
+      updateData.failedLoginAttempts = 0; // Reset counter after locking
+      logger.warn('Account locked due to too many failed login attempts', { email });
+    }
+    await UserModel.updateOne({ _id: user._id }, { $set: updateData });
     throw new AppError('Invalid email or password.', 401);
   }
 

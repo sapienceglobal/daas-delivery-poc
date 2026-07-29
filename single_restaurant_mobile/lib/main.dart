@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/login_screen.dart';
+import 'package:single_restaurant_mobile/screens/splash_screen.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
 import 'package:single_restaurant_mobile/theme/app_theme.dart';
 import 'package:provider/provider.dart';
@@ -34,7 +35,13 @@ void main() async {
           }
           return authProvider;
         }),
-        ChangeNotifierProvider(create: (_) => AddressProvider()),
+        ChangeNotifierProvider(create: (_) {
+          final addressProvider = AddressProvider();
+          if (isLoggedIn) {
+            addressProvider.fetchAddresses(); // Preload addresses if logged in
+          }
+          return addressProvider;
+        }),
         ChangeNotifierProvider(create: (_) {
           final restaurantProvider = RestaurantProvider();
           restaurantProvider.fetchRestaurantData();
@@ -68,7 +75,7 @@ class LassiLoungeApp extends StatelessWidget {
       title: 'Lassi Lounge',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: isLoggedIn ? const MainScreen() : const LoginScreen(),
+      home: SplashScreen(isLoggedIn: isLoggedIn),
     );
   }
 }

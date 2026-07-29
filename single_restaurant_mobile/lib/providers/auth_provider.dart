@@ -115,4 +115,53 @@ class AuthProvider with ChangeNotifier {
     }
     return success;
   }
+
+  // --- Favorites ---
+  bool isFavoriteItem(String itemId) {
+    if (_user?.favoriteItems == null) return false;
+    return _user!.favoriteItems!.any((f) {
+      final id = f is Map ? (f['_id'] ?? f['id']) : f.toString();
+      return id == itemId;
+    });
+  }
+
+  Future<bool> toggleFavoriteItem(String itemId) async {
+    if (_user == null) return false;
+    
+    // Optimistic UI update
+    final favs = List<dynamic>.from(_user!.favoriteItems ?? []);
+    final index = favs.indexWhere((f) {
+      final fId = f is Map ? (f['_id'] ?? f['id']) : f.toString();
+      return fId == itemId;
+    });
+    
+    if (index > -1) {
+      favs.removeAt(index);
+    } else {
+      favs.add(itemId);
+    }
+    _user = UserModel(
+      id: _user!.id,
+      name: _user!.name,
+      email: _user!.email,
+      phone: _user!.phone,
+      role: _user!.role,
+      isEmailVerified: _user!.isEmailVerified,
+      isPhoneVerified: _user!.isPhoneVerified,
+      profilePicture: _user!.profilePicture,
+      addresses: _user!.addresses,
+      savedCards: _user!.savedCards,
+      favoriteItems: favs,
+      loyaltyPoints: _user!.loyaltyPoints,
+      referralCode: _user!.referralCode,
+    );
+    notifyListeners();
+
+    final success = await _authService.toggleFavoriteItem(itemId);
+    if (!success) {
+      // Revert if failed
+      await fetchUser();
+    }
+    return success;
+  }
 }

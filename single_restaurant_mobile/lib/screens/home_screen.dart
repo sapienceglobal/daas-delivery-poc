@@ -5,7 +5,13 @@ import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:single_restaurant_mobile/screens/cart_screen.dart';
+import 'package:single_restaurant_mobile/screens/main_screen.dart';
+import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
+import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/providers/address_provider.dart';
+import 'package:single_restaurant_mobile/screens/saved_addresses_screen.dart';
+import 'package:single_restaurant_mobile/screens/search_screen.dart';
+import 'package:single_restaurant_mobile/screens/menu_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -38,7 +44,9 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 
                 if (categories.isNotEmpty) ...[
-                  _buildSectionTitle('EXPLORE OUR MENU', () {}),
+                  _buildSectionTitle('EXPLORE OUR MENU', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const MenuScreen()));
+                  }),
                   _buildCategoriesCarousel(categories),
                   const SizedBox(height: 24),
                 ],
@@ -61,40 +69,80 @@ class HomeScreen extends StatelessWidget {
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
+      automaticallyImplyLeading: false,
       backgroundColor: AppColors.background,
       elevation: 0,
-      title: Row(
-        children: [
-          const Icon(Icons.location_on, color: Colors.red, size: 28),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Deliver to',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textLight,
-                      fontSize: 12,
-                    ),
-              ),
-              Row(
-                children: [
-                  Text(
-                    '34 Union Avenue, Patiala', // Ideally from AddressProvider default address
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark,
-                        ),
+      title: Consumer2<AddressProvider, AuthProvider>(
+        builder: (context, addressProvider, authProvider, _) {
+          String displayAddress = 'Select Location';
+          if (authProvider.isAuthenticated && addressProvider.addresses.isNotEmpty) {
+            final defaultAddress = addressProvider.addresses.firstWhere(
+              (a) => a['isDefault'] == true,
+              orElse: () => addressProvider.addresses.first,
+            );
+            displayAddress = defaultAddress['address'] ?? 'Select Location';
+          }
+
+          return InkWell(
+            onTap: () {
+              if (authProvider.isAuthenticated) {
+                if (addressProvider.addresses.isEmpty) {
+                  addressProvider.fetchAddresses();
+                }
+                _showLocationBottomSheet(context, addressProvider);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please login to select address')),
+                );
+              }
+            },
+            child: Row(
+              children: [
+                const Icon(Icons.location_on, color: Colors.red, size: 28),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Deliver to',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.textLight,
+                              fontSize: 12,
+                            ),
+                      ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              displayAddress,
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textDark,
+                                  ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Icon(Icons.keyboard_arrow_down, color: AppColors.textDark),
+                        ],
+                      ),
+                    ],
                   ),
-                  const Icon(Icons.keyboard_arrow_down, color: AppColors.textDark),
-                ],
-              ),
-            ],
-          ),
-        ],
+                ),
+              ],
+            ),
+          );
+        },
       ),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.search, size: 28),
+          color: AppColors.textDark,
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchScreen()));
+          },
+        ),
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
           child: Stack(
@@ -132,7 +180,7 @@ class HomeScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const CartScreen()),
+                        MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 2)),
                       );
                     },
                     color: AppColors.textDark,
@@ -162,7 +210,94 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroBanner(Map<String, dynamic>? restaurant) {
+  void _showLocationBottomSheet(BuildContext context, AddressProvider provider) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Select a location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Consumer<AddressProvider>(
+                builder: (context, addrProv, _) {
+                  if (addrProv.isLoading && addrProv.addresses.isEmpty) {
+                    return const Center(child: CircularProgressIndicator(color: Colors.red));
+                  }
+                  
+                  if (addrProv.addresses.isEmpty) {
+                    return const Center(child: Text('No saved addresses. Add one below.'));
+                  }
+
+                  return ListView.builder(
+                    itemCount: addrProv.addresses.length,
+                    itemBuilder: (context, index) {
+                      final addr = addrProv.addresses[index];
+                      final isDefault = addr['isDefault'] == true;
+                      
+                      return ListTile(
+                        leading: Icon(
+                          addr['label']?.toString().toLowerCase() == 'home' ? Icons.home : Icons.location_on,
+                          color: isDefault ? Colors.red : Colors.grey,
+                        ),
+                        title: Text(addr['label'] ?? 'Address', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(addr['address'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
+                        trailing: isDefault ? const Icon(Icons.check_circle, color: Colors.red) : null,
+                        onTap: () {
+                          addrProv.setDefaultAddress(addr['_id']);
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedAddressesScreen(selectingMode: false)));
+                },
+                icon: const Icon(Icons.add, color: Colors.white),
+                label: const Text('Add New Address', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  elevation: 0,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroBanner(dynamic restaurant) {
     final bannerUrl = restaurant?['banner'];
     
     return Padding(
@@ -300,15 +435,19 @@ class HomeScreen extends StatelessWidget {
 
               return Padding(
                 padding: const EdgeInsets.only(right: 16.0),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.red, width: 2), // Red border like UI
-                      ),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => MenuScreen(initialCategoryId: category['_id'])));
+                  },
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.red, width: 2), // Red border like UI
+                        ),
                       child: ClipOval(
                         child: imageUrl != null && imageUrl.toString().startsWith('http')
                             ? CachedNetworkImage(
@@ -330,6 +469,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                ), // Close InkWell
               );
             },
           ),
@@ -391,10 +531,14 @@ class HomeScreen extends StatelessWidget {
               final name = dish['name'] ?? 'Dish';
               final price = dish['price']?.toString() ?? '0';
 
-              return Container(
-                width: 180,
-                margin: const EdgeInsets.only(right: 16),
-                decoration: BoxDecoration(
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => ItemDetailScreen(item: dish)));
+                },
+                child: Container(
+                  width: 180,
+                  margin: const EdgeInsets.only(right: 16),
+                  decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
@@ -431,13 +575,33 @@ class HomeScreen extends StatelessWidget {
                         Positioned(
                           top: 8,
                           right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.5),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.favorite_border, color: Colors.white, size: 20),
+                          child: Consumer<AuthProvider>(
+                            builder: (context, authProvider, _) {
+                              final dishId = dish['_id'] ?? dish['id'] ?? '';
+                              final isFavorite = authProvider.isFavoriteItem(dishId);
+                              return GestureDetector(
+                                onTap: () async {
+                                  if (authProvider.isAuthenticated) {
+                                    await authProvider.toggleFavoriteItem(dishId);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please login to add favorites')));
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                                  ),
+                                  child: Icon(
+                                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                                    color: Colors.red.shade900,
+                                    size: 20,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         )
                       ],
@@ -512,7 +676,11 @@ class HomeScreen extends StatelessWidget {
                                   return InkWell(
                                     onTap: () {
                                       final restProv = Provider.of<RestaurantProvider>(context, listen: false);
-                                      cart.addItem(dish, restaurantData: restProv.restaurant);
+                                      final newItem = Map<String, dynamic>.from(dish);
+                                      newItem['quantity'] = 1;
+                                      newItem['qty'] = 1;
+                                      newItem['addOns'] = [];
+                                      cart.addItem(newItem, restaurantData: restProv.restaurant);
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                           content: Text('${name} added to cart!'),
@@ -520,7 +688,7 @@ class HomeScreen extends StatelessWidget {
                                           action: SnackBarAction(
                                             label: 'VIEW',
                                             onPressed: () {
-                                              Navigator.push(context, MaterialPageRoute(builder: (context) => const CartScreen()));
+                                              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 2)));
                                             },
                                           ),
                                         )
@@ -551,8 +719,9 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-              );
-            },
+              ),
+            );
+          },
           ),
         ),
       ],

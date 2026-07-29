@@ -50,12 +50,20 @@ class SocketService {
     _socket!.on('order_updated', callback);
   }
 
-  void offOrderStatusChanged() {
-    _socket?.off('order_status_changed');
+  void offOrderStatusChanged([Function(dynamic)? callback]) {
+    if (callback != null) {
+      _socket?.off('order_status_changed', callback);
+    } else {
+      _socket?.off('order_status_changed');
+    }
   }
 
-  void offOrderUpdated() {
-    _socket?.off('order_updated');
+  void offOrderUpdated([Function(dynamic)? callback]) {
+    if (callback != null) {
+      _socket?.off('order_updated', callback);
+    } else {
+      _socket?.off('order_updated');
+    }
   }
 
   void dispose() {

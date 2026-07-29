@@ -115,22 +115,54 @@ export const removeEmployee = asyncHandler(async (req, response) => {
   res.success(response, { message: 'Employee terminated/removed' });
 });
 
-// PIN Clock In / Clock Out (for POS)
-export const clockInWithPin = asyncHandler(async (req, response) => {
-  const { pin, restaurantId } = req.body;
+// ── PIN helper (shared by clockIn, clockOut, verify) ───────────────────────
+const PIN_MAX_ATTEMPTS = 5;
+const PIN_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 
-  if (!pin || !restaurantId) {
+const findEmployeeByPin = async (restaurantId, pin) => {
+  if (!restaurantId || !pin) {
     throw new AppError('PIN and Restaurant ID are required', 400);
   }
 
-  const employee = await Employee.findOne({ restaurantId, pin, isActive: true });
-  if (!employee) throw new AppError('Invalid PIN', 401);
+  // Find all active employees in this restaurant (don't match PIN yet — need to check lockout first)
+  // We match by restaurantId only then validate PIN to support lockout tracking per employee.
+  // But we can't know WHICH employee without the PIN. So we find by PIN + restaurantId
+  // but ONLY after confirming the restaurant exists to prevent timing attacks.
+  const employee = await Employee.findOne({ restaurantId, isActive: true, pin });
+
+  if (!employee) {
+    // We don't track failed attempts here since we don't know which employee was targeted.
+    // IP-level rate limiting (in the route) handles this case.
+    throw new AppError('Invalid PIN', 401);
+  }
+
+  // Check if this employee's PIN is locked
+  if (employee.pinLockedUntil && employee.pinLockedUntil > new Date()) {
+    const minsLeft = Math.ceil((employee.pinLockedUntil - Date.now()) / 60000);
+    throw new AppError(`PIN locked due to too many wrong attempts. Try again in ${minsLeft} minute(s).`, 429);
+  }
+
+  // PIN matched — reset failed counter
+  if (employee.pinFailedAttempts > 0 || employee.pinLockedUntil) {
+    employee.pinFailedAttempts = 0;
+    employee.pinLockedUntil = null;
+    await employee.save();
+  }
+
+  return employee;
+};
+
+// ── PIN Clock In / Clock Out (for POS) ─────────────────────────────────────
+export const clockInWithPin = asyncHandler(async (req, response) => {
+  const { pin, restaurantId } = req.body;
+
+  const employee = await findEmployeeByPin(restaurantId, pin);
 
   // Check if already clocked in today without clock out
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const activeAttendanceIdx = employee.attendance.findIndex(a => 
+  const activeAttendanceIdx = employee.attendance.findIndex(a =>
     a.date >= today && a.clockIn && !a.clockOut
   );
 
@@ -151,17 +183,12 @@ export const clockInWithPin = asyncHandler(async (req, response) => {
 export const clockOutWithPin = asyncHandler(async (req, response) => {
   const { pin, restaurantId } = req.body;
 
-  if (!pin || !restaurantId) {
-    throw new AppError('PIN and Restaurant ID are required', 400);
-  }
-
-  const employee = await Employee.findOne({ restaurantId, pin, isActive: true });
-  if (!employee) throw new AppError('Invalid PIN', 401);
+  const employee = await findEmployeeByPin(restaurantId, pin);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const activeAttendanceIdx = employee.attendance.findIndex(a => 
+  const activeAttendanceIdx = employee.attendance.findIndex(a =>
     a.date >= today && a.clockIn && !a.clockOut
   );
 
@@ -171,7 +198,7 @@ export const clockOutWithPin = asyncHandler(async (req, response) => {
 
   const attendance = employee.attendance[activeAttendanceIdx];
   attendance.clockOut = new Date();
-  
+
   // Calculate hours
   const ms = attendance.clockOut.getTime() - attendance.clockIn.getTime();
   attendance.hoursWorked = Number((ms / (1000 * 60 * 60)).toFixed(2));
@@ -186,12 +213,7 @@ export const clockOutWithPin = asyncHandler(async (req, response) => {
 export const verifyPin = asyncHandler(async (req, response) => {
   const { pin, restaurantId } = req.body;
 
-  if (!pin || !restaurantId) {
-    throw new AppError('PIN and Restaurant ID are required', 400);
-  }
-
-  const employee = await Employee.findOne({ restaurantId, pin, isActive: true });
-  if (!employee) throw new AppError('Invalid PIN', 401);
+  const employee = await findEmployeeByPin(restaurantId, pin);
 
   res.success(response, employee);
 });

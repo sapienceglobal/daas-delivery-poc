@@ -3,9 +3,12 @@ import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
 import 'package:single_restaurant_mobile/widgets/address_autocomplete_field.dart';
+import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
+import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 
 class SavedAddressesScreen extends StatefulWidget {
-  const SavedAddressesScreen({super.key});
+  final bool selectingMode;
+  const SavedAddressesScreen({super.key, this.selectingMode = false});
 
   @override
   State<SavedAddressesScreen> createState() => _SavedAddressesScreenState();
@@ -173,13 +176,20 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
           // Radio button
           InkWell(
             onTap: () {
-              if (!isDefault) provider.setDefaultAddress(id);
+              if (widget.selectingMode) {
+                final checkout = Provider.of<CheckoutProvider>(context, listen: false);
+                final cart = Provider.of<CartProvider>(context, listen: false);
+                checkout.handleSelectSavedAddress(provider.addresses.firstWhere((a) => a['_id'] == id), cart);
+                Navigator.pop(context);
+              } else if (!isDefault) {
+                provider.setDefaultAddress(id);
+              }
             },
             child: Padding(
               padding: const EdgeInsets.only(top: 8.0, right: 12.0),
               child: Icon(
-                isDefault ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                color: leadingIconColor,
+                widget.selectingMode ? Icons.circle_outlined : (isDefault ? Icons.radio_button_checked : Icons.radio_button_unchecked),
+                color: widget.selectingMode ? Colors.grey : leadingIconColor,
                 size: 20,
               ),
             ),
@@ -196,31 +206,41 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
           ),
           // Details
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    if (isDefault) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.red.shade200),
-                          borderRadius: BorderRadius.circular(4),
+            child: InkWell(
+              onTap: () {
+                if (widget.selectingMode) {
+                  final checkout = Provider.of<CheckoutProvider>(context, listen: false);
+                  final cart = Provider.of<CartProvider>(context, listen: false);
+                  checkout.handleSelectSavedAddress(provider.addresses.firstWhere((a) => a['_id'] == id), cart);
+                  Navigator.pop(context);
+                }
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      if (isDefault) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: Colors.red.shade200),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('DEFAULT', style: TextStyle(color: Colors.red, fontSize: 8, fontWeight: FontWeight.bold)),
                         ),
-                        child: const Text('DEFAULT', style: TextStyle(color: Colors.red, fontSize: 8, fontWeight: FontWeight.bold)),
-                      ),
-                    ]
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(address, style: const TextStyle(color: Colors.black87, fontSize: 13, height: 1.4)),
-                const SizedBox(height: 8),
-                Text(phone, style: const TextStyle(color: Colors.black87, fontSize: 13)),
-              ],
+                      ]
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(address, style: const TextStyle(color: Colors.black87, fontSize: 13, height: 1.4)),
+                  const SizedBox(height: 8),
+                  Text(phone, style: const TextStyle(color: Colors.black87, fontSize: 13)),
+                ],
+              ),
             ),
           ),
           // Actions (Edit / Delete)

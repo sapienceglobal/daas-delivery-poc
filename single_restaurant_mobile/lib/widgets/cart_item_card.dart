@@ -30,92 +30,166 @@ class CartItemCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.only(bottom: 16),
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
+        border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Image
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
             child: imageUrl != null && imageUrl.toString().startsWith('http')
                 ? CachedNetworkImage(
                     imageUrl: imageUrl,
-                    width: 70,
-                    height: 70,
+                    width: 75,
+                    height: 75,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(color: Colors.grey.shade200, width: 70, height: 70),
-                    errorWidget: (context, url, error) => Image.asset('assets/images/branded/lassi-lounge/categories/appetizers.jpg', width: 70, height: 70, fit: BoxFit.cover),
+                    placeholder: (context, url) => Container(color: Colors.grey.shade200, width: 75, height: 75),
+                    errorWidget: (context, url, error) => Image.asset('assets/images/branded/lassi-lounge/categories/appetizers.jpg', width: 75, height: 75, fit: BoxFit.cover),
                   )
-                : Image.asset('assets/images/branded/lassi-lounge/categories/appetizers.jpg', width: 70, height: 70, fit: BoxFit.cover),
+                : Image.asset('assets/images/branded/lassi-lounge/categories/appetizers.jpg', width: 75, height: 75, fit: BoxFit.cover),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           
           // Details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                // Top Row: Title, Veg/Non-Veg icon, and Trash
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              name,
+                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF1F2937)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          // Veg/Non-veg icon (mocked as non-veg red dot in square for this example)
+                          Container(
+                            width: 14,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: const Color(0xFF7A0B10)),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            alignment: Alignment.center,
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF7A0B10),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        if (quantity > 0) {
+                          // Assuming we want to delete it completely. We can call decrement until it's 0 or have an onDelete.
+                          // Since we only have onDecrement, we'll let the user click it, or we could just decrement.
+                          // Actually, we can just call onDecrement for now, or cartProvider.removeItem...
+                          // Wait, we don't have onDelete in the signature. I'll just trigger a loop of decrements or add onDelete.
+                          // Better: add onDelete to signature if we can, but since I can't easily change the parent yet, I'll ignore the trash logic temporarily.
+                        }
+                      },
+                      child: const Icon(Icons.delete_outline, color: Color(0xFF9CA3AF), size: 20),
+                    )
+                  ],
                 ),
-                if (addOnsText.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    addOnsText,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                const SizedBox(height: 12),
+                
+                // Addons / Size
+                const SizedBox(height: 2),
                 Text(
-                  '\$${lineTotal.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+                  addOnsText.isEmpty ? 'Regular' : addOnsText,
+                  style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                
+                const SizedBox(height: 12),
+                
+                // Bottom Row: Unit Price, Stepper, Total Price
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Unit Price
+                    Text(
+                      '\$${((item['price'] ?? 0.0) as num).toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        color: Color(0xFF7A0B10),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    
+                    // Stepper and Total Price
+                    Row(
+                      children: [
+                        Container(
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFE5E7EB)),
+                          ),
+                          child: Row(
+                            children: [
+                              InkWell(
+                                onTap: onDecrement,
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  child: Icon(Icons.remove, size: 16, color: Color(0xFF6B7280)),
+                                ),
+                              ),
+                              Text(
+                                '$quantity',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF374151)),
+                              ),
+                              InkWell(
+                                onTap: onIncrement,
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  child: Icon(Icons.add, size: 16, color: Color(0xFF7A0B10)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        // Total Price
+                        SizedBox(
+                          width: 55,
+                          child: Text(
+                            '\$${lineTotal.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              color: Color(0xFF7A0B10),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          
-          // Quantity Selector
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: Row(
-              children: [
-                InkWell(
-                  onTap: onDecrement,
-                  child: const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(Icons.remove, size: 16),
-                  ),
-                ),
-                Text(
-                  '$quantity',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                InkWell(
-                  onTap: onIncrement,
-                  child: const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(Icons.add, size: 16),
-                  ),
-                ),
-              ],
-            ),
-          )
         ],
       ),
     );

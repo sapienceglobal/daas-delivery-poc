@@ -1,10 +1,12 @@
 import axios from 'axios';
+import mongoose from 'mongoose';
 import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import Order from '../models/Order.js';
 import MenuItem from '../models/MenuItem.js';
 import Category from '../models/Category.js';
+import Restaurant from '../models/Restaurant.js';
 
 export const predictSales = asyncHandler(async (req, response) => {
   const { restaurantId } = req.body;
@@ -162,12 +164,43 @@ export const searchMenu = asyncHandler(async (req, response) => {
     return res.error(response, 400, 'Missing restaurantId or query');
   }
 
-  // 1. Fetch menu items for this restaurant
-  const items = await MenuItem.find({ restaurantId, isAvailable: true }).select('name description tags cuisine price _id');
-  if (!items || items.length === 0) {
-    return res.success(response, 200, 'No items to search', { results: [] });
+  // Resolve slug/name to ObjectId if needed
+  let actualRestaurantId = restaurantId;
+  const isObjectId = mongoose.Types.ObjectId.isValid(restaurantId) && String(restaurantId).length === 24;
+  
+  if (!isObjectId) {
+    let restaurant;
+    if (restaurantId === 'lassi-lounge') {
+      restaurant = await Restaurant.findOne({ name: { $regex: /^lassi lounge$/i } });
+    } else {
+      restaurant = await Restaurant.findOne({ slug: restaurantId });
+    }
+    
+    if (!restaurant) {
+      return res.notFound(response, 'Restaurant not found');
+    }
+    actualRestaurantId = restaurant._id;
   }
 
+  // 1. Fetch full menu items for this restaurant
+  const items = await MenuItem.find({ restaurantId: actualRestaurantId, isAvailable: true });
+  if (!items || items.length === 0) {
+    return res.success(response, { data: [] });
+  }
+
+  // 2. Direct string matching (Fast & Reliable)
+  const lowerQuery = query.toLowerCase();
+  const directMatches = items.filter(i => 
+    i.name.toLowerCase().includes(lowerQuery) || 
+    (i.description && i.description.toLowerCase().includes(lowerQuery)) ||
+    (i.tags && i.tags.some(t => t.toLowerCase().includes(lowerQuery)))
+  );
+
+  if (directMatches.length > 0) {
+    return res.success(response, { data: directMatches });
+  }
+
+  // 3. Fallback to OpenAI Semantic Search
   const simplifiedMenu = items.map(i => ({
     id: i._id.toString(),
     name: i.name,
@@ -179,7 +212,7 @@ export const searchMenu = asyncHandler(async (req, response) => {
     You are an AI semantic search engine for a restaurant menu.
     The user searched for: "${query}"
     
-    IMPORTANT: The user's query might be in English, Hindi, or Hinglish (Hindi written in English alphabet). 
+    IMPORTANT: The user's query might be in English, Hindi, or Hinglish. 
     Translate their intent internally. For example:
     - "kuch meetha" or "mithai" means "something sweet" or "dessert".
     - "kuch namkeen" means "salty", "savory", or "snacks".
@@ -189,11 +222,7 @@ export const searchMenu = asyncHandler(async (req, response) => {
     ${JSON.stringify(simplifiedMenu)}
     
     Return the IDs of the items that semantically match the user's query.
-    For example, if they search "sweet" or "kuch meetha", return desserts (like Mango Lassi, Gulab Jamun, etc). 
-    If they search "spicy", return items with spicy tags (like Biryani, curries).
-    If they search a category like "bread", return naan/roti.
-    If the search is completely unrelated or nonsensical, return an empty array.
-    Order the results by relevance (best match first). Return maximum 10 items.
+    Order the results by relevance. Return maximum 10 items.
     
     Output strictly in this JSON format:
     {
@@ -202,7 +231,7 @@ export const searchMenu = asyncHandler(async (req, response) => {
   `;
 
   if (!process.env.OPENAI_API_KEY) {
-    throw new AppError('OpenAI API Key is missing', 500);
+    return res.success(response, { data: [] }); // graceful fallback
   }
 
   try {
@@ -211,7 +240,7 @@ export const searchMenu = asyncHandler(async (req, response) => {
       {
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1, // low temp for search consistency
+        temperature: 0.1,
         response_format: { type: 'json_object' }
       },
       {
@@ -225,13 +254,16 @@ export const searchMenu = asyncHandler(async (req, response) => {
     const resultText = aiResponse.data.choices[0].message.content;
     const parsed = JSON.parse(resultText);
     
-    if (parsed.results) {
-      res.success(response, { results: parsed.results });
+    if (parsed.results && parsed.results.length > 0) {
+      const matchedItems = parsed.results
+        .map(id => items.find(i => i._id.toString() === id))
+        .filter(i => i != null);
+      res.success(response, { data: matchedItems });
     } else {
-      res.success(response, { results: [] });
+      res.success(response, { data: [] });
     }
   } catch (error) {
     console.error('AI Search Error:', error.response?.data || error.message);
-    throw new AppError('Failed to perform semantic search', 500);
+    res.success(response, { data: [] }); // Return empty array on failure instead of crashing the app
   }
 });

@@ -30,9 +30,10 @@ class OrderService {
     }
   }
 
-  Future<Map<String, dynamic>?> getRestaurantETA(String restaurantId) async {
+  Future<Map<String, dynamic>?> getRestaurantETA(String restaurantId, [String? address]) async {
     try {
-      final response = await ApiService.get('/api/restaurants/$restaurantId/eta');
+      final query = address != null ? '?address=${Uri.encodeComponent(address)}' : '';
+      final response = await ApiService.get('/api/restaurants/$restaurantId/eta$query');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['data'];

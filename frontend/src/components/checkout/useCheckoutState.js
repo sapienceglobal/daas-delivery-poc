@@ -365,14 +365,14 @@ export function useCheckoutState() {
         }
 
         console.log('DEBUG CHECKOUT: Requesting quote with body:', {
-          restaurantId: restaurant._id,
+          restaurantId: restaurant?._id,
           address: compiledAddress,
           addressLat: lat,
           addressLng: lng,
         });
 
         const data = await orderAPI.getDeliveryQuote({
-          restaurantId: restaurant._id,
+          restaurantId: restaurant?._id,
           address: compiledAddress,
           addressLat: lat,
           addressLng: lng,
@@ -544,7 +544,7 @@ export function useCheckoutState() {
       setQuoteError(null);
       try {
         const data = await orderAPI.getDeliveryQuote({
-          restaurantId: restaurant._id,
+          restaurantId: restaurant?._id,
           address: compiledAddress,
           addressLat: currentLat,
           addressLng: currentLng,
@@ -596,7 +596,7 @@ export function useCheckoutState() {
         setQuoteError(null);
         try {
           const data = await orderAPI.getDeliveryQuote({
-            restaurantId: restaurant._id,
+            restaurantId: restaurant?._id,
             address: compiledAddress,
             addressLat: currentLat,
             addressLng: currentLng,

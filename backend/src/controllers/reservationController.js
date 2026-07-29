@@ -22,7 +22,8 @@ export const createReservation = async (req, res) => {
       partySize, 
       location, 
       occasion, 
-      specialRequests 
+      specialRequests,
+      tableId
     } = req.body;
 
     // Verify restaurant exists
@@ -42,6 +43,7 @@ export const createReservation = async (req, res) => {
       location: location || 'Any',
       occasion,
       specialRequests,
+      tableId,
       status: 'pending', // Starts as pending, can be auto-confirmed based on restaurant settings in the future
       userId: req.user ? req.user._id : null // If logged in, attach to user
     };

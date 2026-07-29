@@ -5,57 +5,68 @@ import { authAPI } from '@/lib/api';
 
 const AuthContext = createContext(null);
 
+// M6 FIX: Only cache non-sensitive display fields in localStorage.
+// Credentials are in httpOnly cookies (safe). Sensitive fields like
+// savedAddresses, savedCards, savedCart are fetched fresh from the server when needed.
+const SAFE_CACHE_FIELDS = [
+  '_id', 'name', 'email', 'role', 'avatar', 'phone',
+  'restaurantId', 'loyaltyPoints', 'referralCode', 'isVerified', 'notificationPreferences'
+];
+
+const toSafeCacheObject = (user) => {
+  if (!user) return null;
+  const safe = {};
+  for (const key of SAFE_CACHE_FIELDS) {
+    if (user[key] !== undefined) safe[key] = user[key];
+  }
+  return safe;
+};
+
+// M4 FIX: These fields can ONLY change via a verified backend response.
+// They must never be accepted via client-side updateUser() calls.
+const BLOCKED_UPDATE_FIELDS = ['role', 'isActive', 'isAdmin', 'restaurantId', 'password', 'salt'];
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // H3 FIX: backendVerified is true ONLY after /me successfully confirms the session.
+  // Role-restricted pages must check backendVerified before rendering sensitive content.
+  const [backendVerified, setBackendVerified] = useState(false);
+
   // Token is stored only in the httpOnly cookie set by the server.
-  // localStorage stores user profile display data only, never credentials.
-  // On init, we try to call /me. If the httpOnly cookie is valid, it works.
-  // If not, we clear local state.
+  // localStorage stores a minimal display cache — never credentials.
+  // On init, we ALWAYS call /me to verify the session with the backend.
+  // The httpOnly cookie is sent automatically — JS cannot access or forge it.
   useEffect(() => {
     let cancelled = false;
 
     const clearAuthStorage = () => {
       localStorage.removeItem('marketplace_user');
       localStorage.removeItem('marketplace_token');
+      // user_role cookie is a UX hint only — NEVER used for security decisions.
+      // Next.js middleware verifies the JWT directly (via jose), not this cookie.
       document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     };
 
     const initializeAuth = async () => {
-      const storedUser = localStorage.getItem('marketplace_user');
-
-      if (!storedUser) {
-        // No cached user data — try /me in case httpOnly cookie is still valid
-        try {
-          const data = await authAPI.getMe();
-          const userData = data.data;
-          if (cancelled) return;
-          localStorage.setItem('marketplace_user', JSON.stringify(userData));
-          document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
-          setUser(userData);
-        } catch {
-          // No valid session — user is logged out
-        }
-        if (!cancelled) setLoading(false);
-        return;
-      }
-
       try {
-        JSON.parse(storedUser);
-
-        // Verify against backend (httpOnly cookie is sent automatically)
+        // Always verify with backend — localStorage alone is never trusted for access control.
         const data = await authAPI.getMe();
         const userData = data.data;
         if (cancelled) return;
 
-        localStorage.setItem('marketplace_user', JSON.stringify(userData));
+        // Cache only safe fields — never cache addresses, cards, or cart data in localStorage.
+        localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
+        // user_role cookie is a UX hint for smooth navigation only.
         document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
         setUser(userData);
+        setBackendVerified(true);
       } catch {
         if (cancelled) return;
         clearAuthStorage();
         setUser(null);
+        setBackendVerified(false);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -72,13 +83,14 @@ export function AuthProvider({ children }) {
     const data = await authAPI.login({ email, password, rememberMe });
     const { user: userData } = data;
 
-    localStorage.setItem('marketplace_user', JSON.stringify(userData));
+    localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
     localStorage.removeItem('marketplace_token');
-    
+
     const cookieAge = rememberMe ? 'max-age=2592000;' : '';
     document.cookie = `user_role=${userData.role}; path=/; ${cookieAge} SameSite=Lax`;
-    
+
     setUser(userData);
+    setBackendVerified(true);
     return userData;
   }, []);
 
@@ -86,10 +98,11 @@ export function AuthProvider({ children }) {
     const data = await authAPI.googleLogin({ credential, role });
     const { user: userData } = data;
 
-    localStorage.setItem('marketplace_user', JSON.stringify(userData));
+    localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
     localStorage.removeItem('marketplace_token');
     document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
     setUser(userData);
+    setBackendVerified(true);
     return userData;
   }, []);
 
@@ -97,10 +110,11 @@ export function AuthProvider({ children }) {
     const data = await authAPI.register(formData);
     const { user: userData } = data;
 
-    localStorage.setItem('marketplace_user', JSON.stringify(userData));
+    localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
     localStorage.removeItem('marketplace_token');
     document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
     setUser(userData);
+    setBackendVerified(true);
     return userData;
   }, []);
 
@@ -108,12 +122,13 @@ export function AuthProvider({ children }) {
     try {
       await authAPI.logout();
     } catch {
-      // ignore logout API errors
+      // ignore logout API errors — cookie is cleared client-side regardless
     }
     localStorage.removeItem('marketplace_user');
     localStorage.removeItem('marketplace_token');
     document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     setUser(null);
+    setBackendVerified(false);
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -121,9 +136,10 @@ export function AuthProvider({ children }) {
       const data = await authAPI.getMe();
       const userData = data.data;
       if (userData) {
-        localStorage.setItem('marketplace_user', JSON.stringify(userData));
+        localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
         document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
         setUser(userData);
+        setBackendVerified(true);
       }
       return userData;
     } catch (err) {
@@ -134,11 +150,18 @@ export function AuthProvider({ children }) {
     }
   }, [logout]);
 
+  // M4 FIX: updateUser strips security-sensitive fields before applying any update.
+  // Role, isActive, and restaurantId can ONLY change via a real backend response.
   const updateUser = useCallback((updates) => {
+    const safeUpdates = { ...updates };
+    for (const blocked of BLOCKED_UPDATE_FIELDS) {
+      delete safeUpdates[blocked];
+    }
+
     setUser(prev => {
-      const updated = { ...prev, ...updates };
-      localStorage.setItem('marketplace_user', JSON.stringify(updated));
-      document.cookie = `user_role=${updated.role}; path=/; max-age=604800; SameSite=Lax`;
+      const updated = { ...prev, ...safeUpdates };
+      localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(updated)));
+      // Do NOT update user_role cookie from client-side updateUser — role changes only via backend.
       return updated;
     });
   }, []);
@@ -147,11 +170,13 @@ export function AuthProvider({ children }) {
     user,
     token: null,
     loading,
-    isAuthenticated: !!user,
-    isCustomer: user?.role === 'customer',
-    isMerchant: user?.role === 'merchant',
-    isAdmin: user?.role === 'admin',
-    isDriver: user?.role === 'driver',
+    backendVerified, // H3: pages gate sensitive rendering on this flag
+    // All role flags require BOTH user data AND backend verification
+    isAuthenticated: !!user && backendVerified,
+    isCustomer: user?.role === 'customer' && backendVerified,
+    isMerchant: user?.role === 'merchant' && backendVerified,
+    isAdmin: user?.role === 'admin' && backendVerified,
+    isDriver: user?.role === 'driver' && backendVerified,
     login,
     googleLogin,
     register,

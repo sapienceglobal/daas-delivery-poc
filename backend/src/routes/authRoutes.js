@@ -27,23 +27,24 @@ router.put('/me/password', protect, validate(changePasswordSchema), authControll
 router.post('/logout', protect, authController.logout);
 
 // ── Addresses ───────────────────────────────────────────────────────────────
-router.post('/me/addresses', protect, authorize('customer'), authController.addAddress);
-router.put('/me/addresses/:addressId', protect, authorize('customer'), authController.editAddress);
-router.delete('/me/addresses/:addressId', protect, authorize('customer'), authController.removeAddress);
-router.patch('/me/addresses/:addressId/default', protect, authorize('customer'), authController.setDefaultAddress);
+// ── Addresses ───────────────────────────────────────────────────────────────
+router.post('/me/addresses', protect, authorize('customer', 'merchant', 'admin'), authController.addAddress);
+router.put('/me/addresses/:addressId', protect, authorize('customer', 'merchant', 'admin'), authController.editAddress);
+router.delete('/me/addresses/:addressId', protect, authorize('customer', 'merchant', 'admin'), authController.removeAddress);
+router.patch('/me/addresses/:addressId/default', protect, authorize('customer', 'merchant', 'admin'), authController.setDefaultAddress);
 
 // ── Payment Methods ─────────────────────────────────────────────────────────
-router.post('/me/cards', protect, authorize('customer'), authController.addCard);
-router.delete('/me/cards/:cardId', protect, authorize('customer'), authController.removeCard);
-router.patch('/me/cards/:cardId/default', protect, authorize('customer'), authController.setDefaultCard);
+router.post('/me/cards', protect, authorize('customer', 'merchant', 'admin'), authController.addCard);
+router.delete('/me/cards/:cardId', protect, authorize('customer', 'merchant', 'admin'), authController.removeCard);
+router.patch('/me/cards/:cardId/default', protect, authorize('customer', 'merchant', 'admin'), authController.setDefaultCard);
 
 // ── Saved Cart ──────────────────────────────────────────────────────────────
-router.get('/me/cart', protect, authorize('customer'), authController.getSavedCart);
-router.put('/me/cart', protect, authorize('customer'), authController.updateSavedCart);
-router.delete('/me/cart', protect, authorize('customer'), authController.clearSavedCart);
+router.get('/me/cart', protect, authorize('customer', 'merchant', 'admin'), authController.getSavedCart);
+router.put('/me/cart', protect, authorize('customer', 'merchant', 'admin'), authController.updateSavedCart);
+router.delete('/me/cart', protect, authorize('customer', 'merchant', 'admin'), authController.clearSavedCart);
 
 // ── Favorites ───────────────────────────────────────────────────────────────
-router.post('/me/favorites/restaurants/:restaurantId', protect, authorize('customer'), authController.toggleFavoriteRestaurant);
-router.post('/me/favorites/items/:itemId', protect, authorize('customer'), authController.toggleFavoriteItem);
+router.post('/me/favorites/restaurants/:restaurantId', protect, authorize('customer', 'merchant', 'admin'), authController.toggleFavoriteRestaurant);
+router.post('/me/favorites/items/:itemId', protect, authorize('customer', 'merchant', 'admin'), authController.toggleFavoriteItem);
 
 export default router;

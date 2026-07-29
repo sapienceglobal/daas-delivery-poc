@@ -16,7 +16,7 @@ class TrackOrderScreen extends StatefulWidget {
 }
 
 class _TrackOrderScreenState extends State<TrackOrderScreen> {
-  Map<String, dynamic>? _order;
+  Map<String, dynamic>? get _order => Provider.of<OrderProvider>(context, listen: false).getTrackedOrder(widget.orderId);
   bool _isLoading = true;
   String? _error;
   Timer? _pollingTimer;
@@ -26,32 +26,8 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
     super.initState();
     _fetchOrder();
     
-    // Initialize socket
-    final socketService = SocketService();
-    socketService.init();
-    socketService.joinOrderRoom(widget.orderId);
-    
-    final handleUpdate = (dynamic data) {
-      if (!mounted) return;
-      if (data != null && data['order'] != null) {
-        setState(() {
-          _order = data['order'];
-        });
-        
-        if (data['status'] != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Order status updated: ${data['status'].toString().replaceAll('_', ' ')}')),
-          );
-        }
-      }
-      _fetchOrder(isBackground: true);
-    };
-
-    socketService.onOrderStatusChanged(handleUpdate);
-    socketService.onOrderUpdated(handleUpdate);
-
-    // Start polling every 10 seconds for real-time updates (fallback if no websockets)
-    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+    // Fallback polling in case of long disconnections
+    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       _fetchOrder(isBackground: true);
     });
   }
@@ -59,10 +35,6 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
   @override
   void dispose() {
     _pollingTimer?.cancel();
-    final socketService = SocketService();
-    socketService.offOrderStatusChanged();
-    socketService.offOrderUpdated();
-    // We don't dispose the socket completely because other screens might use it, but we removed listeners.
     super.dispose();
   }
 
@@ -72,12 +44,12 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
     }
     
     final provider = Provider.of<OrderProvider>(context, listen: false);
-    final data = await provider.getOrderById(widget.orderId);
+    await provider.fetchTrackedOrder(widget.orderId, silent: isBackground);
     
     if (mounted) {
       setState(() {
-        if (data != null) {
-          _order = data;
+        final order = provider.getTrackedOrder(widget.orderId);
+        if (order != null) {
           _error = null;
         } else if (!isBackground) {
           _error = 'Failed to load order details';
@@ -123,9 +95,15 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
         ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
         : _error != null
           ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
-          : _order == null
-            ? const Center(child: Text('Order not found'))
-            : SingleChildScrollView(
+          : Builder(builder: (context) {
+              final provider = Provider.of<OrderProvider>(context);
+              final _order = provider.getTrackedOrder(widget.orderId);
+
+              if (_order == null) {
+                return const Center(child: Text('Order not found'));
+              }
+              
+              return SingleChildScrollView(
                 child: Column(
                   children: [
                     _buildHeaderInfo(),
@@ -138,7 +116,8 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                     const SizedBox(height: 32), // Padding for bottom
                   ],
                 ),
-              ),
+              );
+            }),
     );
   }
 

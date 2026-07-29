@@ -3,8 +3,16 @@ import { AppError } from './errorHandler.js';
 import { bindTenantContext } from '../utils/tenant.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
+// H2 FIX: JWT_SECRET is mandatory in production. A missing secret allows any request
+// to be authorized using the known fallback string — that is a critical vulnerability.
 if (!JWT_SECRET) {
-  console.warn('[AUTH] WARNING: JWT_SECRET is not set in environment. Using insecure default — NOT SAFE FOR PRODUCTION.');
+  if (process.env.NODE_ENV === 'production') {
+    // Fatal — crash the process so the deployment fails loudly rather than running insecurely.
+    console.error('[FATAL] JWT_SECRET environment variable is not set. Refusing to start in production with an insecure default.');
+    process.exit(1);
+  } else {
+    console.warn('[AUTH] WARNING: JWT_SECRET is not set. Using insecure default — NOT SAFE FOR PRODUCTION.');
+  }
 }
 const resolvedJwtSecret = JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET';
 
@@ -38,6 +46,11 @@ export const protect = async (req, _res, next) => {
 
     if (!user) {
       return next(new AppError('Not authorized, user not found', 401));
+    }
+
+    // Block deactivated accounts even if they have a valid token
+    if (!user.isActive) {
+      return next(new AppError('Your account has been deactivated. Contact support.', 403));
     }
 
     req.user = user;

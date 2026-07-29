@@ -47,8 +47,10 @@ function LoginPageContent() {
     }
   }, [authLoading, isAuthenticated, user, redirectPath]);
 
-  // If we are authenticated, return a loader while we redirect
-  if (isAuthenticated) {
+  // If backend verification is done and user is authenticated, show loader while redirect fires.
+  // We check !authLoading to avoid showing the spinner during the initial /me fetch —
+  // that would cause a blink: spinner → form → spinner → redirect.
+  if (!authLoading && isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-[#7a0b10]" />

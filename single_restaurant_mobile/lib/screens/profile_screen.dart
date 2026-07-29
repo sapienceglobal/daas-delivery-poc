@@ -7,6 +7,7 @@ import 'package:single_restaurant_mobile/screens/referral_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/screens/login_screen.dart';
+import 'package:single_restaurant_mobile/screens/favorites_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -252,6 +253,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
+          _buildMenuItem(Icons.favorite_border, 'Favorites', 'Your liked items', onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const FavoritesScreen()),
+            );
+          }),
+          const Divider(height: 1, indent: 64),
           _buildMenuItem(Icons.location_on_outlined, 'Addresses', 'Manage your saved addresses', onTap: () {
             Navigator.push(
               context,

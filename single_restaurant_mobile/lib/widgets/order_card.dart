@@ -10,16 +10,23 @@ class OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = order['status'] as String;
+    final isDelivery = order['orderType'] == 'delivery';
+    final isActive = status != 'delivered' && status != 'cancelled';
+    
+    // Background color inspired by the image (warm beige)
+    final bgColor = const Color(0xFFFDF8F3);
+    final borderColor = const Color(0xFFEBE0D3);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           )
         ],
@@ -32,20 +39,20 @@ class OrderCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildImage(status),
+                _buildImage(status, isActive),
                 const SizedBox(width: 16),
-                Expanded(child: _buildOrderDetails(status)),
+                Expanded(child: _buildOrderDetails(status, isDelivery)),
               ],
             ),
           ),
-          if (status == 'on_the_way') _buildLiveTracking(),
+          if (isActive) _buildLiveTracking(status, isDelivery),
           _buildActionAndFooter(context, status),
         ],
       ),
     );
   }
 
-  Widget _buildImage(String status) {
+  Widget _buildImage(String status, bool isActive) {
     final items = order['items'] as List?;
     final imagePath = (items != null && items.isNotEmpty && items[0]['image'] != null)
         ? items[0]['image']
@@ -54,26 +61,26 @@ class OrderCard extends StatelessWidget {
     return Stack(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           child: imagePath.startsWith('http') 
-              ? Image.network(imagePath, width: 80, height: 80, fit: BoxFit.cover, errorBuilder: (c, e, s) => Image.asset('assets/images/branded/lassi-lounge/categories/appetizers.jpg', width: 80, height: 80, fit: BoxFit.cover))
-              : Image.asset(imagePath, width: 80, height: 80, fit: BoxFit.cover),
+              ? Image.network(imagePath, width: 100, height: 100, fit: BoxFit.cover, errorBuilder: (c, e, s) => Image.asset('assets/images/branded/lassi-lounge/categories/appetizers.jpg', width: 100, height: 100, fit: BoxFit.cover))
+              : Image.asset(imagePath, width: 100, height: 100, fit: BoxFit.cover),
         ),
-        if (status == 'on_the_way')
+        if (isActive)
           Positioned(
-            top: 4,
-            left: 4,
+            top: 8,
+            left: 8,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(4),
+                color: Colors.red.shade700,
+                borderRadius: BorderRadius.circular(20),
               ),
               child: const Row(
                 children: [
                   Icon(Icons.circle, color: Colors.white, size: 8),
                   SizedBox(width: 4),
-                  Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                  Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                 ],
               ),
             ),
@@ -82,7 +89,7 @@ class OrderCard extends StatelessWidget {
     );
   }
 
-  Widget _buildOrderDetails(String status) {
+  Widget _buildOrderDetails(String status, bool isDelivery) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -92,63 +99,67 @@ class OrderCard extends StatelessWidget {
             Expanded(
               child: Text(
                 'Order #${order['orderNumber'] ?? order['_id']?.toString().substring(0, 6) ?? '...'}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             Row(
               children: [
                 _buildStatusBadge(status),
-                const SizedBox(width: 4),
-                const Icon(Icons.chevron_right, color: Colors.grey, size: 16),
+                const SizedBox(width: 2),
+                const Icon(Icons.chevron_right, color: Colors.black87, size: 18),
               ],
             )
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           _formatDate(order['createdAt'] ?? ''),
-          style: const TextStyle(color: Colors.grey, fontSize: 12),
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
         ),
-        const SizedBox(height: 8),
-        if (status == 'on_the_way') ...[
-          const Row(
+        const SizedBox(height: 12),
+        if (status != 'delivered' && status != 'cancelled') ...[
+          Row(
             children: [
-              Icon(Icons.moped, color: Colors.red, size: 16),
-              SizedBox(width: 8),
-              Text('Your order is on the way', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
+              Icon(isDelivery ? Icons.moped : Icons.shopping_bag_outlined, color: AppColors.secondary, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _getStatusText(status, isDelivery),
+                  style: const TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 14),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 24.0, top: 2),
+            padding: const EdgeInsets.only(left: 26.0, top: 4),
             child: Text(
-              order['estimatedDelivery'] ?? '',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              order['estimatedDelivery'] ?? 'Arriving soon',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ),
         ] else if (status == 'delivered') ...[
           Row(
             children: [
-              const Icon(Icons.check_circle_outline, color: Colors.green, size: 16),
+              const Icon(Icons.check_circle_outline, color: Colors.green, size: 18),
               const SizedBox(width: 8),
-              Text('Delivered on ${_formatDate(order['deliveredAt'] ?? order['createdAt'])}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              Text('Delivered on ${_formatDate(order['deliveredAt'] ?? order['createdAt'])}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500)),
             ],
           ),
-          const SizedBox(height: 8),
-          _buildItemImagesRow(),
         ] else if (status == 'cancelled') ...[
           Row(
             children: [
-              const Icon(Icons.cancel_outlined, color: Colors.red, size: 16),
+              const Icon(Icons.cancel_outlined, color: Colors.red, size: 18),
               const SizedBox(width: 8),
-              const Text('Order was cancelled', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
+              const Text('Order was cancelled', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 14)),
             ],
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 24.0, top: 2),
+            padding: const EdgeInsets.only(left: 26.0, top: 4),
             child: Text(
               _formatDate(order['cancelledAt'] ?? order['createdAt']),
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ),
         ]
@@ -156,85 +167,89 @@ class OrderCard extends StatelessWidget {
     );
   }
 
-  Widget _buildItemImagesRow() {
-    final items = (order['items'] as List?) ?? [];
-    if (items.isEmpty) return const SizedBox.shrink();
-    
-    final displayCount = items.length > 3 ? 3 : items.length;
-    final extraCount = items.length > 3 ? items.length - 3 : 0;
-
-    return Row(
-      children: [
-        for (var i = 0; i < displayCount; i++)
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: (items[i]['image']?.toString().startsWith('http') ?? false)
-                  ? Image.network(items[i]['image'], width: 36, height: 36, fit: BoxFit.cover, errorBuilder: (c, e, s) => Image.asset('assets/images/branded/lassi-lounge/categories/appetizers.jpg', width: 36, height: 36, fit: BoxFit.cover))
-                  : Image.asset('assets/images/branded/lassi-lounge/categories/appetizers.jpg', width: 36, height: 36, fit: BoxFit.cover),
-            ),
-          ),
-        if (extraCount > 0)
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            alignment: Alignment.center,
-            child: Text('+$extraCount\nmore', textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-          )
-      ],
-    );
+  String _getStatusText(String status, bool isDelivery) {
+    if (status == 'pending') return 'Waiting for confirmation';
+    if (status == 'accepted') return 'Order is confirmed';
+    if (status == 'preparing') return 'Food is being prepared';
+    if (status == 'ready' || status == 'ready_for_pickup') return isDelivery ? 'Waiting for driver' : 'Ready for pickup';
+    if (status == 'out_for_delivery' || status == 'picked_up' || status == 'on_the_way') return 'Your order is on the way';
+    return status.replaceAll('_', ' ').toUpperCase();
   }
 
-  Widget _buildLiveTracking() {
+  Widget _buildLiveTracking(String status, bool isDelivery) {
+    final statusRank = isDelivery
+      ? {'pending': 0, 'accepted': 1, 'preparing': 2, 'ready': 3, 'ready_for_pickup': 3, 'picked_up': 4, 'on_the_way': 4, 'out_for_delivery': 4, 'delivered': 5}
+      : {'pending': 0, 'accepted': 1, 'preparing': 2, 'ready': 3, 'ready_for_pickup': 3, 'delivered': 4};
+
+    final currentRank = statusRank[status] ?? 0;
+
+    final steps = isDelivery
+      ? [
+          {'label': 'Confirmed', 'icon': Icons.receipt_long},
+          {'label': 'Accepted', 'icon': Icons.check_circle_outline},
+          {'label': 'Preparing', 'icon': Icons.soup_kitchen},
+          {'label': 'Ready', 'icon': Icons.room_service},
+          {'label': 'On The Way', 'icon': Icons.moped},
+          {'label': 'Delivered', 'icon': Icons.home_outlined},
+        ]
+      : [
+          {'label': 'Confirmed', 'icon': Icons.receipt_long},
+          {'label': 'Accepted', 'icon': Icons.check_circle_outline},
+          {'label': 'Preparing', 'icon': Icons.soup_kitchen},
+          {'label': 'Ready', 'icon': Icons.room_service},
+          {'label': 'Collected', 'icon': Icons.check_circle},
+        ];
+
     return Padding(
-      padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildStepperNode(Icons.receipt_long, 'Confirmed', true),
-              _buildStepperLine(true),
-              _buildStepperNode(Icons.soup_kitchen, 'Preparing', true),
-              _buildStepperLine(true),
-              _buildStepperNode(Icons.moped, 'On The Way', true),
-              _buildStepperLine(false),
-              _buildStepperNode(Icons.home_outlined, 'Delivered', false),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(steps.length * 2 - 1, (i) {
+          if (i % 2 != 0) {
+            // Connector line
+            final index = i ~/ 2;
+            return Expanded(
+              child: Container(
+                margin: const EdgeInsets.only(top: 14),
+                height: 2,
+                color: currentRank > index ? AppColors.secondary : Colors.grey.shade300,
+              ),
+            );
+          }
+          
+          // Step Icon and Label
+          final index = i ~/ 2;
+          final isCompleted = currentRank >= index;
+          
+          return SizedBox(
+            width: isDelivery ? 50 : 60, // Fixed width for each step's content
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: isCompleted ? AppColors.secondary : Colors.grey.shade300,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(steps[index]['icon'] as IconData, color: isCompleted ? Colors.white : Colors.grey.shade600, size: 14),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  steps[index]['label'] as String,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: isCompleted ? AppColors.secondary : Colors.grey.shade500,
+                    fontWeight: isCompleted ? FontWeight.bold : FontWeight.w500,
+                    height: 1.1,
+                  ),
+                ),
+              ],
+            ),
+          );
 
-  Widget _buildStepperNode(IconData icon, String label, bool active) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: active ? AppColors.secondary : Colors.grey.shade200,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: active ? Colors.white : Colors.grey, size: 16),
-        ),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 10, color: active ? AppColors.secondary : Colors.grey, fontWeight: active ? FontWeight.bold : FontWeight.normal)),
-      ],
-    );
-  }
-
-  Widget _buildStepperLine(bool active) {
-    return Expanded(
-      child: Container(
-        height: 2,
-        color: active ? AppColors.secondary : Colors.grey.shade300,
-        margin: const EdgeInsets.only(bottom: 16), // offset for text
+        }),
       ),
     );
   }
@@ -244,44 +259,46 @@ class OrderCard extends StatelessWidget {
     Color textColor;
     String text;
 
-    switch (status) {
-      case 'on_the_way':
-        bgColor = Colors.orange.shade100;
-        textColor = Colors.deepOrange;
-        text = 'ON THE WAY';
-        break;
-      case 'delivered':
-        bgColor = Colors.green.shade100;
-        textColor = Colors.green.shade800;
-        text = 'DELIVERED';
-        break;
-      case 'cancelled':
-        bgColor = Colors.red.shade100;
-        textColor = Colors.red;
-        text = 'CANCELLED';
-        break;
-      default:
-        bgColor = Colors.grey.shade200;
-        textColor = Colors.black;
-        text = status.toUpperCase();
+    if (status == 'pending' || status == 'accepted' || status == 'preparing' || status == 'ready' || status == 'ready_for_pickup') {
+      bgColor = const Color(0xFFFDF0ED);
+      textColor = AppColors.secondary;
+      text = 'IN PROGRESS';
+    } else if (status == 'out_for_delivery' || status == 'picked_up' || status == 'on_the_way') {
+      bgColor = const Color(0xFFFDF0ED);
+      textColor = AppColors.secondary;
+      text = 'ON THE WAY';
+    } else if (status == 'delivered') {
+      bgColor = Colors.green.shade50;
+      textColor = Colors.green.shade700;
+      text = 'DELIVERED';
+    } else if (status == 'cancelled') {
+      bgColor = Colors.red.shade50;
+      textColor = Colors.red;
+      text = 'CANCELLED';
+    } else {
+      bgColor = Colors.grey.shade100;
+      textColor = Colors.black87;
+      text = status.toUpperCase();
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(text, style: TextStyle(color: textColor, fontSize: 10, fontWeight: FontWeight.bold)),
+      child: Text(text, style: TextStyle(color: textColor, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
     );
   }
 
   Widget _buildActionAndFooter(BuildContext context, String status) {
+    final isActive = status != 'delivered' && status != 'cancelled';
+    
     return Column(
       children: [
-        if (status == 'on_the_way')
+        if (isActive)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -293,70 +310,57 @@ class OrderCard extends StatelessWidget {
                     ),
                   );
                 },
-                icon: const Icon(Icons.location_on_outlined, color: Colors.red, size: 18),
-                label: const Text('TRACK ORDER', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                icon: const Icon(Icons.location_on_outlined, color: AppColors.secondary, size: 20),
+                label: const Text('TRACK ORDER', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.0)),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.red),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: const BorderSide(color: AppColors.secondary, width: 1.2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: Colors.white,
                 ),
               ),
             ),
           ),
-        const Divider(height: 24),
-        Padding(
-          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+        if (isActive) const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 16),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: Colors.black.withOpacity(0.05))),
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  const Icon(Icons.shopping_bag_outlined, color: Colors.brown, size: 16),
-                  const SizedBox(width: 4),
-                  Text('${order['items']?.length ?? 0} Items', style: const TextStyle(fontSize: 13)),
+                  const Icon(Icons.shopping_bag_outlined, color: AppColors.secondary, size: 18),
+                  const SizedBox(width: 6),
+                  Text('${order['items']?.length ?? 0} Items', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
                   const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text('•', style: TextStyle(color: Colors.grey)),
+                    padding: EdgeInsets.symmetric(horizontal: 10.0),
+                    child: Text('•', style: TextStyle(color: Colors.grey, fontSize: 18)),
                   ),
                   Text(
                     '\$${(order['total'] ?? 0.0).toStringAsFixed(2)}', 
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 14),
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 15),
                   ),
                 ],
               ),
-              Row(
-                children: [
-                  if (status == 'delivered') ...[
-                    ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.secondary, // Dark red
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(0, 32),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                      ),
-                      child: const Text('ORDER AGAIN', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TrackOrderScreen(orderId: order['_id']),
                     ),
-                    const SizedBox(width: 12),
+                  );
+                },
+                child: const Row(
+                  children: [
+                    Text('View Details', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87)),
+                    SizedBox(width: 2),
+                    Icon(Icons.chevron_right, size: 20, color: Colors.black87),
                   ],
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TrackOrderScreen(orderId: order['_id']),
-                        ),
-                      );
-                    },
-                    child: const Row(
-                      children: [
-                        Text('View Details', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.secondary)),
-                        Icon(Icons.chevron_right, size: 16, color: AppColors.secondary),
-                      ],
-                    ),
-                  )
-                ],
+                ),
               )
             ],
           ),
@@ -366,8 +370,6 @@ class OrderCard extends StatelessWidget {
   }
 
   String _formatDate(String isoString) {
-    // A simple formatter for mock data. E.g., "2025-05-21T12:45:00Z" -> "May 21, 2025 • 12:45 PM"
-    // For production, use intl package
     try {
       final date = DateTime.parse(isoString);
       final monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

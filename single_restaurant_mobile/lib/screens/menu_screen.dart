@@ -4,9 +4,11 @@ import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/widgets/menu_item_card.dart';
 import 'package:single_restaurant_mobile/screens/search_screen.dart';
+import 'package:single_restaurant_mobile/screens/main_screen.dart';
 
 class MenuScreen extends StatefulWidget {
-  const MenuScreen({super.key});
+  final String? initialCategoryId;
+  const MenuScreen({super.key, this.initialCategoryId});
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
@@ -17,14 +19,21 @@ class _MenuScreenState extends State<MenuScreen> {
   String _sortOrder = 'Popularity'; // 'Popularity', 'Price: Low to High', 'Price: High to Low'
   String _vegFilter = 'All'; // 'All', 'Veg', 'Non-Veg'
 
+  @override
+  void initState() {
+    super.initState();
+    _selectedCategoryId = widget.initialCategoryId;
+  }
+
   String _getCategoryIcon(String categoryName) {
     final name = categoryName.toLowerCase();
-    if (name.contains('appetizer')) return 'assets/images/categories/appetizers.jpg';
-    if (name.contains('bread') || name.contains('naan')) return 'assets/images/categories/breads.jpg';
-    if (name.contains('biryani')) return 'assets/images/categories/biryani.jpg';
-    if (name.contains('beverage') || name.contains('drink')) return 'assets/images/categories/beverages.jpg';
-    if (name.contains('dessert')) return 'assets/images/categories/desserts.jpg';
-    return 'assets/images/categories/main-course.jpg';
+    final basePath = 'assets/images/branded/lassi-lounge/categories';
+    if (name.contains('appetizer')) return '$basePath/appetizers.jpg';
+    if (name.contains('bread') || name.contains('naan')) return '$basePath/breads.jpg';
+    if (name.contains('biryani')) return '$basePath/biryani.jpg';
+    if (name.contains('beverage') || name.contains('drink')) return '$basePath/beverages.jpg';
+    if (name.contains('dessert')) return '$basePath/desserts.jpg';
+    return '$basePath/main-course.jpg';
   }
 
   @override
@@ -90,7 +99,7 @@ class _MenuScreenState extends State<MenuScreen> {
         children: [
           // Horizontal Categories
           Container(
-            height: 100,
+            height: 110,
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
               border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
@@ -101,7 +110,10 @@ class _MenuScreenState extends State<MenuScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemBuilder: (context, index) {
                 if (index == categories.length) {
-                  return _buildCategoryItem('More', Icons.grid_view, isSelected: false);
+                  return GestureDetector(
+                    onTap: () => _showCategoriesPopup(context, categories),
+                    child: _buildCategoryItem('More', Icons.grid_view, isSelected: false),
+                  );
                 }
                 final cat = categories[index];
                 final isSelected = cat['_id'] == _selectedCategoryId;
@@ -267,10 +279,68 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget _buildCategoryItem(String name, IconData? icon, {String? imagePath, bool isSelected = false}) {
+  void _showCategoriesPopup(BuildContext context, List<dynamic> categories) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 20),
+                  height: 4,
+                  width: 40,
+                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Text('All Categories', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.red.shade900, fontFamily: 'Serif')),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 0.8,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemCount: categories.length,
+                  itemBuilder: (context, index) {
+                    final cat = categories[index];
+                    final isSelected = cat['_id'] == _selectedCategoryId;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => _selectedCategoryId = cat['_id']);
+                        Navigator.pop(context);
+                      },
+                      child: _buildCategoryItem(cat['name'], null, imagePath: _getCategoryIcon(cat['name']), isSelected: isSelected, inGrid: true),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    );
+  }
+
+  Widget _buildCategoryItem(String name, IconData? icon, {String? imagePath, bool isSelected = false, bool inGrid = false}) {
     return Container(
-      width: 72,
-      margin: const EdgeInsets.only(right: 12),
+      width: inGrid ? null : 72,
+      margin: inGrid ? EdgeInsets.zero : const EdgeInsets.only(right: 12),
       child: Column(
         children: [
           Container(
@@ -320,7 +390,7 @@ class _MenuScreenState extends State<MenuScreen> {
             IconButton(
               icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87),
               onPressed: () {
-                // Navigate to cart
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 2)));
               },
             ),
             if (itemCount > 0)

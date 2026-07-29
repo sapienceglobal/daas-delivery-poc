@@ -178,4 +178,15 @@ class AuthService {
       return false;
     }
   }
+
+  // Toggle favorite item
+  Future<bool> toggleFavoriteItem(String itemId) async {
+    try {
+      final response = await ApiService.post('/api/auth/me/favorites/items/$itemId', {});
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error toggling favorite item: $e');
+      return false;
+    }
+  }
 }

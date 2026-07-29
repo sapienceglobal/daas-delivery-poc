@@ -24,25 +24,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchOrders();
     });
-
-    final socketService = SocketService();
-    socketService.init();
-    
-    final handleUpdate = (dynamic data) {
-      if (!mounted) return;
-      _fetchOrders(silent: true);
-    };
-
-    socketService.onOrderStatusChanged(handleUpdate);
-    socketService.onOrderUpdated(handleUpdate);
   }
 
   @override
   void dispose() {
-    final socketService = SocketService();
-    // We only remove the listeners we added, though ideally we'd manage named listeners
-    socketService.offOrderStatusChanged();
-    socketService.offOrderUpdated();
     super.dispose();
   }
 
@@ -60,7 +45,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
         break;
     }
     
-    Provider.of<OrderProvider>(context, listen: false).fetchMyOrders(status: statusParam, silent: silent);
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    await orderProvider.fetchMyOrders(status: statusParam, silent: silent);
   }
 
   @override

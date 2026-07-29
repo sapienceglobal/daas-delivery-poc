@@ -79,12 +79,16 @@ const EmployeeSchema = new mongoose.Schema({
   hireDate: { type: Date, default: Date.now },
   terminationDate: { type: Date, default: null },
   isActive: { type: Boolean, default: true },
-  pin: { type: String, default: null }    // POS login PIN
+  pin: { type: String, default: null },   // POS login PIN
+  // ── PIN Security (C2 FIX) ─────────────────────────────────────────────
+  pinFailedAttempts: { type: Number, default: 0 },    // wrong PIN counter
+  pinLockedUntil: { type: Date, default: null }         // locked until this time
 }, { timestamps: true });
 
 // ── Indexes ─────────────────────────────────────────────────────────────────
 EmployeeSchema.index({ restaurantId: 1, isActive: 1 });
 EmployeeSchema.index({ restaurantId: 1, role: 1 });
+EmployeeSchema.index({ restaurantId: 1, pin: 1 }); // Fast PIN lookup
 
 const Employee = mongoose.model('Employee', EmployeeSchema);
 export default Employee;

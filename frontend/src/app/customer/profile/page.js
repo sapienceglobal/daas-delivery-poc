@@ -22,21 +22,21 @@ import Loading from '@/app/loading';
 const isSingleRestaurantMode = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, loading, updateUser, logout, refreshUser } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, updateUser, logout, refreshUser } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading) {
+    if (!authLoading) {
       if (!isAuthenticated) {
-        router.push('/login');
+        router.replace('/login?redirect=/customer/profile');
       } else {
         refreshUser();
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, isAuthenticated]);
+  }, [authLoading, isAuthenticated]);
 
-  if (loading || !user) {
+  if (authLoading || !user) {
     return <Loading />;
   }
 

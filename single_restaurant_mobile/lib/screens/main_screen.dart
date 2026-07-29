@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/screens/home_screen.dart';
 import 'package:single_restaurant_mobile/screens/orders_screen.dart';
 import 'package:single_restaurant_mobile/screens/profile_screen.dart';
-import 'package:single_restaurant_mobile/screens/offers_screen.dart';
 import 'package:single_restaurant_mobile/screens/menu_screen.dart';
+import 'package:single_restaurant_mobile/screens/cart_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/providers/address_provider.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialIndex;
@@ -61,8 +64,8 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             const HomeScreen(),
             const MenuScreen(),
+            const CartScreen(),
             OrdersScreen(onBack: _navigateBack),
-            const OffersScreen(),
             const ProfileScreen(),
           ],
         ),
@@ -80,12 +83,12 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Menu',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.receipt_long),
-              label: 'Orders',
+              icon: Icon(Icons.shopping_cart_outlined),
+              label: 'Cart',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.local_offer_outlined),
-              label: 'Offers',
+              icon: Icon(Icons.receipt_long),
+              label: 'Orders',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
