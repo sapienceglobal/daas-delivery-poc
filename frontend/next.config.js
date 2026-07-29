@@ -20,6 +20,10 @@ const nextConfig = {
         destination: 'http://127.0.0.1:5001/api/:path*',
       },
       {
+        source: '/socket.io',
+        destination: 'http://127.0.0.1:5001/socket.io',
+      },
+      {
         source: '/socket.io/:path*',
         destination: 'http://127.0.0.1:5001/socket.io/:path*',
       },
