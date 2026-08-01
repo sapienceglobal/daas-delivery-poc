@@ -142,6 +142,7 @@ export const buildOrderSocketPayload = (order) => {
     orderId: plainOrder._id,
     orderNumber: plainOrder.orderNumber,
     status: plainOrder.status,
+    paymentStatus: plainOrder.paymentStatus,
     dasherName: plainOrder.dasherName,
     dasherPhone: plainOrder.dasherPhone,
     dasherLat: plainOrder.dasherLat,

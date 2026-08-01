@@ -134,6 +134,11 @@ io.use(async (socket, next) => {
 
 io.on('connection', (socket) => {
   logger.debug(`Socket connected: ${socket.id}`);
+  
+  if (socket.data.user && socket.data.user._id) {
+    socket.join(socket.data.user._id.toString());
+    console.log(`[SOCKET] User ${socket.data.user._id} joined their user room`);
+  }
 
   socket.on('join_restaurant', (restaurantId) => {
     console.log(`[SOCKET] join_restaurant request for ${restaurantId} from user:`, socket.data.user?._id);

@@ -945,7 +945,14 @@ export const refundOrder = asyncHandler(async (req, response) => {
   // Emit Socket Event
   const io = req.app.get('io');
   if (io) {
-    io.to(`order_${order._id}`).emit('order_status_update', buildOrderSocketPayload(order));
+    io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
+    
+    // Also notify the restaurant room so the merchant dashboard order list updates in real-time
+    io.to(order.restaurantId.toString()).emit('order_updated', {
+      orderId: order._id,
+      status: order.status,
+      paymentStatus: order.paymentStatus
+    });
   }
 
   res.success(response, { data: order, message: `Refund of $${refundAmount.toFixed(2)} processed` });

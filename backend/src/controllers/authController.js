@@ -40,7 +40,13 @@ const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace', r
     user: user.toSafeJSON()
   };
 
-  if (process.env.RETURN_AUTH_TOKEN === 'true' || process.env.NODE_ENV !== 'production') {
+  // The mobile app requires the token in the JSON body because it doesn't automatically parse httpOnly cookies.
+  // We check for x-app-secret to identify mobile app requests and return the token even in production.
+  if (
+    process.env.RETURN_AUTH_TOKEN === 'true' || 
+    process.env.NODE_ENV !== 'production' || 
+    (response.req && response.req.headers['x-app-secret'])
+  ) {
     body.token = token;
   }
 

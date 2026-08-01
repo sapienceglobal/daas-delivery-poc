@@ -85,10 +85,19 @@ export async function proxy(request) {
     // Customers: let the login page handle ?redirect= via its own useEffect
   }
 
+  if (pathname === '/admin/login' && token && role) {
+    if (role === 'admin') {
+      return NextResponse.redirect(new URL('/admin', request.url));
+    }
+    if (role === 'merchant') {
+      return NextResponse.redirect(new URL('/merchant', request.url));
+    }
+  }
+
   // ── 4. Protect /admin routes ──────────────────────────────────────────────
-  if (pathname.startsWith('/admin')) {
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
     if (!token || role !== 'admin') {
-      const loginUrl = new URL('/login', request.url);
+      const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -97,7 +106,7 @@ export async function proxy(request) {
   // ── 5. Protect /merchant routes ───────────────────────────────────────────
   if (pathname.startsWith('/merchant')) {
     if (!token || (role !== 'merchant' && role !== 'admin')) {
-      const loginUrl = new URL('/login', request.url);
+      const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }

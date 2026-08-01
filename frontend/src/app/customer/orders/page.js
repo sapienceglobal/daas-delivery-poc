@@ -8,6 +8,7 @@ import {
   Star, ExternalLink
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useSocket } from '@/context/SocketContext';
 import { orderAPI } from '@/lib/api';
 import {
   GlassCard, Badge, Button, EmptyState, OrderStatusBadge,
@@ -16,6 +17,7 @@ import {
 
 export default function OrdersPage() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
+  const { on, off } = useSocket();
   const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,16 @@ export default function OrdersPage() {
       loadOrders();
     }
   }, [authLoading, isAuthenticated]);
+
+  useEffect(() => {
+    const handleOrderUpdate = () => {
+      loadOrders();
+    };
+    on('order_status_changed', handleOrderUpdate);
+    return () => {
+      off('order_status_changed', handleOrderUpdate);
+    };
+  }, []);
 
   const loadOrders = async () => {
     try {

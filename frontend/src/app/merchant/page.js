@@ -99,7 +99,7 @@ export default function MerchantDashboard() {
   useEffect(() => {
     if (authLoading) return;
     if (!backendVerified) return; // Still waiting for backend confirmation
-    if (!isAuthenticated) { router.push('/login'); return; }
+    if (!isAuthenticated) { router.push('/admin/login'); return; }
     if (!isMerchant && !isAdmin) { router.push('/customer'); return; }
     loadDashboard();
   }, [isAuthenticated, isMerchant, isAdmin, authLoading, backendVerified]);

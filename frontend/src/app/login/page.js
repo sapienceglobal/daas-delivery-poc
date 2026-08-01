@@ -26,7 +26,7 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get('redirect') || '';
-  const { login, register, googleLogin, isAuthenticated, user, loading: authLoading } = useAuth();
+  const { login, register, googleLogin, logout, isAuthenticated, user, loading: authLoading } = useAuth();
   const isSingleMode = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -97,6 +97,14 @@ function LoginPageContent() {
         showToast('Account created successfully!', 'success');
       } else {
         userData = await login(form.email, form.password, form.rememberMe);
+        
+        // Strictly restrict this portal to customers
+        if (userData.role === 'admin' || userData.role === 'merchant') {
+          await logout();
+          showToast('Restaurant partners must log in through the Partner Portal.', 'error');
+          return;
+        }
+        
         showToast('Welcome back!', 'success');
       }
 
@@ -462,6 +470,13 @@ function LoginPageContent() {
             </div>
           )}
 
+        </div>
+
+        {/* Discreet Admin Link */}
+        <div className="mt-6 text-center border-t border-brand-border/50 pt-4">
+          <Link href="/admin/login" className="text-[10px] text-brand-muted/70 hover:text-brand-cyan transition-colors uppercase tracking-widest">
+            Restaurant Partner Login
+          </Link>
         </div>
       </GlassCard>
       <ForgotPasswordModal isOpen={isForgotModalOpen} onClose={() => setIsForgotModalOpen(false)} defaultEmail={form.email} />

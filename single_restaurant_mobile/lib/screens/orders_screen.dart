@@ -27,10 +27,18 @@ class _OrdersScreenState extends State<OrdersScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchOrders();
     });
+    
+    // Listen for real-time updates like refunds
+    SocketService().onOrderStatusChanged((data) {
+      if (mounted) {
+        _fetchOrders(silent: true);
+      }
+    });
   }
 
   @override
   void dispose() {
+    SocketService().offOrderStatusChanged();
     super.dispose();
   }
 
