@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
 import 'package:single_restaurant_mobile/screens/otp_verification_screen.dart';
+import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -24,6 +25,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isConfirmPasswordVisible = false;
   bool _agreedToTerms = false;
   bool _isLoading = false;
+  String _selectedCountryCode = '+1'; // Default to US/Canada
 
   final RegExp _passwordRegex = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$');
 
@@ -53,7 +55,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
-      phone: _phoneController.text.trim(),
+      phone: '$_selectedCountryCode ${_phoneController.text.trim()}',
     );
 
     if (mounted) {
@@ -64,8 +66,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           MaterialPageRoute(
             builder: (context) => OtpVerificationScreen(
               phoneNumber: _phoneController.text.trim().isNotEmpty 
-                  ? '+1 ${_phoneController.text.trim()}' 
-                  : '+1 (123) 456-7890',
+                  ? '$_selectedCountryCode ${_phoneController.text.trim()}' 
+                  : '$_selectedCountryCode (123) 456-7890',
             ),
           ),
         );
@@ -91,7 +93,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         actions: [
           TextButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+              );
+            },
             icon: const Icon(Icons.headset_mic_outlined, color: AppColors.secondary, size: 20),
             label: const Text('Help', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
           ),
@@ -107,7 +114,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               left: 0,
               right: 0,
               child: Container(
-                height: 350,
+                height: 380,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -145,7 +152,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             // Form Card
             Container(
-              margin: const EdgeInsets.only(top: 320, left: 16, right: 16, bottom: 24),
+              margin: const EdgeInsets.only(top: 330, left: 16, right: 16, bottom: 24),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -178,7 +185,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.isEmpty) return 'Email is required';
-                        if (!value.contains('@')) return 'Enter a valid email';
+                        final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                        if (!emailRegex.hasMatch(value)) return 'Enter a valid email format';
                         return null;
                       },
                     ),
@@ -390,14 +398,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                const Icon(Icons.flag, color: Colors.blue, size: 16), // Mock US flag
-                const SizedBox(width: 8),
-                const Text('+1', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(width: 4),
-                Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600, size: 16),
-              ],
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedCountryCode,
+                icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600, size: 16),
+                items: const [
+                  DropdownMenuItem(value: '+1', child: Text('+1 🇺🇸', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DropdownMenuItem(value: '+91', child: Text('+91 🇮🇳', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DropdownMenuItem(value: '+44', child: Text('+44 🇬🇧', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DropdownMenuItem(value: '+61', child: Text('+61 🇦🇺', style: TextStyle(fontWeight: FontWeight.bold))),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _selectedCountryCode = value);
+                  }
+                },
+              ),
             ),
           ),
           Container(height: 24, width: 1, color: Colors.grey.shade300),
@@ -411,6 +427,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) return 'Phone is required';
+                if (!RegExp(r'^\d{10}$').hasMatch(value.replaceAll(RegExp(r'\D'), ''))) {
+                  return 'Enter a valid 10-digit number';
+                }
+                return null;
+              },
             ),
           ),
         ],

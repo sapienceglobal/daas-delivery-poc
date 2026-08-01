@@ -14,6 +14,7 @@ class UserModel {
   final List<dynamic>? favoriteItems;
   final int loyaltyPoints;
   final String? referralCode;
+  final Map<String, dynamic>? notificationPreferences;
   
   UserModel({
     required this.id,
@@ -29,6 +30,7 @@ class UserModel {
     this.favoriteItems,
     this.loyaltyPoints = 0,
     this.referralCode,
+    this.notificationPreferences,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -40,12 +42,13 @@ class UserModel {
       role: json['role'] ?? 'customer',
       isEmailVerified: json['isEmailVerified'] ?? false,
       isPhoneVerified: json['isPhoneVerified'] ?? false,
-      profilePicture: json['profilePicture'],
+      profilePicture: json['profileImage'] ?? json['profilePicture'],
       addresses: json['savedAddresses'] as List<dynamic>?,
       savedCards: json['savedCards'] as List<dynamic>?,
       favoriteItems: json['favoriteItems'] as List<dynamic>?,
       loyaltyPoints: json['loyaltyPoints'] ?? 0,
       referralCode: json['referralCode'],
+      notificationPreferences: json['notificationPreferences'] as Map<String, dynamic>?,
     );
   }
 }

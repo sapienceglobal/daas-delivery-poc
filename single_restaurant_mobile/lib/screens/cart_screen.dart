@@ -5,8 +5,11 @@ import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/widgets/cart_item_card.dart';
+import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/checkout_screen.dart';
+import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/screens/saved_addresses_screen.dart';
 
 class CartScreen extends StatefulWidget {
@@ -163,7 +166,8 @@ class _CartScreenState extends State<CartScreen> {
                             return CartItemCard(
                               item: item,
                               onIncrement: () {
-                                cartProvider.updateQuantity(index, currentQty + 1);
+                                final restaurantProvider = Provider.of<RestaurantProvider>(context, listen: false);
+                                AddToCartHelper.handleAddToCart(context, item, cartProvider, restaurantProvider);
                               },
                               onDecrement: () {
                                 cartProvider.updateQuantity(index, currentQty - 1);

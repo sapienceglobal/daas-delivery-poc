@@ -37,7 +37,7 @@ class CheckoutProvider with ChangeNotifier {
   // Order Details
   String _deliveryInstructions = '';
   double _tip = 0.0;
-  String _paymentMethod = 'credit_card'; // 'credit_card' or 'cash'
+  String _paymentMethod = 'credit_card';
 
   // Coupon & Quotes
   String _couponCode = '';
@@ -491,6 +491,7 @@ class CheckoutProvider with ChangeNotifier {
             paymentIntentClientSecret: clientSecret,
             merchantDisplayName: 'Lassi Lounge',
             style: ThemeMode.light,
+            returnURL: 'lassilounge://stripe-redirect',
             appearance: const PaymentSheetAppearance(
               colors: PaymentSheetAppearanceColors(
                 primary: Color(0xFF7A0B10), // Red

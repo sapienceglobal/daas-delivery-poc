@@ -43,6 +43,15 @@ export function SocketProvider({ children }) {
 
         socket.on('disconnect', () => {
           setIsConnected(false);
+          console.warn('Socket disconnected');
+        });
+
+        socket.on('connect_error', (err) => {
+          console.error('Socket connect_error:', err.message);
+        });
+
+        socket.on('room_error', (err) => {
+          console.error('Socket room_error:', err);
         });
 
         socketRef.current = socket;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:single_restaurant_mobile/utils/image_helper.dart';
 
 class CartItemCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -23,10 +23,6 @@ class CartItemCard extends StatelessWidget {
     
     // Addons logic
     final addOns = item['addOns'] as List?;
-    String addOnsText = '';
-    if (addOns != null && addOns.isNotEmpty) {
-      addOnsText = addOns.map((a) => a['name']).join(', ');
-    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -41,16 +37,11 @@ class CartItemCard extends StatelessWidget {
           // Image
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: imageUrl != null && imageUrl.toString().startsWith('http')
-                ? CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    width: 75,
-                    height: 75,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(color: Colors.grey.shade200, width: 75, height: 75),
-                    errorWidget: (context, url, error) => Image.asset('assets/images/branded/lassi-lounge/categories/appetizers.jpg', width: 75, height: 75, fit: BoxFit.cover),
-                  )
-                : Image.asset('assets/images/branded/lassi-lounge/categories/appetizers.jpg', width: 75, height: 75, fit: BoxFit.cover),
+            child: SizedBox(
+              width: 75,
+              height: 75,
+              child: ImageHelper.buildDishImage(item, fit: BoxFit.cover),
+            ),
           ),
           const SizedBox(width: 14),
           
@@ -113,12 +104,21 @@ class CartItemCard extends StatelessWidget {
                 
                 // Addons / Size
                 const SizedBox(height: 2),
-                Text(
-                  addOnsText.isEmpty ? 'Regular' : addOnsText,
-                  style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                if (addOns != null && addOns.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: addOns.map<Widget>((a) => Text(
+                      '+ ${a['name']}',
+                      style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    )).toList(),
+                  )
+                else
+                  const Text(
+                    'Regular',
+                    style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+                  ),
                 
                 const SizedBox(height: 12),
                 

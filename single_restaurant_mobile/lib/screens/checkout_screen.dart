@@ -5,9 +5,12 @@ import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
+import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/track_order_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:single_restaurant_mobile/utils/cart_helper.dart';
+import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -24,6 +27,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final cart = Provider.of<CartProvider>(context);
     final checkout = Provider.of<CheckoutProvider>(context);
     final auth = Provider.of<AuthProvider>(context);
+
+    if (auth.user == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFFCF9F2), // Light cream background
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF7A0B10)),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text('Checkout', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+        ),
+        body: const GuestLoginPrompt(
+          icon: Icons.shopping_bag_outlined,
+          title: 'Login to Checkout',
+          subtitle: 'Create an account to securely save your addresses and payment methods for faster checkout.',
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFFCF9F2), // Light cream background
@@ -70,7 +94,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(height: 24),
               const Text('PAYMENT METHOD', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.black87)),
               const SizedBox(height: 12),
-              _buildPaymentMethods(checkout),
+              _buildPaymentMethods(checkout, auth),
               const SizedBox(height: 24),
               const Text('BILL DETAILS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.black87)),
               const SizedBox(height: 12),
@@ -157,6 +181,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     Text(item['name'] ?? 'Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                     if (item['selectedSize'] != null)
                                       Text(item['selectedSize']['name'], style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                                    if (item['addOns'] != null && (item['addOns'] as List).isNotEmpty)
+                                      ...((item['addOns'] as List).map((a) => Text('+ ${a['name']}', style: TextStyle(color: Colors.grey.shade500, fontSize: 11)))),
                                   ],
                                 ),
                               ),
@@ -185,7 +211,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   child: Text('$quantity', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                 ),
                                 InkWell(
-                                  onTap: () => cart.updateQuantity(cart.items.indexOf(item), quantity + 1),
+                                  onTap: () {
+                                    final restProv = Provider.of<RestaurantProvider>(context, listen: false);
+                                    AddToCartHelper.handleAddToCart(context, item, cart, restProv);
+                                  },
                                   child: const Padding(
                                     padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     child: Icon(Icons.add, size: 16, color: Color(0xFF7A0B10)),
@@ -263,7 +292,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildPaymentMethods(CheckoutProvider checkout) {
+  Widget _buildPaymentMethods(CheckoutProvider checkout, AuthProvider auth) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -296,16 +325,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
           if (Platform.isAndroid) const Divider(height: 1, indent: 48),
 
-          // Saved Card
-          _buildPaymentOption(
-            customIcon: Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/320px-Visa_Inc._logo.svg.png', width: 32, height: 20, fit: BoxFit.contain, errorBuilder: (_,__,___) => Icon(Icons.credit_card, color: Colors.grey.shade600)),
-            title: 'Visa ending in 4242',
-            subtitle: 'Recommended',
-            value: 'saved_card_4242',
-            groupValue: checkout.paymentMethod,
-            onChanged: (val) => checkout.setPaymentMethod(val!),
-          ),
-          const Divider(height: 1, indent: 48),
+          // Saved Cards
+          if (auth.user?.savedCards != null && auth.user!.savedCards!.isNotEmpty)
+            ...auth.user!.savedCards!.map((card) {
+              return Column(
+                children: [
+                  _buildPaymentOption(
+                    icon: Icons.credit_card,
+                    title: '${card['brand'] ?? 'Card'} ending in ${card['last4'] ?? '****'}',
+                    subtitle: card['isDefault'] == true ? 'Recommended' : null,
+                    value: card['cardId'] ?? card['id'] ?? card['_id'] ?? '',
+                    groupValue: checkout.paymentMethod,
+                    onChanged: (val) => checkout.setPaymentMethod(val!),
+                  ),
+                  if (Platform.isAndroid || card != auth.user!.savedCards!.last)
+                    const Divider(height: 1, indent: 48),
+                ],
+              );
+            }),
+          
+          if (auth.user?.savedCards == null || auth.user!.savedCards!.isEmpty)
+            const Divider(height: 1, indent: 48),
 
           // Add New Card
           _buildPaymentOption(
@@ -450,36 +490,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final canProceed = !isCartEmpty;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        color: canProceed ? const Color(0xFF5E0C0F) : Colors.grey.shade500,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5)),
+        ],
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         child: Row(
           children: [
             Expanded(
-              flex: 1,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('\$${total.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                  Row(
-                    children: const [
-                      Text('View Details', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                      Icon(Icons.keyboard_arrow_up, color: Colors.white70, size: 14),
-                    ],
-                  ),
+                  Text('Total Payment', style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text('\$${total.toStringAsFixed(2)}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 22)),
                 ],
               ),
             ),
-            Container(width: 1, height: 40, color: Colors.white24),
             const SizedBox(width: 16),
             Expanded(
-              flex: 2,
-              child: GestureDetector(
-                onTap: (checkout.isPlacingOrder || !canProceed) ? null : () async {
+              flex: 1,
+              child: ElevatedButton(
+                onPressed: (checkout.isPlacingOrder || !canProceed) ? null : () async {
                   if (checkout.isDelivery && checkout.compiledAddress.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a delivery address in Cart')));
                     return;
@@ -495,23 +532,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   } catch (e) {
                     if (mounted) {
                       String msg = e.toString();
-                      if (msg.contains('canceled')) {
+                      if (msg.contains('canceled') || msg.contains('cancelled')) {
                         msg = 'Payment was canceled.';
+                      } else {
+                        msg = msg.replaceAll('Exception: ', '');
                       }
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
                     }
                   }
                 },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7A0B10),
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.grey.shade300,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
                 child: checkout.isPlacingOrder 
-                  ? const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)))
-                  : Row(
+                  ? const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Text('PLACE ORDER', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 1.0)),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                      children: [
+                        SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)),
+                        SizedBox(width: 10),
+                        Text('Processing...', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       ],
-                    ),
+                    )
+                  : const Text('Place Order', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.5)),
               ),
             ),
           ],

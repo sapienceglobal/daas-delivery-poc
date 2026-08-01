@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:single_restaurant_mobile/services/api_service.dart';
 
@@ -129,6 +130,59 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     ApiService.clearAuthToken();
+  }
+
+  // Update profile
+  Future<Map<String, dynamic>?> updateProfile({
+    String? name,
+    String? phone,
+    String? imagePath,
+  }) async {
+    try {
+      final token = ApiService.authToken;
+      if (token == null) return null;
+      
+      final uri = Uri.parse('${ApiService.baseUrl}/api/auth/profile');
+      final request = http.MultipartRequest('PUT', uri);
+      
+      request.headers['Authorization'] = 'Bearer $token';
+      
+      if (name != null) request.fields['name'] = name;
+      if (phone != null) request.fields['phone'] = phone;
+      
+      if (imagePath != null) {
+        request.files.add(await http.MultipartFile.fromPath('profileImage', imagePath));
+      }
+      
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['user'];
+      }
+      return null;
+    } catch (e) {
+      print('Error updating profile: $e');
+      return null;
+    }
+  }
+
+  // Update notification preferences
+  Future<bool> updateNotificationPreferences(Map<String, dynamic> preferences) async {
+    try {
+      final response = await ApiService.put('/api/auth/me', {
+        'notificationPreferences': preferences,
+      });
+
+      if (response.statusCode == 200) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error updating notification preferences: $e');
+      return false;
+    }
   }
 
   // --- Saved Cards ---

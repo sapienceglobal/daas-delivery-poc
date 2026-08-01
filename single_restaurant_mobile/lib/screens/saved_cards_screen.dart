@@ -4,6 +4,7 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/services/payment_service.dart';
+import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
 
 class SavedCardsScreen extends StatefulWidget {
   const SavedCardsScreen({super.key});
@@ -44,6 +45,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
           setupIntentClientSecret: clientSecret,
           style: ThemeMode.light,
           merchantDisplayName: 'Lassi Lounge',
+          returnURL: 'lassilounge://stripe-redirect',
           appearance: const PaymentSheetAppearance(
             colors: PaymentSheetAppearanceColors(
               primary: AppColors.secondary,
@@ -117,6 +119,31 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    if (authProvider.user == null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'Payment Methods',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          centerTitle: true,
+        ),
+        body: const GuestLoginPrompt(
+          icon: Icons.credit_card_outlined,
+          title: 'Login to manage cards',
+          subtitle: 'Securely save your payment methods for faster checkout.',
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8F5),
       appBar: AppBar(

@@ -152,7 +152,8 @@ class OrderCard extends StatelessWidget {
             children: [
               const Icon(Icons.cancel_outlined, color: Colors.red, size: 18),
               const SizedBox(width: 8),
-              const Text('Order was cancelled', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(order['paymentStatus'] == 'refunded' ? 'Order has been refunded' : 'Order was cancelled', 
+                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 14)),
             ],
           ),
           Padding(
@@ -274,7 +275,7 @@ class OrderCard extends StatelessWidget {
     } else if (status == 'cancelled') {
       bgColor = Colors.red.shade50;
       textColor = Colors.red;
-      text = 'CANCELLED';
+      text = order['paymentStatus'] == 'refunded' ? 'REFUNDED' : 'CANCELLED';
     } else {
       bgColor = Colors.grey.shade100;
       textColor = Colors.black87;

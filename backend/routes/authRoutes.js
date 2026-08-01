@@ -6,6 +6,8 @@ const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const Order = require('../models/Order');
 const { protect } = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
+const cloudinary = require('../config/cloudinary');
 
 // JWT Token generation helper
 const generateToken = (id, tenantId = 'marketplace') => {
@@ -46,7 +48,8 @@ const sendTokenCookie = (user, statusCode, res, tenantId = 'marketplace') => {
         phone: user.phone,
         savedAddresses: user.savedAddresses,
         role: user.role,
-        restaurantId: user.restaurantId
+        restaurantId: user.restaurantId,
+        profileImage: user.profileImage
       }
     });
 };
@@ -445,6 +448,62 @@ router.post('/reset-password/:token', authLimiter, async (req, res) => {
   } catch (error) {
     console.error('[Reset Password Error]', error);
     res.status(500).json({ success: false, message: 'Server error during password reset' });
+  }
+});
+
+/**
+ * @route   PUT /api/auth/profile
+ * @desc    Update user profile and avatar
+ * @access  Private
+ */
+router.put('/profile', protect, upload.single('profileImage'), async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+    const UserModel = req.getModel('User');
+
+    // Find the current user
+    let user = await UserModel.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    // Update basic fields
+    if (name) user.name = name;
+    if (phone !== undefined) user.phone = phone;
+
+    // Handle image upload if a file was provided
+    if (req.file) {
+      const uploadResult = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: 'lassi-lounge-profiles', width: 300, height: 300, crop: 'fill', gravity: 'face' },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(req.file.buffer);
+      });
+      user.profileImage = uploadResult.secure_url;
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        savedAddresses: user.savedAddresses,
+        role: user.role,
+        restaurantId: user.restaurantId,
+        profileImage: user.profileImage,
+      }
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update profile.' });
   }
 });
 

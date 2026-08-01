@@ -111,7 +111,13 @@ app.use('/api', (req, res, next) => {
   // Exempt static uploads GET requests
   if (req.path.includes('upload') && req.method === 'GET') return next();
   // Browser requests cannot keep an app secret confidential; use CORS + auth cookies.
-  if (req.headers.origin) return next();
+  // Same-origin GET requests often omit the Origin header, so we also check sec-fetch-mode or User-Agent
+  const isBrowser = Boolean(
+    req.headers.origin || 
+    req.headers['sec-fetch-mode'] || 
+    (req.headers['user-agent'] && req.headers['user-agent'].includes('Mozilla'))
+  );
+  if (isBrowser) return next();
   if (!APP_SECRET) return next();
 
   const clientSecret = req.headers['x-app-secret'];

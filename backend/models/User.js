@@ -30,6 +30,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  profileImage: {
+    type: String,
+    default: null
+  },
   savedAddresses: [{
     type: String
   }],

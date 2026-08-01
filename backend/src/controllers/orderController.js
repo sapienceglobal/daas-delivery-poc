@@ -5,6 +5,7 @@ import Table from '../models/Table.js';
 import Payment from '../models/Payment.js';
 import LoyaltyTransaction from '../models/LoyaltyTransaction.js';
 import User from '../models/User.js';
+import { getTenantModel } from '../utils/tenant.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
@@ -43,8 +44,9 @@ const rollbackLoyaltyPoints = async (order, reason = 'cancellation') => {
   }
 
   try {
-    const UserModel = order.constructor.db.model('User');
-    const LoyaltyTransactionModel = order.constructor.db.model('LoyaltyTransaction');
+    const tenantId = order.constructor.db.name;
+    const UserModel = getTenantModel(tenantId, 'User');
+    const LoyaltyTransactionModel = getTenantModel(tenantId, 'LoyaltyTransaction');
 
     const user = await UserModel.findById(order.userId);
     if (!user) {
@@ -441,7 +443,7 @@ export const createOrder = asyncHandler(async (req, response) => {
   }
 
   // Send confirmation email (fire and forget)
-  if (req.user.email) {
+  if (req.user.email && req.user.notificationPreferences?.email !== false) {
     sendOrderConfirmationEmail(req.user.email, order).catch(() => { });
   }
 
@@ -541,7 +543,7 @@ export const cancelOrder = asyncHandler(async (req, response) => {
       orderId: order._id,
       orderNumber: order.orderNumber
     });
-    io.to(`order_${order._id}`).emit('order_status_changed', { status: 'cancelled' });
+    io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
   }
 
   res.success(response, { data: order, message: 'Order cancelled' });
@@ -906,6 +908,16 @@ export const refundOrder = asyncHandler(async (req, response) => {
   order.refundAmount = nextRefundedTotal;
   order.refundReason = reason || 'Refund processed';
   order.paymentStatus = order.refundAmount >= order.total ? 'refunded' : 'partially_refunded';
+  
+  // Auto-cancel active orders if fully refunded
+  if (order.paymentStatus === 'refunded' && !['delivered', 'cancelled'].includes(order.status)) {
+    order.status = 'cancelled';
+    order.statusUpdates.push({
+      status: 'cancelled',
+      description: 'Order cancelled automatically due to full refund'
+    });
+  }
+
   order.statusUpdates.push({
     status: order.status,
     description: `Refund of $${refundAmount.toFixed(2)} processed`
@@ -914,6 +926,26 @@ export const refundOrder = asyncHandler(async (req, response) => {
 
   if (order.paymentStatus === 'refunded') {
     await rollbackLoyaltyPoints(order, 'order_refund');
+  }
+
+  // Send Notification
+  if (order.userId) {
+    const io = req.app.get('io');
+    await createNotification(
+      order.userId, 
+      'Refund Processed', 
+      `Your refund of $${refundAmount.toFixed(2)} has been processed.`, 
+      'order_update', 
+      `/orders/${order._id}`, 
+      io, 
+      req.getModel
+    );
+  }
+
+  // Emit Socket Event
+  const io = req.app.get('io');
+  if (io) {
+    io.to(`order_${order._id}`).emit('order_status_update', buildOrderSocketPayload(order));
   }
 
   res.success(response, { data: order, message: `Refund of $${refundAmount.toFixed(2)} processed` });
@@ -947,7 +979,7 @@ export const simulateStatusAdvance = asyncHandler(async (req, response) => {
     io.to(order.restaurantId.toString()).emit('order_updated', {
       orderId: order._id, orderNumber: order.orderNumber, status: nextStatus
     });
-    io.to(`order_${order._id}`).emit('order_status_changed', { status: nextStatus });
+    io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
   }
 
   res.success(response, { data: order, message: `Simulated → ${nextStatus}` });
@@ -1016,7 +1048,7 @@ export const driverAcceptOrder = asyncHandler(async (req, response) => {
     io.to(order.restaurantId.toString()).emit('order_updated', {
       orderId: order._id, status: order.status
     });
-    io.to(`order_${order._id}`).emit('order_status_changed', { status: order.status });
+    io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
   }
 
   res.success(response, { data: order, message: 'Order accepted' });
@@ -1036,7 +1068,7 @@ export const driverPickupOrder = asyncHandler(async (req, response) => {
     io.to(order.restaurantId.toString()).emit('order_updated', {
       orderId: order._id, status: order.status
     });
-    io.to(`order_${order._id}`).emit('order_status_changed', { status: order.status });
+    io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
   }
 
   res.success(response, { data: order, message: 'Order picked up' });
@@ -1056,8 +1088,38 @@ export const driverDeliverOrder = asyncHandler(async (req, response) => {
     io.to(order.restaurantId.toString()).emit('order_updated', {
       orderId: order._id, status: order.status
     });
-    io.to(`order_${order._id}`).emit('order_status_changed', { status: order.status });
+    io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
   }
 
   res.success(response, { data: order, message: 'Order delivered successfully' });
+});
+
+export const addAdminNote = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const { text } = req.body;
+  if (!text) throw new AppError('Note text is required', 400);
+
+  const order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+
+  // Author logic: if user has a name use it, else default to 'Admin/Staff'
+  const author = req.user?.name || (req.user?.role === 'admin' ? 'Admin' : 'Kitchen');
+
+  order.adminNotes.push({
+    text,
+    author,
+    timestamp: new Date()
+  });
+
+  await order.save();
+
+  // Notify clients if needed (optional)
+  const io = req.app.get('io');
+  if (io) {
+    io.to(order.restaurantId.toString()).emit('order_updated', {
+      orderId: order._id
+    });
+  }
+
+  res.success(response, { data: order, message: 'Note added successfully' });
 });

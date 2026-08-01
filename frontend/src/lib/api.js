@@ -171,6 +171,7 @@ export const orderAPI = {
   updateStatus: (id, status) => api.put(`/api/orders/${id}/status`, { status }),
   accept: (id) => api.put(`/api/orders/${id}/accept`),
   reject: (id, reason) => api.put(`/api/orders/${id}/reject`, { reason }),
+  addNote: (id, text) => api.post(`/api/orders/${id}/note`, { text }),
   // Admin
   getAll: (params = '') => api.get(`/api/orders${params ? '?' + params : ''}`),
   refund: (id, data) => api.post(`/api/orders/${id}/refund`, data),
@@ -241,7 +242,14 @@ export const paymentAPI = {
   createSetupIntent: () => api.post('/api/payments/create-setup-intent'),
 };
 
+// ── Analytics API ───────────────────────────────────────────────────────────
+
+export const analyticsAPI = {
+  getSalesAnalytics: (restaurantId, days = 30) => api.get(`/api/analytics/restaurant/${restaurantId}?days=${days}`)
+};
+
 // ── Inventory & Supplier API ────────────────────────────────────────────────
+
 
 export const inventoryAPI = {
   getInventory: (restaurantId) => api.get(`/api/inventory/restaurant/${restaurantId}`),
@@ -316,16 +324,15 @@ export const employeeAPI = {
   updateSchedule: (id, schedule) => api.put(`/api/employees/${id}/schedule`, { schedule }),
 };
 
-// ── Analytics API ───────────────────────────────────────────────────────────
 
-export const analyticsAPI = {
-  getSalesAnalytics: (restaurantId, days = 30) => api.get(`/api/analytics/restaurant/${restaurantId}?days=${days}`)
-};
 
 // ── CRM API ─────────────────────────────────────────────────────────────────
 
 export const crmAPI = {
   getCustomers: (restaurantId) => api.get(`/api/crm/restaurant/${restaurantId}/customers`),
+  createCustomer: (restaurantId, data) => api.post(`/api/crm/restaurant/${restaurantId}/customers`, data),
+  updateCustomer: (restaurantId, customerId, data) => api.put(`/api/crm/restaurant/${restaurantId}/customers/${customerId}`, data),
+  deleteCustomer: (restaurantId, customerId) => api.delete(`/api/crm/restaurant/${restaurantId}/customers/${customerId}`),
   sendPromo: (restaurantId, data) => api.post(`/api/crm/restaurant/${restaurantId}/promo`, data)
 };
 

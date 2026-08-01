@@ -1,4 +1,4 @@
-import Order from '../models/Order.js';
+import Customer from '../models/Customer.js';
 import Restaurant from '../models/Restaurant.js';
 import Notification from '../models/Notification.js';
 import asyncHandler from '../utils/asyncHandler.js';
@@ -18,57 +18,64 @@ export const getCustomers = asyncHandler(async (req, response) => {
     await verifyRestaurantOwnership(restaurantId, req.user._id);
   }
 
-  // Aggregate orders by userId or customerPhone (for walk-ins / no account)
-  const customers = await Order.aggregate([
-    {
-      $match: {
-        restaurantId: new mongoose.Types.ObjectId(restaurantId),
-        status: { $in: ['delivered', 'picked_up', 'completed'] }
-      }
-    },
-    {
-      $group: {
-        _id: {
-          $cond: [{ $ifNull: ["$userId", false] }, "$userId", "$customerPhone"]
-        },
-        userId: { $first: "$userId" },
-        name: { $first: "$customerName" },
-        phone: { $first: "$customerPhone" },
-        totalSpend: { $sum: "$total" },
-        totalOrders: { $sum: 1 },
-        lastOrderDate: { $max: "$createdAt" }
-      }
-    },
-    {
-      $project: {
-        _id: 0,
-        id: "$_id",
-        userId: 1,
-        name: 1,
-        phone: 1,
-        totalSpend: 1,
-        totalOrders: 1,
-        lastOrderDate: 1,
-        segment: {
-          $switch: {
-            branches: [
-              { case: { $gte: ["$totalSpend", 500] }, then: "VIP" },
-              { case: { $gte: ["$totalOrders", 5] }, then: "Regular" },
-            ],
-            default: "New"
-          }
-        }
-      }
-    },
-    { $sort: { totalSpend: -1 } }
-  ]);
-
+  const customers = await Customer.find({ restaurantId }).sort({ createdAt: -1 });
   res.success(response, customers);
+});
+
+export const createCustomer = asyncHandler(async (req, response) => {
+  const { restaurantId } = req.params;
+  
+  if (req.user.role === 'merchant') {
+    await verifyRestaurantOwnership(restaurantId, req.user._id);
+  }
+
+  // Generate unique customerId like #CUST1001
+  const count = await Customer.countDocuments({ restaurantId });
+  const customerId = `#CUST${1000 + count + 1}`;
+
+  const customer = await Customer.create({
+    ...req.body,
+    restaurantId,
+    customerId
+  });
+
+  res.success(response, customer, 201);
+});
+
+export const updateCustomer = asyncHandler(async (req, response) => {
+  const { restaurantId, customerId } = req.params;
+  
+  if (req.user.role === 'merchant') {
+    await verifyRestaurantOwnership(restaurantId, req.user._id);
+  }
+
+  const customer = await Customer.findOneAndUpdate(
+    { _id: customerId, restaurantId },
+    req.body,
+    { new: true, runValidators: true }
+  );
+
+  if (!customer) throw new AppError('Customer not found', 404);
+
+  res.success(response, customer);
+});
+
+export const deleteCustomer = asyncHandler(async (req, response) => {
+  const { restaurantId, customerId } = req.params;
+  
+  if (req.user.role === 'merchant') {
+    await verifyRestaurantOwnership(restaurantId, req.user._id);
+  }
+
+  const customer = await Customer.findOneAndDelete({ _id: customerId, restaurantId });
+  if (!customer) throw new AppError('Customer not found', 404);
+
+  res.success(response, null, 204);
 });
 
 export const sendPromo = asyncHandler(async (req, response) => {
   const { restaurantId } = req.params;
-  const { userIds, message, title } = req.body; // userIds is array of valid ObjectIds
+  const { userIds, message, title } = req.body;
 
   if (req.user.role === 'merchant') {
     await verifyRestaurantOwnership(restaurantId, req.user._id);
@@ -78,7 +85,6 @@ export const sendPromo = asyncHandler(async (req, response) => {
     throw new AppError('No users selected to send promo to', 400);
   }
 
-  // Create notifications
   const notifications = userIds.map(uid => ({
     userId: uid,
     title: title || 'Special Offer from Restaurant',

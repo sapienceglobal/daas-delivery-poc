@@ -275,7 +275,29 @@ export const updateProfile = asyncHandler(async (req, response) => {
     runValidators: true
   });
 
-  res.success(response, { data: user.toSafeJSON(), message: 'Profile updated' });
+  res.success(response, { data: user.toSafeJSON(),    message: 'Profile updated successfully'
+  });
+});
+
+export const saveFcmToken = asyncHandler(async (req, response) => {
+  const { fcmToken } = req.body;
+  if (!fcmToken) {
+    throw new AppError('fcmToken is required', 400);
+  }
+
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findById(req.user._id);
+
+  if (!user.fcmTokens) {
+    user.fcmTokens = [];
+  }
+
+  if (!user.fcmTokens.includes(fcmToken)) {
+    user.fcmTokens.push(fcmToken);
+    await user.save();
+  }
+
+  res.success(response, { message: 'FCM token saved successfully' });
 });
 
 export const changePassword = asyncHandler(async (req, response) => {

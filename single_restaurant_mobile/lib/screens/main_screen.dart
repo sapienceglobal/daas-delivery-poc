@@ -7,6 +7,7 @@ import 'package:single_restaurant_mobile/screens/cart_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
+import 'package:single_restaurant_mobile/services/ota_update_service.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialIndex;
@@ -26,6 +27,11 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _navigationHistory.add(_currentIndex);
+    
+    // Background OTA check
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      OtaUpdateService().checkForUpdate(context, isManual: false);
+    });
   }
 
   void _onItemTapped(int index) {
@@ -69,8 +75,13 @@ class _MainScreenState extends State<MainScreen> {
             const ProfileScreen(),
           ],
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
+        bottomNavigationBar: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24.0),
+            topRight: Radius.circular(24.0),
+          ),
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
           currentIndex: _currentIndex,
           onTap: _onItemTapped,
           items: const [
@@ -96,6 +107,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

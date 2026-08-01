@@ -88,14 +88,22 @@ const canManageRestaurant = (user, restaurantId) => {
 const APP_SECRET = process.env.APP_SECRET;
 io.use(async (socket, next) => {
   const secret = socket.handshake.auth?.appSecret || socket.handshake.headers['x-app-secret'];
-  const hasBrowserOrigin = Boolean(socket.handshake.headers.origin);
+  
+  // Browsers often omit Origin header on same-origin polling requests, so check other headers
+  const headers = socket.handshake.headers || {};
+  const isBrowser = Boolean(
+    headers.origin || 
+    headers['sec-fetch-mode'] || 
+    (headers['user-agent'] && headers['user-agent'].includes('Mozilla'))
+  );
 
-  if (!hasBrowserOrigin && APP_SECRET && secret !== APP_SECRET) {
+  if (!isBrowser && APP_SECRET && secret !== APP_SECRET) {
     return next(new Error('Authentication error: Invalid App Secret'));
   }
 
   const token = getSocketToken(socket);
   if (!token) {
+    console.log('[SOCKET] No token found in connection handshake. Cookies:', socket.handshake.headers.cookie);
     try {
       socket.data.user = null;
       socket.data.tenantId = resolveTenantId(socket.handshake.headers['x-tenant-id'] || 'marketplace');
@@ -107,6 +115,7 @@ io.use(async (socket, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET');
+    console.log('[SOCKET] Token verified for user ID:', decoded.id);
     const tenantId = resolveTenantId(decoded.tenantId || 'marketplace');
     const User = getTenantModel(tenantId, 'User');
     const user = await User.findById(decoded.id).select('_id role restaurantId isActive').lean();
@@ -127,12 +136,15 @@ io.on('connection', (socket) => {
   logger.debug(`Socket connected: ${socket.id}`);
 
   socket.on('join_restaurant', (restaurantId) => {
+    console.log(`[SOCKET] join_restaurant request for ${restaurantId} from user:`, socket.data.user?._id);
     if (!canManageRestaurant(socket.data.user, restaurantId)) {
+      console.log(`[SOCKET] Unauthorized join_restaurant. Role: ${socket.data.user?.role}`);
       socket.emit('room_error', { room: 'restaurant', message: 'Not authorized for this restaurant room' });
       return;
     }
 
     socket.join(restaurantId.toString());
+    console.log(`[SOCKET] Socket ${socket.id} successfully joined restaurant room: ${restaurantId}`);
     logger.debug(`Socket ${socket.id} joined restaurant room: ${restaurantId}`);
   });
 

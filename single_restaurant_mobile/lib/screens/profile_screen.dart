@@ -2,12 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/screens/saved_addresses_screen.dart';
 import 'package:single_restaurant_mobile/screens/saved_cards_screen.dart';
+import 'package:single_restaurant_mobile/screens/orders_screen.dart';
+import 'package:single_restaurant_mobile/services/ota_update_service.dart';
 import 'package:single_restaurant_mobile/screens/loyalty_screen.dart';
 import 'package:single_restaurant_mobile/screens/referral_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/screens/login_screen.dart';
 import 'package:single_restaurant_mobile/screens/favorites_screen.dart';
+import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
+import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
+import 'package:single_restaurant_mobile/screens/notification_settings_screen.dart';
+import 'package:single_restaurant_mobile/screens/edit_profile_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -41,7 +48,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none_outlined, color: AppColors.secondary),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
+            },
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: AppColors.secondary),
@@ -92,25 +101,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Row(
             children: [
-              Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundColor: Colors.grey.shade200,
-                    backgroundImage: const AssetImage('assets/images/branded/lassi-lounge/reviews/amit-v.jpg'), // Mock image
-                    child: const Icon(Icons.person, color: Colors.grey, size: 40),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFDF7F3),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+              GestureDetector(
+                onTap: () {
+                  if (user != null) {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen()));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please login to edit profile')));
+                  }
+                },
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CircleAvatar(
+                      radius: 36,
+                      backgroundColor: Colors.grey.shade200,
+                      backgroundImage: (user != null && user.profilePicture != null && user.profilePicture!.isNotEmpty)
+                          ? CachedNetworkImageProvider(user.profilePicture!) as ImageProvider
+                          : const AssetImage('assets/images/branded/lassi-lounge/reviews/amit-v.jpg'), // Mock image
+                      child: (user != null && user.profilePicture != null && user.profilePicture!.isNotEmpty)
+                          ? null
+                          : const Icon(Icons.person, color: Colors.grey, size: 40),
                     ),
-                    child: const Icon(Icons.edit, size: 12, color: AppColors.secondary),
-                  ),
-                ],
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFDF7F3),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(Icons.edit, size: 12, color: AppColors.secondary),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -288,7 +310,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
             );
           }),
           const Divider(height: 1, indent: 64),
-          _buildMenuItem(Icons.headset_mic_outlined, 'Help & Support', 'FAQs, Contact us & more'),
+          _buildMenuItem(Icons.headset_mic_outlined, 'Help & Support', 'FAQs, Contact us & more', onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+            );
+          }),
+          const Divider(height: 1, indent: 64),
+          _buildMenuItem(Icons.notifications_active_outlined, 'Notification Settings', 'Manage emails, SMS & push', onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const NotificationSettingsScreen()),
+            );
+          }),
+          const Divider(height: 1, indent: 64),
+          _buildMenuItem(Icons.update, 'Check for Updates', 'Find new versions of Lassi Lounge', onTap: () {
+            OtaUpdateService().checkForUpdate(context, isManual: true);
+          }),
           const Divider(height: 1, indent: 64),
           _buildMenuItem(Icons.info_outline, 'About Lassi Lounge', 'Version 1.0.0'),
         ],

@@ -5,6 +5,8 @@ import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/widgets/menu_item_card.dart';
+import 'package:single_restaurant_mobile/utils/cart_helper.dart';
+import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
 
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
@@ -24,6 +26,14 @@ class FavoritesScreen extends StatelessWidget {
       ),
       body: Consumer2<AuthProvider, RestaurantProvider>(
         builder: (context, authProvider, restaurantProvider, child) {
+          if (authProvider.user == null) {
+            return const GuestLoginPrompt(
+              icon: Icons.favorite_outline,
+              title: 'Login to view favorites',
+              subtitle: 'Save your favorite dishes to re-order them quickly.',
+            );
+          }
+
           final favoriteItemsIds = authProvider.user?.favoriteItems ?? [];
           
           if (favoriteItemsIds.isEmpty) {
@@ -69,25 +79,32 @@ class FavoritesScreen extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final item = favoriteItems[index];
                   final itemId = item['_id'] ?? item['id'] ?? '';
-                  final cartItemIndex = cartProvider.items.indexWhere((i) {
-                    final iId = i['menuItemId'] ?? i['_id'] ?? i['id'];
-                    return iId == itemId;
-                  });
-                  final cartQty = cartItemIndex > -1 ? (cartProvider.items[cartItemIndex]['quantity'] ?? cartProvider.items[cartItemIndex]['qty'] ?? 1) as int : 0;
+                  
+                  int totalQty = 0;
+                  int lastMatchIndex = -1;
+                  for (int i = 0; i < cartProvider.items.length; i++) {
+                    final c = cartProvider.items[i];
+                    if ((c['menuItemId'] ?? c['_id'] ?? c['id']) == itemId) {
+                      totalQty += (c['quantity'] ?? c['qty'] ?? 1) as int;
+                      lastMatchIndex = i;
+                    }
+                  }
 
                   return MenuItemCard(
                     item: item as Map<String, dynamic>,
-                    cartQty: cartQty,
+                    cartQty: totalQty,
                     onAdd: () {
-                      final newItem = Map<String, dynamic>.from(item);
-                      newItem['quantity'] = 1;
-                      newItem['qty'] = 1;
-                      newItem['addOns'] = [];
-                      cartProvider.addItem(newItem, restaurantData: restaurantProvider.restaurant);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${item['name']} added to cart!'), duration: const Duration(seconds: 1)));
+                      AddToCartHelper.handleAddToCart(context, item as Map<String, dynamic>, cartProvider, restaurantProvider);
                     },
-                    onIncrement: () => cartProvider.updateQuantity(cartItemIndex, cartQty + 1),
-                    onDecrement: () => cartProvider.updateQuantity(cartItemIndex, cartQty - 1),
+                    onIncrement: () {
+                      AddToCartHelper.handleAddToCart(context, item as Map<String, dynamic>, cartProvider, restaurantProvider);
+                    },
+                    onDecrement: () {
+                      if (lastMatchIndex != -1) {
+                        final lastQty = (cartProvider.items[lastMatchIndex]['quantity'] ?? cartProvider.items[lastMatchIndex]['qty'] ?? 1) as int;
+                        cartProvider.updateQuantity(lastMatchIndex, lastQty - 1);
+                      }
+                    },
                   );
                 },
               );

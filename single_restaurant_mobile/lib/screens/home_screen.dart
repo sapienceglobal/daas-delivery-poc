@@ -9,9 +9,14 @@ import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
+import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/screens/saved_addresses_screen.dart';
 import 'package:single_restaurant_mobile/screens/search_screen.dart';
 import 'package:single_restaurant_mobile/screens/menu_screen.dart';
+import 'package:single_restaurant_mobile/screens/delivery_partners_screen.dart';
+import 'package:single_restaurant_mobile/utils/cart_helper.dart';
+import 'package:single_restaurant_mobile/utils/image_helper.dart';
+import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -51,7 +56,7 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                 ],
 
-                _buildDeliveryPartners(),
+                _buildDeliveryPartners(context),
                 const SizedBox(height: 24),
                 
                 if (signatureDishes.isNotEmpty) ...[
@@ -145,27 +150,34 @@ class HomeScreen extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_none_outlined, size: 28),
-                onPressed: () {},
-                color: AppColors.textDark,
-              ),
-              Positioned(
-                right: 8,
-                top: 12,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
+          child: Consumer<NotificationProvider>(
+            builder: (context, notificationProvider, child) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none_outlined, size: 28),
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
+                    },
+                    color: AppColors.textDark,
                   ),
-                ),
-              )
-            ],
+                  if (notificationProvider.hasUnread)
+                    Positioned(
+                      right: 8,
+                      top: 12,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                ],
+              );
+            }
           ),
         ),
         Padding(
@@ -449,14 +461,7 @@ class HomeScreen extends StatelessWidget {
                           border: Border.all(color: Colors.red, width: 2), // Red border like UI
                         ),
                       child: ClipOval(
-                        child: imageUrl != null && imageUrl.toString().startsWith('http')
-                            ? CachedNetworkImage(
-                                imageUrl: imageUrl,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => const CircularProgressIndicator(),
-                                errorWidget: (context, url, error) => Image.asset('assets/images/branded/lassi-lounge/categories/appetizers.jpg', fit: BoxFit.cover),
-                              )
-                            : Image.asset('assets/images/branded/lassi-lounge/categories/appetizers.jpg', fit: BoxFit.cover), // Fallback mock
+                        child: ImageHelper.buildCategoryImage(category, fit: BoxFit.cover),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -478,12 +483,19 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDeliveryPartners() {
+  Widget _buildDeliveryPartners(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        decoration: BoxDecoration(
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const DeliveryPartnersScreen()),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.red.withOpacity(0.3)),
           color: Colors.white,
@@ -503,15 +515,51 @@ class HomeScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                SvgPicture.asset('assets/images/branded/lassi-lounge/partners/ubereats.svg', height: 24),
-                Container(height: 30, width: 1, color: Colors.red.withOpacity(0.3)),
-                SvgPicture.asset('assets/images/branded/lassi-lounge/partners/doordash.svg', height: 24),
-                Container(height: 30, width: 1, color: Colors.red.withOpacity(0.3)),
-                SvgPicture.asset('assets/images/branded/lassi-lounge/partners/grubhub.svg', height: 24),
+                Expanded(
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Text('Uber', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, height: 1.0)),
+                          Text('Eats', style: TextStyle(color: Color(0xFF06C167), fontSize: 16, fontWeight: FontWeight.bold, height: 1.0)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Container(height: 50, width: 1, color: Colors.red.withOpacity(0.3)),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SvgPicture.string('''
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="30" height="20">
+                          <path d="M23.38 8.87a6.25 6.25 0 0 0-4.88-2.31H.69a.66.66 0 0 0-.66.66v2.18a.66.66 0 0 0 .66.66h17.81a1.9 1.9 0 0 1 1.48.69 1.84 1.84 0 0 1 .43 1.54 1.86 1.86 0 0 1-1.39 1.48 2 2 0 0 1-1.74-.29.66.66 0 0 0-.89 1.02 4.19 4.19 0 0 0 2.59 1.07 4.23 4.23 0 0 0 3.23-1.44 4.17 4.17 0 0 0 .97-3.41 4.18 4.18 0 0 0-2.8-3.07z" fill="#FF3008"/>
+                          <path d="M12.92 13.91H.69a.66.66 0 0 0-.66.66v2.18a.66.66 0 0 0 .66.66h12.23a.66.66 0 0 0 .66-.66v-2.18a.66.66 0 0 0-.66-.66z" fill="#FF3008"/>
+                        </svg>
+                      '''),
+                      const SizedBox(height: 4),
+                      const Text('DOORDASH', style: TextStyle(color: Color(0xFFFF3008), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                    ],
+                  ),
+                ),
+                Container(height: 50, width: 1, color: Colors.red.withOpacity(0.3)),
+                const Expanded(
+                  child: Center(
+                    child: Text('GRUBHUB', style: TextStyle(color: Color(0xFFFF8000), fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                  ),
+                ),
               ],
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -556,21 +604,11 @@ class HomeScreen extends StatelessWidget {
                       children: [
                         ClipRRect(
                           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                          child: imageUrl != null && imageUrl.toString().startsWith('http')
-                              ? CachedNetworkImage(
-                                  imageUrl: imageUrl,
-                                  height: 140,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                  placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                                  errorWidget: (context, url, error) => Image.asset('assets/images/branded/lassi-lounge/categories/main-course.jpg', height: 140, width: double.infinity, fit: BoxFit.cover),
-                                )
-                              : Image.asset(
-                                  'assets/images/branded/lassi-lounge/categories/main-course.jpg',
-                                  height: 140,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                ),
+                          child: SizedBox(
+                            height: 140,
+                            width: double.infinity,
+                            child: ImageHelper.buildDishImage(dish, fit: BoxFit.cover),
+                          ),
                         ),
                         Positioned(
                           top: 8,
@@ -632,15 +670,18 @@ class HomeScreen extends StatelessWidget {
                               Consumer<CartProvider>(
                                 builder: (context, cart, child) {
                                   final dishId = dish['_id'] ?? dish['id'];
-                                  final cartItemIndex = cart.items.indexWhere((i) {
-                                    final iId = i['menuItemId'] ?? i['_id'] ?? i['id'];
-                                    return iId == dishId;
-                                  });
+                                  
+                                  int totalQty = 0;
+                                  int lastMatchIndex = -1;
+                                  for (int i = 0; i < cart.items.length; i++) {
+                                    final c = cart.items[i];
+                                    if ((c['menuItemId'] ?? c['_id'] ?? c['id']) == dishId) {
+                                      totalQty += (c['quantity'] ?? c['qty'] ?? 1) as int;
+                                      lastMatchIndex = i;
+                                    }
+                                  }
 
-                                  if (cartItemIndex > -1) {
-                                    final cartItem = cart.items[cartItemIndex];
-                                    final quantity = (cartItem['quantity'] ?? cartItem['qty'] ?? 1) as int;
-
+                                  if (totalQty > 0) {
                                     return Container(
                                       decoration: BoxDecoration(
                                         color: Colors.red.shade50,
@@ -651,18 +692,26 @@ class HomeScreen extends StatelessWidget {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           InkWell(
-                                            onTap: () => cart.updateQuantity(cartItemIndex, quantity - 1),
+                                            onTap: () {
+                                              if (lastMatchIndex != -1) {
+                                                final lastQty = (cart.items[lastMatchIndex]['quantity'] ?? cart.items[lastMatchIndex]['qty'] ?? 1) as int;
+                                                cart.updateQuantity(lastMatchIndex, lastQty - 1);
+                                              }
+                                            },
                                             child: const Padding(
                                               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                               child: Icon(Icons.remove, size: 16, color: Colors.red),
                                             ),
                                           ),
                                           Text(
-                                            '$quantity',
+                                            '$totalQty',
                                             style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
                                           ),
                                           InkWell(
-                                            onTap: () => cart.updateQuantity(cartItemIndex, quantity + 1),
+                                            onTap: () {
+                                              final restProv = Provider.of<RestaurantProvider>(context, listen: false);
+                                              AddToCartHelper.handleAddToCart(context, dish, cart, restProv);
+                                            },
                                             child: const Padding(
                                               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                               child: Icon(Icons.add, size: 16, color: Colors.red),
@@ -676,23 +725,7 @@ class HomeScreen extends StatelessWidget {
                                   return InkWell(
                                     onTap: () {
                                       final restProv = Provider.of<RestaurantProvider>(context, listen: false);
-                                      final newItem = Map<String, dynamic>.from(dish);
-                                      newItem['quantity'] = 1;
-                                      newItem['qty'] = 1;
-                                      newItem['addOns'] = [];
-                                      cart.addItem(newItem, restaurantData: restProv.restaurant);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('${name} added to cart!'),
-                                          duration: const Duration(seconds: 1),
-                                          action: SnackBarAction(
-                                            label: 'VIEW',
-                                            onPressed: () {
-                                              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 2)));
-                                            },
-                                          ),
-                                        )
-                                      );
+                                      AddToCartHelper.handleAddToCart(context, dish, cart, restProv);
                                     },
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),

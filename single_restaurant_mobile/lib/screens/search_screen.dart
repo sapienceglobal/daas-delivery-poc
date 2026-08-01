@@ -4,6 +4,9 @@ import 'package:single_restaurant_mobile/providers/search_provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/widgets/menu_item_card.dart';
+import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
+import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -332,26 +335,34 @@ class _SearchScreenState extends State<SearchScreen> {
                       itemBuilder: (context, index) {
                         final item = results[index];
                         final dishId = item['_id'] ?? item['id'];
-                        final cartItemIndex = cart.items.indexWhere((i) {
-                          final iId = i['menuItemId'] ?? i['_id'] ?? i['id'];
-                          return iId == dishId;
-                        });
                         
-                        int cartQty = 0;
-                        if (cartItemIndex > -1) {
-                          final cartItem = cart.items[cartItemIndex];
-                          cartQty = (cartItem['quantity'] ?? cartItem['qty'] ?? 1) as int;
+                        int totalQty = 0;
+                        int lastMatchIndex = -1;
+                        for (int i = 0; i < cart.items.length; i++) {
+                          final c = cart.items[i];
+                          if ((c['menuItemId'] ?? c['_id'] ?? c['id']) == dishId) {
+                            totalQty += (c['quantity'] ?? c['qty'] ?? 1) as int;
+                            lastMatchIndex = i;
+                          }
                         }
 
                         return MenuItemCard(
                           item: item,
-                          cartQty: cartQty,
+                          cartQty: totalQty,
                           onAdd: () {
                             final restaurantProvider = Provider.of<RestaurantProvider>(context, listen: false);
-                            cart.addItem(item, restaurantData: restaurantProvider.restaurant);
+                            AddToCartHelper.handleAddToCart(context, item, cart, restaurantProvider);
                           },
-                          onIncrement: () => cart.updateQuantity(cartItemIndex, cartQty + 1),
-                          onDecrement: () => cart.updateQuantity(cartItemIndex, cartQty - 1),
+                          onIncrement: () {
+                            final restaurantProvider = Provider.of<RestaurantProvider>(context, listen: false);
+                            AddToCartHelper.handleAddToCart(context, item, cart, restaurantProvider);
+                          },
+                          onDecrement: () {
+                            if (lastMatchIndex != -1) {
+                              final lastQty = (cart.items[lastMatchIndex]['quantity'] ?? cart.items[lastMatchIndex]['qty'] ?? 1) as int;
+                              cart.updateQuantity(lastMatchIndex, lastQty - 1);
+                            }
+                          },
                         );
                       },
                     );

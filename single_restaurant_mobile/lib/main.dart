@@ -13,6 +13,7 @@ import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/providers/search_provider.dart';
+import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
 void main() async {
@@ -58,6 +59,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => CheckoutProvider()),
         ChangeNotifierProvider(create: (_) => LoyaltyProvider()),
         ChangeNotifierProvider(create: (_) => SearchProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: LassiLoungeApp(isLoggedIn: isLoggedIn),
     ),

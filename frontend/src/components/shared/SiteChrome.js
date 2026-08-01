@@ -15,7 +15,7 @@ export default function SiteChrome({ children }) {
   const isAdminOrMerchant = pathname.startsWith('/admin') || pathname.startsWith('/merchant');
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password') || pathname.startsWith('/forgot-password');
 
-  if (isAuthPage) {
+  if (isAuthPage || isAdminOrMerchant) {
     return (
       <div className="flex flex-col min-h-screen">
         {children}

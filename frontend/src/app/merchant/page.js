@@ -10,23 +10,42 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
-import { orderAPI, restaurantAPI, menuAPI, uploadAPI, reservationAPI, cateringAPI } from '@/lib/api';
+import { orderAPI, restaurantAPI, menuAPI, uploadAPI, reservationAPI, cateringAPI, analyticsAPI, crmAPI } from '@/lib/api';
 import {
   GlassCard, StatCard, Badge, Button, Tabs, OrderStatusBadge,
   Skeleton, showToast, EmptyState
 } from '@/components/ui';
 import Papa from 'papaparse';
+import MerchantSidebar from '@/components/merchant/Sidebar';
+import DashboardHeader from '@/components/merchant/DashboardHeader';
+import DashboardView from '@/components/merchant/DashboardView';
+import AllOrdersView from '@/components/merchant/AllOrdersView';
+import OrderDetailsView from '@/components/merchant/OrderDetailsView';
+import LiveOrdersView from '@/components/merchant/LiveOrdersView';
+import MenuManagementView from '@/components/merchant/MenuManagementView';
+import MenuManagementModal from '@/components/merchant/MenuManagementModal';
+import ReservationsView from '@/components/merchant/ReservationsView';
+import ReservationModal from '@/components/merchant/ReservationModal';
+import CustomersCRMView from '@/components/merchant/CustomersCRMView';
+import CustomerModal from '@/components/merchant/CustomerModal';
 
 export default function MerchantDashboard() {
   const { user, isMerchant, isAdmin, isAuthenticated, loading: authLoading, backendVerified } = useAuth();
   const { joinRoom, on, off } = useSocket();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState('orders');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  
+  useEffect(() => {
+    setSelectedOrderId(null);
+  }, [activeTab]);
+
   const [restaurant, setRestaurant] = useState(null);
   const [orders, setOrders] = useState([]);
   const [menu, setMenu] = useState([]);
   const [finance, setFinance] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
   const [reservations, setReservations] = useState([]);
   const [cateringInquiries, setCateringInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,11 +66,18 @@ export default function MerchantDashboard() {
     isVegan: false,
     isSpicy: false,
     isGlutenFree: false,
-    isBestseller: false,
-    isAvailable: true,
-    sizeVariationsText: '',
-    addOnsText: '',
+    dietaryTags: [],
+    customizations: [],
+    isAvailable: true
   });
+  const [showMenuModal, setShowMenuModal] = useState(false);
+  const [showReservationModal, setShowReservationModal] = useState(false);
+  const [editingReservation, setEditingReservation] = useState(null);
+  
+  const [customers, setCustomers] = useState([]);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+
   const [onboardingForm, setOnboardingForm] = useState({
     businessInfo: {
       legalName: '',
@@ -82,25 +108,27 @@ export default function MerchantDashboard() {
     try {
       if (!user?.restaurantId) { setLoading(false); return; }
 
-      const restData = isMerchant
-        ? await restaurantAPI.getMyRestaurant()
-        : await restaurantAPI.getById(user.restaurantId);
-      const restaurantId = restData.data?._id || user.restaurantId;
-
-      const [ordersData, menuData, financeData, resData, catData] = await Promise.all([
-        orderAPI.getRestaurantOrders(restaurantId),
-        menuAPI.getByRestaurant(restaurantId),
-        restaurantAPI.getFinance(restaurantId, 30),
-        reservationAPI.getRestaurantReservations(restaurantId),
-        cateringAPI.getRestaurantInquiries(restaurantId)
+      const roomId = user?.restaurantId;
+      const [
+        restData, menuData, ordersData,
+        reservationsData, cateringData, analyticsResp, crmResp
+      ] = await Promise.all([
+        restaurantAPI.getMyRestaurant(),
+        menuAPI.getByRestaurant(roomId),
+        orderAPI.getRestaurantOrders(roomId),
+        reservationAPI.getRestaurantReservations ? reservationAPI.getRestaurantReservations(roomId).catch(() => ({ data: [] })) : { data: [] },
+        cateringAPI.getRestaurantInquiries ? cateringAPI.getRestaurantInquiries(roomId).catch(() => ({ data: [] })) : { data: [] },
+        analyticsAPI.getSalesAnalytics ? analyticsAPI.getSalesAnalytics(roomId, 30).catch(() => ({ data: null })) : { data: null },
+        crmAPI.getCustomers(roomId).catch(() => ({ data: [] }))
       ]);
 
       setRestaurant(restData.data);
-      setOrders(ordersData.data || []);
       setMenu(menuData.data || []);
-      setFinance(financeData.data);
-      setReservations(resData?.data || []);
-      setCateringInquiries(catData?.data || []);
+      setOrders(ordersData.data || []);
+      setReservations(reservationsData?.data || []);
+      setCateringInquiries(cateringData?.data || []);
+      setAnalyticsData(analyticsResp?.data || null);
+      setCustomers(crmResp?.data || []);
       setOnboardingForm({
         businessInfo: {
           legalName: restData.data?.businessInfo?.legalName || '',
@@ -168,8 +196,43 @@ export default function MerchantDashboard() {
   };
 
   const handleUpdateReservationStatus = async (id, status) => {
-    try { await reservationAPI.updateStatus(id, status); showToast(`Reservation ${status}`, 'success'); loadDashboard(); }
-    catch (err) { showToast(err.message || 'Failed to update reservation', 'error'); }
+    try {
+      await reservationAPI.update(id, { status });
+      showToast(`Reservation status updated to ${status}`, 'success');
+      loadDashboard();
+    } catch (err) {
+      showToast(err.message || 'Failed to update status', 'error');
+    }
+  };
+
+  const handleSaveReservation = async (reservationData) => {
+    try {
+      if (reservationData._id) {
+        await reservationAPI.update(reservationData._id, reservationData);
+        showToast('Reservation updated successfully', 'success');
+      } else {
+        await reservationAPI.create(reservationData);
+        showToast('Reservation created successfully', 'success');
+      }
+      loadDashboard();
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const handleSaveCustomer = async (customerData) => {
+    try {
+      if (customerData._id) {
+        await crmAPI.updateCustomer(restaurant?._id, customerData._id, customerData);
+        showToast('Customer updated successfully', 'success');
+      } else {
+        await crmAPI.createCustomer(restaurant?._id, customerData);
+        showToast('Customer created successfully', 'success');
+      }
+      loadDashboard();
+    } catch (err) {
+      throw err;
+    }
   };
 
   const handleUpdateCateringStatus = async (id, status) => {
@@ -297,6 +360,16 @@ export default function MerchantDashboard() {
     }
   };
 
+  const handleDeleteItem = async (itemId) => {
+    try {
+      await menuAPI.deleteItem(itemId);
+      showToast('Item deleted', 'success');
+      loadDashboard();
+    } catch (err) {
+      showToast(err.message || 'Failed to delete item', 'error');
+    }
+  };
+
   const handleSmartPricing = async () => {
     if (!restaurant?._id) return;
     setLoading(true);
@@ -337,6 +410,7 @@ export default function MerchantDashboard() {
       sizeVariationsText: (item.sizeVariations || []).map(v => `${v.name}:${v.price}`).join('\n'),
       addOnsText: (item.addOns || []).map(a => `${a.name}:${a.price}`).join('\n'),
     });
+    setShowMenuModal(true);
   };
 
   const handleSaveItem = async () => {
@@ -369,6 +443,7 @@ export default function MerchantDashboard() {
       else await menuAPI.createItem(payload);
       showToast(editingItemId ? 'Item updated' : 'Item added', 'success');
       resetItemForm();
+      setShowMenuModal(false);
       loadDashboard();
     } catch (err) {
       showToast(err.message || 'Failed to save item', 'error');
@@ -441,120 +516,88 @@ export default function MerchantDashboard() {
     { value: 'settings', label: 'Settings', icon: Settings },
   ];
 
-  const activeOrders = orders.filter(o => ['pending', 'accepted', 'preparing', 'ready'].includes(o.status));
-  const completedOrders = orders.filter(o => ['delivered', 'picked_up'].includes(o.status));
+  const activeOrders = orders.filter(o => {
+    if (['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery'].includes(o.status)) return true;
+    if (o.orderType === 'delivery' && o.status === 'picked_up') return true;
+    return false;
+  });
+  
+  const completedOrders = orders.filter(o => {
+    if (o.status === 'delivered') return true;
+    if (o.orderType !== 'delivery' && o.status === 'picked_up') return true;
+    return false;
+  });
+
+  const isOrdersView = ['new_orders', 'preparing', 'out_delivery', 'completed', 'cancelled', 'refunds'].includes(activeTab);
+  const isMenuView = ['food_items', 'addons', 'variations', 'combo', 'availability'].includes(activeTab);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-brand-text flex items-center gap-3">
-            <Store className="h-6 w-6 text-brand-cyan" /> {restaurant?.name || 'Dashboard'}
-          </h1>
-          <p className="text-sm text-brand-muted mt-1">{restaurant?.cuisine}</p>
+    <div className="flex h-screen bg-[#070707] overflow-hidden text-brand-text font-sans">
+      <MerchantSidebar 
+        activeNav={activeTab} 
+        onNavChange={setActiveTab} 
+        stats={{
+          activeOrders: stats.activeOrders,
+          newOrders: orders.filter(o => o.status === 'pending').length,
+          preparingOrders: orders.filter(o => o.status === 'preparing').length,
+          pendingReservations: pendingReservations.length,
+          pendingCatering: pendingCatering.length,
+        }} 
+      />
+      <div className="flex-1 overflow-y-auto bg-[#F8FAFC] custom-scrollbar">
+        <DashboardHeader user={user} />
+        <div className="max-w-7xl mx-auto space-y-8 p-6">
+          
+          {activeTab === 'dashboard' && (
+            <DashboardView 
+              stats={stats} 
+              orders={orders} 
+              reservations={reservations} 
+              cateringInquiries={cateringInquiries} 
+              restaurant={restaurant} 
+              user={user}
+              analyticsData={analyticsData}
+              menu={menu}
+              onViewAll={setActiveTab}
+            />
+          )}
+
+      {activeTab === 'all_orders' && (
+        selectedOrderId ? (
+          <OrderDetailsView 
+            order={orders.find(o => o._id === selectedOrderId)} 
+            onBack={() => setSelectedOrderId(null)} 
+            onUpdateStatus={handleUpdateStatus}
+            onRefresh={loadDashboard}
+          />
+        ) : (
+          <AllOrdersView orders={orders} onRowClick={setSelectedOrderId} />
+        )
+      )}
+
+      {activeTab === 'live_orders' && (
+        <div className="h-full">
+          <LiveOrdersView 
+            orders={orders} 
+            onAcceptOrder={handleAcceptOrder}
+            onRejectOrder={handleRejectOrder}
+            onUpdateStatus={handleUpdateStatus}
+            onRefresh={loadDashboard}
+          />
         </div>
-        <Badge color={restaurant?.isActive ? 'green' : 'red'} dot>{restaurant?.isActive ? 'Online' : 'Offline'}</Badge>
-      </div>
+      )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Today's Orders" value={stats.todayOrders} icon={ShoppingBag} color="cyan" />
-        <StatCard label="Today's Revenue" value={`$${stats.todayRevenue.toFixed(2)}`} icon={DollarSign} color="green" />
-        <StatCard label="Active Orders" value={stats.activeOrders} icon={Clock} color="yellow" />
-        <StatCard label="Rating" value={stats.avgRating.toFixed(1)} icon={Star} color="blue" />
-      </div>
+      {activeTab === 'crm' && (
+        <div className="h-full">
+          <CustomersCRMView 
+            customers={customers}
+            onAdd={() => { setEditingCustomer(null); setShowCustomerModal(true); }}
+            onEdit={(customer) => { setEditingCustomer(customer); setShowCustomerModal(true); }}
+          />
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-        <Link href="/merchant/pos">
-          <GlassCard className="hover:border-brand-cyan/50 transition-colors cursor-pointer flex items-center justify-between group">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-brand-cyan/10 rounded-lg group-hover:bg-brand-cyan/20 transition-colors">
-                <Store className="h-5 w-5 text-brand-cyan" />
-              </div>
-              <h3 className="font-bold text-brand-text">Point of Sale</h3>
-            </div>
-            <Badge color="cyan">New</Badge>
-          </GlassCard>
-        </Link>
-        <Link href="/merchant/kds">
-          <GlassCard className="hover:border-brand-yellow/50 transition-colors cursor-pointer flex items-center justify-between group">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-brand-yellow/10 rounded-lg group-hover:bg-brand-yellow/20 transition-colors">
-                <ChefHat className="h-5 w-5 text-brand-yellow" />
-              </div>
-              <h3 className="font-bold text-brand-text">Kitchen Display</h3>
-            </div>
-            <Badge color="yellow">New</Badge>
-          </GlassCard>
-        </Link>
-        <Link href="/merchant/tables">
-          <GlassCard className="hover:border-brand-blue/50 transition-colors cursor-pointer flex items-center justify-between group h-full">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-brand-blue/10 rounded-lg group-hover:bg-brand-blue/20 transition-colors">
-                <Users className="h-5 w-5 text-brand-blue" />
-              </div>
-              <h3 className="font-bold text-brand-text">Table Management</h3>
-            </div>
-          </GlassCard>
-        </Link>
-        <Link href="/merchant/promotions">
-          <GlassCard className="hover:border-brand-green/50 transition-colors cursor-pointer flex items-center justify-between group h-full">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-brand-green/10 rounded-lg group-hover:bg-brand-green/20 transition-colors">
-                <Tag className="h-5 w-5 text-brand-green" />
-              </div>
-              <h3 className="font-bold text-brand-text">Promotions</h3>
-            </div>
-            <Badge color="green">New</Badge>
-          </GlassCard>
-        </Link>
-        <Link href="/merchant/inventory">
-          <GlassCard className="hover:border-brand-yellow/50 transition-colors cursor-pointer flex items-center justify-between group h-full">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-brand-yellow/10 rounded-lg group-hover:bg-brand-yellow/20 transition-colors">
-                <Package className="h-5 w-5 text-brand-yellow" />
-              </div>
-              <h3 className="font-bold text-brand-text">Inventory</h3>
-            </div>
-            <Badge color="yellow">New</Badge>
-          </GlassCard>
-        </Link>
-        <Link href="/merchant/employees">
-          <GlassCard className="hover:border-brand-blue/50 transition-colors cursor-pointer flex items-center justify-between group h-full">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-brand-blue/10 rounded-lg group-hover:bg-brand-blue/20 transition-colors">
-                <Users className="h-5 w-5 text-brand-blue" />
-              </div>
-              <h3 className="font-bold text-brand-text">Employees</h3>
-            </div>
-          </GlassCard>
-        </Link>
-        <Link href="/merchant/analytics">
-          <GlassCard className="hover:border-brand-cyan/50 transition-colors cursor-pointer flex items-center justify-between group h-full">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-brand-cyan/10 rounded-lg group-hover:bg-brand-cyan/20 transition-colors">
-                <BarChart3 className="h-5 w-5 text-brand-cyan" />
-              </div>
-              <h3 className="font-bold text-brand-text">Analytics</h3>
-            </div>
-            <Badge color="cyan">New</Badge>
-          </GlassCard>
-        </Link>
-        <Link href="/merchant/crm">
-          <GlassCard className="hover:border-brand-purple/50 transition-colors cursor-pointer flex items-center justify-between group h-full">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-brand-purple/10 rounded-lg group-hover:bg-brand-purple/20 transition-colors">
-                <Mail className="h-5 w-5 text-brand-purple" />
-              </div>
-              <h3 className="font-bold text-brand-text">CRM</h3>
-            </div>
-            <Badge color="purple">New</Badge>
-          </GlassCard>
-        </Link>
-      </div>
-
-      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-
-      {activeTab === 'orders' && (
+      {isOrdersView && (
         <div className="space-y-6">
           <div>
             <h3 className="text-sm font-bold text-brand-text uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -593,7 +636,10 @@ export default function MerchantDashboard() {
                         {order.status === 'pending' && (<><Button variant="primary" size="sm" onClick={() => handleAcceptOrder(order._id)}>Accept</Button><Button variant="danger" size="sm" onClick={() => handleRejectOrder(order._id)}>Reject</Button></>)}
                         {order.status === 'accepted' && <Button variant="primary" size="sm" onClick={() => handleUpdateStatus(order._id, 'preparing')}>Start Preparing</Button>}
                         {order.status === 'preparing' && <Button variant="primary" size="sm" onClick={() => handleUpdateStatus(order._id, 'ready')}>Mark Ready</Button>}
-                        {order.status === 'ready' && <Button variant="primary" size="sm" onClick={() => handleUpdateStatus(order._id, 'picked_up')}>Picked Up</Button>}
+                        {order.status === 'ready' && <Button variant="primary" size="sm" onClick={() => handleUpdateStatus(order._id, 'picked_up')}>{order.orderType === 'pickup' ? 'Customer Picked Up' : 'Handed to Rider'}</Button>}
+                        {order.status === 'picked_up' && order.orderType === 'delivery' && <Button variant="primary" size="sm" onClick={() => handleUpdateStatus(order._id, 'out_for_delivery')}>Out for Delivery</Button>}
+                        {order.status === 'picked_up' && order.orderType === 'pickup' && <Button variant="primary" size="sm" onClick={() => handleUpdateStatus(order._id, 'delivered')}>Mark Completed</Button>}
+                        {order.status === 'out_for_delivery' && <Button variant="primary" size="sm" onClick={() => handleUpdateStatus(order._id, 'delivered')}>Mark Delivered</Button>}
                       </div>
                     </div>
 
@@ -644,39 +690,15 @@ export default function MerchantDashboard() {
       )}
 
       {activeTab === 'reservations' && (
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-sm font-bold text-brand-text uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-brand-cyan" /> Reservations ({reservations.length})
-            </h3>
-            {reservations.length === 0 ? (
-              <GlassCard className="text-center py-8"><p className="text-sm text-brand-muted">No reservations found.</p></GlassCard>
-            ) : (
-              <div className="space-y-3">
-                {reservations.map(res => (
-                  <GlassCard key={res._id} className="flex flex-col gap-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <span className="text-sm font-bold text-brand-text">{new Date(res.date).toLocaleDateString()} at {res.time}</span>
-                          <Badge color={res.status === 'confirmed' ? 'green' : res.status === 'cancelled' ? 'red' : res.status === 'completed' ? 'blue' : 'yellow'}>{res.status}</Badge>
-                        </div>
-                        <div className="text-xs space-y-1 mt-2">
-                          <p className="font-bold text-brand-text/90">👤 {res.customerName} ({res.customerPhone})</p>
-                          <p className="text-brand-muted">Party of {res.partySize} • {res.location} {res.occasion ? `• Occasion: ${res.occasion}` : ''}</p>
-                          {res.specialRequests && <p className="text-brand-yellow/80 mt-1">Note: {res.specialRequests}</p>}
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2 shrink-0">
-                        {res.status === 'pending' && (<><Button variant="primary" size="sm" onClick={() => handleUpdateReservationStatus(res._id, 'confirmed')}>Confirm</Button><Button variant="danger" size="sm" onClick={() => handleUpdateReservationStatus(res._id, 'cancelled')}>Cancel</Button></>)}
-                        {res.status === 'confirmed' && <Button variant="primary" size="sm" onClick={() => handleUpdateReservationStatus(res._id, 'completed')}>Mark Completed</Button>}
-                      </div>
-                    </div>
-                  </GlassCard>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="h-full">
+          <ReservationsView 
+            reservations={reservations} 
+            onUpdateReservationStatus={handleUpdateReservationStatus}
+            onEdit={(res) => {
+              setEditingReservation(res);
+              setShowReservationModal(true);
+            }}
+          />
         </div>
       )}
 
@@ -718,7 +740,31 @@ export default function MerchantDashboard() {
         </div>
       )}
 
-      {activeTab === 'menu' && (
+      {activeTab === 'categories' && (
+        <div className="h-full">
+          <MenuManagementView 
+            menu={menu}
+            onSaveItem={handleSaveItem}
+            onDeleteItem={handleDeleteItem}
+            onToggleStatus={handleToggleItem}
+            onEditItem={handleEditItem}
+            onBulkImport={handleBulkImport}
+            onAddItem={() => { resetItemForm(); setShowMenuModal(true); }}
+          />
+          <MenuManagementModal 
+            isOpen={showMenuModal}
+            onClose={() => setShowMenuModal(false)}
+            itemForm={itemForm}
+            setItemForm={setItemForm}
+            menu={menu}
+            handleSaveItem={handleSaveItem}
+            editingItemId={editingItemId}
+            handleSmartPricing={handleSmartPricing}
+          />
+        </div>
+      )}
+
+      {isMenuView && (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-1 space-y-4">
             <GlassCard>
@@ -1145,6 +1191,32 @@ export default function MerchantDashboard() {
           </GlassCard>
         </div>
       )}
+        </div>
+      </div>
+
+      {/* Reservation Management Modal */}
+      <ReservationModal
+        isOpen={showReservationModal}
+        onClose={() => {
+          setShowReservationModal(false);
+          setEditingReservation(null);
+        }}
+        onSave={handleSaveReservation}
+        reservation={editingReservation}
+        restaurantId={restaurant?._id}
+      />
+
+      {/* Customer Management Modal */}
+      <CustomerModal
+        isOpen={showCustomerModal}
+        onClose={() => {
+          setShowCustomerModal(false);
+          setEditingCustomer(null);
+        }}
+        onSave={handleSaveCustomer}
+        customer={editingCustomer}
+        restaurantId={restaurant?._id}
+      />
     </div>
   );
 }

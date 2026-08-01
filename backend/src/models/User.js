@@ -117,6 +117,12 @@ const UserSchema = new mongoose.Schema({
     marketing: { type: Boolean, default: true }
   },
 
+  // ── Push Notifications ────────────────────────────────────────────────
+  fcmTokens: [{
+    type: String,
+    default: []
+  }],
+
   // ── Verification & Security ───────────────────────────────────────────
   isVerified: {
     type: Boolean,

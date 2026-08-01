@@ -315,6 +315,7 @@ const STATUS_CONFIG = {
   delivered: { label: 'Delivered', color: 'green' },
   cancelled: { label: 'Cancelled', color: 'red' },
   failed: { label: 'Failed', color: 'red' },
+  refunded: { label: 'Refunded', color: 'red' },
 };
 
 export function OrderStatusBadge({ status }) {

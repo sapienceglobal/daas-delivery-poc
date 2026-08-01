@@ -3,8 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/widgets/menu_item_card.dart';
+import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
+import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/screens/search_screen.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
+import 'package:single_restaurant_mobile/utils/image_helper.dart';
 
 class MenuScreen extends StatefulWidget {
   final String? initialCategoryId;
@@ -25,16 +29,7 @@ class _MenuScreenState extends State<MenuScreen> {
     _selectedCategoryId = widget.initialCategoryId;
   }
 
-  String _getCategoryIcon(String categoryName) {
-    final name = categoryName.toLowerCase();
-    final basePath = 'assets/images/branded/lassi-lounge/categories';
-    if (name.contains('appetizer')) return '$basePath/appetizers.jpg';
-    if (name.contains('bread') || name.contains('naan')) return '$basePath/breads.jpg';
-    if (name.contains('biryani')) return '$basePath/biryani.jpg';
-    if (name.contains('beverage') || name.contains('drink')) return '$basePath/beverages.jpg';
-    if (name.contains('dessert')) return '$basePath/desserts.jpg';
-    return '$basePath/main-course.jpg';
-  }
+  // Removed _getCategoryIcon in favor of ImageHelper
 
   @override
   Widget build(BuildContext context) {
@@ -119,7 +114,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 final isSelected = cat['_id'] == _selectedCategoryId;
                 return GestureDetector(
                   onTap: () => setState(() => _selectedCategoryId = cat['_id']),
-                  child: _buildCategoryItem(cat['name'], null, imagePath: _getCategoryIcon(cat['name']), isSelected: isSelected),
+                  child: _buildCategoryItem(cat['name'], null, category: cat, isSelected: isSelected),
                 );
               },
             ),
@@ -190,23 +185,28 @@ class _MenuScreenState extends State<MenuScreen> {
                     return Column(
                       children: items.map((item) {
                         final dishId = item['_id'] ?? item['id'];
-                        final cartItemIndex = cart.items.indexWhere((i) {
-                          final iId = i['menuItemId'] ?? i['_id'] ?? i['id'];
-                          return iId == dishId;
-                        });
                         
-                        int cartQty = 0;
-                        if (cartItemIndex > -1) {
-                          final cartItem = cart.items[cartItemIndex];
-                          cartQty = (cartItem['quantity'] ?? cartItem['qty'] ?? 1) as int;
+                        int totalQty = 0;
+                        int lastMatchIndex = -1;
+                        for (int i = 0; i < cart.items.length; i++) {
+                          final c = cart.items[i];
+                          if ((c['menuItemId'] ?? c['_id'] ?? c['id']) == dishId) {
+                            totalQty += (c['quantity'] ?? c['qty'] ?? 1) as int;
+                            lastMatchIndex = i;
+                          }
                         }
 
                         return MenuItemCard(
                           item: item,
-                          cartQty: cartQty,
-                          onAdd: () => cart.addItem(item, restaurantData: restaurantProvider.restaurant),
-                          onIncrement: () => cart.updateQuantity(cartItemIndex, cartQty + 1),
-                          onDecrement: () => cart.updateQuantity(cartItemIndex, cartQty - 1),
+                          cartQty: totalQty,
+                          onAdd: () => AddToCartHelper.handleAddToCart(context, item, cart, restaurantProvider),
+                          onIncrement: () => AddToCartHelper.handleAddToCart(context, item, cart, restaurantProvider),
+                          onDecrement: () {
+                            if (lastMatchIndex != -1) {
+                              final lastQty = (cart.items[lastMatchIndex]['quantity'] ?? cart.items[lastMatchIndex]['qty'] ?? 1) as int;
+                              cart.updateQuantity(lastMatchIndex, lastQty - 1);
+                            }
+                          },
                         );
                       }).toList(),
                     );
@@ -325,7 +325,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         setState(() => _selectedCategoryId = cat['_id']);
                         Navigator.pop(context);
                       },
-                      child: _buildCategoryItem(cat['name'], null, imagePath: _getCategoryIcon(cat['name']), isSelected: isSelected, inGrid: true),
+                      child: _buildCategoryItem(cat['name'], null, category: cat, isSelected: isSelected, inGrid: true),
                     );
                   },
                 ),
@@ -337,7 +337,7 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget _buildCategoryItem(String name, IconData? icon, {String? imagePath, bool isSelected = false, bool inGrid = false}) {
+  Widget _buildCategoryItem(String name, IconData? icon, {Map<String, dynamic>? category, bool isSelected = false, bool inGrid = false}) {
     return Container(
       width: inGrid ? null : 72,
       margin: inGrid ? EdgeInsets.zero : const EdgeInsets.only(right: 12),
@@ -352,8 +352,8 @@ class _MenuScreenState extends State<MenuScreen> {
               color: Colors.grey.shade100,
             ),
             clipBehavior: Clip.antiAlias,
-            child: imagePath != null 
-              ? Image.asset(imagePath, fit: BoxFit.cover, errorBuilder: (c,e,s) => Icon(Icons.fastfood, color: Colors.grey.shade400))
+            child: category != null 
+              ? ImageHelper.buildCategoryImage(category, fit: BoxFit.cover)
               : Icon(icon, color: Colors.grey.shade700),
           ),
           const SizedBox(height: 6),

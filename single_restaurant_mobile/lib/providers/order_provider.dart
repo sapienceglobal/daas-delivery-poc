@@ -51,16 +51,34 @@ class OrderProvider with ChangeNotifier {
     if (!_isSocketInitialized) {
       _isSocketInitialized = true;
       final handleUpdate = (dynamic data) {
-        fetchMyOrders(status: 'all', silent: true);
-        
-        // Update cached tracked orders if they exist
         if (data != null && data['order'] != null) {
-           final orderId = data['order']['_id'];
+           final updatedOrder = data['order'];
+           final orderId = updatedOrder['_id'];
+           
+           bool shouldNotify = false;
+
+           // Update in the tracked orders cache
            if (_trackedOrdersCache.containsKey(orderId)) {
-               _trackedOrdersCache[orderId] = data['order'];
-               notifyListeners();
+               _trackedOrdersCache[orderId] = updatedOrder;
+               shouldNotify = true;
+           }
+
+           // Update in the global _orders list for OrdersScreen
+           final index = _orders.indexWhere((o) => o['_id'] == orderId);
+           if (index != -1) {
+             _orders[index] = updatedOrder;
+             shouldNotify = true;
+           } else {
+             // If we get an update for an order not in our current list, we might want to refetch
+             // But usually it's fine.
+           }
+
+           if (shouldNotify) {
+             notifyListeners();
            }
         } else {
+           // Fallback if data format is unexpected
+           fetchMyOrders(status: 'all', silent: true);
            for (var orderId in _trackedOrdersCache.keys) {
                fetchTrackedOrder(orderId, silent: true);
            }

@@ -52,6 +52,71 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> updateProfile({String? name, String? phone, String? imagePath}) async {
+    _isLoading = true;
+    notifyListeners();
+    
+    final updatedData = await _authService.updateProfile(name: name, phone: phone, imagePath: imagePath);
+    if (updatedData != null) {
+      _user = UserModel.fromJson(updatedData);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    }
+    
+    _isLoading = false;
+    _error = 'Failed to update profile';
+    notifyListeners();
+    return false;
+  }
+
+  Future<bool> updateNotificationPreferences(Map<String, dynamic> preferences) async {
+    if (_user == null) return false;
+    
+    // Optimistic update
+    final oldPreferences = _user!.notificationPreferences;
+    _user = UserModel(
+      id: _user!.id,
+      name: _user!.name,
+      email: _user!.email,
+      phone: _user!.phone,
+      role: _user!.role,
+      isEmailVerified: _user!.isEmailVerified,
+      isPhoneVerified: _user!.isPhoneVerified,
+      profilePicture: _user!.profilePicture,
+      addresses: _user!.addresses,
+      savedCards: _user!.savedCards,
+      favoriteItems: _user!.favoriteItems,
+      loyaltyPoints: _user!.loyaltyPoints,
+      referralCode: _user!.referralCode,
+      notificationPreferences: preferences,
+    );
+    notifyListeners();
+
+    final success = await _authService.updateNotificationPreferences(preferences);
+    if (!success) {
+      // Revert if failed
+      _user = UserModel(
+        id: _user!.id,
+        name: _user!.name,
+        email: _user!.email,
+        phone: _user!.phone,
+        role: _user!.role,
+        isEmailVerified: _user!.isEmailVerified,
+        isPhoneVerified: _user!.isPhoneVerified,
+        profilePicture: _user!.profilePicture,
+        addresses: _user!.addresses,
+        savedCards: _user!.savedCards,
+        favoriteItems: _user!.favoriteItems,
+        loyaltyPoints: _user!.loyaltyPoints,
+        referralCode: _user!.referralCode,
+        notificationPreferences: oldPreferences,
+      );
+      notifyListeners();
+    }
+    return success;
+  }
+
   // --- Saved Cards ---
 
   Future<bool> addCard({

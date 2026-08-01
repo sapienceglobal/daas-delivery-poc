@@ -3,6 +3,7 @@ import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/order_provider.dart';
 import 'package:single_restaurant_mobile/services/socket_service.dart';
+import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:async';
 
@@ -24,7 +25,9 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchOrder();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchOrder();
+    });
     
     // Fallback polling in case of long disconnections
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
@@ -79,7 +82,9 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16.0, top: 12.0, bottom: 12.0),
             child: OutlinedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpSupportScreen()));
+              },
               icon: const Icon(Icons.headset_mic_outlined, color: AppColors.secondary, size: 16),
               label: const Text('Support', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
               style: OutlinedButton.styleFrom(
@@ -161,10 +166,14 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Order #${_order!['orderNumber'] ?? _order!['_id'].toString().substring(0, 6)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    Expanded(
+                      child: Text(
+                        'Order #${_order!['orderNumber'] ?? _order!['_id'].toString().substring(0, 6)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -186,7 +195,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                     children: [
                       Icon(Icons.moped, color: AppColors.secondary, size: 16),
                       SizedBox(width: 8),
-                      Text('Your order is on the way', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 13)),
+                      Expanded(child: Text('Your order is on the way', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 13))),
                     ],
                   ),
                   Padding(

@@ -1,4 +1,5 @@
 import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -49,10 +50,41 @@ export const markAsRead = asyncHandler(async (req, response) => {
 });
 
 /**
+ * @desc    Delete a notification
+ * @route   DELETE /api/notifications/:id
+ * @access  Private
+ */
+export const deleteNotification = asyncHandler(async (req, response) => {
+  const NotificationModel = req.getModel('Notification');
+  const notification = await NotificationModel.findOneAndDelete({
+    _id: req.params.id,
+    userId: req.user._id
+  });
+
+  if (!notification) {
+    throw new AppError('Notification not found', 404);
+  }
+
+  res.success(response, { message: 'Notification deleted successfully' });
+});
+
+/**
  * Helper function to create and emit a notification (used internally by other controllers)
  */
 export const createNotification = async (userId, title, body, type = 'system', actionUrl = null, io = null, getModel = null) => {
   try {
+    const UserModel = getModel ? getModel('User') : User;
+    const user = await UserModel.findById(userId).select('notificationPreferences fcmTokens');
+    
+    if (user && user.notificationPreferences) {
+      if (type === 'promotion' || type === 'marketing') {
+        if (user.notificationPreferences.marketing === false) return null;
+      }
+      if (type === 'order_update' || type === 'delivery_update') {
+        if (user.notificationPreferences.push === false) return null; // Or if we only want to block push, we could still save the in-app notification. Let's block both for simplicity to truly respect the toggle.
+      }
+    }
+
     const NotificationModel = getModel ? getModel('Notification') : Notification;
     const notification = await NotificationModel.create({
       userId,
@@ -66,6 +98,10 @@ export const createNotification = async (userId, title, body, type = 'system', a
       // Emit to the specific user's socket room (assuming we use user._id as a room)
       io.to(userId.toString()).emit('new_notification', notification);
     }
+    
+    // In a real app, this is where you would send an FCM push notification using user.fcmTokens
+    // if (user.notificationPreferences?.push !== false && user.fcmTokens?.length > 0) { ... }
+
     return notification;
   } catch (err) {
     console.error('Error creating notification:', err.message);

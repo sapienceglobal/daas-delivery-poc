@@ -86,7 +86,7 @@ export default function OrdersPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1.5">
                     <span className="text-sm font-bold text-brand-text">{order.orderNumber}</span>
-                    <OrderStatusBadge status={order.status} />
+                    <OrderStatusBadge status={order.paymentStatus === 'refunded' ? 'refunded' : order.status} />
                   </div>
 
                   <p className="text-sm text-brand-muted">{order.restaurantName}</p>

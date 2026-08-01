@@ -8,11 +8,14 @@ class ApiService {
   // When building for release, pass the production URL using --dart-define=API_BASE_URL=https://your-server.com
   static const String _configuredBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.1.6:5001', // Change your laptop's actual IP
+    // defaultValue: 'http://195.35.20.207:5001', // Change your laptop's actual IP
+    defaultValue: 'http://192.168.1.5:5001',
   );
   static const Duration _requestTimeout = Duration(seconds: 20);
-
+ 
   static String? _authToken;
+
+  static String? get authToken => _authToken;
 
   static void setAuthToken(String token) {
     _authToken = token;

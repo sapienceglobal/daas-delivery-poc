@@ -4,6 +4,7 @@ import 'package:single_restaurant_mobile/services/auth_service.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/register_screen.dart';
 import 'package:single_restaurant_mobile/screens/forgot_password_screen.dart';
+import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -71,7 +72,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         actions: [
           TextButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+              );
+            },
             icon: const Icon(Icons.headset_mic_outlined, color: AppColors.secondary, size: 20),
             label: const Text('Help', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
           ),
@@ -87,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
               left: 0,
               right: 0,
               child: Container(
-                height: 350,
+                height: 380,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -125,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             // Form Card
             Container(
-              margin: const EdgeInsets.only(top: 320, left: 16, right: 16, bottom: 24),
+              margin: const EdgeInsets.only(top: 330, left: 16, right: 16, bottom: 24),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -146,7 +152,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.isEmpty) return 'Email is required';
-                        if (!value.contains('@')) return 'Enter a valid email';
+                        final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                        if (!emailRegex.hasMatch(value)) return 'Enter a valid email format';
                         return null;
                       },
                     ),

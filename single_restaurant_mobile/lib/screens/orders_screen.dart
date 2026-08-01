@@ -4,6 +4,9 @@ import 'package:single_restaurant_mobile/widgets/order_card.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/order_provider.dart';
 import 'package:single_restaurant_mobile/services/socket_service.dart';
+import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
+import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
 
 class OrdersScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -51,6 +54,31 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    if (authProvider.user == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
+            onPressed: widget.onBack,
+          ),
+          title: const Text(
+            'My Orders',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 24),
+          ),
+          centerTitle: false,
+        ),
+        body: const GuestLoginPrompt(
+          icon: Icons.receipt_long,
+          title: 'Login to view your orders',
+          subtitle: 'Track your orders in real-time, get updates, and see your past history.',
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -77,7 +105,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.notifications_none_outlined, size: 28),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
+                  },
                   color: AppColors.textDark,
                 ),
                 Positioned(

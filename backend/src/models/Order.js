@@ -172,6 +172,13 @@ const OrderSchema = new mongoose.Schema({
   review: { type: String, default: null },
   restaurantReply: { type: String, default: null },
 
+  // ── Admin Notes ───────────────────────────────────────────────────────
+  adminNotes: [{
+    text: { type: String, required: true },
+    author: { type: String, required: true }, // e.g. "Admin" or "Kitchen"
+    timestamp: { type: Date, default: Date.now }
+  }],
+
   // ── Refund ────────────────────────────────────────────────────────────
   refunded: { type: Boolean, default: false },
   refundAmount: { type: Number, default: 0 },

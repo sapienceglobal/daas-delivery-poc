@@ -16,10 +16,15 @@ class SocketService {
     if (_socket != null && _socket!.connected) return;
 
     final String baseUrl = ApiService.baseUrl;
+    final String? token = ApiService.authToken;
 
     _socket = IO.io(baseUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
+      'extraHeaders': {
+        'x-app-secret': 'mobile_app_secure_key_2026',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
     });
 
     _socket!.onConnect((_) {
@@ -37,7 +42,7 @@ class SocketService {
 
   void joinOrderRoom(String orderId) {
     if (_socket == null) init();
-    _socket!.emit('joinOrderRoom', orderId);
+    _socket!.emit('join_order', orderId);
   }
 
   void onOrderStatusChanged(Function(dynamic) callback) {
@@ -63,6 +68,19 @@ class SocketService {
       _socket?.off('order_updated', callback);
     } else {
       _socket?.off('order_updated');
+    }
+  }
+
+  void on(String event, Function(dynamic) callback) {
+    if (_socket == null) init();
+    _socket!.on(event, callback);
+  }
+
+  void off(String event, [Function(dynamic)? callback]) {
+    if (callback != null) {
+      _socket?.off(event, callback);
+    } else {
+      _socket?.off(event);
     }
   }
 

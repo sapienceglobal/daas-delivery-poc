@@ -236,7 +236,7 @@ class _BookTableScreenState extends State<BookTableScreen> {
   Widget _buildHeroSection() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      height: 220,
+      height: 250,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         image: const DecorationImage(

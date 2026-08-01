@@ -24,6 +24,7 @@ router.post('/reset-password/:token', authLimiter, validate(resetPasswordSchema)
 router.get('/me', protect, authController.getMe);
 router.put('/me', protect, authController.updateProfile);
 router.put('/me/password', protect, validate(changePasswordSchema), authController.changePassword);
+router.post('/me/fcm-token', protect, authController.saveFcmToken);
 router.post('/logout', protect, authController.logout);
 
 // ── Addresses ───────────────────────────────────────────────────────────────

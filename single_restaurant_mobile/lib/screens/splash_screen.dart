@@ -155,12 +155,17 @@ class SplashScreen extends StatelessWidget {
                       onPressed: () {
                         // Routing based on authentication state
                         // If logged in, go to MainScreen. Otherwise, LoginScreen.
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => isLoggedIn ? const MainScreen() : const LoginScreen(),
-                          ),
-                        );
+                        if (isLoggedIn) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => const MainScreen()),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,

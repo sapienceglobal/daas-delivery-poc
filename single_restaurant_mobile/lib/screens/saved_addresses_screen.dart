@@ -5,6 +5,8 @@ import 'package:single_restaurant_mobile/providers/address_provider.dart';
 import 'package:single_restaurant_mobile/widgets/address_autocomplete_field.dart';
 import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
+import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
 
 class SavedAddressesScreen extends StatefulWidget {
   final bool selectingMode;
@@ -25,6 +27,31 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    if (authProvider.user == null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'Saved Addresses',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20),
+          ),
+          centerTitle: true,
+        ),
+        body: const GuestLoginPrompt(
+          icon: Icons.location_on_outlined,
+          title: 'Login to manage addresses',
+          subtitle: 'Save your home, work, and other addresses for quick delivery.',
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

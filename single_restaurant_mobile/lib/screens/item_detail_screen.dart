@@ -4,6 +4,8 @@ import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/utils/cart_helper.dart';
+import 'package:single_restaurant_mobile/utils/image_helper.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   final Map<String, dynamic> item;
@@ -41,17 +43,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     });
   }
   
-  String _getDishImage(String itemName) {
-    final name = itemName.toLowerCase();
-    final basePath = 'assets/images/branded/lassi-lounge/dishes';
-    if (name.contains('butter chicken')) return '$basePath/butter-chicken.jpg';
-    if (name.contains('rogan josh') || name.contains('lamb')) return '$basePath/lamb-rogan-josh.jpg';
-    if (name.contains('paneer tikka')) return '$basePath/paneer-tikka.jpg';
-    if (name.contains('biryani')) return '$basePath/chicken-biryani.jpg';
-    if (name.contains('dal makhani')) return '$basePath/dal-makhani.jpg';
-    if (name.contains('lassi')) return '$basePath/mango-lassi.jpg';
-    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
-  }
+  // Helper removed in favor of ImageHelper
 
   // Mock addons if none provided
   List<Map<String, dynamic>> _getAddOns() {
@@ -101,8 +93,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     final isSpicy = item['isSpicy'] ?? false;
     final isVeg = item['isVeg'] ?? true;
     final description = item['description'] ?? 'Cottage cheese cubes marinated in a blend of yogurt, spices and herbs, grilled to perfection in a tandoor for a smoky and flavorful taste.';
+    final imageUrl = ImageHelper.getDishImageUrl(widget.item);
     final basePrice = (item['price'] ?? 0.0).toDouble();
-    final imagePath = _getDishImage(name);
     final addons = _getAddOns();
     
     final prepTime = item['preparationTime'] ?? 20;
@@ -180,9 +172,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
-                      imagePath.startsWith('http') 
-                        ? Image.network(imagePath, fit: BoxFit.cover)
-                        : Image.asset(imagePath, fit: BoxFit.cover, errorBuilder: (c,e,s) => Container(color: Colors.grey.shade300)),
+                      ImageHelper.buildDishImage(widget.item, fit: BoxFit.cover),
                       Positioned(
                         bottom: 16,
                         left: 0,
@@ -369,8 +359,17 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           itemCount: recommended.length,
                           itemBuilder: (context, index) {
                             final rec = recommended[index];
-                            final recImg = _getDishImage(rec['name'] ?? '');
-                            return Container(
+                            return GestureDetector(
+                              onTap: () {
+                                // Close current detail screen and open new one, or push onto stack
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ItemDetailScreen(item: rec),
+                                  ),
+                                );
+                              },
+                              child: Container(
                               width: 160,
                               margin: const EdgeInsets.only(right: 16),
                               decoration: BoxDecoration(
@@ -387,9 +386,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                       SizedBox(
                                         height: 120,
                                         width: double.infinity,
-                                        child: recImg.startsWith('http') 
-                                          ? Image.network(recImg, fit: BoxFit.cover)
-                                          : Image.asset(recImg, fit: BoxFit.cover, errorBuilder: (c,e,s) => Container(color: Colors.grey.shade300)),
+                                        child: ImageHelper.buildDishImage(rec, fit: BoxFit.cover),
                                       ),
                                       Positioned(
                                         top: 8, left: 8,
@@ -422,6 +419,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                     ),
                                   )
                                 ],
+                              ),
                               ),
                             );
                           },
@@ -567,11 +565,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             Text('$qty', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
             GestureDetector(
               onTap: () {
-                 final idx = cartProvider.items.lastIndexWhere((c) => (c['menuItemId'] ?? c['_id'] ?? c['id']) == itemId);
-                 if (idx != -1) {
-                   final current = cartProvider.items[idx]['quantity'] ?? 1;
-                   cartProvider.updateQuantity(idx, current + 1);
-                 }
+                 AddToCartHelper.handleAddToCart(context, item, cartProvider, restaurantProvider);
               },
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -585,11 +579,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
     return GestureDetector(
       onTap: () {
-        final newItem = Map<String, dynamic>.from(item);
-        newItem['quantity'] = 1;
-        newItem['qty'] = 1;
-        newItem['addOns'] = [];
-        cartProvider.addItem(newItem, restaurantData: restaurantProvider.restaurant);
+        AddToCartHelper.handleAddToCart(context, item, cartProvider, restaurantProvider);
       },
       child: Container(
         padding: const EdgeInsets.all(4),

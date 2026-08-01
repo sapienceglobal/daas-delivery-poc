@@ -22,10 +22,11 @@ router.put('/:id/prep', protect, authorize('merchant'), orderController.updateOr
 router.put('/:id/accept', protect, authorize('merchant'), orderController.acceptOrder);
 router.put('/:id/reject', protect, authorize('merchant'), orderController.rejectOrder);
 router.post('/:id/reply', protect, authorize('merchant'), validate(replyToReviewSchema), orderController.replyToReview);
+router.post('/:id/note', protect, authorize('merchant', 'admin'), orderController.addAdminNote);
 
 // ── Admin Routes ────────────────────────────────────────────────────────────
 router.get('/', protect, authorize('admin'), orderController.getAllOrders);
-router.post('/:id/refund', protect, authorize('admin'), validate(refundOrderSchema), orderController.refundOrder);
+router.post('/:id/refund', protect, authorize('admin', 'merchant'), validate(refundOrderSchema), orderController.refundOrder);
 
 // ── Driver Routes ───────────────────────────────────────────────────────────
 router.get('/driver/available', protect, authorize('driver'), orderController.getAvailableDriverOrders);

@@ -77,6 +77,35 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
     { $limit: 10 }
   ]);
 
+  // Customer Stats
+  const newCustomersAggregation = await Order.aggregate([
+    {
+      $match: {
+        restaurantId: new mongoose.Types.ObjectId(restaurantId),
+        createdAt: { $gte: startDate },
+        status: { $in: ['delivered', 'picked_up', 'completed'] },
+        userId: { $ne: null }
+      }
+    },
+    { $group: { _id: "$userId" } },
+    { $count: "count" }
+  ]);
+
+  const totalCustomersAggregation = await Order.aggregate([
+    {
+      $match: {
+        restaurantId: new mongoose.Types.ObjectId(restaurantId),
+        status: { $in: ['delivered', 'picked_up', 'completed'] },
+        userId: { $ne: null }
+      }
+    },
+    { $group: { _id: "$userId" } },
+    { $count: "count" }
+  ]);
+
+  const newCustomers = newCustomersAggregation.length > 0 ? newCustomersAggregation[0].count : 0;
+  const totalCustomers = totalCustomersAggregation.length > 0 ? totalCustomersAggregation[0].count : 0;
+
   const totalRevenue = filledStats.reduce((sum, day) => sum + day.revenue, 0);
   const totalOrders = filledStats.reduce((sum, day) => sum + day.orders, 0);
 
@@ -84,7 +113,9 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
     summary: {
       totalRevenue,
       totalOrders,
-      aov: totalOrders > 0 ? (totalRevenue / totalOrders) : 0
+      aov: totalOrders > 0 ? (totalRevenue / totalOrders) : 0,
+      newCustomers,
+      totalCustomers
     },
     dailyStats: filledStats,
     topItems

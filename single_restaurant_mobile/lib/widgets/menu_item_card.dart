@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
-import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/utils/image_helper.dart';
 
 class MenuItemCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -21,18 +21,7 @@ class MenuItemCard extends StatelessWidget {
     required this.onDecrement,
   });
 
-  String _getDishImage(String itemName) {
-    final name = itemName.toLowerCase();
-    final basePath = 'assets/images/branded/lassi-lounge/dishes';
-    if (name.contains('butter chicken')) return '$basePath/butter-chicken.jpg';
-    if (name.contains('rogan josh') || name.contains('lamb')) return '$basePath/lamb-rogan-josh.jpg';
-    if (name.contains('paneer tikka')) return '$basePath/paneer-tikka.jpg';
-    if (name.contains('biryani')) return '$basePath/chicken-biryani.jpg';
-    if (name.contains('dal makhani')) return '$basePath/dal-makhani.jpg';
-    if (name.contains('lassi')) return '$basePath/mango-lassi.jpg';
-    // Using network fallback if local not found (assuming network config is fine)
-    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
-  }
+  // Helper removed in favor of ImageHelper
 
   @override
   Widget build(BuildContext context) {
@@ -75,9 +64,7 @@ class MenuItemCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                _getDishImage(name).startsWith('http')
-                    ? Image.network(_getDishImage(name), fit: BoxFit.cover)
-                    : Image.asset(_getDishImage(name), fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: Colors.grey.shade300)),
+                ImageHelper.buildDishImage(item, fit: BoxFit.cover),
                 Positioned(
                   top: 8,
                   right: 8,

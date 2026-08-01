@@ -21,7 +21,7 @@ const nextConfig = {
       },
       {
         source: '/socket.io',
-        destination: 'http://127.0.0.1:5001/socket.io',
+        destination: 'http://127.0.0.1:5001/socket.io/',
       },
       {
         source: '/socket.io/:path*',

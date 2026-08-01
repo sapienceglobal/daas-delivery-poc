@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ClipboardList, Loader2 } from 'lucide-react';
+import { Check, ClipboardList, Loader2, AlertCircle } from 'lucide-react';
 
 export default function OrderStatusCard({ order }) {
   if (!order) return null;
@@ -142,6 +142,24 @@ export default function OrderStatusCard({ order }) {
         </span>
         Order Status
       </h2>
+
+      {order.paymentStatus === 'refunded' ? (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-bold text-red-700 text-[15px]">Order Refunded</h4>
+            <p className="text-red-600 text-[13px] mt-1">This order has been fully refunded and cancelled.</p>
+          </div>
+        </div>
+      ) : order.status === 'cancelled' ? (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-bold text-red-700 text-[15px]">Order Cancelled</h4>
+            <p className="text-red-600 text-[13px] mt-1">This order was cancelled and will not be delivered.</p>
+          </div>
+        </div>
+      ) : null}
 
         {/* Steps List */}
         <div className="relative pl-6 space-y-8">
