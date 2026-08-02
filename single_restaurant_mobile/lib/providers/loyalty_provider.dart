@@ -6,6 +6,7 @@ class LoyaltyProvider with ChangeNotifier {
 
   List<dynamic> _transactions = [];
   int _currentBalance = 0;
+  bool _isLoyaltyMember = false;
   bool _isLoading = false;
   String? _error;
   
@@ -14,6 +15,7 @@ class LoyaltyProvider with ChangeNotifier {
 
   List<dynamic> get transactions => _transactions;
   int get currentBalance => _currentBalance;
+  bool get isLoyaltyMember => _isLoyaltyMember;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasMore => _hasMore;
@@ -36,6 +38,7 @@ class LoyaltyProvider with ChangeNotifier {
       
       if (response != null && response['success'] == true) {
         _currentBalance = response['currentBalance'] ?? 0;
+        _isLoyaltyMember = response['isLoyaltyMember'] ?? false;
         final newTransactions = response['data'] as List<dynamic>? ?? [];
         
         if (newTransactions.isEmpty) {
@@ -52,6 +55,67 @@ class LoyaltyProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> joinProgram() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    
+    final res = await _loyaltyService.joinProgram();
+    
+    _isLoading = false;
+    if (res['success'] == true) {
+      _isLoyaltyMember = true;
+      _currentBalance = res['points'] ?? _currentBalance;
+      notifyListeners();
+      return true;
+    } else {
+      _error = res['message'];
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> earnPoints(String action) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    
+    final res = await _loyaltyService.earnPoints(action);
+    
+    _isLoading = false;
+    if (res['success'] == true) {
+      _currentBalance = res['points'] ?? _currentBalance;
+      // Option: Refetch history to show new transaction
+      fetchHistory(refresh: true);
+      notifyListeners();
+      return {'success': true, 'message': res['message']};
+    } else {
+      _error = res['message'];
+      notifyListeners();
+      return {'success': false, 'message': res['message']};
+    }
+  }
+
+  Future<Map<String, dynamic>> redeemPoints(int points, int expectedDiscount) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    
+    final res = await _loyaltyService.redeemPoints(points, expectedDiscount);
+    
+    _isLoading = false;
+    if (res['success'] == true) {
+      _currentBalance = res['points'] ?? _currentBalance;
+      fetchHistory(refresh: true);
+      notifyListeners();
+      return {'success': true, 'couponCode': res['couponCode']};
+    } else {
+      _error = res['message'];
+      notifyListeners();
+      return {'success': false, 'message': res['message']};
     }
   }
 }

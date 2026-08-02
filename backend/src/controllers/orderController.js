@@ -30,7 +30,7 @@ const ensureCanManageRestaurant = (user, restaurantId) => {
   }
 };
 
-const rollbackLoyaltyPoints = async (order, reason = 'cancellation') => {
+export const rollbackLoyaltyPoints = async (order, reason = 'cancellation') => {
   if (!order.userId) return;
   if (order.loyaltyRollbackProcessed) return;
 

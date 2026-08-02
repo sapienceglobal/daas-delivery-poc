@@ -14,6 +14,7 @@ import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/providers/search_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
+import 'package:single_restaurant_mobile/widgets/network_overlay.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
 void main() async {
@@ -29,20 +30,26 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) {
-          final authProvider = AuthProvider();
-          if (isLoggedIn) {
-            authProvider.fetchUser(); // Fetch user data in background
-          }
-          return authProvider;
-        }),
-        ChangeNotifierProvider(create: (_) {
-          final addressProvider = AddressProvider();
-          if (isLoggedIn) {
-            addressProvider.fetchAddresses(); // Preload addresses if logged in
-          }
-          return addressProvider;
-        }),
+        ChangeNotifierProvider(
+          create: (_) {
+            final authProvider = AuthProvider();
+            if (isLoggedIn) {
+              authProvider.fetchUser(); // Fetch user data in background
+            }
+            return authProvider;
+          },
+          lazy: false,
+        ),
+        ChangeNotifierProvider(
+          create: (_) {
+            final addressProvider = AddressProvider();
+            if (isLoggedIn) {
+              addressProvider.fetchAddresses(); // Preload addresses if logged in
+            }
+            return addressProvider;
+          },
+          lazy: false,
+        ),
         ChangeNotifierProvider(create: (_) {
           final restaurantProvider = RestaurantProvider();
           restaurantProvider.fetchRestaurantData();
@@ -77,6 +84,9 @@ class LassiLoungeApp extends StatelessWidget {
       title: 'Lassi Lounge',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      builder: (context, child) {
+        return NetworkOverlay(child: child!);
+      },
       home: SplashScreen(isLoggedIn: isLoggedIn),
     );
   }

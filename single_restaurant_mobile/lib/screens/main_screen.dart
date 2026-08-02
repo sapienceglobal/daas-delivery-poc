@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:single_restaurant_mobile/screens/home_screen.dart';
 import 'package:single_restaurant_mobile/screens/orders_screen.dart';
 import 'package:single_restaurant_mobile/screens/profile_screen.dart';
 import 'package:single_restaurant_mobile/screens/menu_screen.dart';
-import 'package:single_restaurant_mobile/screens/cart_screen.dart';
+import 'package:single_restaurant_mobile/screens/offers_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
@@ -21,6 +22,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   late int _currentIndex;
   final List<int> _navigationHistory = [];
+  DateTime? _lastPressedAt;
 
   @override
   void initState() {
@@ -52,6 +54,31 @@ class _MainScreenState extends State<MainScreen> {
       });
       return false; // Prevent default back behavior
     }
+    
+    // If not on Home tab, go to Home tab
+    if (_currentIndex != 0) {
+      setState(() {
+        _currentIndex = 0;
+        _navigationHistory.clear();
+        _navigationHistory.add(0);
+      });
+      return false;
+    }
+
+    // Double tap to exit logic on Home screen
+    final now = DateTime.now();
+    if (_lastPressedAt == null || now.difference(_lastPressedAt!) > const Duration(seconds: 2)) {
+      _lastPressedAt = now;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Press back again to exit the app', textAlign: TextAlign.center),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return false;
+    }
+    
     return true; // Allow exiting the app
   }
   
@@ -62,15 +89,22 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (bool didPop) async {
+        if (didPop) return;
+        final bool shouldPop = await _onWillPop();
+        if (shouldPop) {
+          SystemNavigator.pop();
+        }
+      },
       child: Scaffold(
         body: IndexedStack(
           index: _currentIndex,
           children: [
             const HomeScreen(),
             const MenuScreen(),
-            const CartScreen(),
+            const OffersScreen(),
             OrdersScreen(onBack: _navigateBack),
             const ProfileScreen(),
           ],
@@ -94,8 +128,9 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Menu',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_cart_outlined),
-              label: 'Cart',
+              icon: Icon(Icons.local_offer_outlined),
+              activeIcon: Icon(Icons.local_offer),
+              label: 'Offers',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.receipt_long),

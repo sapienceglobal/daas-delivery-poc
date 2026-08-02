@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:provider/provider.dart';
@@ -13,10 +14,13 @@ import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/screens/saved_addresses_screen.dart';
 import 'package:single_restaurant_mobile/screens/search_screen.dart';
 import 'package:single_restaurant_mobile/screens/menu_screen.dart';
+import 'package:single_restaurant_mobile/screens/cart_screen.dart';
+import 'package:single_restaurant_mobile/screens/loyalty_rewards_screen.dart';
 import 'package:single_restaurant_mobile/screens/delivery_partners_screen.dart';
 import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
 import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
+import 'package:single_restaurant_mobile/widgets/shimmer_loading.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -29,7 +33,7 @@ class HomeScreen extends StatelessWidget {
       body: Consumer<RestaurantProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.restaurant == null) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.secondary));
+            return const HomeShimmer();
           }
 
           if (provider.error != null && provider.restaurant == null) {
@@ -45,7 +49,7 @@ class HomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-                _buildHeroBanner(restaurant),
+                _buildHeroBanner(context, restaurant),
                 const SizedBox(height: 24),
                 
                 if (categories.isNotEmpty) ...[
@@ -54,13 +58,17 @@ class HomeScreen extends StatelessWidget {
                   }),
                   _buildCategoriesCarousel(categories),
                   const SizedBox(height: 24),
+                  _buildPromoCardsCarousel(context),
+                  const SizedBox(height: 24),
                 ],
 
                 _buildDeliveryPartners(context),
                 const SizedBox(height: 24),
                 
                 if (signatureDishes.isNotEmpty) ...[
-                  _buildSectionTitle('OUR SIGNATURE DISHES', () {}),
+                  _buildSectionTitle('OUR SIGNATURE DISHES', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const MenuScreen()));
+                  }),
                   _buildSignatureDishesCarousel(signatureDishes),
                   const SizedBox(height: 32),
                 ]
@@ -192,7 +200,7 @@ class HomeScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 2)),
+                        MaterialPageRoute(builder: (context) => const CartScreen()),
                       );
                     },
                     color: AppColors.textDark,
@@ -309,7 +317,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroBanner(dynamic restaurant) {
+  Widget _buildHeroBanner(BuildContext context, dynamic restaurant) {
     final bannerUrl = restaurant?['banner'];
     
     return Padding(
@@ -379,7 +387,9 @@ class HomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const MenuScreen()));
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.black,
@@ -758,6 +768,214 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPromoCardsCarousel(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          const WelcomeOfferCard(),
+          _buildLoyaltyCard(context),
+          _buildFastDeliveryCard(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoyaltyCard(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const LoyaltyRewardsScreen()));
+      },
+      child: Container(
+      width: 220,
+      height: 170,
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFCF4EA), // Light Beige
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.workspace_premium, color: Color(0xFF7A151B), size: 18),
+              const SizedBox(width: 8),
+              const Text('LOYALTY REWARDS', style: TextStyle(color: Color(0xFF7A151B), fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5)),
+            ],
+          ),
+          const Spacer(),
+          const Text('Earn Points &\nGet Exclusive\nRewards', style: TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold, height: 1.3)),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF7A151B),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text('JOIN NOW', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          )
+        ],
+      ),
+    ),
+    );
+  }
+
+  Widget _buildFastDeliveryCard() {
+    return Container(
+      width: 220,
+      height: 170,
+      margin: const EdgeInsets.only(right: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1C1A), // Dark Black/Brown
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.two_wheeler, color: Color(0xFFC79854), size: 18), 
+              const SizedBox(width: 8),
+              const Text('FAST DELIVERY', style: TextStyle(color: Color(0xFFC79854), fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1)),
+            ],
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              const Icon(Icons.delivery_dining, color: Color(0xFFC79854), size: 48),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('30-40', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                  const Text('mins', style: TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'serif')),
+                ],
+              )
+            ],
+          ),
+          const Spacer(),
+          const Text('At Your Doorstep', style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+}
+class WelcomeOfferCard extends StatefulWidget {
+  const WelcomeOfferCard({super.key});
+
+  @override
+  State<WelcomeOfferCard> createState() => _WelcomeOfferCardState();
+}
+
+class _WelcomeOfferCardState extends State<WelcomeOfferCard> with SingleTickerProviderStateMixin {
+  bool _isCopied = false;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.elasticOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _copyCode() {
+    if (_isCopied) return;
+    Clipboard.setData(const ClipboardData(text: 'LASSI20'));
+    setState(() {
+      _isCopied = true;
+    });
+    _animationController.forward().then((_) => _animationController.reverse());
+    
+    // Reset back to original text after 3 seconds
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _isCopied = false;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 220,
+      height: 170,
+      margin: const EdgeInsets.only(left: 16, right: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF630A10), // Maroon
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.card_giftcard, color: Color(0xFFE8D090), size: 16),
+              const SizedBox(width: 8),
+              const Text('WELCOME OFFER', style: TextStyle(color: Color(0xFFE8D090), fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1)),
+            ],
+          ),
+          const Spacer(),
+          const Text('20% OFF', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, fontFamily: 'serif')),
+          const SizedBox(height: 4),
+          const Text('On Your First Order', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+          const Spacer(),
+          GestureDetector(
+            onTap: _copyCode,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _isCopied ? const Color(0xFFE8D090) : Colors.transparent,
+                  border: Border.all(color: const Color(0xFFE8D090), width: 1.5),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _isCopied ? 'CODE COPIED!' : 'CODE: LASSI20', 
+                      style: TextStyle(
+                        color: _isCopied ? const Color(0xFF630A10) : const Color(0xFFE8D090), 
+                        fontWeight: FontWeight.bold, 
+                        fontSize: 12
+                      )
+                    ),
+                    if (_isCopied) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.check_circle, color: Color(0xFF630A10), size: 14),
+                    ]
+                  ],
+                ),
+              ),
+            ),
+          )
+        ],
+      ),
     );
   }
 }

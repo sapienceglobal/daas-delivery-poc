@@ -14,6 +14,7 @@ import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
 import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
 import 'package:single_restaurant_mobile/screens/notification_settings_screen.dart';
 import 'package:single_restaurant_mobile/screens/edit_profile_screen.dart';
+import 'package:single_restaurant_mobile/screens/book_table_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -275,6 +276,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
+          _buildMenuItem(Icons.event_seat_outlined, 'Book a Table', 'Reserve your dining table', onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BookTableScreen()),
+            );
+          }),
+          const Divider(height: 1, indent: 64),
           _buildMenuItem(Icons.favorite_border, 'Favorites', 'Your liked items', onTap: () {
             Navigator.push(
               context,

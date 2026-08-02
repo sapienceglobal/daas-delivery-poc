@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
@@ -9,6 +10,7 @@ import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/widgets/cart_item_card.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/checkout_screen.dart';
+import 'package:single_restaurant_mobile/screens/loyalty_rewards_screen.dart';
 import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/screens/saved_addresses_screen.dart';
 
@@ -20,6 +22,33 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
+  Timer? _debounceTimer;
+  double _lastSubtotal = -1;
+
+  void _onCartSubtotalChanged(CartProvider cartProvider, CheckoutProvider checkoutProvider) {
+    if (_lastSubtotal != cartProvider.subtotal) {
+      _lastSubtotal = cartProvider.subtotal;
+      
+      // Cancel previous timer
+      if (_debounceTimer?.isActive ?? false) {
+        _debounceTimer!.cancel();
+      }
+      
+      // Debounce the backend validation
+      _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+        if (mounted && cartProvider.items.isNotEmpty && cartProvider.restaurant != null) {
+          checkoutProvider.fetchQuoteIfNeeded(cartProvider);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -83,7 +112,7 @@ class _CartScreenState extends State<CartScreen> {
               );
             },
           )
-        ],
+        ], 
       ),
       body: Consumer4<CartProvider, CheckoutProvider, AddressProvider, AuthProvider>(
         builder: (context, cartProvider, checkoutProvider, addressProvider, authProvider, child) {
@@ -95,10 +124,10 @@ class _CartScreenState extends State<CartScreen> {
             return _buildEmptyCart(context);
           }
 
-          // Ensure ETA is fetched once cart is loaded
-          if (checkoutProvider.etaData == null && !checkoutProvider.etaLoading && !checkoutProvider.etaErrorFlag && cartProvider.restaurant != null) {
+          // Ensure ETA is fetched once cart is loaded and on subtotal changes
+          if (cartProvider.restaurant != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              checkoutProvider.fetchETA(cartProvider);
+              _onCartSubtotalChanged(cartProvider, checkoutProvider);
             });
           }
 
@@ -512,11 +541,11 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 GestureDetector(
                   onTap: () {
-                    checkout.toggleLoyaltyPoints(!checkout.useLoyaltyPoints);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const LoyaltyRewardsScreen()));
                   },
                   child: Row(
                     children: [
-                      Text(checkout.useLoyaltyPoints ? 'Applied' : 'Apply Points', style: const TextStyle(color: Color(0xFF7A0B10), fontWeight: FontWeight.bold, fontSize: 14)),
+                      Text('Redeem Now', style: const TextStyle(color: Color(0xFF7A0B10), fontWeight: FontWeight.bold, fontSize: 14)),
                       const Icon(Icons.chevron_right, color: Color(0xFF7A0B10), size: 18),
                     ],
                   ),
@@ -605,12 +634,14 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildBottomBar(BuildContext context, double total, {bool canProceed = true, String errorReason = ''}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24, top: 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-      ),
+    return SafeArea(
+      bottom: true,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 16),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+        ),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
@@ -651,6 +682,7 @@ class _CartScreenState extends State<CartScreen> {
             )
           ],
         ),
+      ),
       ),
     );
   }
@@ -711,8 +743,20 @@ class _CartScreenState extends State<CartScreen> {
               onPressed: () async {
                 if (_controller.text.trim().isNotEmpty) {
                   checkout.setCouponCode(_controller.text.trim());
-                  await checkout.handleApplyCoupon(cart);
-                  if (mounted) Navigator.pop(context);
+                  try {
+                    await checkout.handleApplyCoupon(cart);
+                    if (mounted) Navigator.pop(context);
+                  } catch (e) {
+                    if (mounted) {
+                      Navigator.pop(context); // Close dialog first
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(e.toString().replaceAll('Exception: ', '')),
+                          backgroundColor: Colors.red.shade800,
+                        ),
+                      );
+                    }
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(

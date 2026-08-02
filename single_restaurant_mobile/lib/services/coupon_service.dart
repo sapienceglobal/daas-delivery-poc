@@ -6,7 +6,7 @@ class CouponService {
     try {
       final response = await ApiService.post('/api/coupons/validate', {
         'code': code,
-        'subtotal': subtotal,
+        'cartValue': subtotal,
         'restaurantId': restaurantId,
       });
       
@@ -15,6 +15,17 @@ class CouponService {
     } catch (e) {
       // ApiService throws HttpException for 4xx/5xx errors
       rethrow;
+    }
+  }
+
+  Future<List<dynamic>> getCoupons({bool activeOnly = true}) async {
+    try {
+      final response = await ApiService.get('/api/coupons?active=$activeOnly');
+      final data = json.decode(response.body);
+      return data['data'] ?? [];
+    } catch (e) {
+      print('Error fetching coupons: $e');
+      return [];
     }
   }
 }

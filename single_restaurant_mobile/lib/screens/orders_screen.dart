@@ -6,6 +6,7 @@ import 'package:single_restaurant_mobile/providers/order_provider.dart';
 import 'package:single_restaurant_mobile/services/socket_service.dart';
 import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
 
 class OrdersScreen extends StatefulWidget {
@@ -20,6 +21,10 @@ class OrdersScreen extends StatefulWidget {
 class _OrdersScreenState extends State<OrdersScreen> {
   final List<String> _filters = ['All Orders', 'Ongoing', 'Delivered', 'Cancelled'];
   String _selectedFilter = 'All Orders';
+  
+  bool _isSearching = false;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -96,41 +101,72 @@ class _OrdersScreenState extends State<OrdersScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
           onPressed: widget.onBack,
         ),
-        title: const Text(
-          'My Orders',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 24),
-        ),
+        title: _isSearching 
+          ? TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Search orders...',
+                border: InputBorder.none,
+                hintStyle: TextStyle(color: Colors.black54),
+              ),
+              style: const TextStyle(color: Colors.black, fontSize: 18),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+            )
+          : const Text(
+              'My Orders',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 24),
+            ),
         centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.black, size: 26),
-            onPressed: () {},
+            icon: Icon(_isSearching ? Icons.close : Icons.search, color: Colors.black, size: 26),
+            onPressed: () {
+              setState(() {
+                if (_isSearching) {
+                  _isSearching = false;
+                  _searchQuery = '';
+                  _searchController.clear();
+                } else {
+                  _isSearching = true;
+                }
+              });
+            },
           ),
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_none_outlined, size: 28),
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
-                  },
-                  color: AppColors.textDark,
-                ),
-                Positioned(
-                  right: 8,
-                  top: 12,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
+            child: Consumer<NotificationProvider>(
+              builder: (context, notificationProvider, child) {
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.notifications_none_outlined, size: 28),
+                      onPressed: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
+                      },
+                      color: AppColors.textDark,
                     ),
-                  ),
-                )
-              ],
+                    if (notificationProvider.hasUnread)
+                      Positioned(
+                        right: 8,
+                        top: 12,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      )
+                  ],
+                );
+              }
             ),
           )
         ],
@@ -149,15 +185,28 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   return Center(child: Text('Error: ${provider.error}', style: const TextStyle(color: Colors.red)));
                 }
 
-                if (provider.orders.isEmpty) {
+                List<dynamic> displayOrders = provider.orders;
+                if (_searchQuery.isNotEmpty) {
+                  final query = _searchQuery.toLowerCase();
+                  displayOrders = displayOrders.where((order) {
+                    final orderId = order['_id']?.toString().toLowerCase() ?? '';
+                    final items = (order['items'] as List<dynamic>?) ?? [];
+                    final hasMatchingItem = items.any((item) => 
+                      (item['menuItemId']?['name']?.toString().toLowerCase() ?? '').contains(query)
+                    );
+                    return orderId.contains(query) || hasMatchingItem;
+                  }).toList();
+                }
+
+                if (displayOrders.isEmpty) {
                   return const Center(child: Text('No orders found.'));
                 }
 
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: provider.orders.length,
+                  itemCount: displayOrders.length,
                   itemBuilder: (context, index) {
-                    return OrderCard(order: provider.orders[index]);
+                    return OrderCard(order: displayOrders[index]);
                   },
                 );
               },

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class ApiService {
@@ -91,6 +92,8 @@ class ApiService {
       return _handleResponse(response);
     } on TimeoutException {
       throw HttpException('Server request timed out. Please try again.');
+    } on SocketException {
+      throw HttpException('No internet connection. Please check your network.');
     } on HttpException {
       rethrow; // Don't wrap our own HttpException in "Unable to connect"
     } catch (error) {

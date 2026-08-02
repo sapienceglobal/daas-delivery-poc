@@ -4,6 +4,7 @@ import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/services/reservation_service.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/screens/login_screen.dart';
 import 'package:intl/intl.dart';
 
 class BookTableScreen extends StatefulWidget {
@@ -113,6 +114,10 @@ class _BookTableScreenState extends State<BookTableScreen> {
     if (!authProvider.isAuthenticated) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please login to book a table')),
+      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
       return;
     }

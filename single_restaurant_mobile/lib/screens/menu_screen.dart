@@ -3,11 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/widgets/menu_item_card.dart';
+import 'package:single_restaurant_mobile/widgets/shimmer_loading.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
 import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/screens/search_screen.dart';
-import 'package:single_restaurant_mobile/screens/main_screen.dart';
+import 'package:single_restaurant_mobile/screens/cart_screen.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -38,7 +39,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
     if (categories.isEmpty) {
       if (restaurantProvider.isLoading) {
-        return const Center(child: CircularProgressIndicator(color: Colors.red));
+        return const MenuShimmer();
       }
       return const Center(child: Text('No menu available.'));
     }
@@ -390,7 +391,7 @@ class _MenuScreenState extends State<MenuScreen> {
             IconButton(
               icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87),
               onPressed: () {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 2)));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const CartScreen()));
               },
             ),
             if (itemCount > 0)

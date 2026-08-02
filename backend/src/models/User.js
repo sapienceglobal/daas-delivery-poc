@@ -101,6 +101,14 @@ const UserSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  isLoyaltyMember: {
+    type: Boolean,
+    default: false
+  },
+  lastLoginBonusDate: {
+    type: Date,
+    default: null
+  },
 
   // ── Social Login ──────────────────────────────────────────────────────
   socialLogin: {

@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/services/coupon_service.dart';
+import 'package:provider/provider.dart';
+import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
+import 'package:single_restaurant_mobile/providers/cart_provider.dart';
+import 'package:single_restaurant_mobile/screens/cart_screen.dart';
+import 'package:single_restaurant_mobile/screens/loyalty_rewards_screen.dart';
+import 'package:single_restaurant_mobile/screens/referral_screen.dart';
 
 class OffersScreen extends StatefulWidget {
   const OffersScreen({super.key});
@@ -11,10 +18,31 @@ class OffersScreen extends StatefulWidget {
 class _OffersScreenState extends State<OffersScreen> {
   final PageController _pageController = PageController();
   int _currentHeroIndex = 0;
+  List<dynamic> _coupons = [];
+  bool _isLoading = true;
+  final TextEditingController _promoController = TextEditingController();
+  bool _isApplying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCoupons();
+  }
+
+  Future<void> _fetchCoupons() async {
+    final coupons = await CouponService().getCoupons(activeOnly: true);
+    if (mounted) {
+      setState(() {
+        _coupons = coupons;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _promoController.dispose();
     super.dispose();
   }
 
@@ -67,24 +95,12 @@ class _OffersScreenState extends State<OffersScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
+          : SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Location Row
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.location_on, color: AppColors.secondary, size: 18),
-                  const SizedBox(width: 8),
-                  const Text('Deliver to 34 Union Avenue, Patiala', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
-                  const SizedBox(width: 4),
-                  Icon(Icons.keyboard_arrow_down, color: AppColors.secondary.withOpacity(0.8), size: 18),
-                ],
-              ),
-            ),
-            
             // Promo Code Input
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
@@ -100,7 +116,7 @@ class _OffersScreenState extends State<OffersScreen> {
                       child: Icon(Icons.local_activity_outlined, color: Colors.black54, size: 20),
                     ),
                     Expanded(
-                      child: TextField(
+                      child: TextField(controller: _promoController,
                         decoration: InputDecoration(
                           hintText: 'Enter promo code',
                           hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
@@ -113,14 +129,52 @@ class _OffersScreenState extends State<OffersScreen> {
                     Container(
                       margin: const EdgeInsets.only(right: 4),
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () async {
+                          if (_promoController.text.trim().isEmpty) return;
+                          
+                          final checkout = Provider.of<CheckoutProvider>(context, listen: false);
+                          final cart = Provider.of<CartProvider>(context, listen: false);
+                          
+                          if (cart.items.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: const Text('Add items to cart first'), backgroundColor: Colors.red.shade800),
+                            );
+                            return;
+                          }
+                          
+                          setState(() => _isApplying = true);
+                          checkout.setCouponCode(_promoController.text.trim());
+                          
+                          try {
+                            await checkout.handleApplyCoupon(cart);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Coupon applied successfully!'), backgroundColor: Colors.green),
+                              );
+                              // Pop all the way back to main screen or push cart
+                              if (Navigator.canPop(context)) Navigator.pop(context);
+                              // For simplicity, just pop the offers screen, so they see cart if they came from cart, or menu if they came from profile
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(e.toString().replaceAll('Exception: ', '')),
+                                  backgroundColor: Colors.red.shade800,
+                                ),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isApplying = false);
+                          }
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.secondary,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
                           minimumSize: const Size(0, 40),
                         ),
-                        child: const Text('APPLY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        child: _isApplying ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('APPLY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                       ),
                     ),
                   ],
@@ -130,74 +184,63 @@ class _OffersScreenState extends State<OffersScreen> {
             
             // Hero Banner Carousel
             const SizedBox(height: 12),
-            SizedBox(
-              height: 200,
-              child: PageView.builder(
-                controller: _pageController,
-                onPageChanged: (index) => setState(() => _currentHeroIndex = index),
-                itemCount: 4, // 4 pages as per dots
-                itemBuilder: (context, index) {
-                  return _buildHeroBanner();
-                },
+            if (_coupons.isNotEmpty)
+              SizedBox(
+                height: 220,
+                child: PageView.builder(
+                  controller: _pageController,
+                  onPageChanged: (index) => setState(() => _currentHeroIndex = index),
+                  itemCount: _coupons.length > 3 ? 3 : _coupons.length,
+                  itemBuilder: (context, index) {
+                    return _buildHeroBanner(_coupons[index]);
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            // Carousel Indicators
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(4, (index) {
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _currentHeroIndex == index ? AppColors.secondary : Colors.grey.shade300,
-                  ),
-                );
-              }),
-            ),
+            if (_coupons.isNotEmpty)
+              const SizedBox(height: 12),
+            if (_coupons.isNotEmpty)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(_coupons.length > 3 ? 3 : _coupons.length, (index) {
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _currentHeroIndex == index ? AppColors.secondary : Colors.grey.shade300,
+                    ),
+                  );
+                }),
+              ),
             const SizedBox(height: 24),
             
             // Best Offers For You
             _buildSectionHeader('BEST OFFERS FOR YOU'),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 170,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _buildOfferCard(
-                    iconData: Icons.percent,
-                    iconColor: AppColors.secondary,
-                    title: 'FLAT \$5 OFF',
-                    titleColor: AppColors.secondary,
-                    subtitle: 'on orders above \$30',
-                    code: 'SAVE5',
-                    codeColor: AppColors.secondary,
-                  ),
-                  _buildOfferCard(
-                    iconData: Icons.delivery_dining,
-                    iconColor: Colors.orange.shade700,
-                    title: 'FREE DELIVERY',
-                    titleColor: Colors.orange.shade700,
-                    subtitle: 'on orders above \$25',
-                    code: 'FREE25',
-                    codeColor: Colors.orange.shade700,
-                  ),
-                  _buildOfferCard(
-                    iconData: Icons.shopping_bag,
-                    iconColor: Colors.green.shade700,
-                    title: '50% OFF',
-                    titleColor: Colors.green.shade700,
-                    subtitle: 'on your next order',
-                    code: 'NEXT50',
-                    codeColor: Colors.green.shade700,
-                  ),
-                ],
+            if (_coupons.isEmpty)
+               const Padding(padding: EdgeInsets.all(16), child: Text("No offers available at the moment.")),
+            if (_coupons.isNotEmpty)
+              SizedBox(
+                height: 170,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _coupons.length,
+                  itemBuilder: (context, index) {
+                    final coupon = _coupons[index];
+                    return _buildOfferCard(
+                      iconData: Icons.local_offer,
+                      iconColor: AppColors.secondary,
+                      title: coupon['type'] == 'percentage' ? '${coupon['value']}% OFF' : '\$${coupon['value']} OFF',
+                      titleColor: AppColors.secondary,
+                      subtitle: coupon['minCartValue'] > 0 ? 'on orders above \$${coupon['minCartValue']}' : coupon['description'] ?? 'Exclusive offer',
+                      code: coupon['code'],
+                      codeColor: AppColors.secondary,
+                    );
+                  }
+                ),
               ),
-            ),
             const SizedBox(height: 24),
             
             // Bank Offers
@@ -279,7 +322,7 @@ class _OffersScreenState extends State<OffersScreen> {
     );
   }
 
-  Widget _buildHeroBanner() {
+  Widget _buildHeroBanner(dynamic coupon) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -324,8 +367,8 @@ class _OffersScreenState extends State<OffersScreen> {
                 ),
                 const SizedBox(height: 12),
                 const Text('Get FLAT', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
-                const Text('20% OFF', style: TextStyle(color: Colors.amber, fontSize: 36, fontWeight: FontWeight.bold, height: 1.1)),
-                const Text('on your first order', style: TextStyle(color: Colors.white, fontSize: 14)),
+                Text(coupon['type'] == 'percentage' ? '${coupon['value']}% OFF' : '\$${coupon['value']} OFF', style: const TextStyle(color: Colors.amber, fontSize: 36, fontWeight: FontWeight.bold, height: 1.1)),
+                Text(coupon['firstOrderOnly'] == true ? 'on your first order' : (coupon['description'] ?? 'Limited time offer'), style: const TextStyle(color: Colors.white, fontSize: 14)),
                 const SizedBox(height: 12),
                 
                 // Code Box
@@ -335,13 +378,13 @@ class _OffersScreenState extends State<OffersScreen> {
                     border: Border.all(color: Colors.white54, width: 1, style: BorderStyle.solid), // Dashed border is tricky in basic containers, using solid for now
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('Code: ', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                      Text('LASSI20', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                      SizedBox(width: 8),
-                      Icon(Icons.copy, color: Colors.white, size: 14),
+                      const Text('Code: ', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text(coupon['code'], style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.copy, color: Colors.white, size: 14),
                     ],
                   ),
                 ),
@@ -468,6 +511,13 @@ class _OffersScreenState extends State<OffersScreen> {
 
   Widget _buildMoreWaysTile(IconData icon, String title, String subtitle, {Color iconColor = AppColors.secondary}) {
     return ListTile(
+      onTap: () {
+        if (title == 'Loyalty Rewards') {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const LoyaltyRewardsScreen()));
+        } else if (title == 'Refer & Earn') {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const ReferralScreen()));
+        }
+      },
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
