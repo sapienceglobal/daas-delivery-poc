@@ -11,6 +11,7 @@ import 'package:single_restaurant_mobile/screens/track_order_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
+import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -82,27 +83,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           )
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildOrderSummary(cart),
-              const SizedBox(height: 16),
-              _buildFulfillmentEstimate(checkout),
-              const SizedBox(height: 24),
-              const Text('PAYMENT METHOD', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.black87)),
-              const SizedBox(height: 12),
-              _buildPaymentMethods(checkout, auth),
-              const SizedBox(height: 24),
-              const Text('BILL DETAILS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.black87)),
-              const SizedBox(height: 12),
-              _buildBillDetails(cart, checkout, auth),
-              const SizedBox(height: 100), // Spacing for bottom bar
-            ],
-          ),
-        ),
+      body: Consumer<LoyaltyProvider>(
+        builder: (context, loyalty, _) {
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildOrderSummary(cart),
+                  const SizedBox(height: 16),
+                  _buildFulfillmentEstimate(checkout),
+                  const SizedBox(height: 24),
+                  const Text('PAYMENT METHOD', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.black87)),
+                  const SizedBox(height: 12),
+                  _buildPaymentMethods(checkout, auth),
+                  const SizedBox(height: 24),
+                  if (loyalty.isLoyaltyMember && loyalty.currentBalance > 0) ...[
+                    _buildLassiCoinsSection(checkout, loyalty, cart),
+                    const SizedBox(height: 24),
+                  ],
+                  const Text('BILL DETAILS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.black87)),
+                  const SizedBox(height: 12),
+                  _buildBillDetails(cart, checkout, loyalty),
+                  const SizedBox(height: 100),
+                ],
+              ),
+            ),
+          );
+        },
       ),
       bottomSheet: _buildBottomAction(cart, checkout, auth),
     );
@@ -417,15 +426,59 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildBillDetails(CartProvider cart, CheckoutProvider checkout, AuthProvider auth) {
+  Widget _buildLassiCoinsSection(CheckoutProvider checkout, LoyaltyProvider loyalty, CartProvider cart) {
+    final balance = loyalty.currentBalance;
+    final maxDiscount = (balance / 100); // 100 coins = $1
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.orange.shade50, Colors.amber.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.monetization_on, color: Colors.orange, size: 32),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Lassi Coins', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(
+                  checkout.useLoyaltyPoints
+                      ? 'Using $balance coins = \$${maxDiscount.toStringAsFixed(2)} off'
+                      : 'You have $balance coins = \$${maxDiscount.toStringAsFixed(2)} available',
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: checkout.useLoyaltyPoints,
+            onChanged: (val) => checkout.toggleLoyaltyPoints(val),
+            activeColor: const Color(0xFF7A0B10),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBillDetails(CartProvider cart, CheckoutProvider checkout, LoyaltyProvider loyalty) {
     final subtotal = cart.subtotal;
     final deliveryFee = checkout.getDeliveryFee(cart);
     final platformFee = checkout.getPlatformFee();
     final serviceFee = checkout.getServiceFee(cart);
     final tax = cart.tax;
-    final loyaltyDiscount = checkout.useLoyaltyPoints ? ((auth.user?.loyaltyPoints ?? 0) / 100) : 0.0;
-    final totalDiscount = checkout.couponDiscount + loyaltyDiscount;
-    final total = checkout.getTotal(cart) - loyaltyDiscount;
+    final couponDiscount = checkout.couponDiscount;
+    final loyaltyDiscount = checkout.useLoyaltyPoints
+        ? (loyalty.currentBalance / 100).clamp(0.0, subtotal + tax + deliveryFee + platformFee + serviceFee - couponDiscount)
+        : 0.0;
+    final total = (subtotal + tax + deliveryFee + platformFee + serviceFee - couponDiscount - loyaltyDiscount).clamp(0.0, double.infinity);
 
     return Container(
       decoration: const BoxDecoration(color: Colors.transparent),
@@ -436,14 +489,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           _buildBillRow('Platform Fee', platformFee, isInfo: true),
           _buildBillRow('Service Fee (3%)', serviceFee, isInfo: true),
           _buildBillRow('Taxes', tax, isInfo: true),
-          if (totalDiscount > 0)
+          if (couponDiscount > 0)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 6.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Discount', style: TextStyle(color: Colors.green.shade700, fontSize: 14)),
-                  Text('-\$${totalDiscount.toStringAsFixed(2)}', style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.bold, fontSize: 14)),
+                  Row(children: [
+                    Icon(Icons.local_offer_outlined, color: Colors.green.shade700, size: 14),
+                    const SizedBox(width: 4),
+                    Text('Coupon Discount', style: TextStyle(color: Colors.green.shade700, fontSize: 14)),
+                  ]),
+                  Text('-\$${couponDiscount.toStringAsFixed(2)}', style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.bold, fontSize: 14)),
+                ],
+              ),
+            ),
+          if (loyaltyDiscount > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(children: [
+                    const Icon(Icons.monetization_on, color: Colors.orange, size: 14),
+                    const SizedBox(width: 4),
+                    Text('Lassi Coins (${loyalty.currentBalance} pts)', style: const TextStyle(color: Colors.orange, fontSize: 14)),
+                  ]),
+                  Text('-\$${loyaltyDiscount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 14)),
                 ],
               ),
             ),
@@ -525,6 +597,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   try {
                     final orderId = await checkout.handlePlaceOrder(context, cart, auth);
                     if (orderId != null && mounted) {
+                      // Refresh loyalty balance to reflect points earned
+                      context.read<LoyaltyProvider>().fetchHistory(refresh: true);
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order placed successfully!')));
                       Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const MainScreen()), (route) => false);
                       Navigator.push(context, MaterialPageRoute(builder: (_) => TrackOrderScreen(orderId: orderId)));

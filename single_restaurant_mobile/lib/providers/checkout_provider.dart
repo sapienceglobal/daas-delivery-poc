@@ -131,6 +131,13 @@ class CheckoutProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void setCouponCode(String code) {
+    _couponCode = code;
+    _couponApplied = false;
+    _couponDiscount = 0.0;
+    notifyListeners();
+  }
+
   void autoSelectDefaultAddress(AddressProvider addressProvider, CartProvider cart) {
     if (addressProvider.addresses.isNotEmpty && _addressLine1.isEmpty) {
       final defaultAddr = addressProvider.addresses.first;
@@ -202,10 +209,7 @@ class CheckoutProvider with ChangeNotifier {
     notifyListeners();
   }
   
-  void setCouponCode(String val) {
-    _couponCode = val;
-    notifyListeners();
-  }
+
 
   void handleSelectSavedAddress(Map<String, dynamic> addrObj, CartProvider cart) {
     final rawAddress = addrObj['address'] ?? addrObj['addressLine1'];
@@ -474,7 +478,7 @@ class CheckoutProvider with ChangeNotifier {
         'orderType': _isDelivery ? 'delivery' : 'pickup',
         'tip': _tip,
         'couponCode': _couponApplied ? _couponCode : null,
-        'useLoyaltyPoints': false, // Add loyalty points logic later if needed
+        'useLoyaltyPoints': _useLoyaltyPoints,
         'address': compiledAddress,
         'specialInstructions': _deliveryInstructions,
       };

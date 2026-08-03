@@ -17,6 +17,7 @@ import 'package:single_restaurant_mobile/screens/menu_screen.dart';
 import 'package:single_restaurant_mobile/screens/cart_screen.dart';
 import 'package:single_restaurant_mobile/screens/loyalty_rewards_screen.dart';
 import 'package:single_restaurant_mobile/screens/delivery_partners_screen.dart';
+import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
 import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
@@ -786,43 +787,54 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildLoyaltyCard(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const LoyaltyRewardsScreen()));
-      },
-      child: Container(
-      width: 220,
-      height: 170,
-      margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFCF4EA), // Light Beige
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.workspace_premium, color: Color(0xFF7A151B), size: 18),
-              const SizedBox(width: 8),
-              const Text('LOYALTY REWARDS', style: TextStyle(color: Color(0xFF7A151B), fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5)),
-            ],
-          ),
-          const Spacer(),
-          const Text('Earn Points &\nGet Exclusive\nRewards', style: TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold, height: 1.3)),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+    return Consumer<LoyaltyProvider>(
+      builder: (context, loyalty, _) {
+        final isMember = loyalty.isLoyaltyMember;
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const LoyaltyRewardsScreen()));
+          },
+          child: Container(
+            width: 220,
+            height: 170,
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF7A151B),
-              borderRadius: BorderRadius.circular(8),
+              color: const Color(0xFFFCF4EA), // Light Beige
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: const Text('JOIN NOW', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-          )
-        ],
-      ),
-    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.workspace_premium, color: Color(0xFF7A151B), size: 18),
+                    const SizedBox(width: 8),
+                    const Text('LOYALTY REWARDS', style: TextStyle(color: Color(0xFF7A151B), fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5)),
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  isMember ? 'You have\n${loyalty.currentBalance} Points\nAvailable' : 'Earn Points &\nGet Exclusive\nRewards',
+                  style: const TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold, height: 1.3),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7A151B),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    isMember ? 'VIEW REWARDS' : 'JOIN NOW',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

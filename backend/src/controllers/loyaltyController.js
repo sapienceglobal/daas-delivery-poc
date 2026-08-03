@@ -14,22 +14,33 @@ export const getMyLoyaltyHistory = asyncHandler(async (req, response) => {
   const limit = Math.min(50, parseInt(req.query.limit) || 20);
   const skip = (page - 1) * limit;
 
+  const LoyaltyTransaction = req.getModel('LoyaltyTransaction');
+  const User = req.getModel('User');
+
   const [transactions, total] = await Promise.all([
     LoyaltyTransaction.find({ userId: req.user._id })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate('orderId', 'orderNumber restaurantName')
+      .populate('reward.couponId', 'code expiresAt')
       .lean(),
     LoyaltyTransaction.countDocuments({ userId: req.user._id })
   ]);
 
-  const user = await User.findById(req.user._id).select('loyaltyPoints isLoyaltyMember');
+  const user = await User.findById(req.user._id).select('loyaltyPoints isLoyaltyMember lastLoginBonusDate');
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const hasClaimedDaily = user?.lastLoginBonusDate && user.lastLoginBonusDate >= today;
 
   res.success(response, {
-    data: transactions,
-    currentBalance: user?.loyaltyPoints || 0,
-    isLoyaltyMember: user?.isLoyaltyMember || false,
+    data: {
+      transactions,
+      currentBalance: user?.loyaltyPoints || 0,
+      isLoyaltyMember: user?.isLoyaltyMember || false,
+      hasClaimedDaily
+    },
     pagination: res.buildPagination(page, limit, total)
   });
 });
@@ -38,6 +49,8 @@ export const getMyLoyaltyHistory = asyncHandler(async (req, response) => {
  * Join Loyalty Program
  */
 export const joinProgram = asyncHandler(async (req, response) => {
+  const User = req.getModel('User');
+  const LoyaltyTransaction = req.getModel('LoyaltyTransaction');
   const user = await User.findById(req.user._id);
   if (user.isLoyaltyMember) {
     throw new AppError('You are already a member of the loyalty program', 400);
@@ -62,10 +75,13 @@ export const joinProgram = asyncHandler(async (req, response) => {
 });
 
 /**
- * Earn points via actions (login, review, refer)
+ * Earn points via actions (login, review)
  */
 export const earnPoints = asyncHandler(async (req, response) => {
-  const { action } = req.body;
+  const User = req.getModel('User');
+  const LoyaltyTransaction = req.getModel('LoyaltyTransaction');
+  const Order = req.getModel('Order');
+  const { action, orderId } = req.body;
   const user = await User.findById(req.user._id);
 
   if (!user.isLoyaltyMember) {
@@ -86,12 +102,36 @@ export const earnPoints = asyncHandler(async (req, response) => {
     user.lastLoginBonusDate = new Date();
     pointsToAward = 5;
     description = 'Daily Login Bonus';
+
   } else if (action === 'review') {
+    // Must provide an orderId for the review
+    if (!orderId) {
+      throw new AppError('Please provide the orderId for the order you are reviewing', 400);
+    }
+
+    // Order must belong to this user and be delivered
+    const order = await Order.findOne({ _id: orderId, userId: req.user._id, status: 'delivered' });
+    if (!order) {
+      throw new AppError('You can only earn review points for your own completed orders', 400);
+    }
+
+    // Check if review bonus already claimed for this order
+    const alreadyClaimed = await LoyaltyTransaction.findOne({
+      userId: req.user._id,
+      description: `Review Bonus for order ${orderId}`
+    });
+    if (alreadyClaimed) {
+      throw new AppError('You have already earned review points for this order', 400);
+    }
+
     pointsToAward = 20;
-    description = 'Review Bonus';
+    description = `Review Bonus for order ${orderId}`;
+
   } else if (action === 'refer') {
-    pointsToAward = 100;
-    description = 'Refer a Friend Bonus';
+    // Refer bonus is awarded only by the referral system when a referred user completes their first order.
+    // This endpoint cannot be used to self-claim referral points.
+    throw new AppError('Referral points are automatically awarded when your referred friend places their first order', 400);
+
   } else {
     throw new AppError('Invalid action type', 400);
   }
@@ -107,13 +147,19 @@ export const earnPoints = asyncHandler(async (req, response) => {
     description
   });
 
-  res.success(response, { message: `Earned ${pointsToAward} points!`, points: user.loyaltyPoints });
+  res.success(response, { 
+    message: `Earned ${pointsToAward} points!`, 
+    data: { points: user.loyaltyPoints } 
+  });
 });
 
 /**
  * Redeem points for a discount coupon
  */
 export const redeemPoints = asyncHandler(async (req, response) => {
+  const User = req.getModel('User');
+  const LoyaltyTransaction = req.getModel('LoyaltyTransaction');
+  const Coupon = req.getModel('Coupon');
   const { points, expectedDiscount } = req.body;
   const user = await User.findById(req.user._id);
 
@@ -135,7 +181,10 @@ export const redeemPoints = asyncHandler(async (req, response) => {
 
   // Create single-use flat discount coupon
   const couponCode = `LOYALTY${expectedDiscount}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
-  
+  // Set expiry to 30 days from now
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 30);
+
   const coupon = await Coupon.create({
     code: couponCode,
     description: `Redeemed ${points} Loyalty Points for $${expectedDiscount} OFF`,
@@ -143,7 +192,8 @@ export const redeemPoints = asyncHandler(async (req, response) => {
     value: expectedDiscount,
     maxUses: 1,
     maxUsesPerUser: 1,
-    isActive: true
+    isActive: true,
+    endDate: expiresAt
   });
 
   // Log transaction
@@ -162,7 +212,9 @@ export const redeemPoints = asyncHandler(async (req, response) => {
 
   res.success(response, { 
     message: 'Points redeemed successfully', 
-    couponCode: coupon.code,
-    points: user.loyaltyPoints 
+    data: {
+      couponCode: coupon.code,
+      points: user.loyaltyPoints 
+    }
   });
 });

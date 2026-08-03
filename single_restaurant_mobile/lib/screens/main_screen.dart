@@ -8,6 +8,7 @@ import 'package:single_restaurant_mobile/screens/offers_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
+import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/services/ota_update_service.dart';
 
 class MainScreen extends StatefulWidget {
@@ -30,9 +31,14 @@ class _MainScreenState extends State<MainScreen> {
     _currentIndex = widget.initialIndex;
     _navigationHistory.add(_currentIndex);
     
-    // Background OTA check
+    // Background OTA check and initialize providers
     WidgetsBinding.instance.addPostFrameCallback((_) {
       OtaUpdateService().checkForUpdate(context, isManual: false);
+      
+      final authProv = context.read<AuthProvider>();
+      if (authProv.isAuthenticated) {
+        context.read<LoyaltyProvider>().fetchHistory();
+      }
     });
   }
 

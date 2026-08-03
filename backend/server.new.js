@@ -207,8 +207,8 @@ const startServer = async () => {
   await connectDB();
   await seedDemoData();
   initChangeStreams(io);
-  startDoorDashPolling(io, getTenantModel);
-  initCronJobs(io, getTenantModel);
+  startDoorDashPolling(io, (model) => getTenantModel('lassi-lounge', model));
+  initCronJobs(io, (model) => getTenantModel('lassi-lounge', model));
 
   server.listen(PORT, '0.0.0.0', () => {
     logger.info(`Restaurant Commerce Platform running on port ${PORT}`);

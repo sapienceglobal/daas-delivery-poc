@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
+import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
+import 'package:single_restaurant_mobile/providers/cart_provider.dart';
+import 'package:single_restaurant_mobile/screens/orders_screen.dart';
+import 'package:single_restaurant_mobile/screens/referral_screen.dart';
 import 'dart:math' as math;
 
 class LoyaltyRewardsScreen extends StatefulWidget {
@@ -68,6 +73,122 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _showRedeemSuccessDialog(BuildContext context, String couponCode, int discountValue) {
+    final messenger = ScaffoldMessenger.of(context);
+    final checkout = context.read<CheckoutProvider>();
+    final cart = context.read<CartProvider>();
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: EdgeInsets.zero,
+        content: Container(
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [Colors.green.shade600, Colors.teal.shade500]),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: Column(children: [
+                  const Icon(Icons.check_circle, color: Colors.white, size: 48),
+                  const SizedBox(height: 8),
+                  const Text('Coupon Generated!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                  Text('\$$discountValue OFF your next order', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                ]),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(couponCode, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 2)),
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(text: couponCode));
+                              messenger.showSnackBar(const SnackBar(content: Text('Coupon code copied!'), duration: Duration(seconds: 2)));
+                            },
+                            child: const Icon(Icons.copy, color: AppColors.primary, size: 20),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Valid for 30 days • Single use only', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.shopping_cart, size: 18),
+                        label: const Text('Apply to Cart', style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () async {
+                          checkout.setCouponCode(couponCode);
+                          
+                          if (cart.items.isEmpty) {
+                            Navigator.of(ctx).pop();
+                            messenger.showSnackBar(
+                              const SnackBar(content: Text('Coupon copied! Add items to cart to apply.'), backgroundColor: Colors.orange),
+                            );
+                            return;
+                          }
+                          
+                          try {
+                            await checkout.handleApplyCoupon(cart);
+                            if (ctx.mounted) Navigator.of(ctx).pop();
+                            if (checkout.couponApplied) {
+                              messenger.showSnackBar(
+                                const SnackBar(content: Text('Coupon applied successfully to your cart!'), backgroundColor: Colors.green),
+                              );
+                            } else {
+                              messenger.showSnackBar(
+                                const SnackBar(content: Text('Coupon set, but could not be applied.'), backgroundColor: Colors.orange),
+                              );
+                            }
+                          } catch (e) {
+                            if (ctx.mounted) Navigator.of(ctx).pop();
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Use Later', style: TextStyle(color: Colors.grey)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -344,11 +465,10 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
                       ElevatedButton(
                         onPressed: canRedeem ? () async {
                           final res = await loyalty.redeemPoints(reward['points'] as int, reward['off'] as int);
-                          if (res['success']) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Success! Coupon ${res['couponCode']} generated & can be used in Cart!'), backgroundColor: Colors.green, duration: const Duration(seconds: 4)),
-                            );
-                          } else {
+                          if (res['success'] && context.mounted) {
+                            final couponCode = res['couponCode'] as String?;
+                            _showRedeemSuccessDialog(context, couponCode ?? '', reward['off'] as int);
+                          } else if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text(res['message'] ?? 'Failed'), backgroundColor: Colors.red),
                             );
@@ -374,9 +494,7 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
         ],
       ),
     );
-  }
-
-  Widget _buildHowToEarnSection(LoyaltyProvider loyalty) {
+  }  Widget _buildHowToEarnSection(LoyaltyProvider loyalty) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
@@ -384,39 +502,55 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
         children: [
           const Text('How to Earn', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 12),
-          _buildEarnTile(Icons.shopping_bag, 'Order Food', 'Earn 5 points for every \$1 spent', 'Order Now', () {
-             Navigator.pop(context);
-          }),
-          _buildEarnTile(Icons.calendar_today, 'Daily Login Bonus', 'Open app daily to get 5 free points', 'Claim 5 pts', () async {
-             final res = await loyalty.earnPoints('login');
-             if (context.mounted) {
-               ScaffoldMessenger.of(context).showSnackBar(
-                 SnackBar(content: Text(res['message'] ?? ''), backgroundColor: res['success'] == true ? Colors.green : Colors.red),
-               );
-             }
-          }),
-          _buildEarnTile(Icons.rate_review, 'Write a Review', 'Share your experience to get 20 points', 'Review', () async {
-             final res = await loyalty.earnPoints('review');
-             if (context.mounted) {
-               ScaffoldMessenger.of(context).showSnackBar(
-                 SnackBar(content: Text(res['message'] ?? ''), backgroundColor: res['success'] == true ? Colors.green : Colors.red),
-               );
-             }
-          }),
-          _buildEarnTile(Icons.group_add, 'Refer a Friend', 'Invite friends and get 100 points', 'Invite', () async {
-             final res = await loyalty.earnPoints('refer');
-             if (context.mounted) {
-               ScaffoldMessenger.of(context).showSnackBar(
-                 SnackBar(content: Text(res['message'] ?? ''), backgroundColor: res['success'] == true ? Colors.green : Colors.red),
-               );
-             }
-          }),
+          _buildEarnTile(
+            Icons.shopping_bag,
+            'Order Food',
+            'Earn 5 points for every \$1 spent',
+            'Order Now',
+            () { Navigator.pop(context); },
+          ),
+          _buildEarnTile(
+            Icons.calendar_today,
+            'Daily Login Bonus',
+            loyalty.hasClaimedDaily
+                ? 'Already claimed today — come back tomorrow!'
+                : 'Open app daily to get 5 free points',
+            loyalty.hasClaimedDaily ? 'Claimed ✓' : 'Claim 5 pts',
+            loyalty.hasClaimedDaily
+                ? null
+                : () async {
+                    final res = await loyalty.earnPoints('login');
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(res['message'] ?? ''),
+                          backgroundColor: res['success'] == true ? Colors.green : Colors.red,
+                        ),
+                      );
+                    }
+                  },
+            isClaimed: loyalty.hasClaimedDaily,
+          ),
+          _buildEarnTile(
+            Icons.rate_review,
+            'Write a Review',
+            'Review a delivered order — earn 20 points per order (once per order)',
+            'Go to Orders',
+            () { Navigator.push(context, MaterialPageRoute(builder: (_) => OrdersScreen(onBack: () => Navigator.pop(context)))); },
+          ),
+          _buildEarnTile(
+            Icons.group_add,
+            'Refer a Friend',
+            'Invite friends to earn 100 points per referral',
+            'Invite',
+            () { Navigator.push(context, MaterialPageRoute(builder: (_) => const ReferralScreen())); },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildEarnTile(IconData icon, String title, String subtitle, String btnText, VoidCallback onTap) {
+  Widget _buildEarnTile(IconData icon, String title, String subtitle, String btnText, VoidCallback? onTap, {bool isClaimed = false}) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
       leading: Container(
@@ -428,9 +562,9 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
       subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       trailing: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: AppColors.primary,
-          side: const BorderSide(color: AppColors.primary),
+          backgroundColor: isClaimed ? Colors.grey.shade300 : Colors.white,
+          foregroundColor: isClaimed ? Colors.grey.shade600 : AppColors.primary,
+          side: BorderSide(color: isClaimed ? Colors.transparent : AppColors.primary),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           minimumSize: const Size(60, 30),
           elevation: 0,
@@ -467,10 +601,17 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
         ),
         const SizedBox(height: 8),
         ...items.map((item) {
-          final isEarned = (item['type'] == 'EARNED' || item['amount'] != null && item['amount'] > 0 || (item['points'] != null && item['points'] > 0));
           final points = item['points'] ?? item['amount'] ?? 0;
+          final isEarned = points > 0;
           final title = item['title'] ?? item['description'] ?? 'Activity';
-          final desc = item['desc'] ?? (item['createdAt'] != null ? item['createdAt'].toString().substring(0, 10) : 'Recent');
+          
+          String desc = item['desc'] ?? (item['createdAt'] != null ? item['createdAt'].toString().substring(0, 10) : 'Recent');
+          if (!isEarned && item['reward'] != null && item['reward']['couponId'] != null) {
+            final coupon = item['reward']['couponId'];
+            final code = coupon['code'] ?? '';
+            final expires = coupon['expiresAt'] != null ? coupon['expiresAt'].toString().substring(0, 10) : '';
+            desc = 'Code:  • Exp: ';
+          }
           
           return ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),

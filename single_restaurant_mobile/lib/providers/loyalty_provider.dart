@@ -7,6 +7,7 @@ class LoyaltyProvider with ChangeNotifier {
   List<dynamic> _transactions = [];
   int _currentBalance = 0;
   bool _isLoyaltyMember = false;
+  bool _hasClaimedDaily = false;
   bool _isLoading = false;
   String? _error;
   
@@ -16,6 +17,7 @@ class LoyaltyProvider with ChangeNotifier {
   List<dynamic> get transactions => _transactions;
   int get currentBalance => _currentBalance;
   bool get isLoyaltyMember => _isLoyaltyMember;
+  bool get hasClaimedDaily => _hasClaimedDaily;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasMore => _hasMore;
@@ -37,9 +39,11 @@ class LoyaltyProvider with ChangeNotifier {
       final response = await _loyaltyService.getLoyaltyHistory(page: _currentPage, limit: 20);
       
       if (response != null && response['success'] == true) {
-        _currentBalance = response['currentBalance'] ?? 0;
-        _isLoyaltyMember = response['isLoyaltyMember'] ?? false;
-        final newTransactions = response['data'] as List<dynamic>? ?? [];
+        final data = response['data'] ?? {};
+        _currentBalance = data['currentBalance'] ?? 0;
+        _isLoyaltyMember = data['isLoyaltyMember'] ?? false;
+        _hasClaimedDaily = data['hasClaimedDaily'] ?? false;
+        final newTransactions = data['transactions'] as List<dynamic>? ?? [];
         
         if (newTransactions.isEmpty) {
           _hasMore = false;
@@ -87,7 +91,8 @@ class LoyaltyProvider with ChangeNotifier {
     
     _isLoading = false;
     if (res['success'] == true) {
-      _currentBalance = res['points'] ?? _currentBalance;
+      final data = res['data'] ?? {};
+      _currentBalance = data['points'] ?? _currentBalance;
       // Option: Refetch history to show new transaction
       fetchHistory(refresh: true);
       notifyListeners();
@@ -108,10 +113,11 @@ class LoyaltyProvider with ChangeNotifier {
     
     _isLoading = false;
     if (res['success'] == true) {
-      _currentBalance = res['points'] ?? _currentBalance;
+      final data = res['data'] ?? {};
+      _currentBalance = data['points'] ?? _currentBalance;
       fetchHistory(refresh: true);
       notifyListeners();
-      return {'success': true, 'couponCode': res['couponCode']};
+      return {'success': true, 'couponCode': data['couponCode']};
     } else {
       _error = res['message'];
       notifyListeners();

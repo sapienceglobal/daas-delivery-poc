@@ -10,6 +10,7 @@ import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/widgets/cart_item_card.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/checkout_screen.dart';
+import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/screens/loyalty_rewards_screen.dart';
 import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/screens/saved_addresses_screen.dart';
@@ -532,7 +533,7 @@ class _CartScreenState extends State<CartScreen> {
                           text: 'You have ',
                           style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                           children: [
-                            TextSpan(text: '${auth.user?.loyaltyPoints ?? 0} points', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF7A0B10))),
+                            TextSpan(text: '${context.read<LoyaltyProvider>().currentBalance} points', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF7A0B10))),
                           ]
                         ),
                       ),

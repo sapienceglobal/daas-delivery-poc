@@ -91,7 +91,7 @@ class OtaUpdateService {
       }
 
       final packageInfo = await PackageInfo.fromPlatform();
-      final currentVersion = packageInfo.version;
+      final currentVersion = '${packageInfo.version}+${packageInfo.buildNumber}';
 
       // FIX 1: Timestamp for Smart Caching
       final response = await dio.get(
