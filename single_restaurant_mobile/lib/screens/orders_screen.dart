@@ -30,20 +30,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchOrders();
-    });
-    
-    // Listen for real-time updates like refunds
-    SocketService().onOrderStatusChanged((data) {
       if (mounted) {
-        _fetchOrders(silent: true);
+        _fetchOrders();
       }
     });
   }
 
   @override
   void dispose() {
-    SocketService().offOrderStatusChanged();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -202,12 +197,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   return const Center(child: Text('No orders found.'));
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: displayOrders.length,
-                  itemBuilder: (context, index) {
-                    return OrderCard(order: displayOrders[index]);
-                  },
+                return RefreshIndicator(
+                  color: AppColors.primary,
+                  onRefresh: () => _fetchOrders(),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: displayOrders.length,
+                    itemBuilder: (context, index) {
+                      return OrderCard(order: displayOrders[index]);
+                    },
+                  ),
                 );
               },
             ),

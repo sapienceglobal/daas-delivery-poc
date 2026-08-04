@@ -157,7 +157,7 @@ export const handleWebhook = async (rawBody, signature, secret) => {
 /**
  * Issue a Refund
  */
-export const refundPayment = async (paymentIntentId, amount = null) => {
+export const refundPayment = async (paymentIntentId, amount = null, optionsOverride = {}) => {
   if (!stripe) throw new Error('Stripe is not configured');
 
   const options = { payment_intent: paymentIntentId };
@@ -165,7 +165,11 @@ export const refundPayment = async (paymentIntentId, amount = null) => {
     options.amount = Math.round(amount * 100);
   }
 
-  const refund = await stripe.refunds.create(options);
+  const requestOptions = optionsOverride.idempotencyKey
+    ? { idempotencyKey: optionsOverride.idempotencyKey }
+    : undefined;
+
+  const refund = await stripe.refunds.create(options, requestOptions);
   return refund;
 };
 

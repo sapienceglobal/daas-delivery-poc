@@ -97,7 +97,11 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
   Widget _buildOrderCard(Map<String, dynamic> order) {
     final orderId = order['_id'] ?? order['id'] ?? '';
-    final status = order['status'] ?? 'pending';
+    final status = (order['status'] ?? 'pending').toString();
+    final paymentStatus = order['paymentStatus']?.toString().toLowerCase();
+    final refundAmount = (order['refundAmount'] as num?)?.toDouble() ?? 0.0;
+    final isRefunded = order['refunded'] == true || paymentStatus == 'refunded' || refundAmount > 0;
+    final displayStatus = isRefunded ? 'refunded' : status;
     final dateStr = order['createdAt'] != null
         ? DateFormat('MMM d, yyyy • hh:mm a').format(DateTime.parse(order['createdAt']).toLocal())
         : 'Unknown Date';
@@ -116,7 +120,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     final items = order['items'] as List? ?? [];
     final itemsSummary = items.map((i) => '${i['quantity']}x ${i['name']}').join(', ');
 
-    final isActive = status != 'delivered' && status != 'cancelled' && status != 'failed';
+    final isActive = status != 'delivered' && status != 'cancelled' && status != 'failed' && !isRefunded;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -141,7 +145,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                     ),
                   ],
                 ),
-                _buildStatusBadge(status),
+                _buildStatusBadge(displayStatus),
               ],
             ),
             const Divider(color: BrandColors.border, height: 24),
@@ -193,6 +197,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   Widget _buildStatusBadge(String status) {
     Color color = BrandColors.cyan;
     if (status == 'delivered') color = BrandColors.green;
+    if (status == 'refunded') color = BrandColors.red;
     if (status == 'cancelled' || status == 'failed') color = BrandColors.red;
 
     return Container(

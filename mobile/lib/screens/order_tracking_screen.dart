@@ -60,7 +60,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   void _startPolling() {
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       final status = _order?['status'];
-      if (status == 'delivered' || status == 'cancelled' || status == 'failed') {
+      final paymentStatus = _order?['paymentStatus']?.toString().toLowerCase();
+      final refundAmount = _amount('refundAmount');
+      final isRefunded = _order?['refunded'] == true || paymentStatus == 'refunded' || refundAmount > 0;
+      final isPaidCancelled = status == 'cancelled' && paymentStatus == 'paid' && !isRefunded;
+      if (status == 'delivered' || status == 'failed' || (status == 'cancelled' && !isPaidCancelled)) {
         _pollingTimer?.cancel();
         return;
       }
@@ -102,7 +106,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
 
             if (updatedData is Map) {
               setState(() {
-                if (updatedData['_id'] == widget.orderId || updatedData['id'] == widget.orderId) {
+                final nestedOrder = updatedData['order'];
+                if (nestedOrder is Map && (nestedOrder['_id'] == widget.orderId || nestedOrder['id'] == widget.orderId)) {
+                  debugPrint('[OrderTrackingScreen] Matched nested order payload. Updating full order.');
+                  _order = Map<String, dynamic>.from(nestedOrder);
+                } else if (updatedData['_id'] == widget.orderId || updatedData['id'] == widget.orderId) {
                   debugPrint('[OrderTrackingScreen] Matched order ID. Updating full order.');
                   _order = Map<String, dynamic>.from(updatedData);
                 } else if (updatedData['status'] != null) {
@@ -112,6 +120,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   if (_order != null) {
                     final mutableOrder = Map<String, dynamic>.from(_order!);
                     mutableOrder['status'] = updatedData['status'];
+                    if (updatedData['paymentStatus'] != null) mutableOrder['paymentStatus'] = updatedData['paymentStatus'];
+                    if (updatedData['refunded'] != null) mutableOrder['refunded'] = updatedData['refunded'];
+                    if (updatedData['refundAmount'] != null) mutableOrder['refundAmount'] = updatedData['refundAmount'];
+                    if (updatedData['refundReason'] != null) mutableOrder['refundReason'] = updatedData['refundReason'];
                     _order = mutableOrder;
                   }
                 }
@@ -252,7 +264,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   @override
   Widget build(BuildContext context) {
     final statusIdx = _getStatusIndex(_order?['status']);
-    final isRefunded = _order?['refunded'] == true || _order?['status'] == 'refunded' || _order?['status'] == 'cancelled';
+    final paymentStatus = _order?['paymentStatus']?.toString().toLowerCase();
+    final refundAmount = _amount('refundAmount');
+    final isRefunded = _order?['refunded'] == true || paymentStatus == 'refunded' || refundAmount > 0;
+    final isCancelled = _order?['status'] == 'cancelled';
+    final isFailed = _order?['status'] == 'failed';
+    final isTerminalCancelled = isRefunded || isCancelled || isFailed;
     final isDelivered = _order?['status'] == 'delivered';
 
     return Scaffold(
@@ -296,13 +313,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: isRefunded
+                                    color: isRefunded || isCancelled || isFailed
                                         ? BrandColors.red.withOpacity(0.15)
                                         : isDelivered
                                             ? BrandColors.green.withOpacity(0.15)
                                             : BrandColors.cyan.withOpacity(0.15),
                                     border: Border.all(
-                                      color: isRefunded
+                                      color: isRefunded || isCancelled || isFailed
                                           ? BrandColors.red.withOpacity(0.5)
                                           : isDelivered
                                               ? BrandColors.green.withOpacity(0.5)
@@ -313,9 +330,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                                   child: Text(
                                     isRefunded
                                         ? 'REFUNDED'
+                                        : isCancelled
+                                            ? 'CANCELLED'
+                                            : isFailed
+                                                ? 'FAILED'
                                         : _order?['status']?.toUpperCase() ?? '',
                                     style: TextStyle(
-                                      color: isRefunded
+                                      color: isRefunded || isCancelled || isFailed
                                           ? BrandColors.red
                                           : isDelivered
                                               ? BrandColors.green
@@ -348,7 +369,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       const SizedBox(height: 16),
 
                       // Interactive OSM map tracker
-                      if (!isRefunded) ...[
+                      if (!isTerminalCancelled) ...[
                         GlassContainer(
                           padding: const EdgeInsets.all(24),
                           child: Column(
@@ -486,7 +507,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       ],
 
                       // Refund alert block
-                      if (isRefunded) ...[
+                      if (isRefunded || isCancelled || isFailed) ...[
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -494,17 +515,25 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                             border: Border.all(color: BrandColors.red.withOpacity(0.3)),
                             borderRadius: BorderRadius.circular(24),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
-                              Icon(Icons.warning_amber_rounded, color: BrandColors.red, size: 28),
-                              SizedBox(width: 12),
+                              const Icon(Icons.warning_amber_rounded, color: BrandColors.red, size: 28),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Order Cancelled & Payout Reversed', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                                    SizedBox(height: 2),
-                                    Text('This transaction has been refunded back to the payment source.', style: TextStyle(color: BrandColors.textMuted, fontSize: 11)),
+                                    Text(
+                                      isRefunded ? 'Order Refunded' : isFailed ? 'Order Failed' : 'Order Cancelled',
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      isRefunded
+                                          ? 'This transaction has been refunded back to the payment source.'
+                                          : 'This order will not be delivered. If payment was captured, refund processing will appear here once confirmed.',
+                                      style: const TextStyle(color: BrandColors.textMuted, fontSize: 11),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -518,7 +547,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       const SizedBox(height: 16),
 
                       // Horizontal timeline step indicator
-                      if (!isRefunded)
+                      if (!isTerminalCancelled)
                         GlassContainer(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

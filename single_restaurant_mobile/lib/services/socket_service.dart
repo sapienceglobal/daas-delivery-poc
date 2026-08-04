@@ -18,14 +18,22 @@ class SocketService {
     final String baseUrl = ApiService.baseUrl;
     final String? token = ApiService.authToken;
 
-    _socket = IO.io(baseUrl, <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': true,
-      'extraHeaders': {
-        'x-app-secret': 'mobile_app_secure_key_2026',
-        if (token != null) 'Authorization': 'Bearer $token',
-      },
-    });
+    final options = IO.OptionBuilder()
+        .setTransports(['websocket'])
+        .enableAutoConnect()
+        .setAuth({
+          'appSecret': 'mobile_app_secure_key_2026',
+          if (token != null) 'token': token,
+          'tenantId': 'lassi-lounge',
+        })
+        .setExtraHeaders({
+          'x-app-secret': 'mobile_app_secure_key_2026',
+          if (token != null) 'Authorization': 'Bearer $token',
+          'x-tenant-id': 'lassi-lounge',
+        })
+        .build();
+
+    _socket = IO.io(baseUrl, options);
 
     _socket!.onConnect((_) {
       print('Socket.IO connected');

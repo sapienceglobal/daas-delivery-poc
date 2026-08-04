@@ -1,6 +1,5 @@
 import cron from 'node-cron';
-import stripeService from './stripeService.js';
-import { rollbackLoyaltyPoints } from '../controllers/orderController.js';
+import { rollbackLoyaltyPoints, awardLoyaltyPoints, processAutoRefund } from '../controllers/orderController.js';
 import { buildOrderSocketPayload } from './doordashSyncService.js';
 import { createNotification } from '../controllers/notificationController.js';
 import logger from '../utils/logger.js';
@@ -33,7 +32,7 @@ export const initCronJobs = (io, getModel) => {
         await processAutoCancel(
           order, 
           'Auto-cancelled: Merchant did not accept in time',
-          `We're sorry, ${order.restaurantName} is currently busy and couldn't accept your order in time. Any charges and loyalty points have been refunded.`,
+          `We're sorry, ${order.restaurantName} is currently busy and couldn't accept your order in time. Any eligible charges and loyalty points have been reversed.`,
           io, 
           getModel
         );
@@ -49,7 +48,7 @@ export const initCronJobs = (io, getModel) => {
         await processAutoCancel(
           order, 
           'Auto-cancelled: Order stuck in preparation for too long',
-          `We're sorry, your order at ${order.restaurantName} seems to be stuck and has been auto-cancelled. Any charges and loyalty points have been refunded.`,
+          `We're sorry, your order at ${order.restaurantName} seems to be stuck and has been auto-cancelled. Any eligible charges and loyalty points have been reversed.`,
           io, 
           getModel
         );
@@ -69,6 +68,7 @@ export const initCronJobs = (io, getModel) => {
             description: 'Auto-completed: Assumed delivered after 4 hours'
           });
           await order.save();
+          await awardLoyaltyPoints(order);
 
           if (io) {
             const payload = buildOrderSocketPayload(order);
@@ -108,23 +108,8 @@ const processAutoCancel = async (order, internalReason, customerMessage, io, get
     });
 
     // Initiate Refund if order was paid via card
-    if (order.paymentStatus === 'paid' && order.paymentIntentId) {
-      try {
-        await stripeService.refundPayment(order.paymentIntentId);
-        order.paymentStatus = 'refunded';
-        order.refunded = true;
-        order.refundAmount = order.total;
-        order.refundReason = internalReason;
-        order.statusUpdates.push({
-          status: 'cancelled',
-          description: `Auto-refunded $${order.total.toFixed(2)}`
-        });
-        logger.info(`Auto-refunded order ${order._id}`);
-      } catch (stripeError) {
-        logger.error(`Failed to auto-refund order ${order._id}:`, stripeError.message);
-      }
-    }
-
+    await processAutoRefund(order, internalReason, io, getModel);
+    
     await order.save();
 
     // Revert loyalty points

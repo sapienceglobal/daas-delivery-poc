@@ -17,6 +17,15 @@ class OrderProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  bool _shouldTrackOrder(dynamic order) {
+    final status = order['status']?.toString();
+    final paymentStatus = order['paymentStatus']?.toString().toLowerCase();
+    final refundAmount = (order['refundAmount'] as num?)?.toDouble() ?? 0.0;
+    final isRefunded = order['refunded'] == true || paymentStatus == 'refunded' || refundAmount > 0;
+    final isPaidCancelled = status == 'cancelled' && paymentStatus == 'paid' && !isRefunded;
+    return status != 'delivered' && (status != 'cancelled' || isPaidCancelled);
+  }
+
   Future<void> fetchMyOrders({String status = 'all', bool silent = false}) async {
     if (!silent) _isLoading = true;
     _error = null;
@@ -41,15 +50,25 @@ class OrderProvider with ChangeNotifier {
   void _setupGlobalSocketListeners() {
     _socketService.init();
 
-    // Subscribe to active orders
+    // Subscribe to active orders (in case already connected)
     for (var order in _orders) {
-      if (order['status'] != 'delivered' && order['status'] != 'cancelled') {
+      if (_shouldTrackOrder(order)) {
         _socketService.joinOrderRoom(order['_id']);
       }
     }
 
     if (!_isSocketInitialized) {
       _isSocketInitialized = true;
+      
+      // Re-join rooms upon connection/reconnection
+      _socketService.on('connect', (_) {
+        for (var order in _orders) {
+          if (_shouldTrackOrder(order)) {
+            _socketService.joinOrderRoom(order['_id']);
+          }
+        }
+      });
+      
       final handleUpdate = (dynamic data) {
         if (data != null && data['order'] != null) {
            final updatedOrder = data['order'];

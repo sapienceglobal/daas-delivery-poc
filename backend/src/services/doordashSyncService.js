@@ -1,6 +1,7 @@
 import { getDeliveryAPI } from './doordashService.js';
 import Order from '../models/Order.js';
 import logger from '../utils/logger.js';
+import { awardLoyaltyPoints } from '../controllers/orderController.js';
 
 const ACTIVE_STATUSES = new Set(['pending', 'accepted', 'preparing', 'ready', 'picked_up']);
 
@@ -123,6 +124,9 @@ export const syncDoorDashDelivery = async (order, options = {}) => {
     const result = applyDoorDashDeliveryUpdate(order, payload);
     order.lastDoorDashSyncAt = new Date();
     await order.save();
+    if (order.status === 'delivered' || order.status === 'picked_up') {
+      await awardLoyaltyPoints(order);
+    }
     return { updated: true, order, payload, result };
   } catch (error) {
     order.lastDoorDashSyncAt = new Date();
@@ -143,6 +147,9 @@ export const buildOrderSocketPayload = (order) => {
     orderNumber: plainOrder.orderNumber,
     status: plainOrder.status,
     paymentStatus: plainOrder.paymentStatus,
+    refunded: plainOrder.refunded,
+    refundAmount: plainOrder.refundAmount,
+    refundReason: plainOrder.refundReason,
     dasherName: plainOrder.dasherName,
     dasherPhone: plainOrder.dasherPhone,
     dasherLat: plainOrder.dasherLat,

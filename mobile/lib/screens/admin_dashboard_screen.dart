@@ -810,7 +810,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         itemCount: _orders.length,
         itemBuilder: (context, idx) {
           final order = _orders[idx];
-          final isRefunded = order['refunded'] == true || order['status'] == 'refunded' || order['status'] == 'cancelled';
+          final paymentStatus = order['paymentStatus']?.toString().toLowerCase();
+          final refundAmount = (order['refundAmount'] as num?)?.toDouble() ?? 0.0;
+          final isRefunded = order['refunded'] == true || paymentStatus == 'refunded' || refundAmount > 0;
           final date = DateTime.parse(order['createdAt']).toLocal();
 
           return Container(

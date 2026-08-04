@@ -10,8 +10,12 @@ class OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = order['status'] as String;
+    final paymentStatus = order['paymentStatus']?.toString().toLowerCase();
+    final refundAmount = (order['refundAmount'] as num?)?.toDouble() ?? 0.0;
+    final isRefunded = order['refunded'] == true || paymentStatus == 'refunded' || refundAmount > 0;
+    final displayStatus = isRefunded ? 'refunded' : status;
     final isDelivery = order['orderType'] == 'delivery';
-    final isActive = status != 'delivered' && status != 'cancelled';
+    final isActive = status != 'delivered' && status != 'cancelled' && !isRefunded;
     
     // Background color inspired by the image (warm beige)
     final bgColor = const Color(0xFFFDF8F3);
@@ -41,7 +45,7 @@ class OrderCard extends StatelessWidget {
               children: [
                 _buildImage(status, isActive),
                 const SizedBox(width: 16),
-                Expanded(child: _buildOrderDetails(status, isDelivery)),
+                Expanded(child: _buildOrderDetails(status, displayStatus, isDelivery, isRefunded)),
               ],
             ),
           ),
@@ -89,7 +93,7 @@ class OrderCard extends StatelessWidget {
     );
   }
 
-  Widget _buildOrderDetails(String status, bool isDelivery) {
+  Widget _buildOrderDetails(String status, String displayStatus, bool isDelivery, bool isRefunded) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -105,7 +109,7 @@ class OrderCard extends StatelessWidget {
             ),
             Row(
               children: [
-                _buildStatusBadge(status),
+                _buildStatusBadge(displayStatus),
                 const SizedBox(width: 2),
                 const Icon(Icons.chevron_right, color: Colors.black87, size: 18),
               ],
@@ -118,7 +122,7 @@ class OrderCard extends StatelessWidget {
           style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 12),
-        if (status != 'delivered' && status != 'cancelled') ...[
+        if (status != 'delivered' && status != 'cancelled' && !isRefunded) ...[
           Row(
             children: [
               Icon(isDelivery ? Icons.moped : Icons.shopping_bag_outlined, color: AppColors.secondary, size: 18),
@@ -147,12 +151,12 @@ class OrderCard extends StatelessWidget {
               Text('Delivered on ${_formatDate(order['deliveredAt'] ?? order['createdAt'])}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500)),
             ],
           ),
-        ] else if (status == 'cancelled') ...[
+        ] else if (status == 'cancelled' || isRefunded) ...[
           Row(
             children: [
               const Icon(Icons.cancel_outlined, color: Colors.red, size: 18),
               const SizedBox(width: 8),
-              Text(order['paymentStatus'] == 'refunded' ? 'Order has been refunded' : 'Order was cancelled', 
+              Text(isRefunded ? 'Order has been refunded' : 'Order was cancelled',
                 style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 14)),
             ],
           ),
@@ -272,10 +276,14 @@ class OrderCard extends StatelessWidget {
       bgColor = Colors.green.shade50;
       textColor = Colors.green.shade700;
       text = 'DELIVERED';
+    } else if (status == 'refunded') {
+      bgColor = Colors.red.shade50;
+      textColor = Colors.red;
+      text = 'REFUNDED';
     } else if (status == 'cancelled') {
       bgColor = Colors.red.shade50;
       textColor = Colors.red;
-      text = order['paymentStatus'] == 'refunded' ? 'REFUNDED' : 'CANCELLED';
+      text = 'CANCELLED';
     } else {
       bgColor = Colors.grey.shade100;
       textColor = Colors.black87;

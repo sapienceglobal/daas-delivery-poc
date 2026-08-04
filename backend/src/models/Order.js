@@ -111,6 +111,7 @@ const OrderSchema = new mongoose.Schema({
   loyaltyDiscount: { type: Number, default: 0, min: 0 },
   loyaltyPointsUsed: { type: Number, default: 0, min: 0 },
   loyaltyPointsEarned: { type: Number, default: 0, min: 0 },
+  loyaltyPointsAwarded: { type: Boolean, default: false },
   loyaltyRollbackProcessed: { type: Boolean, default: false },
   total: { type: Number, required: true, default: 0 },
 

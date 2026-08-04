@@ -22,6 +22,17 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
   String? _error;
   Timer? _pollingTimer;
 
+  bool _isRefunded(Map<String, dynamic> order) {
+    final paymentStatus = order['paymentStatus']?.toString().toLowerCase();
+    final refundAmount = (order['refundAmount'] as num?)?.toDouble() ?? 0.0;
+    return order['refunded'] == true || paymentStatus == 'refunded' || refundAmount > 0;
+  }
+
+  bool _isTerminalOrder(Map<String, dynamic> order) {
+    final status = order['status']?.toString();
+    return _isRefunded(order) || status == 'cancelled' || status == 'failed';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -112,12 +123,13 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                 child: Column(
                   children: [
                     _buildHeaderInfo(),
-                    _buildProgressTracker(),
-                    _buildMapPlaceholder(),
-                    if (_order!['deliveryId'] != null) _buildDriverProfile(),
+                    if (_isTerminalOrder(_order!)) _buildTerminalNotice(),
+                    if (!_isTerminalOrder(_order!)) _buildProgressTracker(),
+                    if (!_isTerminalOrder(_order!)) _buildMapPlaceholder(),
+                    if (!_isTerminalOrder(_order!) && _order!['deliveryId'] != null) _buildDriverProfile(),
                     _buildOrderDetails(),
                     const SizedBox(height: 16),
-                    _buildEstimatedTime(),
+                    if (!_isTerminalOrder(_order!)) _buildEstimatedTime(),
                     const SizedBox(height: 32), // Padding for bottom
                   ],
                 ),
@@ -133,7 +145,8 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
         : 'assets/images/branded/lassi-lounge/categories/appetizers.jpg';
         
     final status = _order!['status'] as String;
-    String displayStatus = status.replaceAll('_', ' ').toUpperCase();
+    final isRefunded = _isRefunded(_order!);
+    String displayStatus = isRefunded ? 'REFUNDED' : status.replaceAll('_', ' ').toUpperCase();
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -180,7 +193,10 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                         color: Colors.orange.shade100,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(displayStatus, style: const TextStyle(color: Colors.deepOrange, fontSize: 10, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        displayStatus,
+                        style: TextStyle(color: isRefunded || status == 'cancelled' ? Colors.red.shade700 : Colors.deepOrange, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ],
                 ),
@@ -217,6 +233,45 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
               ],
             ),
           )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTerminalNotice() {
+    final isRefunded = _isRefunded(_order!);
+    final status = _order!['status']?.toString();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.shade100),
+      ),
+      child: Row(
+        children: [
+          Icon(isRefunded ? Icons.assignment_return_outlined : Icons.cancel_outlined, color: Colors.red.shade700),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isRefunded ? 'Order Refunded' : status == 'failed' ? 'Order Failed' : 'Order Cancelled',
+                  style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isRefunded
+                      ? 'The payment has been refunded back to the original payment source.'
+                      : 'This order will not be delivered. Refund details will appear here once processed.',
+                  style: const TextStyle(color: Colors.black54, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -512,6 +567,10 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
           if ((_order!['discount'] ?? 0) > 0) ...[
             const SizedBox(height: 8),
             _buildPriceRow('Discount', '-\$${(_order!['discount']).toStringAsFixed(2)}', isDiscount: true),
+          ],
+          if ((_order!['refundAmount'] ?? 0) > 0) ...[
+            const SizedBox(height: 8),
+            _buildPriceRow('Refunded', '-\$${(_order!['refundAmount']).toStringAsFixed(2)}', isDiscount: true),
           ],
           
           const SizedBox(height: 16),

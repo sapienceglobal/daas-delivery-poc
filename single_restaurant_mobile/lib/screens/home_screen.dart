@@ -45,35 +45,40 @@ class HomeScreen extends StatelessWidget {
           final categories = provider.menu;
           final signatureDishes = provider.getSignatureDishes();
 
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 16),
-                _buildHeroBanner(context, restaurant),
-                const SizedBox(height: 24),
-                
-                if (categories.isNotEmpty) ...[
-                  _buildSectionTitle('EXPLORE OUR MENU', () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const MenuScreen()));
-                  }),
-                  _buildCategoriesCarousel(categories),
+          return RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () => provider.fetchRestaurantData(),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  _buildHeroBanner(context, restaurant),
                   const SizedBox(height: 24),
-                  _buildPromoCardsCarousel(context),
-                  const SizedBox(height: 24),
-                ],
+                  
+                  if (categories.isNotEmpty) ...[
+                    _buildSectionTitle('EXPLORE OUR MENU', () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const MenuScreen()));
+                    }),
+                    _buildCategoriesCarousel(categories),
+                    const SizedBox(height: 24),
+                    _buildPromoCardsCarousel(context),
+                    const SizedBox(height: 24),
+                  ],
 
-                _buildDeliveryPartners(context),
-                const SizedBox(height: 24),
-                
-                if (signatureDishes.isNotEmpty) ...[
-                  _buildSectionTitle('OUR SIGNATURE DISHES', () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const MenuScreen()));
-                  }),
-                  _buildSignatureDishesCarousel(signatureDishes),
-                  const SizedBox(height: 32),
-                ]
-              ],
+                  _buildDeliveryPartners(context),
+                  const SizedBox(height: 24),
+                  
+                  if (signatureDishes.isNotEmpty) ...[
+                    _buildSectionTitle('OUR SIGNATURE DISHES', () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const MenuScreen()));
+                    }),
+                    _buildSignatureDishesCarousel(signatureDishes),
+                    const SizedBox(height: 32),
+                  ]
+                ],
+              ),
             ),
           );
         },

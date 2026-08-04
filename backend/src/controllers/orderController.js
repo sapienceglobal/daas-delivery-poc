@@ -18,6 +18,7 @@ import { createNotification } from './notificationController.js';
 import logger from '../utils/logger.js';
 
 const CUSTOMER_PAYMENT_METHODS = ['credit_card', 'apple_pay', 'google_pay'];
+const STRIPE_REFUND_PAYMENT_METHODS = ['credit_card', 'debit_card', 'apple_pay', 'google_pay'];
 
 const canManageRestaurant = (user, restaurantId) => {
   if (user.role === 'admin') return true;
@@ -35,7 +36,7 @@ export const rollbackLoyaltyPoints = async (order, reason = 'cancellation') => {
   if (order.loyaltyRollbackProcessed) return;
 
   const pointsUsed = order.loyaltyPointsUsed || 0;
-  const pointsEarned = order.loyaltyPointsEarned || 0;
+  const pointsEarned = order.loyaltyPointsAwarded ? (order.loyaltyPointsEarned || 0) : 0;
 
   if (pointsUsed === 0 && pointsEarned === 0) {
     order.loyaltyRollbackProcessed = true;
@@ -101,6 +102,149 @@ export const rollbackLoyaltyPoints = async (order, reason = 'cancellation') => {
       orderId: order._id,
       error: err.message
     });
+  }
+};
+
+export const awardLoyaltyPoints = async (order) => {
+  if (!order.userId) return;
+  if (order.loyaltyPointsAwarded) return;
+  if ((order.loyaltyPointsEarned || 0) <= 0) return;
+
+  try {
+    const tenantId = order.constructor.db.name;
+    const UserModel = getTenantModel(tenantId, 'User');
+    const LoyaltyTransactionModel = getTenantModel(tenantId, 'LoyaltyTransaction');
+
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      order.userId,
+      { $inc: { loyaltyPoints: order.loyaltyPointsEarned } },
+      { new: true }
+    );
+
+    if (updatedUser) {
+      await LoyaltyTransactionModel.create({
+        userId: order.userId,
+        orderId: order._id,
+        type: 'earned',
+        points: order.loyaltyPointsEarned,
+        balanceAfter: updatedUser.loyaltyPoints,
+        description: `Earned from Order #${order.orderNumber || order._id}`
+      });
+
+      order.loyaltyPointsAwarded = true;
+      await order.save();
+      logger.info('Loyalty points awarded on delivery', { orderId: order._id, userId: order.userId, points: order.loyaltyPointsEarned });
+    }
+  } catch (err) {
+    logger.error('Error awarding loyalty points', { orderId: order._id, error: err.message });
+  }
+};
+
+const getPaymentModelForOrder = (order, getModel) => {
+  if (typeof getModel === 'function') return getModel('Payment');
+  const tenantId = order.constructor?.db?.name;
+  return tenantId ? getTenantModel(tenantId, 'Payment') : Payment;
+};
+
+const issueStripeRefund = async (paymentIntentId, amount, idempotencyKey = null) => {
+  if (paymentIntentId?.startsWith('pi_test_mock_') && process.env.NODE_ENV !== 'production') {
+    return { id: `re_mock_${Date.now()}` };
+  }
+  return refundStripePayment(paymentIntentId, amount, { idempotencyKey });
+};
+
+const recordPaymentRefund = async ({ order, amount, reason, stripeRefundId, refundedBy = null, getModel }) => {
+  const PaymentModel = getPaymentModelForOrder(order, getModel);
+  const nextRefundedTotal = roundMoney((order.refundAmount || 0) + amount);
+  const nextStatus = nextRefundedTotal >= roundMoney(order.total) ? 'refunded' : 'partially_refunded';
+
+  const payment = await PaymentModel.findOneAndUpdate(
+    { orderId: order._id },
+    {
+      $push: {
+        refunds: {
+          amount,
+          reason,
+          stripeRefundId,
+          refundedBy
+        }
+      },
+      $inc: { totalRefunded: amount },
+      $set: { status: nextStatus }
+    },
+    { new: true }
+  );
+
+  if (!payment) {
+    logger.warn('Payment record not found while recording refund', { orderId: order._id });
+  }
+
+  return { nextRefundedTotal, nextStatus };
+};
+
+export const processAutoRefund = async (order, reason, io, getModel) => {
+  if (order.refunded || order.paymentStatus === 'refunded') {
+    return { processed: false, skipped: true, reason: 'already_refunded' };
+  }
+
+  if (!['paid', 'partially_refunded'].includes(order.paymentStatus)) {
+    return { processed: false, skipped: true, reason: 'not_paid' };
+  }
+
+  const remainingAmount = roundMoney((order.total || 0) - (order.refundAmount || 0));
+  if (remainingAmount <= 0) {
+    order.refunded = true;
+    order.paymentStatus = 'refunded';
+    await order.save();
+    return { processed: false, skipped: true, reason: 'no_remaining_amount' };
+  }
+
+  if (!order.stripePaymentIntentId) {
+    logger.error('Cannot auto-refund paid order without Stripe PaymentIntent', { orderId: order._id });
+    return { processed: false, error: 'missing_stripe_payment_intent' };
+  }
+
+  try {
+    const refund = await issueStripeRefund(
+      order.stripePaymentIntentId,
+      remainingAmount,
+      `auto-refund-${order._id}-${Math.round(remainingAmount * 100)}`
+    );
+    const { nextRefundedTotal, nextStatus } = await recordPaymentRefund({
+      order,
+      amount: remainingAmount,
+      reason,
+      stripeRefundId: refund.id,
+      getModel
+    });
+
+    order.paymentStatus = nextStatus;
+    order.refunded = nextStatus === 'refunded';
+    order.refundAmount = nextRefundedTotal;
+    order.refundReason = reason;
+    order.statusUpdates.push({
+      status: order.status,
+      description: `Auto-refunded $${remainingAmount.toFixed(2)}: ${reason}`
+    });
+    await order.save();
+    logger.info('Auto-refunded order', { orderId: order._id, refundAmount: remainingAmount, stripeRefundId: refund.id });
+
+    if (order.userId && io && getModel) {
+      await createNotification(
+        order.userId,
+        'Refund Processed',
+        `Your refund of $${remainingAmount.toFixed(2)} has been processed.`,
+        'order_update',
+        `/orders/${order._id}`,
+        io,
+        getModel
+      );
+    }
+
+    return { processed: true, amount: remainingAmount, stripeRefundId: refund.id };
+  } catch (stripeError) {
+    logger.error('Failed to auto-refund order', { orderId: order._id, error: stripeError.message });
+    return { processed: false, error: stripeError.message };
   }
 };
 
@@ -380,7 +524,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     status: paymentStatus,
     amount: order.total,
     tip: order.tip,
-    stripePaymentIntentId: stripePaymentIntentId || null,
+    stripePaymentIntentId: finalStripePaymentIntentId || null,
     metadata: {
       orderNumber: order.orderNumber,
       platformFee: order.platformFee,
@@ -415,21 +559,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     });
   }
 
-  if (pricing.pointsEarned > 0) {
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user._id,
-      { $inc: { loyaltyPoints: pricing.pointsEarned } },
-      { new: true }
-    );
-    await LoyaltyTransaction.create({
-      userId: req.user._id,
-      orderId: order._id,
-      type: 'earned',
-      points: pricing.pointsEarned,
-      balanceAfter: updatedUser.loyaltyPoints,
-      description: `Earned from Order #${order.orderNumber}`
-    });
-  }
+
 
   // Emit socket event
   const io = req.app.get('io');
@@ -516,23 +646,23 @@ export const cancelOrder = asyncHandler(async (req, response) => {
   }
 
   if (order.deliveryId) {
-    try {
-      await cancelDeliveryAPI(order.externalDeliveryId, 'Cancelled by customer');
-    } catch (err) {
+    cancelDeliveryAPI(order.externalDeliveryId, 'Cancelled by customer').catch(err => {
       logger.warn('DoorDash cancellation failed during customer cancel', {
         orderId: order._id,
         error: err.response?.data || err.message
       });
-    }
+    });
   }
 
   order.status = 'cancelled';
   order.statusUpdates.push({ status: 'cancelled', description: 'Cancelled by customer' });
   await order.save();
 
+  const io = req.app.get('io');
+  processAutoRefund(order, 'Cancelled by customer', io, req.getModel).catch(err => logger.error('Auto refund error', err));
+
   await rollbackLoyaltyPoints(order, 'customer_cancel');
 
-  const io = req.app.get('io');
   if (io) {
     io.to(order.restaurantId.toString()).emit('order_updated', {
       orderId: order._id,
@@ -706,19 +836,16 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
   order.statusUpdates.push({ status, description: `Status updated to ${status}` });
   await order.save();
   if (status === 'accepted') {
-    await createDoorDashDeliveryForOrder(order);
+    createDoorDashDeliveryForOrder(order).catch(err => logger.error('DoorDash background error', err));
   } else if (status === 'cancelled') {
-    await rollbackLoyaltyPoints(order, 'status_update_cancel');
+    rollbackLoyaltyPoints(order, 'status_update_cancel').catch(err => logger.error('Rollback points error', err));
+    const io = req.app.get('io');
+    processAutoRefund(order, 'Cancelled by restaurant', io, req.getModel).catch(err => logger.error('Auto refund error', err));
     if (order.deliveryId) {
-      try {
-        await cancelDeliveryAPI(order.externalDeliveryId, 'Cancelled via status update');
-      } catch (err) {
-        logger.warn('DoorDash cancellation failed during status update cancel', {
-          orderId: order._id,
-          error: err.response?.data || err.message
-        });
-      }
+      cancelDeliveryAPI(order.externalDeliveryId, 'Cancelled via status update').catch(err => logger.error('DoorDash cancel error', err));
     }
+  } else if (status === 'delivered' || status === 'picked_up') {
+    awardLoyaltyPoints(order).catch(err => logger.error('Award points error', err));
   }
 
   const io = req.app.get('io');
@@ -759,7 +886,7 @@ export const acceptOrder = asyncHandler(async (req, response) => {
   order.status = 'accepted';
   order.statusUpdates.push({ status: 'accepted', description: 'Order accepted by restaurant' });
   await order.save();
-  await createDoorDashDeliveryForOrder(order);
+  createDoorDashDeliveryForOrder(order).catch(err => logger.error('DoorDash background error', err));
 
   const io = req.app.get('io');
   if (io) {
@@ -807,9 +934,11 @@ export const rejectOrder = asyncHandler(async (req, response) => {
   }
   await order.save();
 
+  const io = req.app.get('io');
+  await processAutoRefund(order, req.body.reason || 'Rejected by restaurant', io, req.getModel);
+
   await rollbackLoyaltyPoints(order, 'restaurant_reject');
 
-  const io = req.app.get('io');
   if (io) {
     const payload = buildOrderSocketPayload(order);
     io.to(order.restaurantId.toString()).emit('order_updated', payload);
@@ -852,7 +981,6 @@ export const getAllOrders = asyncHandler(async (req, response) => {
 
 export const refundOrder = asyncHandler(async (req, response) => {
   const Order = req.getModel('Order');
-  const Payment = req.getModel('Payment');
   const order = await Order.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
   if (req.user.role === 'merchant') {
@@ -866,49 +994,31 @@ export const refundOrder = asyncHandler(async (req, response) => {
     throw new AppError('Invalid refund amount', 400);
   }
 
-  if (order.stripePaymentIntentId && ['paid', 'partially_refunded'].includes(order.paymentStatus)) {
-    const refund = await refundStripePayment(order.stripePaymentIntentId, refundAmount);
-    await Payment.findOneAndUpdate(
-      { orderId: order._id },
-      {
-        $push: {
-          refunds: {
-            amount: refundAmount,
-            reason: reason || 'Refund processed',
-            stripeRefundId: refund.id,
-            refundedBy: req.user._id
-          }
-        },
-        $inc: { totalRefunded: refundAmount },
-        $set: {
-          status: nextRefundedTotal >= order.total ? 'refunded' : 'partially_refunded'
-        }
-      }
-    );
-  } else {
-    await Payment.findOneAndUpdate(
-      { orderId: order._id },
-      {
-        $push: {
-          refunds: {
-            amount: refundAmount,
-            reason: reason || 'Refund processed',
-            refundedBy: req.user._id
-          }
-        },
-        $inc: { totalRefunded: refundAmount },
-        $set: {
-          status: nextRefundedTotal >= order.total ? 'refunded' : 'partially_refunded'
-        }
-      }
-    );
+  let stripeRefundId = null;
+  const isStripePayment = STRIPE_REFUND_PAYMENT_METHODS.includes(order.paymentMethod);
+  if (isStripePayment && ['paid', 'partially_refunded'].includes(order.paymentStatus) && !order.stripePaymentIntentId) {
+    throw new AppError('Cannot refund this card payment because Stripe payment reference is missing', 400);
   }
 
-  order.refunded = true;
+  if (order.stripePaymentIntentId && ['paid', 'partially_refunded'].includes(order.paymentStatus)) {
+    const refund = await issueStripeRefund(order.stripePaymentIntentId, refundAmount);
+    stripeRefundId = refund.id;
+  }
+
+  await recordPaymentRefund({
+    order,
+    amount: refundAmount,
+    reason: reason || 'Refund processed',
+    stripeRefundId,
+    refundedBy: req.user._id,
+    getModel: req.getModel
+  });
+
+  order.refunded = nextRefundedTotal >= roundMoney(order.total);
   order.refundAmount = nextRefundedTotal;
   order.refundReason = reason || 'Refund processed';
   order.paymentStatus = order.refundAmount >= order.total ? 'refunded' : 'partially_refunded';
-  
+
   // Auto-cancel active orders if fully refunded
   if (order.paymentStatus === 'refunded' && !['delivered', 'cancelled'].includes(order.status)) {
     order.status = 'cancelled';
@@ -932,12 +1042,12 @@ export const refundOrder = asyncHandler(async (req, response) => {
   if (order.userId) {
     const io = req.app.get('io');
     await createNotification(
-      order.userId, 
-      'Refund Processed', 
-      `Your refund of $${refundAmount.toFixed(2)} has been processed.`, 
-      'order_update', 
-      `/orders/${order._id}`, 
-      io, 
+      order.userId,
+      'Refund Processed',
+      `Your refund of $${refundAmount.toFixed(2)} has been processed.`,
+      'order_update',
+      `/orders/${order._id}`,
+      io,
       req.getModel
     );
   }
@@ -946,7 +1056,7 @@ export const refundOrder = asyncHandler(async (req, response) => {
   const io = req.app.get('io');
   if (io) {
     io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
-    
+
     // Also notify the restaurant room so the merchant dashboard order list updates in real-time
     io.to(order.restaurantId.toString()).emit('order_updated', {
       orderId: order._id,
