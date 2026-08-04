@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
+import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/services/ota_update_service.dart';
 
 class MainScreen extends StatefulWidget {
@@ -38,6 +39,8 @@ class _MainScreenState extends State<MainScreen> {
       final authProv = context.read<AuthProvider>();
       if (authProv.isAuthenticated) {
         context.read<LoyaltyProvider>().fetchHistory();
+        // Fetch notifications on startup so the bell dot shows immediately
+        context.read<NotificationProvider>().fetchNotifications();
       }
     });
   }

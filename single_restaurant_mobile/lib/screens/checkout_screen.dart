@@ -99,10 +99,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SizedBox(height: 12),
                   _buildPaymentMethods(checkout, auth),
                   const SizedBox(height: 24),
-                  if (loyalty.isLoyaltyMember && loyalty.currentBalance > 0) ...[
-                    _buildLassiCoinsSection(checkout, loyalty, cart),
-                    const SizedBox(height: 24),
-                  ],
+                  // Loyalty coins redeemed via coupon on cart screen only
                   const Text('BILL DETAILS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.black87)),
                   const SizedBox(height: 12),
                   _buildBillDetails(cart, checkout, loyalty),
@@ -475,10 +472,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final serviceFee = checkout.getServiceFee(cart);
     final tax = cart.tax;
     final couponDiscount = checkout.couponDiscount;
-    final loyaltyDiscount = checkout.useLoyaltyPoints
-        ? (loyalty.currentBalance / 100).clamp(0.0, subtotal + tax + deliveryFee + platformFee + serviceFee - couponDiscount)
-        : 0.0;
-    final total = (subtotal + tax + deliveryFee + platformFee + serviceFee - couponDiscount - loyaltyDiscount).clamp(0.0, double.infinity);
+    // Loyalty points not applied here — redeemed via coupon on cart screen
+    final total = (subtotal + tax + deliveryFee + platformFee + serviceFee - couponDiscount).clamp(0.0, double.infinity);
 
     return Container(
       decoration: const BoxDecoration(color: Colors.transparent),
@@ -504,21 +499,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ],
               ),
             ),
-          if (loyaltyDiscount > 0)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(children: [
-                    const Icon(Icons.monetization_on, color: Colors.orange, size: 14),
-                    const SizedBox(width: 4),
-                    Text('Lassi Coins (${loyalty.currentBalance} pts)', style: const TextStyle(color: Colors.orange, fontSize: 14)),
-                  ]),
-                  Text('-\$${loyaltyDiscount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 14)),
-                ],
-              ),
-            ),
+          // Loyalty discount removed — handled via coupon on cart screen
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Divider(height: 1, thickness: 1, color: Colors.grey),

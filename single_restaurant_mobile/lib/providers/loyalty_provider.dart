@@ -14,6 +14,10 @@ class LoyaltyProvider with ChangeNotifier {
   bool _hasMore = true;
   int _currentPage = 1;
 
+  // Unused loyalty coupons
+  List<dynamic> _myCoupons = [];
+  bool _couponsLoading = false;
+
   List<dynamic> get transactions => _transactions;
   int get currentBalance => _currentBalance;
   bool get isLoyaltyMember => _isLoyaltyMember;
@@ -21,6 +25,8 @@ class LoyaltyProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasMore => _hasMore;
+  List<dynamic> get myCoupons => _myCoupons;
+  bool get couponsLoading => _couponsLoading;
 
   Future<void> fetchHistory({bool refresh = false}) async {
     if (refresh) {
@@ -62,6 +68,19 @@ class LoyaltyProvider with ChangeNotifier {
     }
   }
 
+  Future<void> fetchMyCoupons() async {
+    _couponsLoading = true;
+    notifyListeners();
+    try {
+      _myCoupons = await _loyaltyService.getMyCoupons();
+    } catch (_) {
+      _myCoupons = [];
+    } finally {
+      _couponsLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> joinProgram() async {
     _isLoading = true;
     _error = null;
@@ -93,7 +112,6 @@ class LoyaltyProvider with ChangeNotifier {
     if (res['success'] == true) {
       final data = res['data'] ?? {};
       _currentBalance = data['points'] ?? _currentBalance;
-      // Option: Refetch history to show new transaction
       fetchHistory(refresh: true);
       notifyListeners();
       return {'success': true, 'message': res['message']};
@@ -116,6 +134,7 @@ class LoyaltyProvider with ChangeNotifier {
       final data = res['data'] ?? {};
       _currentBalance = data['points'] ?? _currentBalance;
       fetchHistory(refresh: true);
+      fetchMyCoupons(); // Refresh coupons list after redemption
       notifyListeners();
       return {'success': true, 'couponCode': data['couponCode']};
     } else {

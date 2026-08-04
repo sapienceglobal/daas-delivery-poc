@@ -33,13 +33,15 @@ export const createPaymentIntent = async (amount, metadata = {}, customerId = nu
     amount: Math.round(amount * 100), // Stripe expects cents
     currency: 'usd',
     metadata,
-    automatic_payment_methods: {
-      enabled: true,
-    },
+    // Explicitly specify 'card' only — do NOT use automatic_payment_methods
+    // automatic_payment_methods enables Stripe Link which opens checkout.link.com
+    // in a webview on mobile and breaks the native payment sheet flow.
+    payment_method_types: ['card'],
   };
 
   if (customerId) {
     options.customer = customerId;
+    options.setup_future_usage = 'off_session';
   }
 
   const paymentIntent = await stripe.paymentIntents.create(options);

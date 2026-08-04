@@ -139,10 +139,14 @@ class CheckoutProvider with ChangeNotifier {
   }
 
   void autoSelectDefaultAddress(AddressProvider addressProvider, CartProvider cart) {
-    if (addressProvider.addresses.isNotEmpty && _addressLine1.isEmpty) {
-      final defaultAddr = addressProvider.addresses.first;
-      handleSelectSavedAddress(defaultAddr, cart);
-    }
+    if (addressProvider.addresses.isEmpty) return;
+    // Find the address marked as default; fall back to the first one
+    final defaultAddr = addressProvider.addresses.firstWhere(
+      (a) => a['isDefault'] == true,
+      orElse: () => addressProvider.addresses.first,
+    );
+    // Always apply the saved default address so cart always shows it pre-selected
+    handleSelectSavedAddress(defaultAddr, cart);
   }
 
   void _onAddressChanged(CartProvider cart) {
@@ -495,7 +499,10 @@ class CheckoutProvider with ChangeNotifier {
             paymentIntentClientSecret: clientSecret,
             merchantDisplayName: 'Lassi Lounge',
             style: ThemeMode.light,
-            returnURL: 'lassilounge://stripe-redirect',
+            // DO NOT set returnURL — it tells Stripe redirect methods (like Link) are acceptable
+            // which causes checkout.link.com to open on mobile.
+            // payment_method_types: ['card'] is set server-side to enforce this.
+            allowsDelayedPaymentMethods: false,
             appearance: const PaymentSheetAppearance(
               colors: PaymentSheetAppearanceColors(
                 primary: Color(0xFF7A0B10), // Red

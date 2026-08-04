@@ -5,6 +5,12 @@ import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/register_screen.dart';
 import 'package:single_restaurant_mobile/screens/forgot_password_screen.dart';
 import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/providers/address_provider.dart';
+import 'package:single_restaurant_mobile/providers/cart_provider.dart';
+import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
+import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -45,7 +51,20 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
       if (errorMsg == null) {
-        // Success
+        // Trigger all providers that depend on auth — same as auto-login path in main.dart
+        final authProv = context.read<AuthProvider>();
+        final addressProv = context.read<AddressProvider>();
+        final cartProv = context.read<CartProvider>();
+        final loyaltyProv = context.read<LoyaltyProvider>();
+        final notifProv = context.read<NotificationProvider>();
+
+        // Fire and forget — don't await so navigation is instant
+        authProv.fetchUser();
+        addressProv.fetchAddresses();
+        cartProv.loadCart();
+        loyaltyProv.fetchHistory();
+        notifProv.fetchNotifications(); // Load unread count so bell dot shows
+
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
           (route) => false,

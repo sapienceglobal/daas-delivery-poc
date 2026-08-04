@@ -7,6 +7,46 @@ import * as res from '../utils/responseFormatter.js';
 import crypto from 'crypto';
 
 /**
+ * Get all loyalty-redeemed coupons for the logged-in user that are still unused & valid
+ */
+export const getMyCoupons = asyncHandler(async (req, response) => {
+  const LoyaltyTransaction = req.getModel('LoyaltyTransaction');
+  const Coupon = req.getModel('Coupon');
+
+  // Find all redeem transactions for this user that have a couponId
+  const redeemTxns = await LoyaltyTransaction.find({
+    userId: req.user._id,
+    type: 'redeemed',
+    'reward.couponId': { $exists: true, $ne: null }
+  }).lean();
+
+  const couponIds = redeemTxns
+    .map(t => t.reward?.couponId)
+    .filter(Boolean);
+
+  if (couponIds.length === 0) {
+    return res.success(response, { data: [] });
+  }
+
+  // Fetch coupons that are still active (not yet used = usedCount < maxUses) and not expired
+  const coupons = await Coupon.find({
+    _id: { $in: couponIds },
+    isActive: true,
+    $expr: { $lt: ['$usedCount', '$maxUses'] },
+    $or: [
+      { endDate: { $gt: new Date() } },
+      { endDate: { $exists: false } },
+      { endDate: null }
+    ]
+  })
+    .select('code value type description endDate usedCount maxUses')
+    .lean();
+
+  res.success(response, { data: coupons });
+});
+
+
+/**
  * Get loyalty transaction history for the logged-in user
  */
 export const getMyLoyaltyHistory = asyncHandler(async (req, response) => {

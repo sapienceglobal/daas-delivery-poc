@@ -35,7 +35,14 @@ const getTrustedDeliveryFee = async ({ restaurant, address, subtotal, scheduledT
  * @access  Private
  */
 export const createIntent = asyncHandler(async (req, res) => {
-  const { amount, orderId, restaurantId, items, orderType, tip, couponCode, useLoyaltyPoints, address, scheduledTime } = req.body;
+  // Support both flat payload and legacy nested { checkoutData: {...} } format
+  const body = req.body.checkoutData
+    ? { ...req.body, ...req.body.checkoutData }
+    : req.body;
+
+  const { amount, orderId, restaurantId, items, orderType, tip, couponCode, useLoyaltyPoints, address, scheduledTime } = body;
+
+  logger.info('createIntent called', { restaurantId, orderType, itemCount: items?.length, amount });
 
   let verifiedAmount = Number(amount);
   const metadata = {};

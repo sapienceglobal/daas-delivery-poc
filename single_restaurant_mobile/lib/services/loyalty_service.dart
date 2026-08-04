@@ -57,4 +57,17 @@ class LoyaltyService {
       return {'success': false, 'message': e.toString()};
     }
   }
+
+  Future<List<dynamic>> getMyCoupons() async {
+    try {
+      final response = await ApiService.get('/api/loyalty/my-coupons');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return (data['data'] as List<dynamic>?) ?? [];
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
 }

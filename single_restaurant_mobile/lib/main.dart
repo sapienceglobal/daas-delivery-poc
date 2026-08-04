@@ -21,6 +21,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   Stripe.publishableKey = 'pk_test_51Tqvb7HxSFxyqGbKxYaqXnfCOCEDuxSoZyxrMA46oSFzNJ9PGhAu9ggeOOUMKotyx1iblp3dG77GX879vnUBqjiI00SX1sCKi7';
+  Stripe.merchantIdentifier = 'merchant.com.lassilounge';
+  Stripe.urlScheme = 'lassilounge';
   await Stripe.instance.applySettings();
   
   // Check if user is already logged in

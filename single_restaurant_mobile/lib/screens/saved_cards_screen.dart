@@ -45,7 +45,8 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
           setupIntentClientSecret: clientSecret,
           style: ThemeMode.light,
           merchantDisplayName: 'Lassi Lounge',
-          returnURL: 'lassilounge://stripe-redirect',
+          // No returnURL — prevents Stripe from offering Link / redirect methods
+          allowsDelayedPaymentMethods: false,
           appearance: const PaymentSheetAppearance(
             colors: PaymentSheetAppearanceColors(
               primary: AppColors.secondary,

@@ -22,7 +22,9 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<LoyaltyProvider>(context, listen: false).fetchHistory(refresh: true);
+      final loyalty = Provider.of<LoyaltyProvider>(context, listen: false);
+      loyalty.fetchHistory(refresh: true);
+      loyalty.fetchMyCoupons();
     });
   }
 
@@ -66,6 +68,7 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
                 _buildWelcomeHeader(firstName, balance),
                 _buildProgressSection(balance),
                 _buildRedeemSection(loyalty),
+                _buildMyCouponsSection(loyalty),
                 _buildHowToEarnSection(loyalty),
                 _buildRecentActivitySection(loyalty.transactions),
                 _buildExclusiveBenefitsBanner(),
@@ -494,7 +497,277 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
         ],
       ),
     );
-  }  Widget _buildHowToEarnSection(LoyaltyProvider loyalty) {
+  }
+
+  Widget _buildMyCouponsSection(LoyaltyProvider loyalty) {
+    return Consumer<CheckoutProvider>(
+      builder: (context, checkout, _) {
+        return Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('My Coupons', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    if (loyalty.couponsLoading)
+                      const SizedBox(
+                        width: 14, height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Redeemed coupons you haven\'t used yet',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (!loyalty.couponsLoading && loyalty.myCoupons.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.confirmation_num_outlined, color: Colors.grey.shade400, size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'No unused coupons — redeem points above!',
+                            style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SizedBox(
+                  height: 148,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: loyalty.myCoupons.length,
+                    itemBuilder: (context, index) {
+                      final coupon = loyalty.myCoupons[index];
+                      final code = coupon['code'] as String? ?? '';
+                      final value = coupon['value'] ?? 0;
+                      final endDate = coupon['endDate'] != null
+                          ? DateTime.tryParse(coupon['endDate'].toString())
+                          : null;
+                      final daysLeft = endDate != null
+                          ? endDate.difference(DateTime.now()).inDays
+                          : null;
+
+                      // Determine this coupon's state
+                      final isApplied = checkout.couponApplied && checkout.couponCode == code;
+                      // Coupon is locked (fully used) — backend won't return it from my-coupons
+                      // but if usedCount >= maxUses from cache it should show locked
+                      final usedCount = coupon['usedCount'] ?? 0;
+                      final maxUses = coupon['maxUses'] ?? 1;
+                      final isLocked = usedCount >= maxUses;
+
+                      final cardColor = isLocked
+                          ? [Colors.grey.shade500, Colors.grey.shade400]
+                          : isApplied
+                              ? [Colors.green.shade800, Colors.teal.shade700]
+                              : [Colors.green.shade700, Colors.teal.shade600];
+
+                      return Container(
+                        width: 200,
+                        margin: const EdgeInsets.only(right: 12),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: cardColor,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (isLocked ? Colors.grey : Colors.green).withValues(alpha: 0.25),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '\$$value OFF',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+                                ),
+                                if (isApplied)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.25),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text('Applied ✓', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                  )
+                                else if (isLocked)
+                                  const Icon(Icons.lock, color: Colors.white54, size: 16)
+                                else
+                                  const Icon(Icons.confirmation_num, color: Colors.white60, size: 20),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                code,
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.5),
+                              ),
+                            ),
+                            if (isLocked)
+                              const Text('Used — order placed', style: TextStyle(color: Colors.white70, fontSize: 10))
+                            else if (daysLeft != null)
+                              Text(
+                                daysLeft > 0 ? 'Expires in $daysLeft days' : 'Expires today',
+                                style: const TextStyle(color: Colors.white70, fontSize: 10),
+                              ),
+                            Row(
+                              children: [
+                                // Copy button — disabled when locked
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: isLocked ? null : () {
+                                      Clipboard.setData(ClipboardData(text: code));
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Coupon code copied!'), duration: Duration(seconds: 2)),
+                                      );
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: isLocked
+                                            ? Colors.white.withValues(alpha: 0.1)
+                                            : Colors.white.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.copy, color: isLocked ? Colors.white30 : Colors.white, size: 12),
+                                          const SizedBox(width: 4),
+                                          Text('Copy', style: TextStyle(color: isLocked ? Colors.white30 : Colors.white, fontSize: 11)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // Apply/Applied/Locked button
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: isLocked ? null : () async {
+                                      final cart = context.read<CartProvider>();
+                                      // If already applied → nothing to do
+                                      if (isApplied) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('$code is already applied to your cart!'),
+                                            backgroundColor: Colors.green.shade700,
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      checkout.setCouponCode(code);
+                                      if (cart.items.isEmpty) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Add items to cart first!'), backgroundColor: Colors.orange),
+                                        );
+                                        return;
+                                      }
+                                      try {
+                                        await checkout.handleApplyCoupon(cart);
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(checkout.couponApplied ? '$code applied to cart! ✓' : 'Could not apply coupon'),
+                                              backgroundColor: checkout.couponApplied ? Colors.green : Colors.orange,
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: isLocked
+                                            ? Colors.white.withValues(alpha: 0.1)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            isLocked ? Icons.lock_outline : isApplied ? Icons.check : Icons.shopping_cart,
+                                            color: isLocked ? Colors.white30 : isApplied ? Colors.green.shade700 : Colors.green,
+                                            size: 12,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            isLocked ? 'Used' : isApplied ? 'Applied' : 'Apply',
+                                            style: TextStyle(
+                                              color: isLocked ? Colors.white30 : isApplied ? Colors.green.shade700 : Colors.green,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
+  Widget _buildHowToEarnSection(LoyaltyProvider loyalty) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(

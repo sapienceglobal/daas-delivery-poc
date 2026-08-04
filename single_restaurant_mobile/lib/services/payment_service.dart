@@ -4,9 +4,10 @@ import 'package:single_restaurant_mobile/services/api_service.dart';
 class PaymentService {
   Future<Map<String, dynamic>?> createIntent(double amount, Map<String, dynamic> checkoutData) async {
     try {
+      // Flatten checkoutData into top-level so backend can read restaurantId, items, etc. directly
       final response = await ApiService.post('/api/payments/create-intent', {
         'amount': amount,
-        'checkoutData': checkoutData,
+        ...checkoutData, // spread so backend gets restaurantId, items, orderType, tip etc. directly
       });
       
       final data = json.decode(response.body);

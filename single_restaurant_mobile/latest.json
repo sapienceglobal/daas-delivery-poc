@@ -1,0 +1,6 @@
+{
+  "version": "1.0.0+3",
+  "buildNumber": 3,
+  "apkUrl": "https://github.com/sapienceglobal/lassi_launge-updates/releases/download/1.0.0%2B3/app-release.apk",
+  "notes": "🚀 Lassi Lounge is now faster, smarter, and more rewarding!\n\n✨ What's New:\n- 🎁 Introducing Lassi Lounge Club: Earn loyalty points on every order and redeem them for exclusive discounts!\n- 🎟️ My Coupons: Redeemed coupons now always visible — apply or copy anytime, never lose a coupon!\n- ⚡ Premium Skeleton Loading: Enjoy a smoother, lightning-fast app loading experience.\n- 🔔 Real-time Notification Bell: Unread dot shows instantly on app open.\n- 📍 Smarter Address Flow: Default address auto-loads after login and pre-selected in Cart.\n- 🤝 Refer & Earn: Easily invite friends from the Offers page.\n\n🔧 Improvements & Fixes:\n- 📡 Smart Offline Banner: App now elegantly handles weak internet connections.\n- ⏱️ Auto-Resolution: Stuck orders are automatically cancelled and refunded.\n- 💰 Loyalty Coins section removed from Checkout — redeem via coupon on Cart instead.\n- 🔒 Used coupons locked with clear status after order is placed.\n- 🧭 Improved navigation for a seamless browsing experience."
+}
