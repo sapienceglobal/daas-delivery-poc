@@ -146,4 +146,14 @@ class OrderProvider with ChangeNotifier {
       return null;
     }
   }
+
+  /// Clears all order data from memory. Call this on logout.
+  void clear() {
+    _orders = [];
+    _trackedOrdersCache.clear();
+    _isSocketInitialized = false;
+    _isLoading = false;
+    _error = null;
+    notifyListeners();
+  }
 }

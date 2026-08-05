@@ -89,4 +89,12 @@ class AddressProvider with ChangeNotifier {
     }
     return success;
   }
+
+  /// Clears all address data from memory. Call this on logout.
+  void clear() {
+    _addresses = [];
+    _error = null;
+    _isLoading = false;
+    notifyListeners();
+  }
 }

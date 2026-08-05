@@ -22,10 +22,16 @@ import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
 import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
 import 'package:single_restaurant_mobile/widgets/shimmer_loading.dart';
+import 'package:single_restaurant_mobile/widgets/empty_state_widget.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,7 +44,13 @@ class HomeScreen extends StatelessWidget {
           }
 
           if (provider.error != null && provider.restaurant == null) {
-            return Center(child: Text('Error: ${provider.error}', style: const TextStyle(color: Colors.red)));
+            return EmptyStateWidget(
+              icon: Icons.error_outline,
+              title: 'Oops! Something went wrong',
+              subtitle: 'We couldn\'t load the restaurant data. Please try again later.\n${provider.error}',
+              actionText: 'Try Again',
+              onActionPressed: () => provider.fetchRestaurantData(),
+            );
           }
 
           final restaurant = provider.restaurant;

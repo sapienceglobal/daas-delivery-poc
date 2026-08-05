@@ -357,6 +357,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       obscureText: isPassword && !(isVisible ?? false),
       validator: validator,
       keyboardType: keyboardType,
+      onTap: () {
+        if (controller.selection.baseOffset != controller.selection.extentOffset) {
+          final extent = controller.selection.extentOffset;
+          if (extent != -1) {
+            controller.selection = TextSelection.collapsed(offset: extent);
+          }
+        }
+      },
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
@@ -421,6 +429,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
+              onTap: () {
+                if (_phoneController.selection.baseOffset != _phoneController.selection.extentOffset) {
+                  final extent = _phoneController.selection.extentOffset;
+                  if (extent != -1) {
+                    _phoneController.selection = TextSelection.collapsed(offset: extent);
+                  }
+                }
+              },
               decoration: InputDecoration(
                 hintText: 'Enter your phone number',
                 hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/services/location_service.dart';
 
@@ -24,6 +23,19 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
   final LocationService _locationService = LocationService();
   bool _isLoading = false;
 
+  // FocusNode MUST be stored in State — NOT created inside build().
+  // Creating a FocusNode inline (new FocusNode()) causes a brand-new node
+  // on every rebuild, which Flutter interprets as "this field just got focus"
+  // and steals keyboard focus away from whichever field the user is actually
+  // typing in (e.g. the phone number field above this one).
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -33,22 +45,21 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
         const SizedBox(height: 8),
         RawAutocomplete<Map<String, dynamic>>(
           textEditingController: widget.controller,
-          focusNode: FocusNode(),
+          focusNode: _focusNode,
           optionsBuilder: (TextEditingValue textEditingValue) async {
             final query = textEditingValue.text;
             if (query.length < 3) {
               return const Iterable<Map<String, dynamic>>.empty();
             }
-            
-            setState(() => _isLoading = true);
+            if (mounted) setState(() => _isLoading = true);
             try {
               final results = await _locationService.searchAddress(query);
               return results.cast<Map<String, dynamic>>();
             } catch (e) {
-              print('Autocomplete error: $e');
+              debugPrint('Autocomplete error: $e');
               return const Iterable<Map<String, dynamic>>.empty();
             } finally {
-              setState(() => _isLoading = false);
+              if (mounted) setState(() => _isLoading = false);
             }
           },
           displayStringForOption: (Map<String, dynamic> option) {
@@ -64,20 +75,29 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                 filled: true,
                 fillColor: Colors.white,
                 hintText: 'Start typing to search...',
-                suffixIcon: _isLoading 
+                suffixIcon: _isLoading
                     ? const SizedBox(
-                        width: 20, 
-                        height: 20, 
+                        width: 20,
+                        height: 20,
                         child: Padding(
                           padding: EdgeInsets.all(12.0),
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
-                      ) 
+                      )
                     : const Icon(Icons.search, color: Colors.grey),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.red.shade900)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.red.shade900),
+                ),
               ),
             );
           },
@@ -90,7 +110,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     maxHeight: 250,
-                    maxWidth: MediaQuery.of(context).size.width - 32, // minus padding
+                    maxWidth: MediaQuery.of(context).size.width - 32,
                   ),
                   child: ListView.separated(
                     padding: EdgeInsets.zero,
@@ -101,7 +121,10 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                       final option = options.elementAt(index);
                       return ListTile(
                         leading: const Icon(Icons.location_on_outlined, color: Colors.grey),
-                        title: Text(option['display_name'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                        title: Text(
+                          option['display_name'] ?? '',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                        ),
                         onTap: () => onSelected(option),
                       );
                     },

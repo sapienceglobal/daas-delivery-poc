@@ -108,6 +108,41 @@ class CheckoutProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Resets all checkout state. Call this on logout or after order completion.
+  void reset() {
+    _step = 1;
+    _isDelivery = true;
+    _addressLine1 = '';
+    _addressLine2 = '';
+    _addressLabel = 'Home';
+    _city = '';
+    _state = 'NY';
+    _zipCode = '';
+    _addressLat = null;
+    _addressLng = null;
+    _addressVerified = false;
+    _fullName = '';
+    _phone = '';
+    _email = '';
+    _deliveryInstructions = '';
+    _tip = 0.0;
+    _paymentMethod = 'credit_card';
+    _couponCode = '';
+    _couponDiscount = 0.0;
+    _couponApplied = false;
+    _couponLoading = false;
+    _useLoyaltyPoints = false;
+    _deliveryQuote = null;
+    _quoteError = null;
+    _quoteLoading = false;
+    _etaData = null;
+    _etaLoading = false;
+    _etaErrorFlag = false;
+    _isPlacingOrder = false;
+    _addressDebounce?.cancel();
+    notifyListeners();
+  }
+
   void setDelivery(bool val, CartProvider cart) {
     _isDelivery = val;
     if (val) {
@@ -362,7 +397,7 @@ class CheckoutProvider with ChangeNotifier {
       }).toList();
 
       final payload = {
-        'restaurantId': cart.restaurant!['_id'] ?? cart.restaurant!['id'],
+        'restaurantId': cart.restaurant!['_id'] ?? cart.restaurant!['id'] ?? cart.restaurant!['slug'] ?? 'lassi-lounge',
         'address': compiledAddress,
         'addressLat': lat,
         'addressLng': lng,
@@ -476,8 +511,10 @@ class CheckoutProvider with ChangeNotifier {
         'specialInstructions': item['specialInstructions'] ?? '',
       }).toList();
 
+      final String finalPaymentMethod = (_paymentMethod == 'saved_card_4242' || _paymentMethod.startsWith('pm_') || _paymentMethod.startsWith('card_')) ? 'credit_card' : _paymentMethod;
+
       final checkoutPayload = {
-        'restaurantId': cart.restaurant!['_id'],
+        'restaurantId': cart.restaurant!['_id'] ?? cart.restaurant!['id'] ?? cart.restaurant!['slug'] ?? 'lassi-lounge',
         'items': checkoutItems,
         'orderType': _isDelivery ? 'delivery' : 'pickup',
         'tip': _tip,
@@ -489,16 +526,28 @@ class CheckoutProvider with ChangeNotifier {
 
       if (_paymentMethod == 'credit_card') {
         // Stripe integration for new card
-        final intentData = await _paymentService.createIntent(getTotal(cart), checkoutPayload);
-        final clientSecret = intentData?['clientSecret'];
+        final responseData = await _paymentService.createIntent(getTotal(cart), checkoutPayload);
+        if (responseData == null) throw Exception('Failed to initialize payment');
+        
+        final clientSecret = responseData['clientSecret'];
+        final ephemeralKeySecret = responseData['ephemeralKey'];
+        final customerId = responseData['customerId'];
         
         if (clientSecret == null) throw Exception('Failed to initialize payment');
 
         await Stripe.instance.initPaymentSheet(
           paymentSheetParameters: SetupPaymentSheetParameters(
             paymentIntentClientSecret: clientSecret,
+            customerId: customerId,
+            customerEphemeralKeySecret: ephemeralKeySecret,
             merchantDisplayName: 'Lassi Lounge',
             style: ThemeMode.light,
+            linkDisplayParams: const LinkDisplayParams(linkDisplay: LinkDisplay.never),
+            billingDetails: BillingDetails(
+              email: _email,
+              name: _fullName,
+              phone: _phone,
+            ),
             // DO NOT set returnURL — it tells Stripe redirect methods (like Link) are acceptable
             // which causes checkout.link.com to open on mobile.
             // payment_method_types: ['card'] is set server-side to enforce this.
@@ -512,7 +561,7 @@ class CheckoutProvider with ChangeNotifier {
         );
 
         await Stripe.instance.presentPaymentSheet();
-        paymentIntentId = intentData?['paymentIntentId'] ?? 'stripe_success';
+        paymentIntentId = responseData['paymentIntentId'] ?? 'stripe_success';
       } else if (_paymentMethod.startsWith('pm_') || _paymentMethod.startsWith('card_')) {
         // Stripe integration for saved card
         final intentData = await _paymentService.createIntent(getTotal(cart), checkoutPayload);

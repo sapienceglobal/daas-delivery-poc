@@ -34,6 +34,8 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
       // 1. Get Setup Intent Client Secret from backend
       final setupIntentData = await _paymentService.createSetupIntent();
       final clientSecret = setupIntentData?['clientSecret'];
+      final ephemeralKeySecret = setupIntentData?['ephemeralKey'];
+      final customerId = setupIntentData?['customerId'];
       
       if (clientSecret == null) {
         throw Exception('Failed to initialize secure setup');
@@ -43,9 +45,16 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
           setupIntentClientSecret: clientSecret,
+          customerId: customerId,
+          customerEphemeralKeySecret: ephemeralKeySecret,
           style: ThemeMode.light,
           merchantDisplayName: 'Lassi Lounge',
-          // No returnURL — prevents Stripe from offering Link / redirect methods
+          linkDisplayParams: const LinkDisplayParams(linkDisplay: LinkDisplay.never),
+          billingDetails: BillingDetails(
+            email: authProvider.user?.email,
+            name: authProvider.user?.name,
+            phone: authProvider.user?.phone,
+          ),
           allowsDelayedPaymentMethods: false,
           appearance: const PaymentSheetAppearance(
             colors: PaymentSheetAppearanceColors(

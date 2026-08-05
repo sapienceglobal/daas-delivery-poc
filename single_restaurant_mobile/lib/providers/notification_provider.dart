@@ -163,4 +163,12 @@ class NotificationProvider extends ChangeNotifier {
       // A robust implementation would revert the optimistic update here
     }
   }
+
+  /// Clears all notification data from memory. Call this on logout.
+  void clear() {
+    _notifications = [];
+    _unreadCount = 0;
+    _isLoading = false;
+    notifyListeners();
+  }
 }

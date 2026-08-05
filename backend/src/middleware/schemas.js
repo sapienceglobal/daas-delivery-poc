@@ -71,10 +71,12 @@ export const changePasswordSchema = Joi.object({
 // ── Order Schemas ───────────────────────────────────────────────────────────
 
 export const createOrderSchema = Joi.object({
-  restaurantId: Joi.string().hex().length(24).required().messages({
+  restaurantId: Joi.alternatives().try(
+    Joi.string().hex().length(24),
+    Joi.string().min(1).max(120)
+  ).required().messages({
     'any.required': 'restaurantId is required',
-    'string.hex': 'Invalid restaurant ID format',
-    'string.length': 'Invalid restaurant ID format'
+    'alternatives.match': 'Invalid restaurant ID format'
   }),
   items: Joi.array().items(
     Joi.object({
@@ -124,7 +126,10 @@ export const rateOrderSchema = Joi.object({
 });
 
 export const deliveryQuoteSchema = Joi.object({
-  restaurantId: Joi.string().hex().length(24).required(),
+  restaurantId: Joi.alternatives().try(
+    Joi.string().hex().length(24),
+    Joi.string().min(1).max(120)
+  ).required(),
   address: Joi.string().required(),
   addressLat: Joi.number().min(-90).max(90).allow(null).optional(),
   addressLng: Joi.number().min(-180).max(180).allow(null).optional(),

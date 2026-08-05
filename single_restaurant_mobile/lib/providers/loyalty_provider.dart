@@ -143,4 +143,19 @@ class LoyaltyProvider with ChangeNotifier {
       return {'success': false, 'message': res['message']};
     }
   }
+
+  /// Clears all loyalty data from memory. Call this on logout.
+  void clear() {
+    _transactions = [];
+    _myCoupons = [];
+    _currentBalance = 0;
+    _isLoyaltyMember = false;
+    _hasClaimedDaily = false;
+    _currentPage = 1;
+    _hasMore = true;
+    _isLoading = false;
+    _couponsLoading = false;
+    _error = null;
+    notifyListeners();
+  }
 }

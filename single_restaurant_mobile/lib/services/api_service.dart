@@ -9,8 +9,8 @@ class ApiService {
   // When building for release, pass the production URL using --dart-define=API_BASE_URL=https://your-server.com
   static const String _configuredBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    // defaultValue: 'http://195.35.20.207:5001', // Change your laptop's actual IP
-    defaultValue: 'http://192.168.1.7:5001',
+    defaultValue: 'http://195.35.20.207:5001', // Change your laptop's actual IP
+    // defaultValue: 'http://192.168.1.7:5001',
   );
   static const Duration _requestTimeout = Duration(seconds: 20);
  
@@ -26,7 +26,7 @@ class ApiService {
     _authToken = null;
   }
 
-  static Map<String, String> _buildHeaders(Map<String, String>? customHeaders) {
+  static Map<String, String> buildHeaders([Map<String, String>? customHeaders]) {
     final Map<String, String> headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -63,27 +63,27 @@ class ApiService {
 
   static Future<http.Response> get(String endpoint, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.get(uri, headers: _buildHeaders(headers)));
+    return _send(() => http.get(uri, headers: buildHeaders(headers)));
   }
 
   static Future<http.Response> post(String endpoint, dynamic body, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.post(uri, headers: _buildHeaders(headers), body: json.encode(body)));
+    return _send(() => http.post(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
   
   static Future<http.Response> put(String endpoint, dynamic body, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.put(uri, headers: _buildHeaders(headers), body: json.encode(body)));
+    return _send(() => http.put(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
 
   static Future<http.Response> patch(String endpoint, dynamic body, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.patch(uri, headers: _buildHeaders(headers), body: json.encode(body)));
+    return _send(() => http.patch(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
 
   static Future<http.Response> delete(String endpoint, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.delete(uri, headers: _buildHeaders(headers)));
+    return _send(() => http.delete(uri, headers: buildHeaders(headers)));
   }
 
   static Future<http.Response> _send(Future<http.Response> Function() request) async {

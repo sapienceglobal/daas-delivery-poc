@@ -452,6 +452,16 @@ class _AddressFormBottomSheetState extends State<_AddressFormBottomSheet> {
         _streetController.text = fullAddress;
         _address2Controller.text = '';
       }
+    } else {
+      // Auto-fill phone number from logged-in user for new addresses
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          final user = Provider.of<AuthProvider>(context, listen: false).user;
+          if (user != null && user.phone != null && user.phone!.isNotEmpty) {
+            _phoneController.text = user.phone!;
+          }
+        }
+      });
     }
   }
 

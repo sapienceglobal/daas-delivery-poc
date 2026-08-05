@@ -8,6 +8,12 @@ import 'package:single_restaurant_mobile/screens/loyalty_screen.dart';
 import 'package:single_restaurant_mobile/screens/referral_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/providers/address_provider.dart';
+import 'package:single_restaurant_mobile/providers/cart_provider.dart';
+import 'package:single_restaurant_mobile/providers/order_provider.dart';
+import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
+import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
+import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/screens/login_screen.dart';
 import 'package:single_restaurant_mobile/screens/favorites_screen.dart';
 import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
@@ -16,6 +22,8 @@ import 'package:single_restaurant_mobile/screens/notification_settings_screen.da
 import 'package:single_restaurant_mobile/screens/edit_profile_screen.dart';
 import 'package:single_restaurant_mobile/screens/book_table_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -25,13 +33,37 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final ImagePicker _picker = ImagePicker();
+
   @override
   void initState() {
     super.initState();
-    // Fetch fresh user data if needed when profile screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AuthProvider>(context, listen: false).fetchUser();
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      authProvider.fetchUser();
+      if (authProvider.isAuthenticated) {
+        Provider.of<OrderProvider>(context, listen: false).fetchMyOrders(silent: true);
+      }
     });
+  }
+
+  Future<void> _pickAndUploadImage(AuthProvider authProvider) async {
+    if (authProvider.user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please login to edit profile')));
+      return;
+    }
+    
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (pickedFile != null) {
+      final success = await authProvider.updateProfile(imagePath: pickedFile.path);
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile picture updated successfully!'), backgroundColor: Colors.green));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(authProvider.error ?? 'Failed to update profile picture'), backgroundColor: Colors.red));
+        }
+      }
+    }
   }
 
   @override
@@ -60,8 +92,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Consumer<AuthProvider>(
-        builder: (context, authProvider, child) {
+      body: Consumer2<AuthProvider, OrderProvider>(
+        builder: (context, authProvider, orderProvider, child) {
           if (authProvider.isLoading && authProvider.user == null) {
             return const Center(child: CircularProgressIndicator(color: AppColors.secondary));
           }
@@ -69,9 +101,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _buildProfileHeader(authProvider),
+                  _buildProfileHeader(authProvider, orderProvider),
                   const SizedBox(height: 16),
-                  _buildOrdersQuickStatus(),
+                  _buildOrdersQuickStatus(orderProvider),
                   const SizedBox(height: 16),
                   _buildMenuList(),
                   const SizedBox(height: 16),
@@ -87,7 +119,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(AuthProvider authProvider) {
+  Widget _buildProfileHeader(AuthProvider authProvider, OrderProvider orderProvider) {
     final user = authProvider.user;
     
     return Container(
@@ -103,13 +135,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Row(
             children: [
               GestureDetector(
-                onTap: () {
-                  if (user != null) {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen()));
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please login to edit profile')));
-                  }
-                },
+                onTap: () => _pickAndUploadImage(authProvider),
                 child: Stack(
                   alignment: Alignment.bottomRight,
                   children: [
@@ -164,29 +190,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
-              Column(
-                children: [
-                  Row(
-                    children: [
-                      const Text('Edit Profile', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 12)),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.chevron_right, color: AppColors.secondary, size: 16),
-                    ],
-                  ),
-                  const SizedBox(height: 40), // spacer to push it up
-                ],
+              GestureDetector(
+                onTap: () {
+                  if (user != null) {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen()));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please login to edit profile')));
+                  }
+                },
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Text('Edit Profile', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 12)),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right, color: AppColors.secondary, size: 16),
+                      ],
+                    ),
+                    const SizedBox(height: 40), // spacer to push it up
+                  ],
+                ),
               )
-            ],
-          ),
-          const Divider(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildStatItem(Icons.shopping_bag_outlined, '0', 'Orders'),
-              Container(height: 40, width: 1, color: AppColors.divider),
-              _buildStatItem(Icons.star_outline, '0.0', 'Ratings'),
-              Container(height: 40, width: 1, color: AppColors.divider),
-              _buildStatItem(Icons.local_offer_outlined, '0', 'Offers Used'),
             ],
           ),
         ],
@@ -210,7 +234,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildOrdersQuickStatus() {
+  Widget _buildOrdersQuickStatus(OrderProvider orderProvider) {
+    int active = 0;
+    int delivered = 0;
+    int cancelled = 0;
+    int upcoming = 0;
+
+    for (var order in orderProvider.orders) {
+      final status = order['status'] ?? '';
+      if (status == 'delivered') {
+        delivered++;
+      } else if (status == 'cancelled') {
+        cancelled++;
+      } else if (status != '') {
+        active++;
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -224,12 +264,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('My Orders', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Row(
-                children: [
-                  const Text('View All Orders', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 12)),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right, color: AppColors.secondary, size: 16),
-                ],
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => OrdersScreen(
+                    onBack: () => Navigator.pop(context),
+                  )));
+                },
+                child: Row(
+                  children: [
+                    const Text('View All Orders', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 12)),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.chevron_right, color: AppColors.secondary, size: 16),
+                  ],
+                ),
               )
             ],
           ),
@@ -237,10 +284,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildOrderStatusItem(Icons.receipt_long, '2', 'On The Way', Colors.orange.shade50, Colors.orange),
-              _buildOrderStatusItem(Icons.check_circle_outline, '15', 'Delivered', Colors.green.shade50, Colors.green, textColor: Colors.black),
-              _buildOrderStatusItem(Icons.cancel_outlined, '1', 'Cancelled', Colors.red.shade50, AppColors.secondary),
-              _buildOrderStatusItem(Icons.schedule, '0', 'Upcoming', Colors.yellow.shade50, Colors.orange.shade600),
+              _buildOrderStatusItem(Icons.receipt_long, active.toString(), 'On The Way', Colors.orange.shade50, Colors.orange),
+              _buildOrderStatusItem(Icons.check_circle_outline, delivered.toString(), 'Delivered', Colors.green.shade50, Colors.green, textColor: Colors.black),
+              _buildOrderStatusItem(Icons.cancel_outlined, cancelled.toString(), 'Cancelled', Colors.red.shade50, AppColors.secondary),
+              _buildOrderStatusItem(Icons.schedule, upcoming.toString(), 'Upcoming', Colors.yellow.shade50, Colors.orange.shade600),
             ],
           )
         ],
@@ -407,6 +454,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildLogoutButton(BuildContext context, AuthProvider authProvider) {
     return InkWell(
       onTap: () async {
+        // Industry standard: Clear ALL user-specific state before navigating away.
+        // This prevents stale data (addresses, orders, cart, loyalty) from a previous
+        // account from being visible if a different user logs in on the same device.
+        if (context.mounted) {
+          Provider.of<CartProvider>(context, listen: false).clearCart();
+          Provider.of<AddressProvider>(context, listen: false).clear();
+          Provider.of<OrderProvider>(context, listen: false).clear();
+          Provider.of<LoyaltyProvider>(context, listen: false).clear();
+          Provider.of<CheckoutProvider>(context, listen: false).reset();
+          Provider.of<NotificationProvider>(context, listen: false).clear();
+        }
         await authProvider.logout();
         if (context.mounted) {
           Navigator.of(context).pushAndRemoveUntil(

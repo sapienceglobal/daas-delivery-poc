@@ -24,6 +24,18 @@ export const createCustomer = async (email, name, metadata = {}) => {
 };
 
 /**
+ * Create an Ephemeral Key for a Customer
+ */
+export const createEphemeralKey = async (customerId, stripeVersion) => {
+  if (!stripe) throw new Error('Stripe is not configured');
+  const ephemeralKey = await stripe.ephemeralKeys.create(
+    { customer: customerId },
+    { apiVersion: stripeVersion || STRIPE_API_VERSION }
+  );
+  return ephemeralKey;
+};
+
+/**
  * Create a Payment Intent
  */
 export const createPaymentIntent = async (amount, metadata = {}, customerId = null) => {

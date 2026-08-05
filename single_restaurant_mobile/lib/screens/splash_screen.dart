@@ -6,10 +6,20 @@ import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 
-class SplashScreen extends StatelessWidget {
+import 'package:single_restaurant_mobile/widgets/three_dots_loading.dart';
+
+class SplashScreen extends StatefulWidget {
   final bool isLoggedIn;
   
   const SplashScreen({super.key, required this.isLoggedIn});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  bool _isOrderLoading = false;
+  bool _isReserveLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -152,15 +162,22 @@ class SplashScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
+                        if (_isOrderLoading || _isReserveLoading) return;
+                        setState(() => _isOrderLoading = true);
+                        
+                        // Short delay for premium feel
+                        await Future.delayed(const Duration(milliseconds: 800));
+                        
+                        if (!mounted) return;
                         // Routing based on authentication state
-                        // If logged in, go to MainScreen. Otherwise, LoginScreen.
-                        if (isLoggedIn) {
+                        if (widget.isLoggedIn) {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(builder: (context) => const MainScreen()),
                           );
                         } else {
+                          setState(() => _isOrderLoading = false);
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -174,21 +191,23 @@ class SplashScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Text(
-                            'ORDER ONLINE',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.0,
-                            ),
+                      child: _isOrderLoading 
+                        ? const ThreeDotsLoading(color: Colors.black, size: 10)
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Text(
+                                'ORDER ONLINE',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward_ios, size: 16),
+                            ],
                           ),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward_ios, size: 16),
-                        ],
-                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -197,7 +216,14 @@ class SplashScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 56,
                     child: OutlinedButton(
-                      onPressed: () {
+                      onPressed: () async {
+                        if (_isOrderLoading || _isReserveLoading) return;
+                        setState(() => _isReserveLoading = true);
+                        
+                        await Future.delayed(const Duration(milliseconds: 800));
+                        
+                        if (!mounted) return;
+                        setState(() => _isReserveLoading = false);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -211,22 +237,24 @@ class SplashScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'RESERVE A TABLE',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.0,
-                            ),
+                      child: _isReserveLoading
+                        ? const ThreeDotsLoading(color: AppColors.primary, size: 10)
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'RESERVE A TABLE',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.primary),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.primary),
-                        ],
-                      ),
                     ),
                   ),
                   const SizedBox(height: 20),

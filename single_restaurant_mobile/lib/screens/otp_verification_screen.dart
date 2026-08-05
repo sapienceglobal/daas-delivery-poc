@@ -1,8 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
+import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/providers/address_provider.dart';
+import 'package:single_restaurant_mobile/providers/cart_provider.dart';
+import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
+import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -56,7 +62,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     
     // UI Validation: We require exactly 6 digits for the UI flow to proceed
     if (otp.length == 6) {
-      // Option A: Accept any 6 digit code for now to allow UI progression
+      // Load all user-specific providers freshly for the new account
+      if (context.mounted) {
+        context.read<AuthProvider>().fetchUser();
+        context.read<AddressProvider>().fetchAddresses();
+        context.read<CartProvider>().loadCart();
+        context.read<LoyaltyProvider>().fetchHistory();
+        context.read<NotificationProvider>().fetchNotifications();
+      }
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
         (route) => false,

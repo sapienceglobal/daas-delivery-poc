@@ -375,6 +375,14 @@ class _LoginScreenState extends State<LoginScreen> {
       obscureText: isPassword && !(isVisible ?? false),
       validator: validator,
       keyboardType: keyboardType,
+      onTap: () {
+        if (controller.selection.baseOffset != controller.selection.extentOffset) {
+          final extent = controller.selection.extentOffset;
+          if (extent != -1) {
+            controller.selection = TextSelection.collapsed(offset: extent);
+          }
+        }
+      },
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),

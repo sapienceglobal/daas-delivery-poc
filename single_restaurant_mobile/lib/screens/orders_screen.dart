@@ -8,6 +8,7 @@ import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
+import 'package:single_restaurant_mobile/widgets/empty_state_widget.dart';
 
 class OrdersScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -177,7 +178,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 }
                 
                 if (provider.error != null && provider.orders.isEmpty) {
-                  return Center(child: Text('Error: ${provider.error}', style: const TextStyle(color: Colors.red)));
+                  return EmptyStateWidget(
+                    icon: Icons.error_outline,
+                    title: 'Oops! Something went wrong',
+                    subtitle: 'We couldn\'t load your orders.\n${provider.error}',
+                    actionText: 'Try Again',
+                    onActionPressed: () => provider.fetchMyOrders(),
+                  );
                 }
 
                 List<dynamic> displayOrders = provider.orders;
@@ -194,7 +201,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 }
 
                 if (displayOrders.isEmpty) {
-                  return const Center(child: Text('No orders found.'));
+                  return const EmptyStateWidget(
+                    icon: Icons.receipt_long_outlined,
+                    title: 'No Orders Yet',
+                    subtitle: 'Looks like you haven\'t placed any orders yet.\nExplore our menu and order your favorites!',
+                  );
                 }
 
                 return RefreshIndicator(

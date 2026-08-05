@@ -42,7 +42,7 @@ class UserModel {
       role: json['role'] ?? 'customer',
       isEmailVerified: json['isEmailVerified'] ?? false,
       isPhoneVerified: json['isPhoneVerified'] ?? false,
-      profilePicture: json['profileImage'] ?? json['profilePicture'],
+      profilePicture: json['avatar'] ?? json['profileImage'] ?? json['profilePicture'],
       addresses: json['savedAddresses'] as List<dynamic>?,
       savedCards: json['savedCards'] as List<dynamic>?,
       favoriteItems: json['favoriteItems'] as List<dynamic>?,

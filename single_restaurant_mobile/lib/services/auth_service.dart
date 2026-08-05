@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:single_restaurant_mobile/services/api_service.dart';
+import 'package:http_parser/http_parser.dart';
 
 class AuthService {
   static const String _tokenKey = 'auth_token';
@@ -139,27 +140,56 @@ class AuthService {
     String? imagePath,
   }) async {
     try {
+      String? avatarUrl;
       final token = ApiService.authToken;
       if (token == null) return null;
-      
-      final uri = Uri.parse('${ApiService.baseUrl}/api/auth/profile');
-      final request = http.MultipartRequest('PUT', uri);
-      
-      request.headers['Authorization'] = 'Bearer $token';
-      
-      if (name != null) request.fields['name'] = name;
-      if (phone != null) request.fields['phone'] = phone;
-      
+
+      // 1. Upload image if provided
       if (imagePath != null) {
-        request.files.add(await http.MultipartFile.fromPath('profileImage', imagePath));
+        final uploadUri = Uri.parse('${ApiService.baseUrl}/api/upload');
+        final uploadRequest = http.MultipartRequest('POST', uploadUri);
+        
+        final headers = ApiService.buildHeaders();
+        uploadRequest.headers.addAll(headers);
+        
+        final ext = imagePath.split('.').last.toLowerCase();
+        String mimeType = 'jpeg';
+        if (ext == 'png') mimeType = 'png';
+        else if (ext == 'webp') mimeType = 'webp';
+        else if (ext == 'gif') mimeType = 'gif';
+        
+        uploadRequest.files.add(await http.MultipartFile.fromPath(
+          'image', 
+          imagePath,
+          contentType: MediaType('image', mimeType),
+        ));
+        
+        final streamedResponse = await uploadRequest.send();
+        final response = await http.Response.fromStream(streamedResponse);
+        
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final data = json.decode(response.body);
+          avatarUrl = data['data']['url'];
+        } else {
+          print('Image upload failed: ${response.body}');
+          return null; // Fail early if image upload fails
+        }
       }
-      
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-      
+
+      // 2. Update profile data
+      final payload = <String, dynamic>{};
+      if (name != null) payload['name'] = name;
+      if (phone != null) payload['phone'] = phone;
+      if (avatarUrl != null) payload['avatar'] = avatarUrl;
+
+      if (payload.isEmpty) return null;
+
+      final response = await ApiService.put('/api/auth/me', payload);
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return data['user'];
+        // The backend returns { success: true, data: user, message: ... }
+        return data['data'];
       }
       return null;
     } catch (e) {

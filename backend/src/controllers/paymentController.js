@@ -1,4 +1,4 @@
-import { createPaymentIntent, createSetupIntent as createStripeSetupIntent, handleWebhook, createCustomer } from '../services/stripeService.js';
+import { createPaymentIntent, createSetupIntent as createStripeSetupIntent, handleWebhook, createCustomer, createEphemeralKey } from '../services/stripeService.js';
 import Order from '../models/Order.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import logger from '../utils/logger.js';
@@ -106,16 +106,28 @@ export const createIntent = asyncHandler(async (req, res) => {
   }
 
   const paymentIntent = await createPaymentIntent(verifiedAmount, metadata, stripeCustomerId);
+  let ephemeralKey = null;
+  if (stripeCustomerId) {
+    try {
+      ephemeralKey = await createEphemeralKey(stripeCustomerId);
+    } catch (err) {
+      logger.warn('Failed to create ephemeral key for payment intent', err);
+    }
+  }
 
   res.status(200).json({
     data: {
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
-      amount: verifiedAmount
+      amount: verifiedAmount,
+      ephemeralKey: ephemeralKey?.secret,
+      customerId: stripeCustomerId
     },
     clientSecret: paymentIntent.client_secret,
     paymentIntentId: paymentIntent.id,
-    amount: verifiedAmount
+    amount: verifiedAmount,
+    ephemeralKey: ephemeralKey?.secret,
+    customerId: stripeCustomerId
   });
 });
 
@@ -145,14 +157,26 @@ export const createSetupIntent = asyncHandler(async (req, res) => {
   }
 
   const setupIntent = await createStripeSetupIntent(metadata, stripeCustomerId);
+  let ephemeralKey = null;
+  if (stripeCustomerId) {
+    try {
+      ephemeralKey = await createEphemeralKey(stripeCustomerId);
+    } catch (err) {
+      logger.warn('Failed to create ephemeral key', err);
+    }
+  }
 
   res.status(200).json({
     data: {
       clientSecret: setupIntent.client_secret,
-      setupIntentId: setupIntent.id
+      setupIntentId: setupIntent.id,
+      ephemeralKey: ephemeralKey?.secret,
+      customerId: stripeCustomerId
     },
     clientSecret: setupIntent.client_secret,
-    setupIntentId: setupIntent.id
+    setupIntentId: setupIntent.id,
+    ephemeralKey: ephemeralKey?.secret,
+    customerId: stripeCustomerId
   });
 });
 

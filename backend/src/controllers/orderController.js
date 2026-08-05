@@ -376,17 +376,23 @@ export const createOrder = asyncHandler(async (req, response) => {
     throw new AppError('Unsupported payment method for US customer checkout. Please use card, Apple Pay, or Google Pay.', 400);
   }
 
-  const restaurantCheck = await Restaurant.findById(restaurantId);
+  // Accept both MongoDB ObjectId and slug (e.g. 'lassi-lounge')
+  const isObjectId = /^[a-fA-F0-9]{24}$/.test(restaurantId);
+  const restaurantCheck = isObjectId
+    ? await Restaurant.findById(restaurantId)
+    : await Restaurant.findOne({ $or: [{ slug: restaurantId }, { name: restaurantId }] });
   if (!restaurantCheck) {
     throw new AppError('Restaurant not found', 404);
   }
+  // Normalize restaurantId to ObjectId string for all downstream operations
+  const normalizedRestaurantId = restaurantCheck._id.toString();
   if (restaurantCheck.isActive === false) {
     throw new AppError('This restaurant is not accepting orders right now', 400);
   }
 
   // Geo-distance serviceability check for delivery orders
   if (orderType === 'delivery' && addressLat && addressLng && Number(addressLat) !== 0 && Number(addressLng) !== 0) {
-    const restaurant = await Restaurant.findById(restaurantId);
+    const restaurant = restaurantCheck; // already fetched above
     if (restaurant?.location?.coordinates) {
       const [restLng, restLat] = restaurant.location.coordinates;
       const toRad = (deg) => (deg * Math.PI) / 180;
@@ -402,7 +408,7 @@ export const createOrder = asyncHandler(async (req, response) => {
   }
 
   const prePricing = await calculateOrderPricing({
-    restaurantId,
+    restaurantId: normalizedRestaurantId,
     items,
     orderType,
     tip,
@@ -422,7 +428,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     : { deliveryFee: 0, quote: null };
 
   const pricing = await calculateOrderPricing({
-    restaurantId,
+    restaurantId: normalizedRestaurantId,
     items,
     orderType,
     tip,
@@ -703,7 +709,11 @@ export const getDeliveryQuote = asyncHandler(async (req, response) => {
   const { restaurantId, address, addressLat, addressLng, scheduledTime, items = [] } = req.body;
   if (!restaurantId || !address) throw new AppError('restaurantId and address are required', 400);
 
-  const restaurant = await Restaurant.findById(restaurantId);
+  // Accept both MongoDB ObjectId and slug (e.g. 'lassi-lounge')
+  const isObjectId = /^[a-fA-F0-9]{24}$/.test(restaurantId);
+  const restaurant = isObjectId
+    ? await Restaurant.findById(restaurantId)
+    : await Restaurant.findOne({ $or: [{ slug: restaurantId }, { name: restaurantId }] });
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
   // ── Geo-distance serviceability check (same as homepage's getNearby) ──

@@ -211,6 +211,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           readOnly: readOnly,
           keyboardType: keyboardType,
           validator: validator,
+          onTap: () {
+            if (controller.selection.baseOffset != controller.selection.extentOffset) {
+              final extent = controller.selection.extentOffset;
+              if (extent != -1) {
+                controller.selection = TextSelection.collapsed(offset: extent);
+              }
+            }
+          },
           style: TextStyle(color: readOnly ? Colors.grey.shade600 : Colors.black87),
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: readOnly ? Colors.grey.shade400 : AppColors.secondary),
