@@ -37,8 +37,9 @@ class ImageHelper {
       );
     }
     // Just in case a local asset path is returned from backend or something
+    final assetPath = url.startsWith('/') ? url.substring(1) : url;
     return Image.asset(
-      url,
+      assetPath,
       fit: fit,
       errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey.shade300),
     );
@@ -74,8 +75,9 @@ class ImageHelper {
         errorWidget: (context, url, error) => Container(color: Colors.grey.shade300, child: const Icon(Icons.error, color: Colors.grey)),
       );
     }
+    final assetPath = url.startsWith('/') ? url.substring(1) : url;
     return Image.asset(
-      url,
+      assetPath,
       fit: fit,
       errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey.shade300),
     );

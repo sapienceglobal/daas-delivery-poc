@@ -80,7 +80,7 @@ class _MenuScreenState extends State<MenuScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.red),
           onPressed: () => Navigator.pop(context), // Handled by MainScreen tabs usually, but kept for standalone
         ),
-        title: Image.asset('assets/images/logo.png', height: 40, errorBuilder: (c,e,s) => const Text('LASSI LOUNGE', style: TextStyle(color: Colors.black))),
+        title: Image.asset('assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png', height: 40, errorBuilder: (c,e,s) => const Text('LASSI LOUNGE', style: TextStyle(color: Colors.black))),
         actions: [
           IconButton(
             icon: const Icon(Icons.search, color: Colors.black87),

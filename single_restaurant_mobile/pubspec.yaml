@@ -52,6 +52,7 @@ dependencies:
   shimmer: ^3.0.0
   flutter_map: ^8.3.1
   latlong2: ^0.10.1
+  flutter_native_splash: ^2.4.7
 
 dev_dependencies:
   flutter_test:
@@ -114,8 +115,15 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
-flutter_launcher_icons:
-  android: 	rue
-  ios: 	rue
-  image_path: "assets/app_icon.png"
 
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/branded/lassi-lounge/Lassi-Lounge-icon.png"
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: "assets/images/branded/lassi-lounge/Lassi-Lounge-icon-padded.png"
+  android_12:
+    image: "assets/images/branded/lassi-lounge/Lassi-Lounge-icon-padded.png"
+    icon_background_color: "#ffffff"
