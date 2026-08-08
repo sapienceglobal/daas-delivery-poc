@@ -176,8 +176,8 @@ export default function LiveOrdersView({
         )}
         {col.id === 'out_for_delivery' && (
           <div className="flex flex-col gap-0.5 text-xs font-medium text-[#6b7280] mb-3">
-            <span>Rider: {order.dasherName || 'Rohit Kumar'}</span>
-            <span className="flex items-center gap-1"><Phone className="w-3 h-3"/> (650) 555-0123</span>
+            <span>Rider: {order.dasherName ? order.dasherName : 'Assigning rider...'}</span>
+            {order.dasherPhone && <span className="flex items-center gap-1"><Phone className="w-3 h-3"/> {order.dasherPhone}</span>}
           </div>
         )}
 
@@ -201,7 +201,13 @@ export default function LiveOrdersView({
             </button>
           )}
           {col.id === 'out_for_delivery' && (
-            <button className={`w-full text-white text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 ${col.theme.buttonBg} ${col.theme.buttonHover}`}>
+            <button 
+              onClick={() => {
+                if (order.trackingUrl) window.open(order.trackingUrl, '_blank');
+              }}
+              disabled={!order.trackingUrl}
+              className={`w-full text-white text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 ${col.theme.buttonBg} ${col.theme.buttonHover} ${!order.trackingUrl ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
               <Truck className="w-3.5 h-3.5" /> Track Order
             </button>
           )}

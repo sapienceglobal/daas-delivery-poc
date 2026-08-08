@@ -8,6 +8,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:single_restaurant_mobile/utils/formatters.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'dart:async';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class TrackOrderScreen extends StatefulWidget {
   final String orderId;
@@ -23,6 +25,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
   bool _isLoading = true;
   String? _error;
   Timer? _pollingTimer;
+  final MapController _mapController = MapController();
 
   bool _isRefunded(Map<String, dynamic> order) {
     final paymentStatus = order['paymentStatus']?.toString().toLowerCase();
@@ -433,48 +436,90 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
   }
 
   Widget _buildMapPlaceholder() {
+    final hasRestaurant = _order!['restaurantLat'] != null && _order!['restaurantLng'] != null;
+    final hasCustomer = _order!['addressLat'] != null && _order!['addressLng'] != null;
+    final hasCourier = _order!['dasherLat'] != null && _order!['dasherLng'] != null;
+
+    final markers = <Marker>[];
+    if (hasRestaurant) {
+      markers.add(
+        Marker(
+          point: LatLng((_order!['restaurantLat'] as num).toDouble(), (_order!['restaurantLng'] as num).toDouble()),
+          width: 100,
+          height: 60,
+          child: _buildMapMarker(Icons.storefront, _order!['restaurantName'] ?? 'Restaurant', true),
+        ),
+      );
+    }
+    if (hasCustomer) {
+      markers.add(
+        Marker(
+          point: LatLng((_order!['addressLat'] as num).toDouble(), (_order!['addressLng'] as num).toDouble()),
+          width: 100,
+          height: 60,
+          child: _buildMapMarker(Icons.location_on, 'Dropoff', false),
+        ),
+      );
+    }
+    if (hasCourier) {
+      markers.add(
+        Marker(
+          point: LatLng((_order!['dasherLat'] as num).toDouble(), (_order!['dasherLng'] as num).toDouble()),
+          width: 50,
+          height: 50,
+          child: _buildDriverMarker(),
+        ),
+      );
+    }
+
+    final initialCenter = markers.isNotEmpty ? markers.first.point : const LatLng(37.7749, -122.4194);
+
     return Container(
-      height: 200,
+      height: 250,
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE5E5E5), // Light map background
+        color: const Color(0xFFE5E5E5),
         borderRadius: BorderRadius.circular(16),
-        image: const DecorationImage(
-          image: AssetImage('assets/images/branded/lassi-lounge/categories/beverages.jpg'), // Generic placeholder until map is implemented
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(Colors.white70, BlendMode.lighten), // fade it to look like a map
-        ),
+        border: Border.all(color: Colors.grey.shade300),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          // Simulated route line
-          Positioned(
-            top: 60,
-            left: 60,
-            right: 60,
-            bottom: 60,
-            child: CustomPaint(
-              painter: RoutePainter(),
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: initialCenter,
+              initialZoom: 13.0,
             ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.single_restaurant_mobile',
+              ),
+              MarkerLayer(markers: markers),
+            ],
           ),
-          // Restaurant Marker
-          Positioned(
-            top: 40,
-            left: 40,
-            child: _buildMapMarker(Icons.storefront, _order!['restaurantName'] ?? 'Restaurant', true),
-          ),
-          // Driver Marker
-          Positioned(
-            top: 100,
-            left: 140,
-            child: _buildDriverMarker(),
-          ),
-          // Destination Marker
-          Positioned(
-            top: 60,
-            right: 40,
-            child: _buildMapMarker(Icons.location_on, 'Your Address', false),
-          ),
+          if (markers.isNotEmpty)
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: Material(
+                color: Colors.white,
+                shape: const CircleBorder(),
+                elevation: 4,
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {
+                    final bounds = LatLngBounds.fromPoints(markers.map((m) => m.point).toList());
+                    _mapController.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(40.0)));
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: Icon(Icons.my_location, color: AppColors.secondary, size: 24),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -545,9 +590,9 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
               children: [
                 const Text('Your Delivery Partner', style: TextStyle(color: Colors.grey, fontSize: 11)),
                 const SizedBox(height: 2),
-                const Row(
+                Row(
                   children: [
-                    Text('Delivery Agent', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(_order!['dasherName']?.toString().isNotEmpty == true ? _order!['dasherName'] : 'Assigning rider...', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -555,7 +600,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                   children: [
                     const Icon(Icons.phone_outlined, color: AppColors.secondary, size: 14),
                     const SizedBox(width: 4),
-                    const Text('Call Driver', style: TextStyle(fontSize: 12)),
+                    Text(_order!['dasherPhone']?.toString().isNotEmpty == true ? _order!['dasherPhone'] : 'Awaiting assignment', style: const TextStyle(fontSize: 12)),
                   ],
                 ),
               ],
@@ -753,28 +798,3 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
   }
 }
 
-class RoutePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.secondary
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final path = Path();
-    // Rough coordinates to match the UI image map line
-    path.moveTo(0, 0); // Start at store (top leftish)
-    path.lineTo(20, 50);
-    path.lineTo(120, 50); // Driver position
-    path.lineTo(200, 40); // End at destination (top rightish)
-    
-    // In a real implementation this would map LatLng to local coordinates.
-    // We just draw a line to look like the mockup.
-    
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

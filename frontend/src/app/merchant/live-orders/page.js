@@ -75,8 +75,9 @@ export default function MerchantLiveOrdersPage() {
       orders={orders}
       restaurant={restaurant}
       onUpdateStatus={handleUpdateStatus}
-      onAccept={handleAcceptOrder}
-      onReject={handleRejectOrder}
+      onAcceptOrder={handleAcceptOrder}
+      onRejectOrder={handleRejectOrder}
+      onRefresh={loadData}
     />
   );
 }
