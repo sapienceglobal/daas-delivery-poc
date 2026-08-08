@@ -75,7 +75,7 @@ class NotificationProvider extends ChangeNotifier {
       if (data['success'] == true) {
         final List<dynamic> items = data['data'];
         _notifications = items.map((item) => NotificationModel.fromJson(item)).toList();
-        _unreadCount = data['meta']['unreadCount'] ?? 0;
+        _unreadCount = (data['meta'] != null) ? (data['meta']['unreadCount'] ?? 0) : 0;
       }
     } catch (e) {
       debugPrint('Error fetching notifications: $e');

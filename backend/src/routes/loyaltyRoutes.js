@@ -5,7 +5,8 @@ import {
   joinProgram, 
   earnPoints, 
   redeemPoints,
-  getMyCoupons
+  getMyCoupons,
+  getLoyaltyStats
 } from '../controllers/loyaltyController.js';
 
 const router = express.Router();
@@ -17,5 +18,8 @@ router.get('/my-coupons', getMyCoupons);
 router.post('/join', joinProgram);
 router.post('/earn', earnPoints);
 router.post('/redeem', redeemPoints);
+
+import { authorize } from '../middleware/auth.js';
+router.get('/stats', authorize('admin', 'merchant'), getLoyaltyStats);
 
 export default router;

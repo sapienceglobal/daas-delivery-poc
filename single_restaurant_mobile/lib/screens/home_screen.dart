@@ -23,6 +23,7 @@ import 'package:single_restaurant_mobile/utils/image_helper.dart';
 import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
 import 'package:single_restaurant_mobile/widgets/shimmer_loading.dart';
 import 'package:single_restaurant_mobile/widgets/empty_state_widget.dart';
+import 'package:single_restaurant_mobile/services/coupon_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,6 +33,29 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  Map<String, dynamic>? _activeCoupon;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchActiveCoupon();
+  }
+
+  Future<void> _fetchActiveCoupon() async {
+    try {
+      final coupons = await CouponService().getCoupons(activeOnly: true);
+      if (coupons.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _activeCoupon = coupons.first;
+          });
+        }
+      }
+    } catch (e) {
+      print('Failed to load active coupon: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -795,7 +819,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          const WelcomeOfferCard(),
+          if (_activeCoupon != null) WelcomeOfferCard(coupon: _activeCoupon!),
           _buildLoyaltyCard(context),
           _buildFastDeliveryCard(),
         ],
@@ -897,7 +921,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 class WelcomeOfferCard extends StatefulWidget {
-  const WelcomeOfferCard({super.key});
+  final Map<String, dynamic> coupon;
+  const WelcomeOfferCard({super.key, required this.coupon});
 
   @override
   State<WelcomeOfferCard> createState() => _WelcomeOfferCardState();
@@ -929,7 +954,7 @@ class _WelcomeOfferCardState extends State<WelcomeOfferCard> with SingleTickerPr
 
   void _copyCode() {
     if (_isCopied) return;
-    Clipboard.setData(const ClipboardData(text: 'LASSI20'));
+    Clipboard.setData(ClipboardData(text: widget.coupon['code']));
     setState(() {
       _isCopied = true;
     });
@@ -947,6 +972,11 @@ class _WelcomeOfferCardState extends State<WelcomeOfferCard> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
+    final coupon = widget.coupon;
+    final isPercentage = coupon['type'] == 'percentage';
+    final discountStr = isPercentage ? '${coupon['value']}% OFF' : '\$${coupon['value']} OFF';
+    final titleStr = coupon['promoType']?.toString().toUpperCase() ?? 'OFFER';
+    
     return Container(
       width: 220,
       height: 170,
@@ -963,13 +993,13 @@ class _WelcomeOfferCardState extends State<WelcomeOfferCard> with SingleTickerPr
             children: [
               const Icon(Icons.card_giftcard, color: Color(0xFFE8D090), size: 16),
               const SizedBox(width: 8),
-              const Text('WELCOME OFFER', style: TextStyle(color: Color(0xFFE8D090), fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1)),
+              Text(titleStr, style: const TextStyle(color: Color(0xFFE8D090), fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1)),
             ],
           ),
           const Spacer(),
-          const Text('20% OFF', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, fontFamily: 'serif')),
+          Text(discountStr, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, fontFamily: 'serif')),
           const SizedBox(height: 4),
-          const Text('On Your First Order', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+          Text(coupon['description'] ?? (coupon['firstOrderOnly'] == true ? 'On Your First Order' : 'Limited Time Offer'), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
           const Spacer(),
           GestureDetector(
             onTap: _copyCode,
@@ -987,7 +1017,7 @@ class _WelcomeOfferCardState extends State<WelcomeOfferCard> with SingleTickerPr
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _isCopied ? 'CODE COPIED!' : 'CODE: LASSI20', 
+                      _isCopied ? 'CODE COPIED!' : 'CODE: ${coupon['code']}', 
                       style: TextStyle(
                         color: _isCopied ? const Color(0xFF630A10) : const Color(0xFFE8D090), 
                         fontWeight: FontWeight.bold, 

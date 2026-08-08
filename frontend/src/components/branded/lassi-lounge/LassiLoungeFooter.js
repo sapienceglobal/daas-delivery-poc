@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { MapPin, Phone, Mail, Facebook, Instagram, MessageCircle, Star, ChevronRight, ArrowUp } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { footerContent } from './config';
+import { useBrand } from '@/context/BrandContext';
 
 const SOCIAL_ICONS = {
   facebook: Facebook,
@@ -21,8 +22,15 @@ const SOCIAL_BG = {
 };
 
 export default function LassiLoungeFooter() {
-  const { description, visitUs, hours, viewAllHoursCta, findUs, social, legalLinks } = footerContent;
+  const { brand } = useBrand();
+  const { description, hours, viewAllHoursCta, findUs, social, legalLinks } = footerContent;
   const year = new Date().getFullYear();
+
+  const visitUs = {
+    address: brand?.address || footerContent.visitUs.address,
+    phone: brand?.phone || footerContent.visitUs.phone,
+    email: brand?.email || footerContent.visitUs.email,
+  };
 
   return (
     <footer className="bg-[#141212] border-t border-white/10 pt-4">
@@ -32,12 +40,18 @@ export default function LassiLoungeFooter() {
     
         <div className="md:pr-8 py-8 md:py-0">
           <div className="flex items-baseline gap-1.5 mb-4">
-            <span className="text-4xl font-bold text-[#E63946]" style={{ fontFamily: 'var(--font-script)' }}>
-              Lassi
-            </span>
-            <span className="text-sm font-bold text-[#E8B93D] tracking-widest mt-1">LOUNGE</span>
+            {brand?.logo ? (
+              <img src={brand.logo} alt={brand.name} className="h-10 object-contain" />
+            ) : (
+              <>
+                <span className="text-4xl font-bold text-[#E63946]" style={{ fontFamily: 'var(--font-script)' }}>
+                  Lassi
+                </span>
+                <span className="text-sm font-bold text-[#E8B93D] tracking-widest mt-1">LOUNGE</span>
+              </>
+            )}
           </div>
-          <p className="text-[#D8D4CF] text-sm mt-3 leading-relaxed pr-4">{description}</p>
+          <p className="text-[#D8D4CF] text-sm mt-3 leading-relaxed pr-4">{brand?.cuisine ? `${brand.cuisine} Restaurant. ` : ''}{description}</p>
           <div className="flex items-center gap-3 mt-6">
             {social.map((item) => {
               const Icon = SOCIAL_ICONS[item.id] ?? Star;

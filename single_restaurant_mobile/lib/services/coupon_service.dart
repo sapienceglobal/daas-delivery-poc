@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'package:single_restaurant_mobile/services/api_service.dart';
 
 class CouponService {
-  Future<Map<String, dynamic>?> validateCoupon(String code, double subtotal, String? restaurantId) async {
+  Future<Map<String, dynamic>?> validateCoupon(String code, double subtotal, String? restaurantId, [String? paymentMethod]) async {
     try {
       final response = await ApiService.post('/api/coupons/validate', {
         'code': code,
         'cartValue': subtotal,
         'restaurantId': restaurantId,
+        'paymentMethod': paymentMethod,
       });
       
       final data = json.decode(response.body);
@@ -20,7 +21,8 @@ class CouponService {
 
   Future<List<dynamic>> getCoupons({bool activeOnly = true}) async {
     try {
-      final response = await ApiService.get('/api/coupons?active=$activeOnly');
+      final endpoint = activeOnly ? '/api/coupons/active' : '/api/coupons';
+      final response = await ApiService.get(endpoint);
       final data = json.decode(response.body);
       return data['data'] ?? [];
     } catch (e) {

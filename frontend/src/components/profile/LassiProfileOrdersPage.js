@@ -54,7 +54,13 @@ const statusTabs = [
 
 const isOngoingStatus = (status) => ['pending', 'accepted', 'preparing', 'ready', 'picked_up', 'out_for_delivery'].includes(status);
 
-const getStatusMeta = (status) => {
+const getStatusMeta = (order) => {
+  const status = order?.status;
+  const isRefunded = order?.refunded === true || order?.paymentStatus === 'refunded' || Number(order?.refundAmount || 0) > 0;
+
+  if (isRefunded) {
+    return { label: 'Refunded', icon: RotateCcw, className: 'bg-[#ffe4ea] text-[#b4233a]' };
+  }
   if (status === 'delivered') {
     return { label: 'Delivered', icon: PackageCheck, className: 'bg-[#dff4df] text-[#2f8a42]' };
   }
@@ -191,6 +197,20 @@ export default function LassiProfileOrdersPage({ user, logout, updateUser }) {
     router.push('/customer/checkout');
   };
 
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm("Are you sure you want to cancel this order? This action cannot be undone.")) return;
+    try {
+      await orderAPI.cancel(orderId);
+      showToast('Order cancelled successfully', 'success');
+      setOrders(orders.map(o => o._id === orderId ? { ...o, status: 'cancelled' } : o));
+      if (selectedOrder && selectedOrder._id === orderId) {
+        setSelectedOrder({ ...selectedOrder, status: 'cancelled' });
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || err.message || 'Failed to cancel order', 'error');
+    }
+  };
+
   const handleNavClick = async (id) => {
     if (id === 'logout') {
       if (logout) await logout();
@@ -242,6 +262,7 @@ export default function LassiProfileOrdersPage({ user, logout, updateUser }) {
                           order={order}
                           onReorder={() => handleReorder(order)}
                           onViewDetails={() => setSelectedOrder(order)}
+                          onCancelOrder={() => handleCancelOrder(order._id)}
                         />
                       ))}
                     </div>
@@ -276,8 +297,11 @@ export default function LassiProfileOrdersPage({ user, logout, updateUser }) {
           onClose={() => setSelectedOrder(null)}
           onReorder={() => {
             const ord = selectedOrder;
-            setSelectedOrder(null);
             handleReorder(ord);
+            setSelectedOrder(null);
+          }}
+          onCancelOrder={(id) => {
+            handleCancelOrder(id);
           }}
         />
       )}
@@ -481,8 +505,8 @@ function OrdersHeader({ activeStatus, setActiveStatus, search, setSearch, onOpen
 }
 
 // ── 4. Order History Card ───────────────────────────────────────────────────
-function OrderHistoryCard({ order, onReorder, onViewDetails }) {
-  const statusMeta = getStatusMeta(order.status);
+function OrderHistoryCard({ order, onReorder, onViewDetails, onCancelOrder }) {
+  const statusMeta = getStatusMeta(order);
   const StatusIcon = statusMeta.icon;
   const stamp = formatDate(order.createdAt);
   const displayItems = order.items?.slice(0, 3) || [];
@@ -550,6 +574,15 @@ function OrderHistoryCard({ order, onReorder, onViewDetails }) {
           </button>
         )}
 
+        {(order.status === 'pending' || order.status === 'accepted') && (
+          <button
+            onClick={onCancelOrder}
+            className="w-full rounded-lg border border-[#dc2626] px-4 py-2.5 text-[13px] font-black text-[#dc2626] flex items-center justify-center gap-2 hover:bg-[#fef2f2] transition-colors"
+          >
+            Cancel Order
+          </button>
+        )}
+
         <button
           onClick={onViewDetails}
           className="w-full text-[13px] font-black text-[#7a0b10] flex items-center justify-center gap-1.5 hover:underline py-1"
@@ -562,8 +595,8 @@ function OrderHistoryCard({ order, onReorder, onViewDetails }) {
 }
 
 // ── 5. Order Details Modal ──────────────────────────────────────────────────
-function OrderDetailsModal({ order, onClose, onReorder }) {
-  const statusMeta = getStatusMeta(order.status);
+function OrderDetailsModal({ order, onClose, onReorder, onCancelOrder }) {
+  const statusMeta = getStatusMeta(order);
   const StatusIcon = statusMeta.icon;
   const stamp = formatDate(order.createdAt);
 
@@ -708,6 +741,14 @@ function OrderDetailsModal({ order, onClose, onReorder }) {
               className="rounded-lg bg-[#7a0b10] px-5 py-2.5 text-[13px] font-black text-white flex items-center gap-2 hover:bg-[#680307] transition-colors shadow-xs"
             >
               <ShoppingCart className="h-4 w-4" /> Reorder All Items
+            </button>
+          )}
+          {(order.status === 'pending' || order.status === 'accepted') && (
+            <button
+              onClick={() => onCancelOrder(order._id)}
+              className="rounded-lg border border-[#dc2626] px-4 py-2.5 text-[13px] font-bold text-[#dc2626] hover:bg-[#fef2f2]"
+            >
+              Cancel Order
             </button>
           )}
           <button

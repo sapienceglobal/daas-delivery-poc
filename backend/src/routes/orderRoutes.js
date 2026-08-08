@@ -23,6 +23,8 @@ router.put('/:id/accept', protect, authorize('merchant'), orderController.accept
 router.put('/:id/reject', protect, authorize('merchant'), orderController.rejectOrder);
 router.post('/:id/reply', protect, authorize('merchant'), validate(replyToReviewSchema), orderController.replyToReview);
 router.post('/:id/note', protect, authorize('merchant', 'admin'), orderController.addAdminNote);
+router.post('/:id/remake', protect, authorize('merchant'), orderController.remakeOrder);
+router.post('/:id/send-invoice', protect, authorize('merchant'), orderController.sendInvoice);
 
 // ── Admin Routes ────────────────────────────────────────────────────────────
 router.get('/', protect, authorize('admin'), orderController.getAllOrders);

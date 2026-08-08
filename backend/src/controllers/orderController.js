@@ -13,7 +13,7 @@ import { triggerDeliveryAPI, getDeliveryQuoteAPI, checkServiceabilityAPI, cancel
 import { buildOrderSocketPayload, syncDoorDashDelivery } from '../services/doordashSyncService.js';
 import { retrievePaymentIntent, refundPayment as refundStripePayment, chargeSavedCard } from '../services/stripeService.js';
 import { calculateOrderPricing, roundMoney } from '../services/orderPricing.js';
-import { sendOrderConfirmationEmail } from '../services/emailService.js';
+import { sendOrderConfirmationEmail, sendInvoiceEmail } from '../services/emailService.js';
 import { createNotification } from './notificationController.js';
 import logger from '../utils/logger.js';
 
@@ -358,6 +358,18 @@ export const createOrder = asyncHandler(async (req, response) => {
   if (!restaurantId || !items?.length) {
     throw new AppError('restaurantId and items are required', 400);
   }
+
+  // Prevent double-submit / accidental duplicate orders (15 seconds debounce)
+  const fifteenSecondsAgo = new Date(Date.now() - 15 * 1000);
+  const recentDuplicate = await Order.findOne({
+    userId: req.user._id,
+    restaurantId,
+    createdAt: { $gte: fifteenSecondsAgo }
+  });
+  
+  if (recentDuplicate) {
+    throw new AppError('You just placed an order. Please wait a moment before placing another one.', 429);
+  }
   // M6: Limit maximum items per order to prevent abuse
   if (items.length > 50) {
     throw new AppError('Maximum 50 items per order', 400);
@@ -415,6 +427,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     couponCode,
     userId: req.user._id,
     useLoyaltyPoints,
+    paymentMethod,
     getModel: req.getModel
   });
 
@@ -435,6 +448,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     couponCode,
     userId: req.user._id,
     useLoyaltyPoints,
+    paymentMethod,
     deliveryFeeOverride: deliveryQuote.deliveryFee,
     getModel: req.getModel
   });
@@ -500,7 +514,12 @@ export const createOrder = asyncHandler(async (req, response) => {
     courierNotes: sanitizedCourierNotes,
     specialInstructions: specialInstructions ? xss(String(specialInstructions).slice(0, 500)) : '',
     scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
-    stripePaymentIntentId: finalStripePaymentIntentId || null
+    stripePaymentIntentId: finalStripePaymentIntentId || null,
+    status: restaurant.autoAcceptOrders ? 'accepted' : 'pending',
+    statusUpdates: [
+      { status: 'pending', description: 'Order placed by customer', timestamp: new Date() },
+      ...(restaurant.autoAcceptOrders ? [{ status: 'accepted', description: 'Order auto-accepted by restaurant', timestamp: new Date() }] : [])
+    ]
   });
 
   await order.save();
@@ -1249,4 +1268,52 @@ export const addAdminNote = asyncHandler(async (req, response) => {
   }
 
   res.success(response, { data: order, message: 'Note added successfully' });
+});
+
+export const remakeOrder = asyncHandler(async (req, response) => {
+  const tenantId = req.user.tenantId || req.user.restaurantId?.toString(); // fallback if tenantId missing
+  const OrderModel = getTenantModel(tenantId, 'Order');
+  const order = await OrderModel.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+  
+  // Create duplicate remake order with $0 cost
+  const remake = new OrderModel({
+    ...order.toObject(),
+    _id: undefined,
+    orderNumber: undefined,
+    createdAt: undefined,
+    updatedAt: undefined,
+    status: 'pending',
+    statusUpdates: [{ status: 'pending', timestamp: new Date(), comment: 'Remake order created' }],
+    total: 0,
+    subtotal: 0,
+    tax: 0,
+    deliveryFee: 0,
+    tip: 0,
+    paymentStatus: 'paid',
+    adminNotes: [{ text: 'Remake of order ' + order._id, author: 'Merchant', timestamp: new Date() }]
+  });
+  await remake.save();
+  res.success(response, { data: remake, message: 'Remake order created' });
+});
+
+export const sendInvoice = asyncHandler(async (req, response) => {
+  const tenantId = req.user.tenantId || req.user.restaurantId?.toString();
+  const OrderModel = getTenantModel(tenantId, 'Order');
+  const order = await OrderModel.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+  
+  if (order.customerEmail) {
+    try {
+      await sendInvoiceEmail(order.customerEmail, order);
+    } catch (err) {
+      logger.error(`Failed to send invoice email for order ${order._id}:`, err);
+    }
+  } else {
+    logger.warn(`Cannot send invoice for order ${order._id}: no customer email found`);
+  }
+  
+  res.success(response, { data: null, message: 'Invoice sent successfully' });
 });

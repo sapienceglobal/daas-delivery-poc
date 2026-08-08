@@ -146,7 +146,7 @@ export default function TablesPage() {
     if (sourceTableId === targetTableId) {
       return showToast('Cannot select the same table', 'error');
     }
-    setLoading(true);
+
     try {
       if (actionType === 'move') {
         await tableAPI.move({ sourceTableId, targetTableId });

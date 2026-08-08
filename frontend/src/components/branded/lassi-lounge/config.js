@@ -196,12 +196,11 @@ export const testimonialsContent = {
 
 export const navLinks = [
   { label: 'Home', href: '/customer' },
-  { label: 'About Us', href: '/customer/about-us' },
   { label: 'Order Online', href: '/customer/restaurant/lassi-lounge?tab=menu' },
-  { label: 'Menu', href: '/customer/restaurant/lassi-lounge/menu' },
+  { label: 'Rewards & Offers', href: '/customer/loyalty' },
   { label: 'Book a Table', href: '/customer/restaurant/lassi-lounge/book-a-table' },
   { label: 'Catering', href: '/customer/restaurant/lassi-lounge/catering' },
-  { label: 'Events', href: '/customer/restaurant/lassi-lounge/events' },
+  { label: 'About Us', href: '/customer/about-us' },
   { label: 'Contact Us', href: '/customer/contact-us' },
 ];
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/services/order_service.dart';
 import 'package:single_restaurant_mobile/services/socket_service.dart';
+import 'dart:convert';
 
 class OrderProvider with ChangeNotifier {
   final OrderService _orderService = OrderService();
@@ -56,6 +57,9 @@ class OrderProvider with ChangeNotifier {
         _socketService.joinOrderRoom(order['_id']);
       }
     }
+    for (var orderId in _trackedOrdersCache.keys) {
+      _socketService.joinOrderRoom(orderId);
+    }
 
     if (!_isSocketInitialized) {
       _isSocketInitialized = true;
@@ -67,40 +71,53 @@ class OrderProvider with ChangeNotifier {
             _socketService.joinOrderRoom(order['_id']);
           }
         }
+        for (var orderId in _trackedOrdersCache.keys) {
+          _socketService.joinOrderRoom(orderId);
+        }
       });
       
       final handleUpdate = (dynamic data) {
-        if (data != null && data['order'] != null) {
-           final updatedOrder = data['order'];
-           final orderId = updatedOrder['_id'];
-           
-           bool shouldNotify = false;
+        try {
+          print('Socket event received: $data');
+          Map<String, dynamic> payload;
+          if (data is String) {
+            payload = jsonDecode(data);
+          } else if (data is Map) {
+            payload = Map<String, dynamic>.from(data);
+          } else {
+            return;
+          }
 
-           // Update in the tracked orders cache
-           if (_trackedOrdersCache.containsKey(orderId)) {
-               _trackedOrdersCache[orderId] = updatedOrder;
+          if (payload['order'] != null) {
+             final updatedOrder = payload['order'];
+             final orderId = updatedOrder['_id']?.toString();
+             
+             if (orderId == null) return;
+
+             bool shouldNotify = false;
+
+             if (_trackedOrdersCache.containsKey(orderId)) {
+                 _trackedOrdersCache[orderId] = updatedOrder;
+                 shouldNotify = true;
+             }
+
+             final index = _orders.indexWhere((o) => o['_id']?.toString() == orderId);
+             if (index != -1) {
+               _orders[index] = updatedOrder;
                shouldNotify = true;
-           }
+             }
 
-           // Update in the global _orders list for OrdersScreen
-           final index = _orders.indexWhere((o) => o['_id'] == orderId);
-           if (index != -1) {
-             _orders[index] = updatedOrder;
-             shouldNotify = true;
-           } else {
-             // If we get an update for an order not in our current list, we might want to refetch
-             // But usually it's fine.
-           }
-
-           if (shouldNotify) {
-             notifyListeners();
-           }
-        } else {
-           // Fallback if data format is unexpected
-           fetchMyOrders(status: 'all', silent: true);
-           for (var orderId in _trackedOrdersCache.keys) {
-               fetchTrackedOrder(orderId, silent: true);
-           }
+             if (shouldNotify) {
+               notifyListeners();
+             }
+          } else {
+             fetchMyOrders(status: 'all', silent: true);
+             for (var orderId in _trackedOrdersCache.keys) {
+                 fetchTrackedOrder(orderId, silent: true);
+             }
+          }
+        } catch (e) {
+          print('Error handling socket update: $e');
         }
       };
 
@@ -119,6 +136,7 @@ class OrderProvider with ChangeNotifier {
       final data = await _orderService.getOrderById(orderId);
       if (data != null) {
         _trackedOrdersCache[orderId] = data;
+        _setupGlobalSocketListeners();
         _socketService.joinOrderRoom(orderId);
       }
     } catch (e) {
@@ -147,8 +165,31 @@ class OrderProvider with ChangeNotifier {
     }
   }
 
+  Future<void> cancelOrder(String orderId) async {
+    try {
+      final data = await _orderService.cancelOrder(orderId);
+      
+      if (data != null) {
+        // Update local cache
+        if (_trackedOrdersCache.containsKey(orderId)) {
+          _trackedOrdersCache[orderId] = data;
+        }
+        
+        final index = _orders.indexWhere((o) => o['_id']?.toString() == orderId);
+        if (index != -1) {
+          _orders[index] = data;
+        }
+        
+        notifyListeners();
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Clears all order data from memory. Call this on logout.
   void clear() {
+    _socketService.dispose();
     _orders = [];
     _trackedOrdersCache.clear();
     _isSocketInitialized = false;

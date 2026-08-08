@@ -12,6 +12,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
+import 'package:single_restaurant_mobile/utils/formatters.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -28,6 +29,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final cart = Provider.of<CartProvider>(context);
     final checkout = Provider.of<CheckoutProvider>(context);
     final auth = Provider.of<AuthProvider>(context);
+    final restProv = Provider.of<RestaurantProvider>(context);
+    final restaurant = restProv.restaurant ?? cart.restaurant;
 
     if (auth.user == null) {
       return Scaffold(
@@ -91,7 +94,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildOrderSummary(cart),
+                  _buildOrderSummary(cart, restaurant),
                   const SizedBox(height: 16),
                   _buildFulfillmentEstimate(checkout),
                   const SizedBox(height: 24),
@@ -99,10 +102,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SizedBox(height: 12),
                   _buildPaymentMethods(checkout, auth),
                   const SizedBox(height: 24),
+                  const SizedBox(height: 24),
+                  if (restaurant?['enableTips'] != false) ...[
+                    const Text('ADD A TIP', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.black87)),
+                    const SizedBox(height: 12),
+                    _buildTippingUI(checkout, cart, restaurant),
+                    const SizedBox(height: 24),
+                  ],
                   // Loyalty coins redeemed via coupon on cart screen only
                   const Text('BILL DETAILS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.black87)),
                   const SizedBox(height: 12),
-                  _buildBillDetails(cart, checkout, loyalty),
+                  _buildBillDetails(cart, checkout, loyalty, restaurant),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -110,11 +120,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           );
         },
       ),
-      bottomSheet: _buildBottomAction(cart, checkout, auth),
+      bottomSheet: _buildBottomAction(cart, checkout, auth, restaurant),
     );
   }
 
-  Widget _buildOrderSummary(CartProvider cart) {
+  Widget _buildOrderSummary(CartProvider cart, Map<String, dynamic>? restaurant) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -192,7 +202,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   ],
                                 ),
                               ),
-                              Text('\$${(price * quantity).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              Text(Formatters.formatCurrency(price * quantity, restaurant?['currency']), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -299,14 +309,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildPaymentMethods(CheckoutProvider checkout, AuthProvider auth) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            children: [
           // Apple Pay
           if (Platform.isIOS)
             _buildPaymentOption(
@@ -364,6 +377,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
         ],
       ),
+    ),
+    if (checkout.couponPaymentError != null)
+      Padding(
+        padding: const EdgeInsets.only(top: 12.0),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.red.shade200),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  checkout.couponPaymentError!,
+                  style: TextStyle(color: Colors.red.shade700, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+              TextButton(
+                onPressed: checkout.handleRemoveCoupon,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('Remove', style: TextStyle(color: Color(0xFF7A0B10), fontWeight: FontWeight.bold, fontSize: 12)),
+              )
+            ],
+          ),
+        ),
+      ),
+      ],
     );
   }
 
@@ -423,6 +471,75 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  Widget _buildTippingUI(CheckoutProvider checkout, CartProvider cart, Map<String, dynamic>? restaurant) {
+    final subtotal = cart.subtotal;
+    final List<int> tipPercentages = [10, 15, 20];
+    
+    return Row(
+      children: [
+        ...tipPercentages.map((percent) {
+          final tipAmount = (subtotal * percent) / 100;
+          final isSelected = checkout.tip == tipAmount;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => checkout.setTip(tipAmount),
+              child: Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFF7A0B10) : Colors.white,
+                  border: Border.all(color: isSelected ? const Color(0xFF7A0B10) : Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Text('$percent%', style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    )),
+                    const SizedBox(height: 4),
+                    Text(Formatters.formatCurrency(tipAmount, restaurant?['currency']), style: TextStyle(
+                      color: isSelected ? Colors.white70 : Colors.grey.shade600,
+                      fontSize: 12,
+                    )),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+        Expanded(
+          child: GestureDetector(
+            onTap: () => checkout.setTip(0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: checkout.tip == 0.0 ? const Color(0xFF7A0B10) : Colors.white,
+                border: Border.all(color: checkout.tip == 0.0 ? const Color(0xFF7A0B10) : Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  Text('None', style: TextStyle(
+                    color: checkout.tip == 0.0 ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  )),
+                  const SizedBox(height: 4),
+                  Text(Formatters.formatCurrency(0, restaurant?['currency']), style: TextStyle(
+                    color: checkout.tip == 0.0 ? Colors.white70 : Colors.grey.shade600,
+                    fontSize: 12,
+                  )),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildLassiCoinsSection(CheckoutProvider checkout, LoyaltyProvider loyalty, CartProvider cart) {
     final balance = loyalty.currentBalance;
     final maxDiscount = (balance / 100); // 100 coins = $1
@@ -465,25 +582,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildBillDetails(CartProvider cart, CheckoutProvider checkout, LoyaltyProvider loyalty) {
+  Widget _buildBillDetails(CartProvider cart, CheckoutProvider checkout, LoyaltyProvider loyalty, Map<String, dynamic>? restaurant) {
     final subtotal = cart.subtotal;
-    final deliveryFee = checkout.getDeliveryFee(cart);
+    final deliveryFee = checkout.getDeliveryFee(cart, restaurant);
     final platformFee = checkout.getPlatformFee();
-    final serviceFee = checkout.getServiceFee(cart);
-    final tax = cart.tax;
+    final serviceFee = checkout.getServiceFee(cart, restaurant);
+    final packagingFee = checkout.getPackagingFee(cart, restaurant);
+    final tax = checkout.getTax(cart, restaurant);
     final couponDiscount = checkout.couponDiscount;
     // Loyalty points not applied here — redeemed via coupon on cart screen
-    final total = (subtotal + tax + deliveryFee + platformFee + serviceFee - couponDiscount).clamp(0.0, double.infinity);
+    final total = checkout.getTotal(cart, restaurant);
 
     return Container(
       decoration: const BoxDecoration(color: Colors.transparent),
       child: Column(
         children: [
-          _buildBillRow('Subtotal (${cart.items.length} items)', subtotal),
-          if (checkout.isDelivery) _buildBillRow('Delivery Fee', deliveryFee, isInfo: true),
-          _buildBillRow('Platform Fee', platformFee, isInfo: true),
-          _buildBillRow('Service Fee (3%)', serviceFee, isInfo: true),
-          _buildBillRow('Taxes', tax, isInfo: true),
+          _buildBillRow('Subtotal (${cart.items.length} items)', subtotal, restaurant?['currency']),
+          if (checkout.isDelivery) _buildBillRow('Delivery Fee', deliveryFee, restaurant?['currency'], isInfo: true),
+          _buildBillRow('Platform Fee', platformFee, restaurant?['currency'], isInfo: true),
+          if (serviceFee > 0) _buildBillRow('Service Fee', serviceFee, restaurant?['currency'], isInfo: true),
+          if (packagingFee > 0) _buildBillRow('Packaging Fee', packagingFee, restaurant?['currency'], isInfo: true),
+          _buildBillRow(restaurant?['taxType'] ?? 'Taxes', tax, restaurant?['currency'], isInfo: true),
+          if (checkout.tip > 0) _buildBillRow('Tip', checkout.tip, restaurant?['currency']),
           if (couponDiscount > 0)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 6.0),
@@ -495,7 +615,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     const SizedBox(width: 4),
                     Text('Coupon Discount', style: TextStyle(color: Colors.green.shade700, fontSize: 14)),
                   ]),
-                  Text('-\$${couponDiscount.toStringAsFixed(2)}', style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text('-${Formatters.formatCurrency(couponDiscount, restaurant?['currency'])}', style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.bold, fontSize: 14)),
                 ],
               ),
             ),
@@ -508,7 +628,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Total Amount', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text('\$${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF7A0B10))),
+              Text(Formatters.formatCurrency(total, restaurant?['currency']), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF7A0B10))),
             ],
           ),
         ],
@@ -516,7 +636,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildBillRow(String title, double amount, {bool isInfo = false}) {
+  Widget _buildBillRow(String title, double amount, String? currencySetting, {bool isInfo = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
@@ -531,16 +651,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ]
             ],
           ),
-          Text('\$${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+          Text(Formatters.formatCurrency(amount, currencySetting), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
         ],
       ),
     );
   }
 
-  Widget _buildBottomAction(CartProvider cart, CheckoutProvider checkout, AuthProvider auth) {
-    final total = checkout.getTotal(cart);
+  Widget _buildBottomAction(CartProvider cart, CheckoutProvider checkout, AuthProvider auth, Map<String, dynamic>? restaurant) {
+    final total = checkout.getTotal(cart, restaurant);
     final isCartEmpty = cart.items.isEmpty;
-    final canProceed = !isCartEmpty;
+    final canProceed = !isCartEmpty && checkout.couponPaymentError == null;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -561,7 +681,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 children: [
                   Text('Total Payment', style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text('\$${total.toStringAsFixed(2)}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 22)),
+                  Text(Formatters.formatCurrency(total, restaurant?['currency']), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 22)),
                 ],
               ),
             ),
@@ -576,7 +696,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   }
 
                   try {
-                    final orderId = await checkout.handlePlaceOrder(context, cart, auth);
+                    final orderId = await checkout.handlePlaceOrder(context, cart, auth, restaurant);
                     if (orderId != null && mounted) {
                       // Refresh loyalty balance to reflect points earned
                       context.read<LoyaltyProvider>().fetchHistory(refresh: true);

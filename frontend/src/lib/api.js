@@ -43,6 +43,7 @@ const request = async (endpoint, options = {}) => {
 
   const config = {
     credentials: 'include', // send cookies
+    cache: 'no-store', // Fix: prevent Next.js from caching API responses (critical for real-time socket sync)
     ...options,
     headers,
   };
@@ -155,6 +156,8 @@ export const menuAPI = {
   deleteItem: (id) => api.delete(`/api/menu/items/${id}`),
   toggleItem: (id) => api.patch(`/api/menu/items/${id}/toggle`),
   bulkImport: (data) => api.post('/api/menu/bulk-import', data),
+  bulkDelete: (data) => api.post('/api/menu/bulk-delete', data),
+  bulkUpdate: (data) => api.post('/api/menu/bulk-update', data),
 };
 
 // ── Order API ───────────────────────────────────────────────────────────────
@@ -172,6 +175,8 @@ export const orderAPI = {
   accept: (id) => api.put(`/api/orders/${id}/accept`),
   reject: (id, reason) => api.put(`/api/orders/${id}/reject`, { reason }),
   addNote: (id, text) => api.post(`/api/orders/${id}/note`, { text }),
+  remake: (id) => api.post(`/api/orders/${id}/remake`),
+  sendInvoice: (id) => api.post(`/api/orders/${id}/send-invoice`),
   // Admin
   getAll: (params = '') => api.get(`/api/orders${params ? '?' + params : ''}`),
   refund: (id, data) => api.post(`/api/orders/${id}/refund`, data),
@@ -198,11 +203,15 @@ export const reviewAPI = {
 
 export const couponAPI = {
   validate: (code, cartValue, restaurantId) => api.post('/api/coupons/validate', { code, cartValue, restaurantId }),
+  getActive: () => api.get('/api/coupons/active'),
   getAll: (params = '') => api.get(`/api/coupons${params ? '?' + params : ''}`),
   create: (data) => api.post('/api/coupons', data),
   update: (id, data) => api.put(`/api/coupons/${id}`, data),
   delete: (id) => api.delete(`/api/coupons/${id}`),
+  getStats: () => api.get('/api/coupons/stats'),
 };
+
+
 
 // ── Upload API ──────────────────────────────────────────────────────────────
 
@@ -283,9 +292,11 @@ export const tableAPI = {
 
 export const reservationAPI = {
   create: (data) => api.post('/api/reservations', data),
+  update: (id, data) => api.put(`/api/reservations/${id}`, data),
   getMyReservations: () => api.get('/api/reservations/my-reservations'),
   getRestaurantReservations: (restaurantId) => api.get(`/api/reservations/restaurant/${restaurantId}`),
   updateStatus: (id, status, tableId = null) => api.put(`/api/reservations/${id}/status`, { status, tableId }),
+  bulkUpdateStatus: (data) => api.put('/api/reservations/bulk-status', data),
 };
 
 // ── Catering API ────────────────────────────────────────────────────────────
@@ -307,6 +318,11 @@ export const notificationAPI = {
 
 export const loyaltyAPI = {
   getHistory: (params = '') => api.get(`/api/loyalty/history${params ? '?' + params : ''}`),
+  getStats: () => api.get('/api/loyalty/stats'),
+  getStatus: () => api.get('/api/loyalty/history'),
+  getMyCoupons: () => api.get('/api/loyalty/my-coupons'),
+  joinProgram: () => api.post('/api/loyalty/join'),
+  redeem: (points, expectedDiscount) => api.post('/api/loyalty/redeem', { points, expectedDiscount }),
 };
 
 // ── Employee API ────────────────────────────────────────────────────────────
@@ -330,9 +346,12 @@ export const employeeAPI = {
 
 export const crmAPI = {
   getCustomers: (restaurantId) => api.get(`/api/crm/restaurant/${restaurantId}/customers`),
+  getCustomerProfile: (restaurantId, customerId) => api.get(`/api/crm/restaurant/${restaurantId}/customers/${customerId}/profile`),
   createCustomer: (restaurantId, data) => api.post(`/api/crm/restaurant/${restaurantId}/customers`, data),
   updateCustomer: (restaurantId, customerId, data) => api.put(`/api/crm/restaurant/${restaurantId}/customers/${customerId}`, data),
   deleteCustomer: (restaurantId, customerId) => api.delete(`/api/crm/restaurant/${restaurantId}/customers/${customerId}`),
+  bulkUpdateCustomers: (restaurantId, data) => api.put(`/api/crm/restaurant/${restaurantId}/customers/bulk`, data),
+  bulkDeleteCustomers: (restaurantId, customerIds) => api.delete(`/api/crm/restaurant/${restaurantId}/customers/bulk`, { data: { customerIds } }),
   sendPromo: (restaurantId, data) => api.post(`/api/crm/restaurant/${restaurantId}/promo`, data)
 };
 
@@ -341,6 +360,20 @@ export const aiAPI = {
   smartPricing: (restaurantId) => api.post('/api/ai/smart-pricing', { restaurantId }),
   recommendFood: (restaurantId, pastOrdersContext) => api.post('/api/ai/recommend', { restaurantId, pastOrdersContext }),
   searchMenu: (restaurantId, query) => api.post('/api/ai/search', { restaurantId, query }),
+};
+
+// ── KDS API ─────────────────────────────────────────────────────────────────
+
+export const kdsAPI = {
+  getStations: (restaurantId) => api.get(`/api/kds/restaurants/${restaurantId}/stations`),
+  createStation: (restaurantId, data) => api.post(`/api/kds/restaurants/${restaurantId}/stations`, data),
+  updateStation: (restaurantId, stationId, data) => api.put(`/api/kds/restaurants/${restaurantId}/stations/${stationId}`, data),
+  deleteStation: (restaurantId, stationId) => api.delete(`/api/kds/restaurants/${restaurantId}/stations/${stationId}`),
+  
+  getSettings: (restaurantId) => api.get(`/api/kds/restaurants/${restaurantId}/settings`),
+  updateSettings: (restaurantId, data) => api.put(`/api/kds/restaurants/${restaurantId}/settings`, data),
+  
+  getStats: (restaurantId) => api.get(`/api/kds/restaurants/${restaurantId}/stats`),
 };
 
 // ── Reservation API ──────────────────────────────────────────────────────────
@@ -359,3 +392,5 @@ export const aiAPI = {
 //   getRestaurantInquiries: (restaurantId) => api.get(`/api/catering/restaurant/${restaurantId}`),
 //   updateStatus: (id, status) => api.put(`/api/catering/${id}/status`, { status }),
 // };
+
+

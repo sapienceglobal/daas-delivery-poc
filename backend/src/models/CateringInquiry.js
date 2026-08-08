@@ -43,10 +43,14 @@ const CateringInquirySchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  budgetRange: {
+    type: String,
+    default: ''
+  },
   status: {
     type: String,
-    enum: ['pending', 'reviewed', 'contacted', 'closed'],
-    default: 'pending'
+    enum: ['new', 'in_discussion', 'quotation_sent', 'confirmed', 'closed', 'pending', 'reviewed', 'contacted'],
+    default: 'new'
   }
 }, { timestamps: true });
 

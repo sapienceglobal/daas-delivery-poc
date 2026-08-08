@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/screens/track_order_screen.dart';
+import 'package:single_restaurant_mobile/utils/formatters.dart';
+import 'package:provider/provider.dart';
+import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 
 class OrderCard extends StatelessWidget {
   final Map<String, dynamic> order;
+  final VoidCallback? onCancelOrder;
 
-  const OrderCard({super.key, required this.order});
+  const OrderCard({super.key, required this.order, this.onCancelOrder});
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +152,9 @@ class OrderCard extends StatelessWidget {
             children: [
               const Icon(Icons.check_circle_outline, color: Colors.green, size: 18),
               const SizedBox(width: 8),
-              Text('Delivered on ${_formatDate(order['deliveredAt'] ?? order['createdAt'])}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500)),
+              Expanded(
+                child: Text('Delivered on ${_formatDate(order['deliveredAt'] ?? order['createdAt'])}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500)),
+              ),
             ],
           ),
         ] else if (status == 'cancelled' || isRefunded) ...[
@@ -349,7 +355,7 @@ class OrderCard extends StatelessWidget {
                     child: Text('•', style: TextStyle(color: Colors.grey, fontSize: 18)),
                   ),
                   Text(
-                    '\$${(order['total'] ?? 0.0).toStringAsFixed(2)}', 
+                    Formatters.formatCurrency((order['total'] ?? 0.0).toDouble(), Provider.of<RestaurantProvider>(context, listen: false).restaurant?['currency']),
                     style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 15),
                   ),
                 ],
@@ -373,7 +379,24 @@ class OrderCard extends StatelessWidget {
               )
             ],
           ),
-        )
+        ),
+        if (status == 'pending' || status == 'accepted')
+          Padding(
+            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: onCancelOrder,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.red),
+                  foregroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text('Cancel Order', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              ),
+            ),
+          )
       ],
     );
   }

@@ -14,6 +14,7 @@ import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/screens/loyalty_rewards_screen.dart';
 import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/screens/saved_addresses_screen.dart';
+import 'package:single_restaurant_mobile/utils/formatters.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -132,18 +133,23 @@ class _CartScreenState extends State<CartScreen> {
             });
           }
 
+          final restProv = Provider.of<RestaurantProvider>(context, listen: false);
+          final restaurant = restProv.restaurant ?? cartProvider.restaurant;
+
           // Calculations
           double subtotal = cartProvider.subtotal;
-          double deliveryFee = checkoutProvider.getDeliveryFee(cartProvider);
+          double deliveryFee = checkoutProvider.getDeliveryFee(cartProvider, restaurant);
           double platformFee = checkoutProvider.getPlatformFee();
-          double serviceFee = checkoutProvider.getServiceFee(cartProvider);
-          double combinedTaxesAndFees = cartProvider.tax + platformFee + serviceFee;
+          double serviceFee = checkoutProvider.getServiceFee(cartProvider, restaurant);
+          double packagingFee = checkoutProvider.getPackagingFee(cartProvider, restaurant);
+          double tax = checkoutProvider.getTax(cartProvider, restaurant);
+          double combinedTaxesAndFees = tax + platformFee + serviceFee + packagingFee;
           
           double loyaltyDiscount = checkoutProvider.useLoyaltyPoints ? ((authProvider.user?.loyaltyPoints ?? 0) / 100) : 0.0;
           double couponDiscount = checkoutProvider.couponDiscount;
           double totalDiscount = loyaltyDiscount + couponDiscount;
           
-          double total = checkoutProvider.getTotal(cartProvider) - loyaltyDiscount;
+          double total = checkoutProvider.getTotal(cartProvider, restaurant) - loyaltyDiscount;
           if (total < 0) total = 0.0;
 
           // Determine if we can proceed
@@ -195,12 +201,36 @@ class _CartScreenState extends State<CartScreen> {
                             
                             return CartItemCard(
                               item: item,
-                              onIncrement: () {
+                              onIncrement: () async {
                                 final restaurantProvider = Provider.of<RestaurantProvider>(context, listen: false);
                                 AddToCartHelper.handleAddToCart(context, item, cartProvider, restaurantProvider);
+                                if (checkoutProvider.couponApplied) {
+                                  try {
+                                    await checkoutProvider.handleApplyCoupon(cartProvider);
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                        content: Text('Coupon removed: ${e.toString().replaceAll('Exception: ', '')}'),
+                                        backgroundColor: Colors.orange,
+                                      ));
+                                    }
+                                  }
+                                }
                               },
-                              onDecrement: () {
+                              onDecrement: () async {
                                 cartProvider.updateQuantity(index, currentQty - 1);
+                                if (checkoutProvider.couponApplied) {
+                                  try {
+                                    await checkoutProvider.handleApplyCoupon(cartProvider);
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                        content: Text('Coupon removed: ${e.toString().replaceAll('Exception: ', '')}'),
+                                        backgroundColor: Colors.orange,
+                                      ));
+                                    }
+                                  }
+                                }
                               },
                             );
                           }).toList(),
@@ -374,7 +404,7 @@ class _CartScreenState extends State<CartScreen> {
                 else if (checkout.quoteError != null)
                   Text(checkout.quoteError!, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12))
                 else if (checkout.deliveryQuote != null && checkout.addressVerified)
-                  Text('Delivery Available (\$${checkout.getDeliveryFee(cart).toStringAsFixed(2)})', style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.bold, fontSize: 12)),
+                  Text('Delivery Available (${Formatters.formatCurrency(checkout.getDeliveryFee(cart, Provider.of<RestaurantProvider>(context, listen: false).restaurant ?? cart.restaurant), cart.restaurant?['currency'])})', style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.bold, fontSize: 12)),
               ],
             ),
           ),
@@ -598,7 +628,7 @@ class _CartScreenState extends State<CartScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('To Pay', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-              Text('\$${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF7A0B10))),
+              Text(Formatters.formatCurrency(total, cart.restaurant?['currency']), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF7A0B10))),
             ],
           ),
           if (saved > 0) ...[
@@ -607,7 +637,7 @@ class _CartScreenState extends State<CartScreen> {
               children: [
                 const Icon(Icons.sell, color: Colors.green, size: 14),
                 const SizedBox(width: 6),
-                Text('You saved \$${saved.toStringAsFixed(2)} on this order', style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+                Text('You saved ${Formatters.formatCurrency(saved, cart.restaurant?['currency'])} on this order', style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
               ],
             ),
           ]
@@ -629,7 +659,7 @@ class _CartScreenState extends State<CartScreen> {
             ]
           ],
         ),
-        Text(textValue ?? (value < 0 ? '-\$${(-value).toStringAsFixed(2)}' : '\$${value.toStringAsFixed(2)}'), style: TextStyle(fontWeight: FontWeight.w700, color: color ?? const Color(0xFF1F2937))),
+        Text(textValue ?? (value < 0 ? '-${Formatters.formatCurrency(-value, null)}' : Formatters.formatCurrency(value, null)), style: TextStyle(fontWeight: FontWeight.w700, color: color ?? const Color(0xFF1F2937))),
       ],
     );
   }
@@ -656,7 +686,7 @@ class _CartScreenState extends State<CartScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('\$${total.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                Text(Formatters.formatCurrency(total, Provider.of<RestaurantProvider>(context, listen: false).restaurant?['currency']), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                 const SizedBox(height: 2),
                 const Text('View Details ^', style: TextStyle(color: Colors.white70, fontSize: 12)),
               ],

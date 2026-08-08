@@ -23,5 +23,7 @@ router.patch('/items/:id/toggle', protect, authorize('merchant', 'admin'), menuC
 
 // Bulk Operations
 router.post('/bulk-import', protect, authorize('merchant', 'admin'), menuController.bulkImportItems);
+router.post('/bulk-delete', protect, authorize('merchant', 'admin'), menuController.bulkDeleteItems);
+router.post('/bulk-update', protect, authorize('merchant', 'admin'), menuController.bulkUpdateItems);
 
 export default router;

@@ -215,7 +215,38 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     padding: const EdgeInsets.all(16),
                     itemCount: displayOrders.length,
                     itemBuilder: (context, index) {
-                      return OrderCard(order: displayOrders[index]);
+                      return OrderCard(
+                        order: displayOrders[index],
+                        onCancelOrder: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Cancel Order'),
+                              content: const Text('Are you sure you want to cancel this order? This action cannot be undone.'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true), 
+                                  child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
+                                ),
+                              ],
+                            ),
+                          );
+                          
+                          if (confirm == true) {
+                            try {
+                              await provider.cancelOrder(displayOrders[index]['_id']);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order cancelled successfully')));
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                              }
+                            }
+                          }
+                        },
+                      );
                     },
                   ),
                 );

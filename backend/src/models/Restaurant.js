@@ -110,7 +110,11 @@ const RestaurantSchema = new mongoose.Schema({
   isFeatured: { type: Boolean, default: false },
 
   // ── Financial ─────────────────────────────────────────────────────────
-  taxRate: { type: Number, default: 0.0875, min: 0, max: 1 },           // 8.75%
+  taxType: { type: String, default: 'Sales Tax' },
+  taxRate: { type: Number, default: 8.875, min: 0, max: 100 },
+  serviceCharge: { type: Number, default: 5, min: 0, max: 100 },
+  packagingCharge: { type: Number, default: 0.50, min: 0 },
+  roundOff: { type: Boolean, default: true },
   commissionRate: { type: Number, default: 0.15, min: 0, max: 1 },      // 15%
   subscriptionPlan: {
     type: String,
@@ -165,11 +169,19 @@ const RestaurantSchema = new mongoose.Schema({
   },
 
   // ── Settings ──────────────────────────────────────────────────────────
+  currency: { type: String, default: 'USD ($) - US Dollar' },
+  timezone: { type: String, default: '(UTC-05:00) Eastern Time (ET)' },
+  dateFormat: { type: String, default: 'MM/DD/YYYY' },
+  timeFormat: { type: String, default: '12 Hour (AM/PM)' },
+  language: { type: String, default: 'English' },
+  enableTips: { type: Boolean, default: true },
+  
   acceptsOnlineOrders: { type: Boolean, default: true },
   acceptsDineIn: { type: Boolean, default: false },
   acceptsPickup: { type: Boolean, default: true },
   autoAcceptOrders: { type: Boolean, default: false },
   preparationTime: { type: Number, default: 20 },  // default prep minutes
+  minimumOrder: { type: Number, default: 15.00 },
 
   // ── Stripe ────────────────────────────────────────────────────────────
   stripeAccountId: { type: String, default: null }

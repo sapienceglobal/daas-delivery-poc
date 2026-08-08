@@ -1,0 +1,437 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { Gift, Copy, CheckCircle, Ticket, Coins, Award, Sparkles, UserPlus, Info } from 'lucide-react';
+import { loyaltyAPI, couponAPI } from '@/lib/api';
+import { showToast } from '@/components/ui';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+
+const REWARDS = [
+  { points: 100, off: 10, min: 50, color: 'from-[#7a0b10] to-[#5a060a]' },
+  { points: 250, off: 25, min: 100, color: 'from-[#e8a020] to-[#c28416]' },
+  { points: 500, off: 50, min: 150, color: 'from-[#1a1a1a] to-[#000000]' },
+];
+
+export default function LassiLoyaltyPage() {
+  const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [redeeming, setRedeeming] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [history, setHistory] = useState(null);
+  const [myCoupons, setMyCoupons] = useState([]);
+  const [publicCoupons, setPublicCoupons] = useState([]);
+  const [copiedCode, setCopiedCode] = useState(null);
+  const [selectedCoupon, setSelectedCoupon] = useState(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login?redirect=/customer/loyalty');
+      return;
+    }
+    fetchLoyaltyData();
+  }, [isAuthenticated, router]);
+
+  const fetchLoyaltyData = async () => {
+    setLoading(true);
+    try {
+      const [historyRes, couponsRes, activeCouponsRes] = await Promise.allSettled([
+        loyaltyAPI.getStatus(),
+        loyaltyAPI.getMyCoupons(),
+        couponAPI.getActive()
+      ]);
+
+      if (historyRes.status === 'fulfilled') {
+        setHistory(historyRes.value.data);
+      } else {
+        setHistory(null);
+      }
+
+      if (couponsRes.status === 'fulfilled') {
+        setMyCoupons(couponsRes.value.data);
+      }
+      
+      if (activeCouponsRes.status === 'fulfilled') {
+        setPublicCoupons(activeCouponsRes.value.data);
+      }
+    } catch (err) {
+      console.error('Failed to load loyalty data', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJoinProgram = async () => {
+    setJoining(true);
+    try {
+      await loyaltyAPI.joinProgram();
+      showToast('Welcome to Lassi Rewards!', 'success');
+      await fetchLoyaltyData();
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to join program', 'error');
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const handleRedeem = async (reward) => {
+    if (!history || history.currentBalance < reward.points) {
+      showToast('Not enough points', 'warning');
+      return;
+    }
+
+    if (!window.confirm(`Redeem ${reward.points} points for $${reward.off} OFF?`)) return;
+
+    setRedeeming(true);
+    try {
+      await loyaltyAPI.redeem(reward.points, reward.off);
+      showToast('Reward redeemed successfully!', 'success');
+      await fetchLoyaltyData();
+      
+      // Scroll to wallet
+      const walletEl = document.getElementById('my-wallet');
+      if (walletEl) walletEl.scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to redeem points', 'error');
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
+  const copyToClipboard = (code) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    showToast('Coupon code copied to clipboard!', 'success');
+    setTimeout(() => setCopiedCode(null), 3000);
+  };
+
+  const renderCouponCard = (coupon, isPublic = false) => {
+    const isPercentage = coupon.type === 'percentage';
+    const amount = isPercentage ? `${coupon.value}%` : `$${coupon.value}`;
+    const bgClass = isPublic ? 'bg-gradient-to-br from-[#fffaf5] to-[#fef2e6] border-[#fce3c8]' : 'bg-gradient-to-br from-[#fdfbfb] to-[#f5f7fa] border-[#eadfdb]';
+    const accentClass = isPublic ? 'bg-[#e8a020]' : 'bg-[#7a0b10]';
+    
+    return (
+      <div key={coupon._id} className={`relative flex flex-col rounded-2xl border ${bgClass} shadow-sm hover:shadow-md transition-all overflow-hidden`}>
+        <div className={`h-1.5 w-full ${accentClass}`}></div>
+        
+        <div className="p-6 flex flex-col h-full">
+           <div className="flex items-start justify-between mb-4">
+             <div>
+               {isPublic && <span className="inline-block px-2 py-1 rounded bg-white text-[#e8a020] text-[10px] font-black uppercase tracking-wider shadow-sm mb-2 border border-[#fce3c8]">Special Offer</span>}
+               <h4 className="text-3xl font-black font-serif text-[#1a1a1a]">{amount} <span className="text-lg">OFF</span></h4>
+             </div>
+             <div className="flex items-center gap-2">
+               <button 
+                 onClick={() => setSelectedCoupon(coupon)}
+                 className="w-8 h-8 rounded-full bg-white border border-[#eadfdb] flex items-center justify-center text-[#6b7280] hover:text-[#7a0b10] hover:border-[#7a0b10] transition-colors shadow-sm"
+                 title="Terms & Conditions"
+               >
+                 <Info className="w-4 h-4" />
+               </button>
+               <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white ${accentClass} shadow-md`}>
+                 <Ticket className="w-6 h-6" />
+               </div>
+             </div>
+           </div>
+           
+           <p className="text-[13px] text-[#4b5563] font-medium flex-1 mb-6">
+             {coupon.description || (coupon.minCartValue > 0 ? `Valid on orders over $${coupon.minCartValue}` : 'No minimum order required.')}
+           </p>
+
+           <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-[#eadfdb]/50">
+             <span className="font-mono font-bold text-[#1a1a1a] tracking-widest">{coupon.code}</span>
+             <button
+               onClick={() => copyToClipboard(coupon.code)}
+               className={`flex items-center gap-1 text-[11px] font-black uppercase tracking-wider px-3 py-1.5 rounded-md transition-colors ${copiedCode === coupon.code ? 'bg-[#dff4df] text-[#2f8a42]' : 'bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]'}`}
+             >
+               {copiedCode === coupon.code ? <><CheckCircle className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+             </button>
+           </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#fbfaf7]">
+        <div className="w-12 h-12 border-4 border-[#eadfdb] border-t-[#7a0b10] rounded-full animate-spin"></div>
+        <p className="mt-4 text-[#6b7280] font-medium font-serif">Loading your rewards...</p>
+      </div>
+    );
+  }
+
+  const isMember = history?.isLoyaltyMember;
+  const currentPoints = history?.currentBalance || 0;
+  const tier = history?.tier || 'BRONZE';
+
+  return (
+    <div className="min-h-screen bg-[#fbfaf7] pb-24">
+      {/* Hero Section Banner */}
+      <section className="relative bg-[#7a0b10] text-white overflow-hidden py-20 px-6">
+        <div className="absolute inset-0 bg-[url('/images/branded/lassi-lounge/hero-spread.jpg')] bg-cover bg-center opacity-20 mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#7a0b10] to-transparent opacity-80"></div>
+        
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
+          <span className="inline-block px-3 py-1 rounded-full bg-[#e8a020] text-[#1a1a1a] text-xs font-black uppercase tracking-widest mb-6 shadow-md">
+            Lassi Rewards Program
+          </span>
+          <h1 className="font-serif text-5xl md:text-6xl font-black mb-6 leading-tight">
+            Rewards & Offers
+          </h1>
+          <p className="text-lg text-white/90 max-w-2xl mx-auto font-medium leading-relaxed">
+            Earn points on every delicious order, unlock exclusive promotions, and enjoy the true taste of India with special member perks.
+          </p>
+        </div>
+      </section>
+
+      <main className="mx-auto max-w-6xl px-4 md:px-6 -mt-12 relative z-20 space-y-16">
+        
+        {/* Loyalty Status / Join Card (Floating) */}
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-[#eadfdb] flex flex-col md:flex-row items-center justify-between gap-6">
+          {isMember ? (
+            <>
+              <div className="text-center md:text-left flex-1">
+                <p className="text-[#6b7280] text-[11px] uppercase tracking-widest font-black mb-1">Current Tier</p>
+                <div className="flex items-center justify-center md:justify-start gap-3">
+                  <Award className="w-10 h-10 text-[#e8a020]" />
+                  <h2 className="text-3xl font-black text-[#1a1a1a] font-serif uppercase">{tier} <span className="text-xl text-[#6b7280]">Member</span></h2>
+                </div>
+              </div>
+              
+              <div className="w-full md:w-px h-px md:h-20 bg-[#eadfdb] hidden md:block"></div>
+              
+              <div className="text-center md:text-right flex-1">
+                <p className="text-[#6b7280] text-[11px] uppercase tracking-widest font-black mb-1">Available Points</p>
+                <div className="flex items-center justify-center md:justify-end gap-3">
+                  <h2 className="text-5xl font-black text-[#7a0b10]">{currentPoints}</h2>
+                  <Coins className="w-10 h-10 text-[#e8a020]" />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col md:flex-row items-center justify-between w-full gap-6 text-center md:text-left">
+              <div>
+                <h3 className="text-2xl font-black font-serif text-[#1a1a1a] mb-2">Join Lassi Rewards Today!</h3>
+                <p className="text-[#4b5563] text-sm font-medium max-w-md">Start earning points on every order. 100 points = $1.00 discount. It's completely free to join.</p>
+              </div>
+              <button
+                onClick={handleJoinProgram}
+                disabled={joining}
+                className="bg-[#7a0b10] hover:bg-[#5a060a] text-white font-black py-4 px-8 rounded-xl shadow-md transition-transform hover:scale-105 flex items-center gap-2 whitespace-nowrap"
+              >
+                {joining ? 'Joining...' : <><UserPlus className="w-5 h-5" /> Join For Free</>}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Public Offers Section */}
+        {publicCoupons.length > 0 && (
+          <section>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-12 h-12 rounded-full bg-[#fdf0d5] flex items-center justify-center">
+                <Sparkles className="text-[#e8a020] w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-3xl font-black font-serif text-[#1a1a1a]">Today's Exclusive Offers</h3>
+                <p className="text-[#6b7280] text-sm font-medium mt-1">Apply these codes at checkout to save on your next meal.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {publicCoupons.map(coupon => renderCouponCard(coupon, true))}
+            </div>
+          </section>
+        )}
+
+        {/* Loyalty Reward System (Only if Member) */}
+        {isMember && (
+          <>
+            <section>
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-12 h-12 rounded-full bg-[#fce3e4] flex items-center justify-center">
+                  <Gift className="text-[#7a0b10] w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-3xl font-black font-serif text-[#1a1a1a]">Redeem Points</h3>
+                  <p className="text-[#6b7280] text-sm font-medium mt-1">Turn your earned points into delicious discounts.</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {REWARDS.map((reward, idx) => {
+                  const canAfford = currentPoints >= reward.points;
+                  return (
+                    <div key={idx} className={`relative bg-white rounded-2xl p-8 border transition-all flex flex-col items-center text-center ${canAfford ? 'border-[#eadfdb] shadow-lg hover:-translate-y-1' : 'border-[#eadfdb]/50 opacity-80'}`}>
+                      <div className={`w-16 h-16 rounded-2xl mb-6 flex items-center justify-center text-white bg-gradient-to-br shadow-md ${reward.color}`}>
+                        <Gift className="w-8 h-8" />
+                      </div>
+                      <h3 className="text-4xl font-black text-[#1a1a1a] font-serif mb-2">${reward.off} <span className="text-xl text-[#6b7280]">OFF</span></h3>
+                      <p className="text-[#4b5563] text-sm font-medium mb-8">Valid on orders above ${reward.min}</p>
+                      
+                      <div className="w-full mt-auto pt-6 border-t border-[#eadfdb] flex items-center justify-between">
+                        <span className="font-black text-[#7a0b10] flex items-center gap-1.5 text-lg">
+                          <Coins className="w-5 h-5 text-[#e8a020]" /> {reward.points} <span className="text-xs text-[#6b7280]">PTS</span>
+                        </span>
+                        <button
+                          onClick={() => handleRedeem(reward)}
+                          disabled={!canAfford || redeeming}
+                          className={`px-6 py-2.5 rounded-lg font-black text-[13px] uppercase tracking-widest transition-colors ${
+                            canAfford
+                              ? 'bg-[#1a1a1a] hover:bg-[#333] text-white shadow-md'
+                              : 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed'
+                          }`}
+                        >
+                          {redeeming && canAfford ? 'Wait...' : 'Redeem'}
+                        </button>
+                      </div>
+                      
+                      {!canAfford && (
+                        <div className="absolute top-0 right-0 -mt-3 -mr-3 text-[10px] font-black uppercase tracking-widest text-[#7a0b10] bg-[#fce3e4] border border-[#f5c2c4] px-3 py-1.5 rounded-full shadow-sm">
+                          Need {reward.points - currentPoints} more
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* My Wallet Section */}
+            <section id="my-wallet" className="scroll-mt-32">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-12 h-12 rounded-full bg-[#fdfaf5] border border-[#eadfdb] flex items-center justify-center">
+                  <Ticket className="text-[#1a1a1a] w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-3xl font-black font-serif text-[#1a1a1a]">My Reward Wallet</h3>
+                  <p className="text-[#6b7280] text-sm font-medium mt-1">Your uniquely generated coupon codes from point redemptions.</p>
+                </div>
+              </div>
+              
+              {myCoupons.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-3xl border border-[#eadfdb] border-dashed shadow-sm">
+                  <Ticket className="w-16 h-16 text-[#d1d5db] mx-auto mb-4" />
+                  <p className="text-[#1a1a1a] text-lg font-black font-serif mb-2">Your wallet is empty</p>
+                  <p className="text-[#6b7280] text-sm font-medium max-w-sm mx-auto">Redeem your loyalty points above to instantly receive exclusive discount codes here.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {myCoupons.map(coupon => renderCouponCard(coupon, false))}
+                </div>
+              )}
+            </section>
+          </>
+        )}
+      </main>
+
+      {/* T&C Modal */}
+      {selectedCoupon && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-[#7a0b10] p-6 text-white text-center relative">
+              <h3 className="text-2xl font-black font-serif">Terms & Conditions</h3>
+              <p className="text-white/80 text-sm mt-1">Code: <span className="font-mono font-bold text-[#e8a020]">{selectedCoupon.code}</span></p>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <ul className="space-y-3 text-[13px] text-[#4b5563] font-medium">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
+                  <span>{selectedCoupon.description || 'Applies to your order based on cart value.'}</span>
+                </li>
+                {selectedCoupon.minCartValue > 0 && (
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
+                    <span>Minimum order value of <strong>${selectedCoupon.minCartValue}</strong> is required.</span>
+                  </li>
+                )}
+                {selectedCoupon.firstOrderOnly && (
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
+                    <span>Valid for <strong>first-time orders</strong> only.</span>
+                  </li>
+                )}
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
+                  <span>Valid for <strong>{selectedCoupon.channels?.join(', ') || 'Web & Mobile'}</strong> orders.</span>
+                </li>
+                {selectedCoupon.maxDiscount > 0 && (
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
+                    <span>Maximum discount capped at <strong>${selectedCoupon.maxDiscount}</strong>.</span>
+                  </li>
+                )}
+                {selectedCoupon.endDate && (
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
+                    <span>Expires on <strong>{new Date(selectedCoupon.endDate).toLocaleDateString()}</strong>.</span>
+                  </li>
+                )}
+                {selectedCoupon.allowedPaymentMethods && selectedCoupon.allowedPaymentMethods.length > 0 && !selectedCoupon.allowedPaymentMethods.includes('All') && (
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
+                    <span>Valid only for payments via <strong>{selectedCoupon.allowedPaymentMethods.join(', ')}</strong>.</span>
+                  </li>
+                )}
+                {selectedCoupon.minOrdersRequired > 0 && (
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
+                    <span>Requires a minimum of <strong>{selectedCoupon.minOrdersRequired} past orders</strong> to unlock.</span>
+                  </li>
+                )}
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
+                  <span>Only one coupon can be applied per order. Not valid with other offers.</span>
+                </li>
+              </ul>
+              
+              <div className="mt-6 pt-4 border-t border-[#eadfdb] flex flex-col gap-3">
+                {(() => {
+                  const isFirstOrderError = selectedCoupon.firstOrderOnly && (history?.ordersCount || 0) > 0;
+                  const isMinOrdersError = (selectedCoupon.minOrdersRequired || 0) > 0 && (history?.ordersCount || 0) < selectedCoupon.minOrdersRequired;
+                  
+                  if (isFirstOrderError) {
+                    return (
+                      <div className="p-3 rounded-xl border flex items-center gap-2 text-sm font-bold bg-[#fce3e4] border-[#f5c2c4] text-[#7a0b10]">
+                        <Info className="w-5 h-5 shrink-0" />
+                        You are not eligible for this coupon as it is for first-time orders only.
+                      </div>
+                    );
+                  }
+                  
+                  if (isMinOrdersError) {
+                    return (
+                      <div className="p-3 rounded-xl border flex items-center gap-2 text-sm font-bold bg-[#fce3e4] border-[#f5c2c4] text-[#7a0b10]">
+                        <Info className="w-5 h-5 shrink-0" />
+                        You need at least {selectedCoupon.minOrdersRequired} past orders to use this coupon. (You have {history?.ordersCount || 0}).
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="p-3 rounded-xl border flex items-center gap-2 text-sm font-bold bg-[#dff4df] border-[#b7e4b7] text-[#2f8a42]">
+                      <Info className="w-5 h-5 shrink-0" />
+                      You are eligible to use this coupon on your next applicable order!
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+            
+            <div className="p-4 bg-[#fbfaf7] border-t border-[#eadfdb] text-center">
+              <button 
+                onClick={() => setSelectedCoupon(null)}
+                className="w-full py-3 bg-[#1a1a1a] hover:bg-[#333] text-white rounded-xl font-black text-sm uppercase tracking-widest transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

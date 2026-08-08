@@ -340,3 +340,21 @@ export function ConfirmDialog({ isOpen, onClose, onCancel, onConfirm, title, mes
 }
 
 export { PortalModal, ItemDetailModal };
+
+export const PageLoader = ({ text = "Loading..." }) => (
+  <div className="flex flex-col items-center justify-center w-full h-[80vh] animate-in fade-in duration-300">
+    <div className="relative">
+      <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
+      <div className="bg-card/80 border border-border backdrop-blur-xl p-4 rounded-full relative shadow-2xl">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+      </div>
+    </div>
+    <div className="mt-8 flex flex-col items-center">
+      <h3 className="text-lg font-bold mb-1.5 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        {text}
+      </h3>
+      <p className="text-sm font-medium text-muted">Please wait while we prepare your workspace</p>
+    </div>
+  </div>
+);
+

@@ -13,19 +13,25 @@ class SocketService {
 
   /// Initializes the socket connection
   void init() {
-    if (_socket != null && _socket!.connected) return;
+    if (_socket != null) {
+      if (_socket!.connected) return;
+      _socket!.dispose();
+    }
 
     final String baseUrl = ApiService.baseUrl;
     final String? token = ApiService.authToken;
 
     final options = IO.OptionBuilder()
-        .setTransports(['websocket'])
+        .setTransports(['websocket', 'polling'])
         .enableAutoConnect()
         .setAuth({
           'appSecret': 'mobile_app_secure_key_2026',
           if (token != null) 'token': token,
           'tenantId': 'lassi-lounge',
         })
+        .enableReconnection()
+        .setReconnectionDelay(1000)
+        .setReconnectionAttempts(10)
         .setExtraHeaders({
           'x-app-secret': 'mobile_app_secure_key_2026',
           if (token != null) 'Authorization': 'Bearer $token',

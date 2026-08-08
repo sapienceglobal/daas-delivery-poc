@@ -3,7 +3,9 @@ import {
   createReservation,
   getMyReservations,
   getRestaurantReservations,
-  updateReservationStatus
+  updateReservationStatus,
+  bulkUpdateReservationStatus,
+  updateReservation
 } from '../controllers/reservationController.js';
 import { protect, authorize } from '../middleware/auth.js';
 import validate from '../middleware/validate.js';
@@ -21,6 +23,8 @@ router.get('/my-reservations', protect, getMyReservations);
 
 // Merchant/Admin routes
 router.get('/restaurant/:restaurantId', protect, authorize('merchant', 'admin'), getRestaurantReservations);
-router.put('/:id/status', protect, authorize('merchant', 'admin'), updateReservationStatus);
+router.put('/bulk-status', protect, authorize('merchant', 'admin'), bulkUpdateReservationStatus);
+router.put('/:id', protect, authorize('merchant', 'admin'), updateReservation);
+router.put('/:id/status', protect, authorize('merchant', 'admin', 'staff'), updateReservationStatus);
 
 export default router;

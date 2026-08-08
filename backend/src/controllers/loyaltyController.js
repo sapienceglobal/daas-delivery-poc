@@ -56,8 +56,9 @@ export const getMyLoyaltyHistory = asyncHandler(async (req, response) => {
 
   const LoyaltyTransaction = req.getModel('LoyaltyTransaction');
   const User = req.getModel('User');
+  const Order = req.getModel('Order');
 
-  const [transactions, total] = await Promise.all([
+  const [transactions, total, ordersCount] = await Promise.all([
     LoyaltyTransaction.find({ userId: req.user._id })
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -65,7 +66,8 @@ export const getMyLoyaltyHistory = asyncHandler(async (req, response) => {
       .populate('orderId', 'orderNumber restaurantName')
       .populate('reward.couponId', 'code expiresAt')
       .lean(),
-    LoyaltyTransaction.countDocuments({ userId: req.user._id })
+    LoyaltyTransaction.countDocuments({ userId: req.user._id }),
+    Order.countDocuments({ userId: req.user._id, status: { $nin: ['cancelled', 'rejected'] } })
   ]);
 
   const user = await User.findById(req.user._id).select('loyaltyPoints isLoyaltyMember lastLoginBonusDate');
@@ -79,7 +81,8 @@ export const getMyLoyaltyHistory = asyncHandler(async (req, response) => {
       transactions,
       currentBalance: user?.loyaltyPoints || 0,
       isLoyaltyMember: user?.isLoyaltyMember || false,
-      hasClaimedDaily
+      hasClaimedDaily,
+      ordersCount
     },
     pagination: res.buildPagination(page, limit, total)
   });
@@ -211,6 +214,23 @@ export const redeemPoints = asyncHandler(async (req, response) => {
     throw new AppError('Invalid redemption request', 400);
   }
 
+  // Enforce Industry Standards
+  const MIN_POINTS = 50;
+  const MAX_POINTS = 500;
+  const POINTS_TO_DOLLAR_RATIO = 10; // 10 points = $1
+
+  if (points < MIN_POINTS) {
+    throw new AppError(`You must redeem at least ${MIN_POINTS} points ($${MIN_POINTS / POINTS_TO_DOLLAR_RATIO} discount)`, 400);
+  }
+  if (points > MAX_POINTS) {
+    throw new AppError(`You can redeem a maximum of ${MAX_POINTS} points per transaction`, 400);
+  }
+  
+  const calculatedDiscount = points / POINTS_TO_DOLLAR_RATIO;
+  if (expectedDiscount !== calculatedDiscount) {
+    throw new AppError(`Discount calculation mismatch. Expected $${calculatedDiscount} but got $${expectedDiscount}`, 400);
+  }
+
   if (user.loyaltyPoints < points) {
     throw new AppError(`Insufficient points. You need ${points} but have ${user.loyaltyPoints}`, 400);
   }
@@ -233,7 +253,8 @@ export const redeemPoints = asyncHandler(async (req, response) => {
     maxUses: 1,
     maxUsesPerUser: 1,
     isActive: true,
-    endDate: expiresAt
+    endDate: expiresAt,
+    applicableUsers: [user._id]
   });
 
   // Log transaction
@@ -255,6 +276,52 @@ export const redeemPoints = asyncHandler(async (req, response) => {
     data: {
       couponCode: coupon.code,
       points: user.loyaltyPoints 
+    }
+  });
+});
+
+/**
+ * Get Loyalty Stats for Merchant Dashboard
+ */
+export const getLoyaltyStats = asyncHandler(async (req, response) => {
+  const User = req.getModel('User');
+  const LoyaltyTransaction = req.getModel('LoyaltyTransaction');
+
+  const [totalMembers, issuedStats, redeemedStats, outstandingStats, recentTransactions] = await Promise.all([
+    User.countDocuments({ isLoyaltyMember: true }),
+    LoyaltyTransaction.aggregate([
+      { $match: { points: { $gt: 0 } } },
+      { $group: { _id: null, total: { $sum: '$points' } } }
+    ]),
+    LoyaltyTransaction.aggregate([
+      { $match: { points: { $lt: 0 } } },
+      { $group: { _id: null, total: { $sum: { $abs: '$points' } } } }
+    ]),
+    User.aggregate([
+      { $match: { isLoyaltyMember: true } },
+      { $group: { _id: null, total: { $sum: '$loyaltyPoints' } } }
+    ]),
+    LoyaltyTransaction.find()
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate('userId', 'name email')
+      .populate('reward.couponId', 'code')
+      .lean()
+  ]);
+
+  const pointsIssued = issuedStats[0]?.total || 0;
+  const pointsRedeemed = redeemedStats[0]?.total || 0;
+  const outstandingPoints = outstandingStats[0]?.total || 0;
+  const redemptionRate = pointsIssued > 0 ? ((pointsRedeemed / pointsIssued) * 100).toFixed(2) : 0;
+
+  res.success(response, {
+    data: {
+      totalMembers,
+      pointsIssued,
+      pointsRedeemed,
+      outstandingPoints,
+      redemptionRate,
+      recentTransactions
     }
   });
 });

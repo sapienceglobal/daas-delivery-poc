@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { 
-  Grid2X2, User, MapPin, ShoppingCart, Heart, CreditCard, 
+import {
+  Grid2X2, User, MapPin, ShoppingCart, Heart, CreditCard,
   Gift, Bell, Users, LogOut, Phone, Calendar
 } from 'lucide-react';
 
@@ -36,13 +36,17 @@ export default function AccountSidebar({ user, activeNav, onNavClick, onOrderNow
     <aside className="space-y-4 lg:space-y-6 lg:sticky lg:top-24 w-full">
       {/* 1. Main Navigation Container */}
       <div className="overflow-hidden rounded-2xl border border-[#eadfdb] bg-white shadow-[0_2px_15px_rgba(0,0,0,0.04)]">
-        
-        {/* Top User Profile Header Box */}
+
         <div className="bg-[#600508] p-4 lg:p-6 text-white flex items-center gap-3 lg:gap-4">
-          <div className="h-[64px] w-[64px] rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm">
+          <div className="h-[64px] w-[64px] rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm relative">
             <User className="h-9 w-9 text-[#600508]" strokeWidth={2} />
+            {user?.merchantGroup && (
+              <div className="absolute -bottom-2 bg-gradient-to-r from-amber-400 to-amber-600 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-md whitespace-nowrap border border-white">
+                {user.merchantGroup}
+              </div>
+            )}
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 pl-2">
             <h2 className="text-[17px] font-bold truncate leading-tight tracking-wide">{user?.name || 'John Smith'}</h2>
             <p className="text-[13px] text-white/90 truncate mt-0.5 tracking-wide">{user?.email || 'johnsmith@gmail.com'}</p>
             <p className="text-[13px] text-white/90 mt-1.5 flex items-center gap-1.5 tracking-wide">
@@ -66,20 +70,19 @@ export default function AccountSidebar({ user, activeNav, onNavClick, onOrderNow
                   e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
                   onNavClick(item.id);
                 }}
-                className={`shrink-0 snap-start flex items-center justify-between lg:w-full gap-3 lg:gap-0 px-5 py-2.5 lg:pl-5 lg:pr-6 lg:py-[13px] text-left text-[13px] lg:text-[14.5px] transition-colors border lg:border-y-0 lg:border-r-0 lg:border-l-[4px] rounded-full lg:rounded-none whitespace-nowrap ${
-                  isActive
+                className={`shrink-0 snap-start flex items-center justify-between lg:w-full gap-3 lg:gap-0 px-5 py-2.5 lg:pl-5 lg:pr-6 lg:py-[13px] text-left text-[13px] lg:text-[14.5px] transition-colors border lg:border-y-0 lg:border-r-0 lg:border-l-[4px] rounded-full lg:rounded-none whitespace-nowrap ${isActive
                     ? 'border-[#7a0b10] bg-[#fcf3e3] text-[#7a0b10] font-bold'
                     : 'border-[#eadfdb] lg:border-transparent text-[#333333] font-medium hover:bg-[#fbfaf7]'
-                }`}
+                  }`}
               >
                 <span className="flex items-center gap-4">
-                  <Icon 
-                    className={`h-[18px] w-[18px] ${isActive ? 'text-[#7a0b10]' : 'text-[#8d1118]'}`} 
-                    strokeWidth={isActive ? 2.5 : 1.75} 
+                  <Icon
+                    className={`h-[18px] w-[18px] ${isActive ? 'text-[#7a0b10]' : 'text-[#8d1118]'}`}
+                    strokeWidth={isActive ? 2.5 : 1.75}
                   />
                   {item.label}
                 </span>
-                
+
                 {badgeValue !== undefined && badgeValue !== null && (
                   <span className="rounded-md bg-[#6b090e] px-2.5 py-1 text-[11px] font-bold text-white leading-none">
                     {badgeValue}
@@ -92,8 +95,8 @@ export default function AccountSidebar({ user, activeNav, onNavClick, onOrderNow
       </div>
 
       {/* 2. Side Promo Banner (Hidden on Mobile) */}
-      <div 
-        className="hidden lg:flex relative overflow-hidden rounded-2xl min-h-[310px] p-6 text-white shadow-sm flex-col justify-between group cursor-pointer border border-[#eadfdb]" 
+      <div
+        className="hidden lg:flex relative overflow-hidden rounded-2xl min-h-[310px] p-6 text-white shadow-sm flex-col justify-between group cursor-pointer border border-[#eadfdb]"
         onClick={onOrderNow}
       >
         <div

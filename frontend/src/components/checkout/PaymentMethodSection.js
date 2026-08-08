@@ -7,7 +7,8 @@ export default function PaymentMethodSection({
   paymentMethod, setPaymentMethod,
   cardNo, setCardNo, cardExpiry, setCardExpiry, cardCvv, setCardCvv, cardName, setCardName,
   onBack, onContinue,
-  orderType, quoteError, user
+  orderType, quoteError, user,
+  appliedCouponData, isPaymentMethodLockedByCoupon
 }) {
   return (
     <div className={`rounded-2xl border border-[#e5e7eb] bg-[#ffffff] p-6 shadow-sm ll-interactive ${step === 3 ? 'opacity-85' : ''}`}>
@@ -271,7 +272,16 @@ export default function PaymentMethodSection({
             </div>
             </div>
 
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-6 mt-2 border-t border-[#e5e7eb]">
+            {isPaymentMethodLockedByCoupon && (
+              <div className="flex items-center gap-2.5 p-3.5 bg-red-50 border border-red-200 rounded-lg text-red-700 text-[13px] font-bold mt-4 animate-in slide-in-from-top-2 duration-300">
+                <Lock className="h-4 w-4 shrink-0" />
+                <span>
+                  The applied coupon ({appliedCouponData?.code}) is only valid for {appliedCouponData?.allowedPaymentMethods?.join(', ')} payments. Please change your payment method or remove the coupon to continue.
+                </span>
+              </div>
+            )}
+
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-6 mt-4 border-t border-[#e5e7eb]">
               <button 
                 type="button"
                 onClick={onBack} 
@@ -281,11 +291,9 @@ export default function PaymentMethodSection({
               </button>
               <button
                 type="submit"
-                disabled={orderType === 'delivery' && quoteError}
+                disabled={(orderType === 'delivery' && quoteError) || isPaymentMethodLockedByCoupon}
                 className={`w-full sm:w-auto font-bold text-[14px] text-[#ffffff] py-2 px-6 rounded-lg flex items-center justify-center gap-2 shadow-sm ${
-                  orderType === 'delivery' && quoteError 
-                    ? 'bg-[#d1d5db] cursor-not-allowed text-[#9ca3af] shadow-none' 
-                    : 'bg-[#7a0b10] hover:bg-[#5e080c] ll-interactive ll-focus-ring'
+                  (orderType === 'delivery' && quoteError) || isPaymentMethodLockedByCoupon ? 'bg-[#9ca3af] cursor-not-allowed' : 'bg-[#7a0b10] hover:bg-[#5a080c] ll-interactive ll-focus-ring'
                 }`}
               >
                 Review Order <span>&rarr;</span>

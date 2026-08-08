@@ -1,13 +1,14 @@
 'use client';
 import { Minus, Plus, ShieldCheck, Tag, Info, X, Check } from 'lucide-react';
+import { formatCurrency } from '@/lib/formatters';
 
 export default function OrderSummaryCard({
   t,
   items, itemCount, subtotal, updateQuantity,
-  orderType, deliveryFee, quoteLoading, tax, platformFee, serviceFee,
+  orderType, deliveryFee, quoteLoading, tax, platformFee, serviceFee, packagingFee,
   couponCode, setCouponCode, onApplyCoupon, couponLoading, couponApplied, couponDiscount, onRemoveCoupon,
   user, useLoyaltyPoints, setUseLoyaltyPoints,
-  total, quoteError, minOrderAmount = 0
+  total, quoteError, minOrderAmount = 0, restaurant
 }) {
   const isMinOrderMet = subtotal >= minOrderAmount;
   return (
@@ -28,7 +29,7 @@ export default function OrderSummaryCard({
                 {item.name}
               </h4>
               <span className="text-[14px] font-medium text-[#1a1a1a] block mb-2">
-                ${((item.selectedSize?.price || item.price) + (item.addOns || []).reduce((sum, a) => sum + (a.price || 0), 0)).toFixed(2)}
+                {formatCurrency(((item.selectedSize?.price || item.price) + (item.addOns || []).reduce((sum, a) => sum + (a.price || 0), 0)), restaurant?.currency)}
               </span>
               
               {item.selectedSize && (
@@ -52,7 +53,7 @@ export default function OrderSummaryCard({
                 </div>
                 
                 <span className="font-bold text-[15px] text-[#7a0b10] shrink-0">
-                  ${item.lineTotal.toFixed(2)}
+                  {formatCurrency(item.lineTotal, restaurant?.currency)}
                 </span>
               </div>
             </div>
@@ -63,7 +64,7 @@ export default function OrderSummaryCard({
       <div className="border-t border-dashed border-[#d1d5db] pt-5 pb-5 space-y-3">
         <div className="flex justify-between items-center text-[14px]">
           <span className="text-[#1a1a1a] font-medium">Subtotal ({itemCount} Items)</span>
-          <span className="font-bold text-[#1a1a1a]">${subtotal.toFixed(2)}</span>
+          <span className="font-bold text-[#1a1a1a]">{formatCurrency(subtotal, restaurant?.currency)}</span>
         </div>
 
         {orderType === 'delivery' && (
@@ -76,37 +77,51 @@ export default function OrderSummaryCard({
               </div>
             </span>
             <span className="font-bold text-[#1a1a1a]">
-              {quoteLoading ? '...' : deliveryFee === null ? 'Unavailable' : deliveryFee === 0 ? 'FREE' : `$${deliveryFee.toFixed(2)}`}
+              {quoteLoading ? '...' : deliveryFee === null ? 'Unavailable' : deliveryFee === 0 ? 'FREE' : formatCurrency(deliveryFee, restaurant?.currency)}
             </span>
           </div>
         )}
 
         <div className="flex justify-between items-center text-[14px]">
           <span className="text-[#1a1a1a] font-medium flex items-center gap-1 relative group cursor-help">
-            Taxes & Charges <Info className="w-4 h-4 text-[#9ca3af] group-hover:text-[#7a0b10] transition-colors" />
+            {restaurant?.taxType || 'Taxes & Charges'} <Info className="w-4 h-4 text-[#9ca3af] group-hover:text-[#7a0b10] transition-colors" />
             <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-52 bg-[#1a1a1a] text-[#ffffff] text-[11px] font-normal p-2.5 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-200 leading-snug">
               Estimated state and local sales taxes applied to your order.
               <div className="absolute top-full left-6 border-4 border-transparent border-t-[#1a1a1a]"></div>
             </div>
           </span>
-          <span className="font-bold text-[#1a1a1a]">${tax.toFixed(2)}</span>
+          <span className="font-bold text-[#1a1a1a]">{formatCurrency(tax, restaurant?.currency)}</span>
         </div>
 
         <div className="flex justify-between items-center text-[14px]">
           <span className="text-[#1a1a1a] font-medium">Platform Fee</span>
-          <span className="font-bold text-[#1a1a1a]">${platformFee.toFixed(2)}</span>
+          <span className="font-bold text-[#1a1a1a]">{formatCurrency(platformFee, restaurant?.currency)}</span>
         </div>
         
         <div className="flex justify-between items-center text-[14px]">
           <span className="text-[#1a1a1a] font-medium flex items-center gap-1 relative group cursor-help">
-            Service Fee (3%) <Info className="w-4 h-4 text-[#9ca3af] group-hover:text-[#7a0b10] transition-colors" />
+            Service Fee <Info className="w-4 h-4 text-[#9ca3af] group-hover:text-[#7a0b10] transition-colors" />
             <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 bg-[#1a1a1a] text-[#ffffff] text-[11px] font-normal p-2.5 rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-200 leading-snug">
               This fee helps us operate our platform, improve the app, and provide 24/7 customer support.
               <div className="absolute top-full left-6 border-4 border-transparent border-t-[#1a1a1a]"></div>
             </div>
           </span>
-          <span className="font-bold text-[#1a1a1a]">${serviceFee.toFixed(2)}</span>
+          <span className="font-bold text-[#1a1a1a]">{formatCurrency(serviceFee, restaurant?.currency)}</span>
         </div>
+
+        {packagingFee > 0 && (
+          <div className="flex justify-between items-center text-[14px]">
+            <span className="text-[#1a1a1a] font-medium">Packaging Fee</span>
+            <span className="font-bold text-[#1a1a1a]">{formatCurrency(packagingFee, restaurant?.currency)}</span>
+          </div>
+        )}
+
+        {couponApplied && couponDiscount > 0 && (
+          <div className="flex justify-between items-center text-[14px] text-[#1fae64]">
+            <span className="font-bold">Discount ({couponCode})</span>
+            <span className="font-black">-{formatCurrency(couponDiscount, restaurant?.currency)}</span>
+          </div>
+        )}
       </div>
 
       <div className="border-t border-dashed border-[#d1d5db] pt-5 pb-5">
@@ -138,7 +153,7 @@ export default function OrderSummaryCard({
         {couponApplied && (
           <div className="flex items-center justify-between mt-3 px-4 py-3 bg-[#f2fcf5] border border-[#d1fae5] rounded-lg">
             <span className="text-[#1fae64] text-[13px] font-bold">
-              {couponCode} Applied <span className="font-medium ml-1">(-${couponDiscount.toFixed(2)})</span>
+              {couponCode} Applied <span className="font-medium ml-1">(-{formatCurrency(couponDiscount, restaurant?.currency)})</span>
             </span>
             <button onClick={onRemoveCoupon} className="text-[#1fae64] hover:text-[#16a34a] transition-colors ll-focus-ring" aria-label="Remove coupon">
               <X className="w-4 h-4" />
@@ -147,28 +162,10 @@ export default function OrderSummaryCard({
         )}
       </div>
 
-      {user && user.loyaltyPoints > 0 && (
-        <div className="border-t border-dashed border-[#d1d5db] pt-4 pb-4 flex items-center justify-between text-[13px]">
-          <div>
-            <span className="font-bold text-[#1a1a1a] block">Loyalty Points</span>
-            <span className="text-[#6b7280] text-[12px] mt-0.5">Points: {user.loyaltyPoints} (${(user.loyaltyPoints / 100).toFixed(2)})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <label onClick={() => setUseLoyaltyPoints(!useLoyaltyPoints)} className="text-[13px] font-medium text-[#1a1a1a] cursor-pointer select-none">Use Points</label>
-            <div
-              onClick={() => setUseLoyaltyPoints(!useLoyaltyPoints)}
-              className={`w-4 h-4 rounded border flex items-center justify-center cursor-pointer transition-colors ${useLoyaltyPoints ? 'bg-[#7a0b10] border-[#7a0b10]' : 'bg-white border-[#d1d5db]'}`}
-            >
-              {useLoyaltyPoints && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="border-t border-dashed border-[#d1d5db] pt-6 pb-2 flex items-center justify-between">
         <span className="text-[16px] font-bold uppercase tracking-wider text-[#1a1a1a]">Total Amount</span>
         <span className="text-[28px] font-bold text-[#7a0b10]">
-          {deliveryFee === null && orderType === 'delivery' ? 'N/A' : `$${total.toFixed(2)}`}
+          {deliveryFee === null && orderType === 'delivery' ? 'N/A' : formatCurrency(total, restaurant?.currency)}
         </span>
       </div>
 

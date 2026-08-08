@@ -156,3 +156,88 @@ export const updateReservationStatus = async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+// @desc    Update an entire reservation (merchant)
+// @route   PUT /api/reservations/:id
+// @access  Private (Merchant/Admin)
+export const updateReservation = async (req, res) => {
+  try {
+    const { Reservation } = getModels(req);
+    const reservation = await Reservation.findById(req.params.id);
+
+    if (!reservation) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Reservation not found'
+      });
+    }
+
+    // Verify ownership (in a multi-tenant or role setup)
+    if (req.user.role !== 'admin' && reservation.restaurantId.toString() !== req.user.restaurantId?.toString()) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Not authorized to update this reservation'
+      });
+    }
+
+    const updatedReservation = await Reservation.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    res.json({
+      status: 'success',
+      data: updatedReservation
+    });
+  } catch (error) {
+    console.error('Error updating reservation:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to update reservation'
+    });
+  }
+};
+
+// @desc    Bulk update reservation status
+// @route   PUT /api/reservations/bulk-status
+// @access  Private (Merchant/Admin)
+export const bulkUpdateReservationStatus = async (req, res) => {
+  try {
+    const { Reservation, Restaurant } = getModels(req);
+    const { reservationIds, status } = req.body;
+    
+    if (!reservationIds || !Array.isArray(reservationIds) || reservationIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Please provide an array of reservation IDs' });
+    }
+
+    if (!status) {
+      return res.status(400).json({ success: false, message: 'Please provide a status' });
+    }
+
+    const reservations = await Reservation.find({ _id: { $in: reservationIds } });
+    if (reservations.length === 0) {
+      return res.status(404).json({ success: false, message: 'No matching reservations found' });
+    }
+
+    // Verify ownership
+    if (req.user.role === 'merchant') {
+      const restaurant = await Restaurant.findById(reservations[0].restaurantId);
+      if (!restaurant || restaurant.ownerId?.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ success: false, message: 'Not authorized to update these reservations' });
+      }
+    }
+
+    await Reservation.updateMany(
+      { _id: { $in: reservationIds } },
+      { $set: { status } }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully updated ${reservations.length} reservations to ${status}`
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};

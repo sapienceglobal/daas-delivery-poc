@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { orderAPI, couponAPI } from '@/lib/api';
+import { orderAPI, couponAPI, restaurantAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 
 const US_STATE_CODES = {
@@ -81,7 +81,7 @@ export function useCheckoutState() {
   const router = useRouter();
   const {
     items,
-    restaurant,
+    restaurant: cachedRestaurant,
     subtotal,
     itemCount,
     updateQuantity,
@@ -94,6 +94,25 @@ export function useCheckoutState() {
   const isSingleRestaurantMode = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
 
   const [step, setStep] = useState(1);
+  const [restaurant, setRestaurant] = useState(cachedRestaurant);
+
+  useEffect(() => {
+    if (cachedRestaurant && !restaurant) {
+      setRestaurant(cachedRestaurant);
+    }
+  }, [cachedRestaurant]);
+
+  useEffect(() => {
+    if (cachedRestaurant?._id) {
+      restaurantAPI.getById(cachedRestaurant._id)
+        .then(res => {
+          if (res?.data) {
+            setRestaurant(res.data);
+          }
+        })
+        .catch(err => console.error('Failed to refresh restaurant settings:', err));
+    }
+  }, [cachedRestaurant?._id]);
 
   const [fullName, setFullName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -209,8 +228,9 @@ export function useCheckoutState() {
     return `${addressLine1}, ${addressLine2 ? addressLine2 + ', ' : ''}${city}, ${state} ${zipCode}`;
   }, [addressLine1, addressLine2, city, state, zipCode]);
 
-  const taxRate = restaurant?.taxRate || 0.0875;
-  const tax = Math.round(subtotal * taxRate * 100) / 100;
+  const rawTaxRate = restaurant?.taxRate ?? 8.875;
+  const taxRateMultiplier = rawTaxRate < 1 ? rawTaxRate : (rawTaxRate / 100);
+  const tax = Math.round(subtotal * taxRateMultiplier * 100) / 100;
 
   const hasDeliveryAddressInput = Boolean(
     addressLine1.trim() || city.trim() || state.trim() || zipCode.trim() || addressVerified || addressLat !== null || addressLng !== null
@@ -224,10 +244,16 @@ export function useCheckoutState() {
       : 0;
 
   const platformFee = 2.0;
-  const serviceFee = Math.round(subtotal * 0.03 * 100) / 100;
+  
+  const rawServiceCharge = restaurant?.serviceCharge ?? 3.0;
+  const serviceChargeMultiplier = rawServiceCharge < 1 ? rawServiceCharge : (rawServiceCharge / 100);
+  const serviceFee = Math.round(subtotal * serviceChargeMultiplier * 100) / 100;
+  
+  const packagingFee = restaurant?.packagingCharge || 0;
   const loyaltyDiscount = useLoyaltyPoints ? Math.floor(user?.loyaltyPoints || 0) / 100 : 0;
 
-  const total = Math.max(0, subtotal + tax + deliveryFee + platformFee + serviceFee + tip - couponDiscount - loyaltyDiscount);
+  let rawTotal = Math.max(0, subtotal + tax + deliveryFee + platformFee + serviceFee + packagingFee + tip - couponDiscount - loyaltyDiscount);
+  const total = restaurant?.roundOff ? Math.round(rawTotal) : rawTotal;
 
   const checkoutItems = useMemo(
     () =>
@@ -704,7 +730,7 @@ export function useCheckoutState() {
     quoteLoading, isLocationLoading, quoteError,
     suggestions, suggestionsLoading, addressVerified,
     items, restaurant, subtotal, itemCount, updateQuantity, removeItem, user,
-    compiledAddress, checkoutPayload, tax, deliveryFee, platformFee, serviceFee, total,
+    compiledAddress, checkoutPayload, tax, deliveryFee, platformFee, serviceFee, packagingFee, total,
     handleSelectSavedAddress, handleUseCurrentLocation,
     handleAddressLine1Change, handleSelectSuggestion,
     handleApplyCoupon, handleRemoveCoupon,

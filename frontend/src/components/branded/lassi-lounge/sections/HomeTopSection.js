@@ -7,10 +7,13 @@ import { Bike, Utensils, ChevronRight, ChevronLeft, ArrowRight, ArrowLeft } from
 import Button from '@/components/ui/Button';
 import { menuCategoryContent, deliveryPartnersContent, heroContent } from '../config';
 
+import { useBrand } from '@/context/BrandContext';
+
 export default function HomeTopSection() {
   const router = useRouter();
   const partnersScrollRef = useRef(null);
   const categoriesScrollRef = useRef(null);
+  const { brand } = useBrand();
 
   const scrollCategories = (direction) => {
     if (categoriesScrollRef.current) {
@@ -43,6 +46,10 @@ export default function HomeTopSection() {
   const { categories, viewFullMenuCta } = menuCategoryContent;
   const { eyebrow, heading, headingScript, description, partners } = deliveryPartnersContent;
 
+  const brandNameParts = brand?.name ? brand.name.split(' ') : ['LASSI', 'LOUNGE'];
+  const brandName1 = brandNameParts[0];
+  const brandName2 = brandNameParts.slice(1).join(' ') || 'LOUNGE';
+
   return (
     <div className="w-full relative flex flex-col bg-[#0e0d0c]">
 
@@ -56,7 +63,7 @@ export default function HomeTopSection() {
         <div className="absolute inset-0 z-0">
           <Image
             src="/images/branded/lassi-lounge/hero-spread.jpg"
-            alt="Lassi Lounge Indian feast spread"
+            alt="Hero background"
             fill
             priority
             className="object-cover object-center"
@@ -80,20 +87,20 @@ export default function HomeTopSection() {
           </div>
 
           <h1 className="font-serif font-black leading-[0.85] tracking-tight mt-1">
-            <span className="block text-7xl md:text-[95px] text-white">LASSI</span>
-            <span className="block text-7xl md:text-[95px] text-[#e8a020]">LOUNGE</span>
+            <span className="block text-7xl md:text-[95px] text-white uppercase">{brandName1}</span>
+            <span className="block text-7xl md:text-[95px] text-[#e8a020] uppercase">{brandName2}</span>
           </h1>
 
           <div className="mt-4 self-start relative ml-1">
             <div className="bg-[#cd131b] text-white text-xs md:text-sm font-bold tracking-widest px-6 py-2.5 uppercase relative z-10 shadow-lg">
-              INDIAN RESTAURANT
+              {brand?.cuisine ? `${brand.cuisine} RESTAURANT` : 'INDIAN RESTAURANT'}
             </div>
             <div className="absolute -left-1.5 top-0 h-full w-2 bg-[#cd131b] z-0"></div>
             <div className="absolute -left-1.5 -bottom-1.5 border-t-[6px] border-t-[#78060b] border-l-[6px] border-l-transparent z-0"></div>
           </div>
 
           <p className="text-[#f7f1e4]/80 text-xs md:text-sm leading-relaxed mt-6 max-w-[380px] font-sans">
-            Experience the rich and authentic flavors of India. From traditional favorites to modern delights, every dish is made with love.
+            {brand?.description || 'Experience the rich and authentic flavors. From traditional favorites to modern delights, every dish is made with love.'}
           </p>
 
           <div className="flex flex-wrap items-center gap-4 mt-8">

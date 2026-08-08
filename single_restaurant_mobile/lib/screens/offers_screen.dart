@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/services/coupon_service.dart';
+import 'package:single_restaurant_mobile/services/loyalty_service.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
@@ -22,6 +23,7 @@ class _OffersScreenState extends State<OffersScreen> {
   bool _isLoading = true;
   final TextEditingController _promoController = TextEditingController();
   bool _isApplying = false;
+  int _ordersCount = 0;
 
   @override
   void initState() {
@@ -31,9 +33,17 @@ class _OffersScreenState extends State<OffersScreen> {
 
   Future<void> _fetchCoupons() async {
     final coupons = await CouponService().getCoupons(activeOnly: true);
+    final history = await LoyaltyService().getLoyaltyHistory();
+    
+    int ordersCount = 0;
+    if (history != null && history['data'] != null && history['data']['ordersCount'] != null) {
+      ordersCount = history['data']['ordersCount'];
+    }
+
     if (mounted) {
       setState(() {
         _coupons = coupons;
+        _ordersCount = ordersCount;
         _isLoading = false;
       });
     }
@@ -222,7 +232,7 @@ class _OffersScreenState extends State<OffersScreen> {
                const Padding(padding: EdgeInsets.all(16), child: Text("No offers available at the moment.")),
             if (_coupons.isNotEmpty)
               SizedBox(
-                height: 170,
+                height: 190,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -230,6 +240,8 @@ class _OffersScreenState extends State<OffersScreen> {
                   itemBuilder: (context, index) {
                     final coupon = _coupons[index];
                     return _buildOfferCard(
+                      context: context,
+                      coupon: coupon,
                       iconData: Icons.local_offer,
                       iconColor: AppColors.secondary,
                       title: coupon['type'] == 'percentage' ? '${coupon['value']}% OFF' : '\$${coupon['value']} OFF',
@@ -389,7 +401,7 @@ class _OffersScreenState extends State<OffersScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text('Min. order \$25  •  T&C Apply', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                Text('Min. order \$${coupon['minCartValue'] ?? 0}  •  T&C Apply', style: const TextStyle(color: Colors.white70, fontSize: 10)),
               ],
             ),
           ),
@@ -403,6 +415,8 @@ class _OffersScreenState extends State<OffersScreen> {
   }
 
   Widget _buildOfferCard({
+    required BuildContext context,
+    required dynamic coupon,
     required IconData iconData,
     required Color iconColor,
     required String title,
@@ -421,18 +435,21 @@ class _OffersScreenState extends State<OffersScreen> {
         border: Border.all(color: codeColor.withOpacity(0.3)),
         boxShadow: [BoxShadow(color: codeColor.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(iconData, color: iconColor, size: 24),
-          ),
-          const SizedBox(height: 12),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(iconData, color: iconColor, size: 24),
+              ),
+              const SizedBox(height: 12),
           Text(title, style: TextStyle(color: titleColor, fontWeight: FontWeight.bold, fontSize: 14)),
           const SizedBox(height: 4),
           Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 11)),
@@ -443,18 +460,176 @@ class _OffersScreenState extends State<OffersScreen> {
               border: Border.all(color: codeColor, width: 1),
               borderRadius: BorderRadius.circular(4),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Code: ', style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
-                Text(code, style: TextStyle(color: codeColor, fontSize: 10, fontWeight: FontWeight.bold)),
-                const SizedBox(width: 4),
-                Icon(Icons.copy, color: codeColor, size: 10),
-              ],
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Code: ', style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
+                  Text(code, style: TextStyle(color: codeColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 4),
+                  Icon(Icons.copy, color: codeColor, size: 10),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 8),
-          const Text('Valid till 31 May 2025', style: TextStyle(color: Colors.grey, fontSize: 9)),
+          Text(coupon['endDate'] != null ? 'Valid till ${DateTime.parse(coupon['endDate']).day}/${DateTime.parse(coupon['endDate']).month}/${DateTime.parse(coupon['endDate']).year}' : 'Limited time offer', style: const TextStyle(color: Colors.grey, fontSize: 9)),
+        ],
+      ),
+      Positioned(
+        top: -8,
+        right: -8,
+        child: GestureDetector(
+          onTap: () => _showCouponTerms(context, coupon),
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Icon(Icons.info_outline, size: 16, color: Colors.grey.shade700),
+            ),
+          ),
+        ),
+      ),
+      ],
+      ),
+    );
+  }
+
+  void _showCouponTerms(BuildContext context, dynamic coupon) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Column(
+            children: [
+              const Text('Terms & Conditions', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const SizedBox(height: 4),
+              Text('Code: ${coupon['code']}', style: TextStyle(color: AppColors.secondary, fontSize: 14, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildTermItem(coupon['description'] ?? 'Applies to your order based on cart value.'),
+                if ((coupon['minCartValue'] ?? 0) > 0)
+                  _buildTermItem('Minimum order value of \$${coupon['minCartValue']} is required.'),
+                if (coupon['firstOrderOnly'] == true)
+                  _buildTermItem('Valid for first-time orders only.'),
+                if ((coupon['maxDiscount'] ?? 0) > 0)
+                  _buildTermItem('Maximum discount capped at \$${coupon['maxDiscount']}.'),
+                if (coupon['allowedPaymentMethods'] != null && (coupon['allowedPaymentMethods'] as List).isNotEmpty && !((coupon['allowedPaymentMethods'] as List).contains('All')))
+                  _buildTermItem('Valid only for payments via ${(coupon['allowedPaymentMethods'] as List).join(', ')}.'),
+                if ((coupon['minOrdersRequired'] ?? 0) > 0)
+                  _buildTermItem('Requires a minimum of ${coupon['minOrdersRequired']} past orders to unlock.'),
+                _buildTermItem('Only one coupon can be applied per order. Not valid with other offers.'),
+                
+                const SizedBox(height: 16),
+                Builder(
+                  builder: (context) {
+                    final bool isFirstOrderError = coupon['firstOrderOnly'] == true && _ordersCount > 0;
+                    final bool isMinOrdersError = (coupon['minOrdersRequired'] ?? 0) > 0 && _ordersCount < coupon['minOrdersRequired'];
+
+                    if (isFirstOrderError) {
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info, color: Colors.red.shade700, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'You are not eligible for this coupon as it is for first-time orders only.',
+                                style: TextStyle(color: Colors.red.shade900, fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    if (isMinOrdersError) {
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info, color: Colors.red.shade700, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'You need at least ${coupon['minOrdersRequired']} past orders to use this coupon. (You have $_ordersCount).',
+                                style: TextStyle(color: Colors.red.shade900, fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info, color: Colors.green.shade700, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'You are eligible to use this coupon on your next applicable order!',
+                              style: TextStyle(color: Colors.green.shade900, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTermItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.check_circle, color: Colors.green, size: 16),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 13, color: Colors.black87))),
         ],
       ),
     );

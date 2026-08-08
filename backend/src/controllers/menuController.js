@@ -163,10 +163,56 @@ export const toggleItemAvailability = asyncHandler(async (req, response) => {
   item.isAvailable = !item.isAvailable;
   await item.save();
 
-  res.success(response, {
-    data: item,
-    message: `Item ${item.isAvailable ? 'enabled' : 'disabled'}`
-  });
+  res.success(response, { data: item, message: `Menu item is now ${item.isAvailable ? 'active' : 'inactive'}` });
+});
+
+export const bulkDeleteItems = asyncHandler(async (req, response) => {
+  const { MenuItem, Restaurant } = getModels(req);
+  const { itemIds } = req.body;
+  if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+    throw new AppError('Please provide an array of item IDs to delete', 400);
+  }
+
+  const items = await MenuItem.find({ _id: { $in: itemIds } });
+  if (items.length === 0) throw new AppError('No matching items found', 404);
+
+  // Ensure owner for at least the first item (assuming all from same restaurant in UI)
+  if (items[0]) {
+    await ensureOwner(items[0].restaurantId, req.user, Restaurant);
+  }
+
+  await MenuItem.deleteMany({ _id: { $in: itemIds } });
+  res.success(response, { message: `Successfully deleted ${items.length} items` });
+});
+
+export const bulkUpdateItems = asyncHandler(async (req, response) => {
+  const { MenuItem, Restaurant } = getModels(req);
+  const { itemIds, updateData } = req.body;
+  if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+    throw new AppError('Please provide an array of item IDs to update', 400);
+  }
+
+  const items = await MenuItem.find({ _id: { $in: itemIds } });
+  if (items.length === 0) throw new AppError('No matching items found', 404);
+
+  if (items[0]) {
+    await ensureOwner(items[0].restaurantId, req.user, Restaurant);
+  }
+
+  const allowedUpdates = ['isAvailable', 'categoryId', 'isVeg', 'isSpicy'];
+  const updateObj = {};
+  for (const key of allowedUpdates) {
+    if (updateData[key] !== undefined) {
+      updateObj[key] = updateData[key];
+    }
+  }
+
+  if (Object.keys(updateObj).length === 0) {
+    throw new AppError('No valid fields provided to update', 400);
+  }
+
+  await MenuItem.updateMany({ _id: { $in: itemIds } }, { $set: updateObj });
+  res.success(response, { message: `Successfully updated ${items.length} items` });
 });
 
 // ── Bulk Import ─────────────────────────────────────────────────────────────

@@ -93,7 +93,7 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer, resta
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#111827] outline-none focus:border-[#8B0000]"
+                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#111827] bg-white outline-none focus:border-[#8B0000]"
                     placeholder="Enter full name"
                   />
                 </div>
@@ -105,7 +105,7 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer, resta
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                      className="w-full border border-[#e5e7eb] rounded-lg pl-9 pr-3 py-2 text-sm text-[#111827] outline-none focus:border-[#8B0000]"
+                      className="w-full border border-[#e5e7eb] rounded-lg !pl-10 pr-3 py-2 text-sm text-[#111827] bg-white outline-none focus:border-[#8B0000]"
                       placeholder="+1 (555) 000-0000"
                     />
                   </div>
@@ -118,7 +118,7 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer, resta
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full border border-[#e5e7eb] rounded-lg pl-9 pr-3 py-2 text-sm text-[#111827] outline-none focus:border-[#8B0000]"
+                      className="w-full border border-[#e5e7eb] rounded-lg !pl-10 pr-3 py-2 text-sm text-[#111827] bg-white outline-none focus:border-[#8B0000]"
                       placeholder="customer@email.com"
                     />
                   </div>
@@ -139,7 +139,7 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer, resta
                     <select
                       value={formData.group}
                       onChange={(e) => setFormData({...formData, group: e.target.value})}
-                      className="w-full border border-[#e5e7eb] rounded-lg pl-9 pr-3 py-2 text-sm text-[#111827] outline-none focus:border-[#8B0000] bg-white"
+                      className="w-full border border-[#e5e7eb] rounded-lg !pl-10 pr-3 py-2 text-sm text-[#111827] outline-none focus:border-[#8B0000] bg-white"
                     >
                       <option value="Family">Family</option>
                       <option value="Friends">Friends</option>
@@ -188,7 +188,7 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer, resta
                     min="0"
                     value={formData.totalOrders}
                     onChange={(e) => setFormData({...formData, totalOrders: parseInt(e.target.value) || 0})}
-                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#111827] outline-none focus:border-[#8B0000]"
+                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#111827] bg-white outline-none focus:border-[#8B0000]"
                   />
                 </div>
                 <div>
@@ -199,7 +199,7 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer, resta
                     step="0.01"
                     value={formData.totalSpent}
                     onChange={(e) => setFormData({...formData, totalSpent: parseFloat(e.target.value) || 0})}
-                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#111827] outline-none focus:border-[#8B0000]"
+                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#111827] bg-white outline-none focus:border-[#8B0000]"
                   />
                 </div>
               </div>

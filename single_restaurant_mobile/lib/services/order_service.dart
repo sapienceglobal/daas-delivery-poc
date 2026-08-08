@@ -64,4 +64,14 @@ class OrderService {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>?> cancelOrder(String orderId) async {
+    try {
+      final response = await ApiService.post('/api/orders/$orderId/cancel', {});
+      final data = json.decode(response.body);
+      return data['data'];
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

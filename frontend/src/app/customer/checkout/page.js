@@ -89,6 +89,8 @@ export default function CheckoutPage() {
               orderType={c.orderType}
               quoteError={c.quoteError}
               user={c.user}
+              appliedCouponData={c.appliedCouponData}
+              isPaymentMethodLockedByCoupon={c.isPaymentMethodLockedByCoupon}
             />
 
           </div>
@@ -97,16 +99,17 @@ export default function CheckoutPage() {
             <div className="sticky top-24 space-y-5">
               <OrderSummaryCard
                 t={t}
+                restaurant={c.restaurant}
                 items={c.items} itemCount={c.itemCount} subtotal={c.subtotal} updateQuantity={c.updateQuantity}
                 orderType={c.orderType} deliveryFee={c.deliveryFee} quoteLoading={c.quoteLoading}
-                tax={c.tax} platformFee={c.platformFee} serviceFee={c.serviceFee}
+                tax={c.tax} platformFee={c.platformFee} serviceFee={c.serviceFee} packagingFee={c.packagingFee}
                 couponCode={c.couponCode} setCouponCode={c.setCouponCode}
                 onApplyCoupon={c.handleApplyCoupon} couponLoading={c.couponLoading}
                 couponApplied={c.couponApplied} couponDiscount={c.couponDiscount} onRemoveCoupon={c.handleRemoveCoupon}
                 user={c.user} useLoyaltyPoints={c.useLoyaltyPoints} setUseLoyaltyPoints={c.setUseLoyaltyPoints}
                 total={c.total}
                 quoteError={c.quoteError}
-                minOrderAmount={c.restaurant?.minOrderAmount || 0}
+                minOrderAmount={c.restaurant?.minimumOrder || 0}
               />
               <div className="hidden lg:block space-y-5">
                 {c.isSingleRestaurantMode && <LoyaltySignupBanner />}
@@ -127,6 +130,9 @@ export default function CheckoutPage() {
       <ReviewOrderSection
         step={c.step}
         t={t}
+        restaurant={c.restaurant}
+        tip={c.tip}
+        setTip={c.setTip}
         onBack={() => c.setStep(2)}
         onPlaceOrder={c.handlePlaceOrder}
         total={c.total}
@@ -140,11 +146,13 @@ export default function CheckoutPage() {
         tax={c.tax}
         platformFee={c.platformFee}
         serviceFee={c.serviceFee}
+        packagingFee={c.packagingFee}
         couponDiscount={c.couponDiscount}
         loyaltyDiscount={c.loyaltyDiscount}
         orderType={c.orderType}
         courierNotes={c.deliveryInstructions}
         specialInstructions={c.specialInstructions}
+        isPlacingOrder={c.isPlacingOrder}
       />
 
       <PaymentSimulatorModal

@@ -126,3 +126,49 @@ export const sendWelcomeEmail = async (email, userName) => {
     `
   });
 };
+
+export const sendInvoiceEmail = async (email, order) => {
+  const itemsList = order.items?.map(i => `<tr>
+    <td style="padding: 8px; border-bottom: 1px solid #eee;">${i.quantity}x ${i.name}</td>
+    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${(i.lineTotal || (i.price * i.quantity)).toFixed(2)}</td>
+  </tr>`).join('') || '';
+
+  return sendEmail({
+    to: email,
+    subject: `Invoice for Order #${order.orderNumber || order._id.toString().slice(-6)}`,
+    text: `Here is your invoice for Order #${order.orderNumber || order._id.toString().slice(-6)}. Total: $${(order.total || 0).toFixed(2)}`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 8px;">
+        <h2 style="color: #111827; margin-bottom: 4px;">Invoice / Receipt</h2>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 0;">Order #${order.orderNumber || order._id.toString().slice(-6)}</p>
+        
+        <div style="margin-top: 24px; margin-bottom: 24px;">
+          <p><strong>Billed To:</strong><br>${order.customerName || 'Customer'}<br>${email}</p>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+          <thead>
+            <tr>
+              <th style="text-align: left; padding: 8px; border-bottom: 2px solid #eee;">Item</th>
+              <th style="text-align: right; padding: 8px; border-bottom: 2px solid #eee;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsList}
+          </tbody>
+        </table>
+
+        <div style="text-align: right; margin-top: 16px;">
+          <p style="margin: 4px 0;">Subtotal: $${(order.subtotal || 0).toFixed(2)}</p>
+          <p style="margin: 4px 0;">Tax: $${(order.tax || 0).toFixed(2)}</p>
+          <p style="margin: 4px 0;">Delivery Fee: $${(order.deliveryFee || 0).toFixed(2)}</p>
+          <p style="margin: 4px 0;">Tip: $${(order.tip || 0).toFixed(2)}</p>
+          <h3 style="color: #dc2626; margin-top: 8px;">Total Paid: $${(order.total || 0).toFixed(2)}</h3>
+        </div>
+        
+        <hr style="border: 1px solid #eee; margin: 24px 0;">
+        <p style="color: #6b7280; font-size: 12px; text-align: center;">Thank you for your order!</p>
+      </div>
+    `
+  });
+};

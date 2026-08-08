@@ -5,6 +5,8 @@ import 'package:single_restaurant_mobile/providers/order_provider.dart';
 import 'package:single_restaurant_mobile/services/socket_service.dart';
 import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:single_restaurant_mobile/utils/formatters.dart';
+import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'dart:async';
 
 class TrackOrderScreen extends StatefulWidget {
@@ -130,6 +132,53 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                     _buildOrderDetails(),
                     const SizedBox(height: 16),
                     if (!_isTerminalOrder(_order!)) _buildEstimatedTime(),
+                    
+                    if (_order!['status'] == 'pending' || _order!['status'] == 'accepted')
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Cancel Order'),
+                                  content: const Text('Are you sure you want to cancel this order? This action cannot be undone.'),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, true), 
+                                      child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
+                                    ),
+                                  ],
+                                ),
+                              );
+                              
+                              if (confirm == true) {
+                                try {
+                                  await provider.cancelOrder(_order!['_id']);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order cancelled successfully')));
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                                  }
+                                }
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.red),
+                              foregroundColor: Colors.red,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: const Text('Cancel Order', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          ),
+                        ),
+                      ),
+                      
                     const SizedBox(height: 32), // Padding for bottom
                   ],
                 ),
@@ -545,7 +594,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
           
           if (items != null)
             for (var item in items) ...[
-              _buildItemRow(item['image'], item['name'] ?? 'Item', item['quantity'] ?? 1, '\$${(item['price'] ?? 0).toStringAsFixed(2)}'),
+              _buildItemRow(item['image'], item['name'] ?? 'Item', item['quantity'] ?? 1, Formatters.formatCurrency((item['price'] ?? 0).toDouble(), Provider.of<RestaurantProvider>(context, listen: false).restaurant?['currency'])),
               const SizedBox(height: 12),
             ],
           
@@ -558,19 +607,19 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
             ],
           ),
           const Divider(height: 32),
-          _buildPriceRow('Subtotal', '\$${(_order!['subtotal'] ?? 0).toStringAsFixed(2)}'),
+          _buildPriceRow('Subtotal', Formatters.formatCurrency((_order!['subtotal'] ?? 0).toDouble(), Provider.of<RestaurantProvider>(context, listen: false).restaurant?['currency'])),
           const SizedBox(height: 8),
-          _buildPriceRow('Delivery Fee', '\$${(_order!['deliveryFee'] ?? 0).toStringAsFixed(2)}'),
+          _buildPriceRow('Delivery Fee', Formatters.formatCurrency((_order!['deliveryFee'] ?? 0).toDouble(), Provider.of<RestaurantProvider>(context, listen: false).restaurant?['currency'])),
           const SizedBox(height: 8),
-          _buildPriceRow('Taxes & Charges', '\$${(_order!['tax'] ?? 0).toStringAsFixed(2)}'),
+          _buildPriceRow(Provider.of<RestaurantProvider>(context, listen: false).restaurant?['taxType'] ?? 'Taxes & Charges', Formatters.formatCurrency((_order!['tax'] ?? 0).toDouble(), Provider.of<RestaurantProvider>(context, listen: false).restaurant?['currency'])),
           
           if ((_order!['discount'] ?? 0) > 0) ...[
             const SizedBox(height: 8),
-            _buildPriceRow('Discount', '-\$${(_order!['discount']).toStringAsFixed(2)}', isDiscount: true),
+            _buildPriceRow('Discount', '-${Formatters.formatCurrency((_order!['discount']).toDouble(), Provider.of<RestaurantProvider>(context, listen: false).restaurant?['currency'])}', isDiscount: true),
           ],
           if ((_order!['refundAmount'] ?? 0) > 0) ...[
             const SizedBox(height: 8),
-            _buildPriceRow('Refunded', '-\$${(_order!['refundAmount']).toStringAsFixed(2)}', isDiscount: true),
+            _buildPriceRow('Refunded', '-${Formatters.formatCurrency((_order!['refundAmount']).toDouble(), Provider.of<RestaurantProvider>(context, listen: false).restaurant?['currency'])}', isDiscount: true),
           ],
           
           const SizedBox(height: 16),
@@ -581,7 +630,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Total Amount', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('\$${(_order!['total'] ?? 0).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.secondary, fontSize: 18)),
+                Text(Formatters.formatCurrency((_order!['total'] ?? 0).toDouble(), Provider.of<RestaurantProvider>(context, listen: false).restaurant?['currency']), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.secondary, fontSize: 18)),
               ],
             ),
           )

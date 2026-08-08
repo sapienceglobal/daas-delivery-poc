@@ -40,7 +40,7 @@ export const createIntent = asyncHandler(async (req, res) => {
     ? { ...req.body, ...req.body.checkoutData }
     : req.body;
 
-  const { amount, orderId, restaurantId, items, orderType, tip, couponCode, useLoyaltyPoints, address, scheduledTime } = body;
+  const { amount, orderId, restaurantId, items, orderType, tip, couponCode, useLoyaltyPoints, address, scheduledTime, paymentMethod } = body;
 
   logger.info('createIntent called', { restaurantId, orderType, itemCount: items?.length, amount });
 
@@ -72,6 +72,7 @@ export const createIntent = asyncHandler(async (req, res) => {
       couponCode,
       userId: req.user?._id,
       useLoyaltyPoints,
+      paymentMethod,
       getModel: req.getModel
     });
 
@@ -93,6 +94,7 @@ export const createIntent = asyncHandler(async (req, res) => {
       userId: req.user?._id,
       useLoyaltyPoints,
       deliveryFeeOverride,
+      paymentMethod,
       getModel: req.getModel
     });
 

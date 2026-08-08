@@ -8,18 +8,17 @@ export const getRestaurantETA = async (req, res, next) => {
     const { address } = req.query;
 
     let restaurant;
-    // Handle "lassi-lounge" slug or standard Object ID
     if (id === 'lassi-lounge') {
-      restaurant = await Restaurant.findOne({ name: { $regex: /^lassi lounge$/i } }).select('prepTime address location');
+      restaurant = await Restaurant.findOne({ name: { $regex: /^lassi lounge$/i } }).select('prepTime preparationTime address location');
     } else {
-      restaurant = await Restaurant.findById(id).select('prepTime address location');
+      restaurant = await Restaurant.findById(id).select('prepTime preparationTime address location');
     }
 
     if (!restaurant) {
       return res.status(404).json({ success: false, message: 'Restaurant not found' });
     }
 
-    const prepTime = restaurant.prepTime || 15;
+    const prepTime = restaurant.preparationTime || restaurant.prepTime || 15;
     let deliveryTime = null;
 
     if (address && restaurant.address) {

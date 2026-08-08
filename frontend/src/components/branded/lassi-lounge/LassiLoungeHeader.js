@@ -6,6 +6,8 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { navLinks } from './config';
 
+import { useBrand } from '@/context/BrandContext';
+
 /**
  * LassiLoungeHeader — sticky black nav bar used ONLY on the branded
  * homepage (see SiteChrome.js, which hides the shared platform Header
@@ -16,6 +18,7 @@ import { navLinks } from './config';
 export default function LassiLoungeHeader() {
   const { items, openCart } = useCart();
   const { isAuthenticated } = useAuth();
+  const { brand } = useBrand();
   const pathname = usePathname();
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -25,10 +28,16 @@ export default function LassiLoungeHeader() {
       <div className="mx-auto max-w-7xl px-6 py-3 flex items-center justify-between">
         {/* Logo */}
         <Link href="/customer" className="flex items-center gap-2 shrink-0">
-          <span className="text-2xl font-bold text-primary-600" style={{ fontFamily: 'var(--font-script)' }}>
-            Lassi
-          </span>
-          <span className="text-xs font-bold text-accent-500 tracking-widest -ml-1 self-end mb-1">LOUNGE</span>
+          {brand?.logo ? (
+            <img src={brand.logo} alt={brand.name} className="h-8 object-contain" />
+          ) : (
+            <>
+              <span className="text-2xl font-bold text-primary-600" style={{ fontFamily: 'var(--font-script)' }}>
+                Lassi
+              </span>
+              <span className="text-xs font-bold text-accent-500 tracking-widest -ml-1 self-end mb-1">LOUNGE</span>
+            </>
+          )}
         </Link>
 
         {/* Desktop nav */}

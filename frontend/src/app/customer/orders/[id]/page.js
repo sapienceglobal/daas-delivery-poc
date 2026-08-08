@@ -77,6 +77,7 @@ export default function OrderDetailPage() {
   };
 
   const handleCancelOrder = async () => {
+    if (!window.confirm("Are you sure you want to cancel this order? This action cannot be undone.")) return;
     try {
       await orderAPI.cancel(id);
       showToast('Order cancelled successfully', 'info');
@@ -229,6 +230,17 @@ export default function OrderDetailPage() {
             
             {/* Timeline order tracking status */}
             <OrderStatusCard order={order} />
+            
+            {/* Customer Actions */}
+            {['pending', 'accepted'].includes(order.status) && (
+              <button
+                onClick={handleCancelOrder}
+                className="w-full flex items-center justify-between p-3.5 mt-2 bg-[#fef2f2] border border-[#ef4444]/20 text-[#ef4444] rounded-xl hover:bg-[#fee2e2] transition-colors text-[13px] font-bold shadow-sm"
+              >
+                <span>Cancel Order</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
 
             <div className="hidden lg:block space-y-6">
               {/* Need Help? Box */}
@@ -271,15 +283,6 @@ export default function OrderDetailPage() {
                   </button>
                 )}
 
-                {['pending', 'accepted'].includes(order.status) && (
-                  <button
-                    onClick={handleCancelOrder}
-                    className="w-full flex items-center justify-between p-3 bg-[#fef2f2] border border-[#ef4444]/20 text-[#ef4444] rounded-xl hover:bg-[#fee2e2] transition-colors text-[12px] font-bold"
-                  >
-                    <span>Cancel Order</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                )}
               </div>
             )}
 

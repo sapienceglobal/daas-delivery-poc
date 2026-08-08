@@ -58,12 +58,32 @@ class CartProvider with ChangeNotifier, WidgetsBindingObserver {
     return total;
   }
   
-  double get tax => subtotal * ((_restaurant?['taxRate'] as num?)?.toDouble() ?? 0.08875);
+  double get tax {
+    final rawTaxRate = (_restaurant?['taxRate'] as num?)?.toDouble() ?? 8.875;
+    final taxRateMultiplier = rawTaxRate < 1 ? rawTaxRate : (rawTaxRate / 100);
+    return subtotal * taxRateMultiplier;
+  }
+
   double get deliveryFee => subtotal > 0 ? ((_restaurant?['deliveryFee'] as num?)?.toDouble() ?? 2.99) : 0.0;
   double get platformFee => subtotal > 0 ? 2.0 : 0.0;
-  double get serviceFee => subtotal > 0 ? double.parse((subtotal * 0.03).toStringAsFixed(2)) : 0.0;
   
-  double get total => subtotal > 0 ? (subtotal + tax + deliveryFee + platformFee + serviceFee) : 0.0;
+  double get serviceFee {
+    if (subtotal <= 0) return 0.0;
+    final rawServiceCharge = (_restaurant?['serviceCharge'] as num?)?.toDouble() ?? 3.0;
+    final serviceChargeMultiplier = rawServiceCharge < 1 ? rawServiceCharge : (rawServiceCharge / 100);
+    return double.parse((subtotal * serviceChargeMultiplier).toStringAsFixed(2));
+  }
+  
+  double get packagingFee => subtotal > 0 ? ((_restaurant?['packagingCharge'] as num?)?.toDouble() ?? 0.0) : 0.0;
+  
+  double get total {
+    if (subtotal <= 0) return 0.0;
+    double t = subtotal + tax + deliveryFee + platformFee + serviceFee + packagingFee;
+    if (_restaurant?['roundOff'] == true) {
+      t = t.roundToDouble();
+    }
+    return t;
+  }
 
   // Initial load
   Future<void> loadCart() async {

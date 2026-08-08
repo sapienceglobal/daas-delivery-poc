@@ -58,12 +58,15 @@ function POSContent() {
     }
     
     loadMenu();
-  }, [isAuthenticated, isMerchant, tableId, tableNumber]);
+  }, [isAuthenticated, isMerchant, tableId, tableNumber, user]);
 
   const loadMenu = async () => {
     try {
       const restaurantId = user?.restaurantId;
-      if (!restaurantId) return;
+      if (!restaurantId) {
+        setLoading(false);
+        return;
+      }
 
       const [menuRes, catRes] = await Promise.all([
         menuAPI.getByRestaurant(restaurantId),
@@ -152,8 +155,8 @@ function POSContent() {
             <Button variant="ghost" size="sm" onClick={() => router.push('/merchant')}>
               <ChevronLeft className="h-4 w-4 mr-1" /> Dashboard
             </Button>
-            <h1 className="text-xl font-black text-brand-text flex items-center gap-2">
-              <Store className="h-5 w-5 text-brand-cyan" /> Point of Sale
+            <h1 className="text-xl font-black text-[#111827] flex items-center gap-2">
+              <Store className="h-5 w-5 text-[#8b0000]" /> Point of Sale
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -173,7 +176,7 @@ function POSContent() {
               key={cat._id}
               onClick={() => setActiveCategory(cat._id)}
               className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors
-                ${activeCategory === cat._id ? 'bg-brand-cyan text-brand-bg' : 'bg-brand-card text-brand-muted hover:text-brand-text'}`}
+                ${activeCategory === cat._id ? 'bg-[#8b0000] text-white' : 'bg-white text-[#6b7280] hover:text-[#111827]'}`}
             >
               {cat.name}
             </button>
@@ -185,45 +188,45 @@ function POSContent() {
           {visibleItems.map(item => (
             <GlassCard 
               key={item._id} 
-              className="cursor-pointer hover:border-brand-cyan/50 transition-colors flex flex-col justify-between"
+              className="cursor-pointer hover:border-[#8b0000]/50 transition-colors flex flex-col justify-between"
               onClick={() => addToTicket(item)}
             >
               <div>
-                <h3 className="font-bold text-brand-text text-sm mb-1">{item.name}</h3>
-                <p className="text-xs text-brand-muted line-clamp-2">{item.description}</p>
+                <h3 className="font-bold text-[#111827] text-sm mb-1">{item.name}</h3>
+                <p className="text-xs text-[#6b7280] line-clamp-2">{item.description}</p>
               </div>
-              <p className="text-brand-cyan font-black mt-2">${item.price.toFixed(2)}</p>
+              <p className="text-[#8b0000] font-black mt-2">${item.price.toFixed(2)}</p>
             </GlassCard>
           ))}
           {visibleItems.length === 0 && (
-            <div className="col-span-full text-center text-brand-muted py-8 text-sm">No items in this category.</div>
+            <div className="col-span-full text-center text-[#6b7280] py-8 text-sm">No items in this category.</div>
           )}
         </div>
       </div>
 
       {/* Right: Current Ticket */}
-      <div className="w-full md:w-[350px] lg:w-[400px] flex flex-col bg-brand-card/50 border border-brand-border rounded-2xl overflow-hidden shrink-0">
-        <div className="p-4 border-b border-brand-border bg-brand-card flex justify-between items-center">
-          <h2 className="font-bold text-brand-text flex items-center gap-2">
-            <ShoppingBag className="h-4 w-4 text-brand-cyan" /> 
+      <div className="w-full md:w-[350px] lg:w-[400px] flex flex-col bg-white/50 border border-[#e5e7eb] rounded-2xl overflow-hidden shrink-0">
+        <div className="p-4 border-b border-[#e5e7eb] bg-white flex justify-between items-center">
+          <h2 className="font-bold text-[#111827] flex items-center gap-2">
+            <ShoppingBag className="h-4 w-4 text-[#8b0000]" /> 
             {tableNumber ? `Table ${tableNumber} Ticket` : 'Current Ticket'}
           </h2>
-          <Button variant="ghost" size="sm" onClick={() => setTicket([])} disabled={ticket.length === 0} className="text-brand-red">
+          <Button variant="ghost" size="sm" onClick={() => setTicket([])} disabled={ticket.length === 0} className="text-[#ef4444]">
             Clear
           </Button>
         </div>
 
         {/* Order Type Toggle */}
-        <div className="flex border-b border-brand-border">
+        <div className="flex border-b border-[#e5e7eb]">
           <button 
-            className={`flex-1 py-3 text-sm font-bold transition-colors ${orderType === 'takeout' ? 'bg-brand-cyan/10 text-brand-cyan border-b-2 border-brand-cyan' : 'text-brand-muted hover:bg-brand-card'}`}
+            className={`flex-1 py-3 text-sm font-bold transition-colors ${orderType === 'takeout' ? 'bg-red-50 text-[#8b0000] border-b-2 border-[#8b0000]' : 'text-[#6b7280] hover:bg-white'}`}
             onClick={() => !tableNumber && setOrderType('takeout')}
             disabled={!!tableNumber}
           >
             Takeout
           </button>
           <button 
-            className={`flex-1 py-3 text-sm font-bold transition-colors ${orderType === 'dine_in' ? 'bg-brand-cyan/10 text-brand-cyan border-b-2 border-brand-cyan' : 'text-brand-muted hover:bg-brand-card'}`}
+            className={`flex-1 py-3 text-sm font-bold transition-colors ${orderType === 'dine_in' ? 'bg-red-50 text-[#8b0000] border-b-2 border-[#8b0000]' : 'text-[#6b7280] hover:bg-white'}`}
             onClick={() => setOrderType('dine_in')}
           >
             Dine-In
@@ -233,26 +236,26 @@ function POSContent() {
         {/* Ticket Items */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {ticket.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-brand-muted text-sm gap-2">
+            <div className="h-full flex flex-col items-center justify-center text-[#6b7280] text-sm gap-2">
               <ShoppingBag className="h-8 w-8 opacity-20" />
               <p>Ticket is empty</p>
             </div>
           ) : (
             ticket.map((item, idx) => (
-              <div key={idx} className="flex justify-between items-center bg-brand-bg/50 p-2 rounded-lg border border-brand-border/50">
+              <div key={idx} className="flex justify-between items-center bg-[#f3f4f6]/50 p-2 rounded-lg border border-[#e5e7eb]/50">
                 <div className="flex-1 min-w-0 pr-2">
-                  <p className="text-sm font-bold text-brand-text truncate">{item.name}</p>
-                  <p className="text-xs text-brand-muted">${item.price.toFixed(2)}</p>
+                  <p className="text-sm font-bold text-[#111827] truncate">{item.name}</p>
+                  <p className="text-xs text-[#6b7280]">${item.price.toFixed(2)}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => updateQuantity(idx, item.quantity - 1)} className="p-1 bg-brand-card rounded-md hover:bg-brand-border transition-colors">
-                    <Minus className="h-3 w-3 text-brand-text" />
+                  <button onClick={() => updateQuantity(idx, item.quantity - 1)} className="p-1 bg-white rounded-md hover:bg-[#e5e7eb] transition-colors">
+                    <Minus className="h-3 w-3 text-[#111827]" />
                   </button>
                   <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(idx, item.quantity + 1)} className="p-1 bg-brand-card rounded-md hover:bg-brand-border transition-colors">
-                    <Plus className="h-3 w-3 text-brand-text" />
+                  <button onClick={() => updateQuantity(idx, item.quantity + 1)} className="p-1 bg-white rounded-md hover:bg-[#e5e7eb] transition-colors">
+                    <Plus className="h-3 w-3 text-[#111827]" />
                   </button>
-                  <button onClick={() => removeItem(idx)} className="p-1 ml-1 text-brand-red/60 hover:text-brand-red">
+                  <button onClick={() => removeItem(idx)} className="p-1 ml-1 text-[#ef4444]/60 hover:text-[#ef4444]">
                     <Trash2 className="h-3 w-3" />
                   </button>
                 </div>
@@ -262,35 +265,35 @@ function POSContent() {
         </div>
 
         {/* Totals & Pay */}
-        <div className="p-4 bg-brand-card border-t border-brand-border space-y-3">
-          <div className="flex justify-between text-sm text-brand-muted">
+        <div className="p-4 bg-white border-t border-[#e5e7eb] space-y-3">
+          <div className="flex justify-between text-sm text-[#6b7280]">
             <span>Subtotal</span>
             <span>${subtotal.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-sm text-brand-muted">
+          <div className="flex justify-between text-sm text-[#6b7280]">
             <span>Tax</span>
             <span>${tax.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-lg font-black text-brand-text pt-2 border-t border-brand-border/50">
+          <div className="flex justify-between text-lg font-black text-[#111827] pt-2 border-t border-[#e5e7eb]/50">
             <span>Total</span>
             <span>${total.toFixed(2)}</span>
           </div>
 
           {/* Split Bill Controls */}
           {orderType === 'dine_in' && ticket.length > 0 && (
-            <div className="pt-3 border-t border-brand-border/50 flex items-center justify-between">
-              <span className="text-sm font-bold text-brand-text">Split Bill</span>
+            <div className="pt-3 border-t border-[#e5e7eb]/50 flex items-center justify-between">
+              <span className="text-sm font-bold text-[#111827]">Split Bill</span>
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => setSplitWays(Math.max(1, splitWays - 1))}
-                  className="p-1.5 bg-brand-bg rounded-lg border border-brand-border hover:border-brand-cyan transition-colors"
+                  className="p-1.5 bg-[#f3f4f6] rounded-lg border border-[#e5e7eb] hover:border-[#8b0000] transition-colors"
                 >
                   <Minus className="h-4 w-4" />
                 </button>
-                <span className="font-black text-brand-cyan w-4 text-center">{splitWays}</span>
+                <span className="font-black text-[#8b0000] w-4 text-center">{splitWays}</span>
                 <button 
                   onClick={() => setSplitWays(Math.min(10, splitWays + 1))}
-                  className="p-1.5 bg-brand-bg rounded-lg border border-brand-border hover:border-brand-cyan transition-colors"
+                  className="p-1.5 bg-[#f3f4f6] rounded-lg border border-[#e5e7eb] hover:border-[#8b0000] transition-colors"
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -300,7 +303,7 @@ function POSContent() {
         </div>
         
         {/* Checkout Button */}
-        <div className="p-4 border-t border-brand-border bg-brand-card">
+        <div className="p-4 border-t border-[#e5e7eb] bg-white">
           <Button 
             className="w-full py-4 text-lg" 
             onClick={handleCheckout} 
@@ -316,12 +319,12 @@ function POSContent() {
       {showPinModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <GlassCard className="w-full max-w-sm space-y-6 text-center">
-            <h2 className="text-2xl font-black text-brand-text">
+            <h2 className="text-2xl font-black text-[#111827]">
               {pinMode === 'in' ? 'Clock In' : 'Clock Out'}
             </h2>
-            <p className="text-brand-muted text-sm">Enter your 4-digit POS PIN</p>
+            <p className="text-[#6b7280] text-sm">Enter your 4-digit POS PIN</p>
             
-            <div className="text-3xl font-mono tracking-[1em] font-black text-brand-cyan bg-brand-bg/50 py-4 rounded-xl border border-brand-border/50">
+            <div className="text-3xl font-mono tracking-[1em] font-black text-[#8b0000] bg-[#f3f4f6]/50 py-4 rounded-xl border border-[#e5e7eb]/50">
               {pin.padEnd(4, '•')}
             </div>
             
@@ -335,9 +338,9 @@ function POSContent() {
                     else if (pin.length < 4) setPin(p => p + btn);
                   }}
                   className={`py-4 rounded-xl text-xl font-bold transition-colors ${
-                    btn === 'OK' ? 'bg-brand-cyan text-brand-bg hover:bg-brand-cyan/80' : 
-                    btn === 'C' ? 'bg-brand-red/10 text-brand-red hover:bg-brand-red/20' : 
-                    'bg-brand-card border border-brand-border text-brand-text hover:bg-brand-bg'
+                    btn === 'OK' ? 'bg-[#8b0000] text-white hover:bg-[#8b0000]/80' : 
+                    btn === 'C' ? 'bg-[#ef4444]/10 text-[#ef4444] hover:bg-[#ef4444]/20' : 
+                    'bg-white border border-[#e5e7eb] text-[#111827] hover:bg-[#f3f4f6]'
                   }`}
                 >
                   {btn}
@@ -345,7 +348,7 @@ function POSContent() {
               ))}
             </div>
             
-            <button onClick={() => setShowPinModal(false)} className="text-sm text-brand-muted hover:text-brand-text underline mt-4">
+            <button onClick={() => setShowPinModal(false)} className="text-sm text-[#6b7280] hover:text-[#111827] underline mt-4">
               Cancel
             </button>
           </GlassCard>

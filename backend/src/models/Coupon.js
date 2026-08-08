@@ -10,6 +10,20 @@ const CouponSchema = new mongoose.Schema({
     trim: true,
     maxlength: [30, 'Code cannot exceed 30 characters']
   },
+  name: {
+    type: String,
+    default: 'Promo Offer',
+    trim: true
+  },
+  promoType: {
+    type: String,
+    enum: ['Coupon', 'Combo Offer', 'Offer', 'Happy Hour', 'Seasonal Offer', 'Referral Offer'],
+    default: 'Coupon'
+  },
+  channels: {
+    type: [{ type: String, enum: ['Mobile', 'Web', 'Dine-In'] }],
+    default: ['Mobile', 'Web']
+  },
   description: {
     type: String,
     default: '',
@@ -36,12 +50,21 @@ const CouponSchema = new mongoose.Schema({
   // ── Rules ─────────────────────────────────────────────────────────────
   minCartValue: { type: Number, default: 0, min: 0 },
   firstOrderOnly: { type: Boolean, default: false },
+  minOrdersRequired: { type: Number, default: 0, min: 0 },
+  allowedPaymentMethods: {
+    type: [{ type: String, enum: ['All', 'Credit Card', 'Cash on Delivery', 'Apple Pay'] }],
+    default: ['All']
+  },
   specificRestaurant: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Restaurant',
     default: null
   },
   applicableCuisines: [{ type: String }],
+  applicableUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
 
   // ── Usage Limits ──────────────────────────────────────────────────────
   maxUses: { type: Number, default: null },          // null = unlimited
@@ -72,7 +95,7 @@ CouponSchema.index({ isActive: 1, endDate: 1 });
 /**
  * Check if a coupon is valid for a given context.
  */
-CouponSchema.methods.isValid = function (cartValue, userId, isFirstOrder = false) {
+CouponSchema.methods.isValid = function (cartValue, userId, pastOrderCount = 0, paymentMethod = null) {
   const now = new Date();
 
   if (!this.isActive) return { valid: false, reason: 'Coupon is inactive' };
@@ -80,7 +103,27 @@ CouponSchema.methods.isValid = function (cartValue, userId, isFirstOrder = false
   if (now > this.endDate) return { valid: false, reason: 'Coupon has expired' };
   if (this.maxUses && this.usedCount >= this.maxUses) return { valid: false, reason: 'Coupon usage limit reached' };
   if (cartValue < this.minCartValue) return { valid: false, reason: `Minimum cart value of $${this.minCartValue} required` };
-  if (this.firstOrderOnly && !isFirstOrder) return { valid: false, reason: 'This coupon is valid for first orders only' };
+  if (this.firstOrderOnly && pastOrderCount > 0) return { valid: false, reason: 'This coupon is valid for first orders only' };
+  if (this.minOrdersRequired > 0 && pastOrderCount < this.minOrdersRequired) return { valid: false, reason: `You must complete ${this.minOrdersRequired} orders to unlock this coupon` };
+
+  // Check payment method constraint
+  if (paymentMethod && this.allowedPaymentMethods && !this.allowedPaymentMethods.includes('All')) {
+    // Standardize naming
+    const normalizedMethods = this.allowedPaymentMethods.map(m => m.toLowerCase().replace(/_/g, ' '));
+    const normalizedInput = paymentMethod.toLowerCase().replace(/_/g, ' ');
+    
+    // e.g., 'credit_card' -> 'credit card'
+    if (!normalizedMethods.includes(normalizedInput)) {
+      return { valid: false, reason: `This offer is only valid with: ${this.allowedPaymentMethods.join(', ')}` };
+    }
+  }
+
+  // Check if coupon is restricted to specific users
+  if (this.applicableUsers && this.applicableUsers.length > 0) {
+    if (!userId || !this.applicableUsers.some(id => id.toString() === userId.toString())) {
+      return { valid: false, reason: 'This coupon is not valid for your account' };
+    }
+  }
 
   // Check per-user limit
   if (userId && this.maxUsesPerUser) {

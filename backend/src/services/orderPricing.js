@@ -61,6 +61,7 @@ export const calculateOrderPricing = async ({
   userId,
   useLoyaltyPoints = false,
   deliveryFeeOverride = null,
+  paymentMethod = null,
   getModel = null
 }) => {
   const getPricingModel = (modelName, defaultModel) => {
@@ -92,6 +93,45 @@ export const calculateOrderPricing = async ({
   }
   if (orderType === 'dine_in' && !restaurant.acceptsDineIn) {
     throw new AppError('Restaurant is not accepting dine-in orders right now', 400);
+  }
+
+  // Operating Hours Check
+  if (restaurant.operatingHours) {
+    const tz = 'America/New_York'; // Timezone mapping logic can be refined later based on restaurant.timezone
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      weekday: 'long',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    
+    // Quick workaround for node's Intl format. Format: "Wednesday, 14:30"
+    const parts = formatter.formatToParts(now);
+    const getPart = (type) => parts.find(p => p.type === type)?.value;
+    
+    const dayName = getPart('weekday').toLowerCase();
+    const currentHour = parseInt(getPart('hour'));
+    const currentMinute = parseInt(getPart('minute'));
+    const currentTimeVal = currentHour * 60 + currentMinute;
+
+    const todayHours = restaurant.operatingHours[dayName];
+    if (todayHours) {
+      if (todayHours.isClosed) {
+        throw new AppError('Restaurant is currently closed today', 400);
+      }
+      if (todayHours.open && todayHours.close) {
+        const [openH, openM] = todayHours.open.split(':').map(Number);
+        const openTimeVal = openH * 60 + openM;
+        const [closeH, closeM] = todayHours.close.split(':').map(Number);
+        const closeTimeVal = closeH * 60 + closeM;
+
+        if (currentTimeVal < openTimeVal || currentTimeVal > closeTimeVal) {
+           throw new AppError(`Restaurant is closed. Operating hours today: ${todayHours.open} - ${todayHours.close}`, 400);
+        }
+      }
+    }
   }
 
   const menuItemIds = items.map((item) => item.menuItemId || item._id);
@@ -138,13 +178,20 @@ export const calculateOrderPricing = async ({
     throw new AppError(`Minimum order amount is $${restaurant.minimumOrder.toFixed(2)}`, 400);
   }
 
-  const taxRate = restaurant.taxRate ?? PLATFORM_DEFAULTS.DEFAULT_TAX_RATE;
-  const tax = roundMoney(subtotal * taxRate);
+  const taxRatePercent = restaurant.taxRate !== undefined ? restaurant.taxRate : PLATFORM_DEFAULTS.DEFAULT_TAX_RATE * 100;
+  const taxRateDecimal = taxRatePercent / 100;
+  const tax = roundMoney(subtotal * taxRateDecimal);
+
   const deliveryFee = orderType === 'delivery'
     ? roundMoney(deliveryFeeOverride ?? restaurant.deliveryFee ?? 0)
     : 0;
   const platformFee = roundMoney(PLATFORM_DEFAULTS.PLATFORM_FEE);
-  const serviceFee = roundMoney(subtotal * 0.03);
+  
+  const serviceChargePercent = restaurant.serviceCharge !== undefined ? restaurant.serviceCharge : 3.0;
+  const serviceChargeDecimal = serviceChargePercent / 100;
+  const serviceFee = roundMoney(subtotal * serviceChargeDecimal);
+  
+  const packagingFee = roundMoney(restaurant.packagingCharge ?? 0);
   const safeTip = roundMoney(Math.max(0, Number(tip) || 0));
 
   let discount = 0;
@@ -155,8 +202,8 @@ export const calculateOrderPricing = async ({
     if (coupon.specificRestaurant && coupon.specificRestaurant.toString() !== restaurant._id.toString()) {
       throw new AppError('Coupon is not valid for this restaurant', 400);
     }
-    const isFirstOrder = userId ? (await OrderModel.countDocuments({ userId })) === 0 : false;
-    const validation = coupon.isValid(subtotal, userId, isFirstOrder);
+    const pastOrderCount = userId ? (await OrderModel.countDocuments({ userId })) : 0;
+    const validation = coupon.isValid(subtotal, userId, pastOrderCount, paymentMethod);
     if (!validation.valid) throw new AppError(validation.reason || 'Coupon is not valid', 400);
     discount = coupon.type === 'free_delivery'
       ? deliveryFee
@@ -174,8 +221,13 @@ export const calculateOrderPricing = async ({
     pointsUsed = Math.floor(loyaltyDiscount * 100);
   }
 
-  const totalBeforeLoyalty = roundMoney(subtotal + tax + deliveryFee + platformFee + serviceFee + safeTip - discount);
-  const total = Math.max(0, roundMoney(totalBeforeLoyalty - loyaltyDiscount));
+  const totalBeforeLoyalty = roundMoney(subtotal + tax + deliveryFee + platformFee + serviceFee + packagingFee + safeTip - discount);
+  let total = Math.max(0, roundMoney(totalBeforeLoyalty - loyaltyDiscount));
+  
+  if (restaurant.roundOff) {
+    total = Math.round(total);
+  }
+  
   const pointsEarned = Math.floor(total * LOYALTY_CONFIG.POINTS_PER_DOLLAR);
 
   return {
@@ -186,6 +238,7 @@ export const calculateOrderPricing = async ({
     deliveryFee,
     platformFee,
     serviceFee,
+    packagingFee,
     tip: safeTip,
     discount,
     loyaltyDiscount,

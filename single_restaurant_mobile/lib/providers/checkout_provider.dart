@@ -44,6 +44,7 @@ class CheckoutProvider with ChangeNotifier {
   double _couponDiscount = 0.0;
   bool _couponApplied = false;
   bool _couponLoading = false;
+  List<String> _allowedPaymentMethods = ['All'];
   
   bool _useLoyaltyPoints = false;
 
@@ -79,6 +80,22 @@ class CheckoutProvider with ChangeNotifier {
   double get couponDiscount => _couponDiscount;
   bool get couponApplied => _couponApplied;
   bool get couponLoading => _couponLoading;
+  List<String> get allowedPaymentMethods => _allowedPaymentMethods;
+
+  String? get couponPaymentError {
+    if (!_couponApplied) return null;
+    if (_allowedPaymentMethods.isEmpty || _allowedPaymentMethods.contains('All')) return null;
+    
+    final methods = _allowedPaymentMethods.map((m) => m.toLowerCase().replaceAll('_', ' ')).toList();
+    final current = _paymentMethod.toLowerCase().replaceAll('_', ' ');
+    final normalizedCurrent = (current == 'saved card 4242' || current.startsWith('pm ') || current.startsWith('card ')) ? 'credit card' : current;
+
+    if (!methods.contains(normalizedCurrent)) {
+      return 'This offer is only valid with: ${_allowedPaymentMethods.join(', ')}';
+    }
+    return null;
+  }
+
   bool get useLoyaltyPoints => _useLoyaltyPoints;
   Map<String, dynamic>? get deliveryQuote => _deliveryQuote;
   String? get quoteError => _quoteError;
@@ -131,6 +148,7 @@ class CheckoutProvider with ChangeNotifier {
     _couponDiscount = 0.0;
     _couponApplied = false;
     _couponLoading = false;
+    _allowedPaymentMethods = ['All'];
     _useLoyaltyPoints = false;
     _deliveryQuote = null;
     _quoteError = null;
@@ -158,6 +176,11 @@ class CheckoutProvider with ChangeNotifier {
     _fullName = name;
     _phone = phoneStr;
     _email = emailStr;
+    notifyListeners();
+  }
+
+  void setTip(double val) {
+    _tip = val;
     notifyListeners();
   }
 
@@ -235,11 +258,6 @@ class CheckoutProvider with ChangeNotifier {
 
   void setDeliveryInstructions(String val) {
     _deliveryInstructions = val;
-    notifyListeners();
-  }
-
-  void setTip(double val) {
-    _tip = val;
     notifyListeners();
   }
 
@@ -449,8 +467,12 @@ class CheckoutProvider with ChangeNotifier {
     notifyListeners();
     
     try {
-      final data = await _couponService.validateCoupon(_couponCode, cart.subtotal, cart.restaurant!['_id']);
+      final data = await _couponService.validateCoupon(_couponCode, cart.subtotal, cart.restaurant!['_id'], _paymentMethod);
       _couponDiscount = (data?['discount'] ?? 0).toDouble();
+      
+      final allowed = data?['allowedPaymentMethods'];
+      _allowedPaymentMethods = (allowed is List) ? allowed.map((e) => e.toString()).toList() : ['All'];
+      
       _couponApplied = true;
     } catch (e) {
       _couponDiscount = 0.0;
@@ -466,30 +488,59 @@ class CheckoutProvider with ChangeNotifier {
     _couponApplied = false;
     _couponDiscount = 0.0;
     _couponCode = '';
+    _allowedPaymentMethods = ['All'];
     notifyListeners();
   }
 
   // Cost calculations
-  double getDeliveryFee(CartProvider cart) {
+  double getDeliveryFee(CartProvider cart, Map<String, dynamic>? restaurant) {
     if (!_isDelivery) return 0.0;
     if (_deliveryQuote != null && _deliveryQuote!['deliveryFee'] != null) {
       return (_deliveryQuote!['deliveryFee'] as num).toDouble();
     }
     if (_quoteError == null && compiledAddress.isNotEmpty) {
-      return ((cart.restaurant?['deliveryFee'] as num?)?.toDouble() ?? 2.99);
+      return ((restaurant?['deliveryFee'] as num?)?.toDouble() ?? 2.99);
     }
     return 0.0;
   }
 
   double getPlatformFee() => 2.0;
-  double getServiceFee(CartProvider cart) => double.parse((cart.subtotal * 0.03).toStringAsFixed(2));
+
+  double getServiceFee(CartProvider cart, Map<String, dynamic>? restaurant) {
+    if (cart.subtotal <= 0) return 0.0;
+    final rawServiceCharge = (restaurant?['serviceCharge'] as num?)?.toDouble() ?? 3.0;
+    final serviceChargeMultiplier = rawServiceCharge < 1 ? rawServiceCharge : (rawServiceCharge / 100);
+    return double.parse((cart.subtotal * serviceChargeMultiplier).toStringAsFixed(2));
+  }
+
+  double getPackagingFee(CartProvider cart, Map<String, dynamic>? restaurant) {
+    return cart.subtotal > 0 ? ((restaurant?['packagingCharge'] as num?)?.toDouble() ?? 0.0) : 0.0;
+  }
+
+  double getTax(CartProvider cart, Map<String, dynamic>? restaurant) {
+    final rawTaxRate = (restaurant?['taxRate'] as num?)?.toDouble() ?? 8.875;
+    final taxRateMultiplier = rawTaxRate < 1 ? rawTaxRate : (rawTaxRate / 100);
+    return cart.subtotal * taxRateMultiplier;
+  }
   
-  double getTotal(CartProvider cart) {
-    final t = cart.subtotal + cart.tax + getDeliveryFee(cart) + getPlatformFee() + getServiceFee(cart) + _tip - _couponDiscount;
+  double getTotal(CartProvider cart, Map<String, dynamic>? restaurant) {
+    double t = cart.subtotal + getTax(cart, restaurant) + getDeliveryFee(cart, restaurant) + getPlatformFee() + getServiceFee(cart, restaurant) + getPackagingFee(cart, restaurant) + _tip - _couponDiscount;
+    if (restaurant?['roundOff'] == true) {
+      t = t.roundToDouble();
+    }
     return t > 0 ? t : 0.0;
   }
 
-  Future<String?> handlePlaceOrder(BuildContext context, CartProvider cart, AuthProvider auth) async {
+  Future<String?> handlePlaceOrder(BuildContext context, CartProvider cart, AuthProvider auth, Map<String, dynamic>? restaurant) async {
+    if (cart.restaurant?['minimumOrder'] != null && cart.subtotal < (cart.restaurant!['minimumOrder'] as num).toDouble()) {
+      throw Exception('Minimum order amount is \$${(cart.restaurant!['minimumOrder'] as num).toStringAsFixed(2)}');
+    }
+    if (_isDelivery && cart.restaurant?['acceptsOnlineOrders'] == false) {
+      throw Exception('Restaurant is not accepting delivery orders right now');
+    }
+    if (!_isDelivery && cart.restaurant?['acceptsPickup'] == false) {
+      throw Exception('Restaurant is not accepting pickup orders right now');
+    }
     if (_isDelivery && compiledAddress.isEmpty) {
       throw Exception('Please enter a delivery address');
     }
@@ -522,11 +573,12 @@ class CheckoutProvider with ChangeNotifier {
         'useLoyaltyPoints': _useLoyaltyPoints,
         'address': compiledAddress,
         'specialInstructions': _deliveryInstructions,
+        'paymentMethod': finalPaymentMethod,
       };
 
       if (_paymentMethod == 'credit_card') {
         // Stripe integration for new card
-        final responseData = await _paymentService.createIntent(getTotal(cart), checkoutPayload);
+        final responseData = await _paymentService.createIntent(getTotal(cart, restaurant), checkoutPayload);
         if (responseData == null) throw Exception('Failed to initialize payment');
         
         final clientSecret = responseData['clientSecret'];
@@ -564,7 +616,7 @@ class CheckoutProvider with ChangeNotifier {
         paymentIntentId = responseData['paymentIntentId'] ?? 'stripe_success';
       } else if (_paymentMethod.startsWith('pm_') || _paymentMethod.startsWith('card_')) {
         // Stripe integration for saved card
-        final intentData = await _paymentService.createIntent(getTotal(cart), checkoutPayload);
+        final intentData = await _paymentService.createIntent(getTotal(cart, restaurant), checkoutPayload);
         final clientSecret = intentData?['clientSecret'];
         
         if (clientSecret == null) throw Exception('Failed to initialize payment');
@@ -582,7 +634,7 @@ class CheckoutProvider with ChangeNotifier {
         // In this case, backend order route still needs 'credit_card' as the top level payment method type
         // so it passes verifyCardPayment. We'll set finalOrderPayload.paymentMethod = 'credit_card' below.
       } else if (_paymentMethod == 'google_pay') {
-        final intentData = await _paymentService.createIntent(getTotal(cart), checkoutPayload);
+        final intentData = await _paymentService.createIntent(getTotal(cart, restaurant), checkoutPayload);
         final clientSecret = intentData?['clientSecret'];
         
         if (clientSecret == null) throw Exception('Failed to initialize payment');
@@ -600,7 +652,7 @@ class CheckoutProvider with ChangeNotifier {
         );
         paymentIntentId = paymentIntent.id;
       } else if (_paymentMethod == 'apple_pay') {
-        final intentData = await _paymentService.createIntent(getTotal(cart), checkoutPayload);
+        final intentData = await _paymentService.createIntent(getTotal(cart, restaurant), checkoutPayload);
         final clientSecret = intentData?['clientSecret'];
         
         if (clientSecret == null) throw Exception('Failed to initialize payment');
@@ -614,7 +666,7 @@ class CheckoutProvider with ChangeNotifier {
               cartItems: [
                 ApplePayCartSummaryItem.immediate(
                   label: 'Lassi Lounge Order',
-                  amount: getTotal(cart).toStringAsFixed(2),
+                  amount: getTotal(cart, restaurant).toStringAsFixed(2),
                 ),
               ],
             ),
@@ -627,7 +679,6 @@ class CheckoutProvider with ChangeNotifier {
 
       final finalOrderPayload = {
         ...checkoutPayload,
-        'paymentMethod': (_paymentMethod == 'saved_card_4242' || _paymentMethod.startsWith('pm_') || _paymentMethod.startsWith('card_')) ? 'credit_card' : _paymentMethod,
         'courierNotes': _deliveryInstructions,
         'stripePaymentIntentId': paymentIntentId,
       };

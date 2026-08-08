@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Search, Download, Plus, Filter, MoreVertical, 
-  Edit3, Copy, Trash2, Clock, Flame, Leaf, Hexagon
+  Search, Download, Plus, Edit3, Trash2, Flame, Leaf, Hexagon,
+  CheckCircle2, XCircle, Info, ChevronDown, Loader2
 } from 'lucide-react';
 
 export default function MenuManagementView({ 
@@ -11,12 +11,19 @@ export default function MenuManagementView({
   onToggleStatus,
   onEditItem,
   onAddItem,
-  onBulkImport
+  onBulkImport,
+  onBulkDelete,
+  onBulkUpdate
 }) {
   const [mounted, setMounted] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItemId, setSelectedItemId] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  
+  // Bulk selection state
+  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [isProcessingBulk, setIsProcessingBulk] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -28,45 +35,79 @@ export default function MenuManagementView({
     }, []);
   }, [menu]);
 
-  // Set default selected item
-  useEffect(() => {
-    if (!selectedItemId && allItems.length > 0) {
-      setSelectedItemId(allItems[0]._id);
-    }
-  }, [allItems, selectedItemId]);
-
   const filteredItems = useMemo(() => {
     let items = allItems;
+    
+    // Category filter
     if (activeCategory !== 'all') {
       items = items.filter(it => it.categoryId === activeCategory || it.categoryName === activeCategory);
     }
+    
+    // Search filter
     if (searchQuery) {
       items = items.filter(it => it.name?.toLowerCase().includes(searchQuery.toLowerCase()));
     }
+    
+    // Status filter
+    if (statusFilter !== 'all') {
+      const isActive = statusFilter === 'active';
+      items = items.filter(it => (it.isAvailable !== false) === isActive);
+    }
+    
+    // Type filter
+    if (typeFilter !== 'all') {
+      const isVeg = typeFilter === 'veg';
+      items = items.filter(it => (it.isVeg === true) === isVeg);
+    }
+    
     return items;
-  }, [allItems, activeCategory, searchQuery]);
+  }, [allItems, activeCategory, searchQuery, statusFilter, typeFilter]);
 
-  const selectedItem = useMemo(() => {
-    return allItems.find(it => it._id === selectedItemId) || allItems[0];
-  }, [allItems, selectedItemId]);
+  // Handle Select All
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const newSelected = new Set(filteredItems.map(item => item._id));
+      setSelectedItems(newSelected);
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
+  const handleSelectItem = (e, id) => {
+    e.stopPropagation();
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  // Clear selections when filters change
+  useEffect(() => {
+    setSelectedItems(new Set());
+  }, [activeCategory, searchQuery, statusFilter, typeFilter]);
+
+  const isAllSelected = filteredItems.length > 0 && selectedItems.size === filteredItems.length;
 
   if (!mounted) return null;
 
   return (
-    <div className="flex flex-col h-full bg-[#F8FAFC]">
+    <div className="flex flex-col h-full bg-[#F8FAFC] relative">
       
       {/* Header */}
       <div className="flex justify-between items-center mb-6 shrink-0">
         <div>
-          <h2 className="text-xl font-bold text-[#111827]">Menu Management</h2>
-          <p className="text-sm text-[#6b7280]">Manage your restaurant menu, categories and items.</p>
+          <h2 className="text-2xl font-black text-[#111827] tracking-tight">Menu Management</h2>
+          <p className="text-sm text-[#6b7280] mt-1">Manage your restaurant menu, categories and items.</p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="cursor-pointer flex items-center gap-2 bg-white border border-[#e5e7eb] px-4 py-2 rounded-lg text-sm font-bold text-[#374151] hover:bg-[#f9fafb]">
+          <label className="cursor-pointer flex items-center gap-2 bg-white border border-[#e5e7eb] px-4 py-2.5 rounded-xl text-sm font-bold text-[#374151] hover:bg-[#f9fafb] hover:border-[#d1d5db] transition-all shadow-sm">
             <input type="file" accept=".csv" className="hidden" onChange={onBulkImport} />
             <Download className="w-4 h-4" /> Import / Export
           </label>
-          <button onClick={onAddItem} className="flex items-center gap-2 bg-[#8B0000] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#7f1d1d] transition-colors">
+          <button onClick={onAddItem} className="flex items-center gap-2 bg-[#8B0000] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#7f1d1d] hover:shadow-lg hover:shadow-red-900/20 transition-all">
             <Plus className="w-4 h-4" /> Add Menu Item
           </button>
         </div>
@@ -76,244 +117,245 @@ export default function MenuManagementView({
       <div className="flex overflow-x-auto gap-4 pb-2 mb-4 custom-scrollbar shrink-0">
         <button 
           onClick={() => setActiveCategory('all')}
-          className={`flex flex-col items-center justify-center min-w-[120px] py-4 rounded-xl border-2 transition-all ${activeCategory === 'all' ? 'border-[#fecaca] bg-[#fef2f2] text-[#8B0000]' : 'border-transparent bg-white text-[#4b5563] hover:border-[#e5e7eb]'}`}
+          className={`flex flex-col items-center justify-center min-w-[120px] py-4 rounded-2xl border-2 transition-all duration-200 ${activeCategory === 'all' ? 'border-[#fecaca] bg-[#fef2f2] text-[#8B0000] shadow-sm' : 'border-transparent bg-white text-[#4b5563] hover:border-[#e5e7eb] hover:bg-[#f9fafb] shadow-sm'}`}
         >
           <Hexagon className={`w-6 h-6 mb-2 ${activeCategory === 'all' ? 'text-[#8B0000]' : 'text-[#9ca3af]'}`} />
           <span className="text-sm font-bold">All Items</span>
-          <span className="text-xs mt-1 font-medium">{allItems.length}</span>
+          <span className="text-xs mt-1 font-semibold opacity-70">{allItems.length}</span>
         </button>
         {menu.map(cat => (
           <button 
             key={cat._id}
             onClick={() => setActiveCategory(cat._id)}
-            className={`flex flex-col items-center justify-center min-w-[120px] py-4 rounded-xl border-2 transition-all ${activeCategory === cat._id ? 'border-[#fecaca] bg-[#fef2f2] text-[#8B0000]' : 'border-transparent bg-white text-[#4b5563] hover:border-[#e5e7eb] shadow-sm'}`}
+            className={`flex flex-col items-center justify-center min-w-[120px] py-4 rounded-2xl border-2 transition-all duration-200 ${activeCategory === cat._id ? 'border-[#fecaca] bg-[#fef2f2] text-[#8B0000] shadow-sm' : 'border-transparent bg-white text-[#4b5563] hover:border-[#e5e7eb] hover:bg-[#f9fafb] shadow-sm'}`}
           >
             <Hexagon className={`w-6 h-6 mb-2 ${activeCategory === cat._id ? 'text-[#8B0000]' : 'text-[#f87171]'}`} />
             <span className="text-sm font-bold">{cat.name}</span>
-            <span className="text-xs mt-1 font-medium">{cat.items?.length || 0}</span>
+            <span className="text-xs mt-1 font-semibold opacity-70">{cat.items?.length || 0}</span>
           </button>
         ))}
       </div>
 
       {/* Filters Row */}
-      <div className="flex gap-4 mb-6 shrink-0 bg-white p-3 rounded-xl shadow-sm border border-[#e5e7eb]">
+      <div className="flex gap-4 mb-6 shrink-0 bg-white p-2 rounded-2xl shadow-sm border border-[#e5e7eb]">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
+          <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none" />
           <input 
             type="text" 
             placeholder="Search by item name..." 
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-[#f9fafb] border border-[#e5e7eb] rounded-lg text-sm text-[#111827] placeholder-[#9ca3af] focus:outline-none focus:border-[#fca5a5]"
+            className="w-full !pl-10 pr-4 py-2.5 bg-transparent rounded-xl text-sm text-[#111827] placeholder-[#9ca3af] focus:outline-none focus:border focus:border-[#8b0000]"
           />
         </div>
-        <select className="px-4 py-2 bg-white border border-[#e5e7eb] rounded-lg text-sm font-medium text-[#374151] outline-none">
-          <option>All Categories</option>
-        </select>
-        <select className="px-4 py-2 bg-white border border-[#e5e7eb] rounded-lg text-sm font-medium text-[#374151] outline-none">
-          <option>All Status</option>
-        </select>
-        <select className="px-4 py-2 bg-white border border-[#e5e7eb] rounded-lg text-sm font-medium text-[#374151] outline-none">
-          <option>All Types</option>
-        </select>
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-[#e5e7eb] rounded-lg text-sm font-bold text-[#374151] hover:bg-[#f9fafb]">
-          <Filter className="w-4 h-4" /> Filters
-        </button>
+        <div className="h-6 w-px bg-[#e5e7eb] self-center"></div>
+        <div className="relative">
+          <select 
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="appearance-none px-4 py-2.5 pr-10 bg-transparent text-sm font-bold text-[#374151] outline-none cursor-pointer hover:bg-[#f9fafb] rounded-xl transition-colors"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active Only</option>
+            <option value="inactive">Inactive Only</option>
+          </select>
+          <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none" />
+        </div>
+        <div className="h-6 w-px bg-[#e5e7eb] self-center"></div>
+        <div className="relative">
+          <select 
+            value={typeFilter}
+            onChange={e => setTypeFilter(e.target.value)}
+            className="appearance-none px-4 py-2.5 pr-10 bg-transparent text-sm font-bold text-[#374151] outline-none cursor-pointer hover:bg-[#f9fafb] rounded-xl transition-colors"
+          >
+            <option value="all">All Types</option>
+            <option value="veg">Veg Only</option>
+            <option value="nonveg">Non-Veg Only</option>
+          </select>
+          <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none" />
+        </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex flex-1 gap-6 overflow-hidden">
-        
-        {/* Left Column - Data Table */}
-        <div className="flex-1 bg-white rounded-xl shadow-sm border border-[#e5e7eb] flex flex-col overflow-hidden">
-          <div className="overflow-x-auto flex-1 custom-scrollbar">
-            <table className="w-full text-left border-collapse min-w-[800px]">
-              <thead className="bg-white border-b border-[#f3f4f6] sticky top-0 z-10">
-                <tr className="text-[10px] font-bold text-[#9ca3af] uppercase tracking-wider">
-                  <th className="p-4 w-12 text-center"><input type="checkbox" className="rounded border-[#d1d5db]" /></th>
-                  <th className="p-4">Item Name</th>
-                  <th className="p-4">Category</th>
-                  <th className="p-4">Price</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Type</th>
-                  <th className="p-4">Prep. Time</th>
-                  <th className="p-4 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#f9fafb]">
-                {filteredItems.map((item) => (
+      {/* Main Content Table */}
+      <div className="flex-1 bg-white rounded-2xl shadow-sm border border-[#e5e7eb] flex flex-col overflow-hidden relative">
+        <div className="overflow-x-auto flex-1 custom-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[800px]">
+            <thead className="bg-[#f9fafb] border-b border-[#f3f4f6] sticky top-0 z-10">
+              <tr className="text-xs font-bold text-[#6b7280] uppercase tracking-wider">
+                <th className="p-4 w-12 text-center">
+                  <div className="flex items-center justify-center">
+                    <input 
+                      type="checkbox" 
+                      checked={isAllSelected}
+                      onChange={handleSelectAll}
+                      className="w-4 h-4 rounded !bg-white border-[#d1d5db] text-[#8B0000] focus:ring-[#8B0000] cursor-pointer"
+                      style={{ backgroundColor: 'white' }}
+                    />
+                  </div>
+                </th>
+                <th className="p-4">Item Name</th>
+                <th className="p-4">Category</th>
+                <th className="p-4">Price</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Type</th>
+                <th className="p-4">Prep. Time</th>
+                <th className="p-4 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#f3f4f6]">
+              {filteredItems.map((item) => {
+                const isSelected = selectedItems.has(item._id);
+                return (
                   <tr 
                     key={item._id} 
-                    onClick={() => setSelectedItemId(item._id)}
-                    className={`cursor-pointer transition-colors ${selectedItemId === item._id ? 'bg-[#fef2f2]/50' : 'hover:bg-[#f9fafb]'}`}
+                    className={`transition-colors hover:bg-[#f9fafb] group ${isSelected ? 'bg-[#fef2f2]/50' : ''}`}
                   >
-                    <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
-                      <input type="checkbox" className="rounded border-[#d1d5db]" />
+                    <td className="p-4 text-center">
+                      <div className="flex items-center justify-center">
+                        <input 
+                          type="checkbox" 
+                          checked={isSelected}
+                          onChange={(e) => handleSelectItem(e, item._id)}
+                          className="w-4 h-4 rounded !bg-white text-[#8B0000] focus:ring-[#8B0000] border-[#d1d5db] cursor-pointer" 
+                          style={{ backgroundColor: 'white' }}
+                        />
+                      </div>
                     </td>
                     <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-[#f3f4f6] overflow-hidden shrink-0">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-[#f3f4f6] border border-[#e5e7eb] overflow-hidden shrink-0 shadow-sm">
                           {item.image ? (
                             <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-[#e5e7eb] text-[#9ca3af] text-xs">No img</div>
+                            <div className="w-full h-full flex items-center justify-center bg-[#f9fafb] text-[#9ca3af] text-xs font-semibold uppercase">No img</div>
                           )}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-[#111827]">{item.name}</p>
-                          <p className="text-[10px] text-[#6b7280] mt-0.5">{item.description?.slice(0, 30) || 'Standard'}</p>
+                          <p className="text-xs text-[#6b7280] mt-1 line-clamp-1">{item.description || 'No description provided.'}</p>
                         </div>
                       </div>
                     </td>
                     <td className="p-4">
-                      <span className="px-2.5 py-1 bg-[#fef2f2] text-[#dc2626] rounded text-xs font-bold whitespace-nowrap">
+                      <span className="px-3 py-1 bg-[#f3f4f6] text-[#4b5563] rounded-lg text-xs font-bold whitespace-nowrap">
                         {item.categoryName || 'N/A'}
                       </span>
                     </td>
-                    <td className="p-4 font-bold text-[#111827]">${(item.price || 0).toFixed(2)}</td>
-                    <td className="p-4" onClick={(e) => { e.stopPropagation(); onToggleStatus && onToggleStatus(item._id); }}>
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold cursor-pointer transition-colors ${item.isAvailable !== false ? 'bg-[#f0fdf4] text-[#16a34a] hover:bg-[#dcfce7]' : 'bg-[#fef2f2] text-[#dc2626] hover:bg-[#fee2e2]'}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${item.isAvailable !== false ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
+                    <td className="p-4 font-black text-[#111827] text-sm">${(item.price || 0).toFixed(2)}</td>
+                    <td className="p-4">
+                      <button 
+                        onClick={() => onToggleStatus && onToggleStatus(item._id)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                          item.isAvailable !== false 
+                            ? 'bg-[#ecfdf5] text-[#059669] hover:bg-[#d1fae5]' 
+                            : 'bg-[#fef2f2] text-[#dc2626] hover:bg-[#fee2e2]'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${item.isAvailable !== false ? 'bg-[#10b981]' : 'bg-[#ef4444]'}`}></span>
                         {item.isAvailable !== false ? 'Active' : 'Inactive'}
-                      </span>
+                      </button>
                     </td>
                     <td className="p-4">
                       <span className="flex items-center gap-1.5 text-xs font-bold text-[#374151]">
-                        {item.isVeg ? <Leaf className="w-3.5 h-3.5 text-[#22c55e]" /> : <Flame className="w-3.5 h-3.5 text-[#ef4444]" />}
+                        {item.isVeg 
+                          ? <Leaf className="w-4 h-4 text-[#22c55e]" /> 
+                          : <Flame className="w-4 h-4 text-[#ef4444]" />
+                        }
                         {item.isVeg ? 'Veg' : 'Non-Veg'}
                       </span>
                     </td>
-                    <td className="p-4 text-xs font-medium text-[#4b5563]">
+                    <td className="p-4 text-sm font-semibold text-[#4b5563]">
                       {item.preparationTime ? `${item.preparationTime} min` : '15 min'}
                     </td>
-                    <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => onEditItem && onEditItem(item)} className="p-1.5 border border-[#e5e7eb] rounded text-[#9ca3af] hover:text-[#374151] hover:bg-[#f9fafb]">
+                    <td className="p-4 text-center">
+                      <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => onEditItem && onEditItem(item)} 
+                          className="p-2 border border-[#e5e7eb] rounded-lg text-[#6b7280] hover:text-[#111827] hover:border-[#d1d5db] hover:bg-white shadow-sm transition-all"
+                          title="Edit Item"
+                        >
                           <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => onDeleteItem && onDeleteItem(item._id)} 
+                          className="p-2 border border-[#fecaca] rounded-lg text-[#dc2626] hover:text-white hover:bg-[#dc2626] hover:border-[#dc2626] shadow-sm transition-all"
+                          title="Delete Item"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))}
-                {filteredItems.length === 0 && (
-                  <tr>
-                    <td colSpan="8" className="p-8 text-center text-[#6b7280] text-sm">No items found matching your criteria.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                );
+              })}
+              {filteredItems.length === 0 && (
+                <tr>
+                  <td colSpan="8" className="p-12 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <Info className="w-8 h-8 text-[#9ca3af] mb-3" />
+                      <p className="text-[#374151] font-bold text-base">No items found</p>
+                      <p className="text-[#6b7280] text-sm mt-1">Try adjusting your filters or search query.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Floating Bulk Action Bar */}
+      {selectedItems.size > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[#111827] text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-50 animate-in slide-in-from-bottom-10 fade-in duration-300 border border-[#374151]">
+          <div className="flex items-center gap-2">
+            <div className="bg-[#374151] w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">
+              {selectedItems.size}
+            </div>
+            <span className="text-sm font-semibold">Items Selected</span>
           </div>
-          {/* Pagination Footer */}
-          <div className="p-4 border-t border-[#f3f4f6] flex items-center justify-between text-xs text-[#6b7280]">
-            <span>Showing 1 to {filteredItems.length} of {allItems.length} items</span>
+          
+          <div className="w-px h-6 bg-[#374151]"></div>
+          
+          <div className="flex items-center gap-3">
+            <button 
+              disabled={isProcessingBulk}
+              onClick={async () => {
+                setIsProcessingBulk(true);
+                if (onBulkUpdate) await onBulkUpdate(Array.from(selectedItems), { isAvailable: true });
+                setIsProcessingBulk(false);
+              }}
+              className={`flex items-center gap-2 text-sm font-bold text-[#d1fae5] px-3 py-1.5 rounded-lg transition-colors ${isProcessingBulk ? 'opacity-50 cursor-not-allowed' : 'hover:text-[#ecfdf5] hover:bg-[#065f46]'}`}
+            >
+              {isProcessingBulk ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Mark Active
+            </button>
+            <button 
+              disabled={isProcessingBulk}
+              onClick={async () => {
+                setIsProcessingBulk(true);
+                if (onBulkUpdate) await onBulkUpdate(Array.from(selectedItems), { isAvailable: false });
+                setIsProcessingBulk(false);
+              }}
+              className={`flex items-center gap-2 text-sm font-bold text-[#fef3c7] px-3 py-1.5 rounded-lg transition-colors ${isProcessingBulk ? 'opacity-50 cursor-not-allowed' : 'hover:text-[#fffbeb] hover:bg-[#92400e]'}`}
+            >
+              {isProcessingBulk ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />} Mark Inactive
+            </button>
+            <button 
+              disabled={isProcessingBulk}
+              onClick={async () => {
+                if (window.confirm(`Are you sure you want to delete ${selectedItems.size} items?`)) {
+                  setIsProcessingBulk(true);
+                  if (onBulkDelete) await onBulkDelete(Array.from(selectedItems));
+                  setSelectedItems(new Set());
+                  setIsProcessingBulk(false);
+                }
+              }}
+              className={`flex items-center gap-2 text-sm font-bold text-[#fee2e2] px-3 py-1.5 rounded-lg transition-colors ml-2 ${isProcessingBulk ? 'opacity-50 cursor-not-allowed' : 'hover:text-white hover:bg-[#991b1b]'}`}
+            >
+              {isProcessingBulk ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete
+            </button>
           </div>
         </div>
-
-        {/* Right Column - Item Preview */}
-        {selectedItem && (
-          <div className="w-[340px] bg-white rounded-xl shadow-sm border border-[#e5e7eb] flex flex-col overflow-y-auto custom-scrollbar shrink-0">
-            
-            {/* Preview Header & Image */}
-            <div className="p-6 pb-4 border-b border-[#f3f4f6]">
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-20 h-20 rounded-xl bg-[#f3f4f6] overflow-hidden shadow-sm">
-                  {selectedItem.image ? (
-                    <img src={selectedItem.image} alt={selectedItem.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[#9ca3af]">No Img</div>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-3">
-                  <div onClick={() => onToggleStatus && onToggleStatus(selectedItem._id)} className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${selectedItem.isAvailable !== false ? 'bg-[#22c55e]' : 'bg-[#e5e7eb]'}`}>
-                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${selectedItem.isAvailable !== false ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                  </div>
-                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${selectedItem.isAvailable !== false ? 'text-[#16a34a]' : 'text-[#9ca3af]'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${selectedItem.isAvailable !== false ? 'bg-[#22c55e]' : 'bg-[#9ca3af]'}`}></span>
-                    {selectedItem.isAvailable !== false ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-              </div>
-              <h2 className="text-lg font-bold text-[#111827] mb-2">{selectedItem.name}</h2>
-              <div className="flex gap-4 text-xs font-bold text-[#6b7280]">
-                <span className="flex items-center gap-1.5"><Hexagon className="w-3.5 h-3.5 text-[#f87171]" /> {selectedItem.categoryName}</span>
-                <span className="flex items-center gap-1.5">{selectedItem.isVeg ? <Leaf className="w-3.5 h-3.5 text-[#22c55e]" /> : <Flame className="w-3.5 h-3.5 text-[#ef4444]" />}{selectedItem.isVeg ? 'Veg' : 'Non-Veg'}</span>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-6 flex-1">
-              {/* Description */}
-              <div>
-                <h4 className="text-[10px] font-bold text-[#111827] uppercase tracking-wider mb-2">Description</h4>
-                <p className="text-xs text-[#4b5563] leading-relaxed">
-                  {selectedItem.description || 'No description provided.'}
-                </p>
-              </div>
-
-              {/* Price & Variations */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-[10px] font-bold text-[#111827] uppercase tracking-wider mb-2">Price</h4>
-                  <div className="space-y-1.5 text-xs">
-                    <div className="flex justify-between"><span className="text-[#6b7280]">Regular Price</span><span className="font-bold text-[#111827]">${(selectedItem.price || 0).toFixed(2)}</span></div>
-                    <div className="flex justify-between"><span className="text-[#6b7280]">Cost Price</span><span className="font-bold text-[#111827]">${((selectedItem.price || 0) * 0.45).toFixed(2)}</span></div>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="text-[10px] font-bold text-[#111827] uppercase tracking-wider mb-2 flex justify-between">
-                    Variations <span className="text-[#dc2626] font-medium">({selectedItem.sizeVariations?.length || 0})</span>
-                  </h4>
-                  <div className="space-y-1.5 text-xs">
-                    {(selectedItem.sizeVariations || []).map((v, i) => (
-                      <div key={i} className="flex justify-between"><span className="text-[#6b7280] truncate pr-2">{v.name}</span><span className="font-bold text-[#111827]">${(v.price || 0).toFixed(2)}</span></div>
-                    ))}
-                    {(!selectedItem.sizeVariations || selectedItem.sizeVariations.length === 0) && <span className="text-[#9ca3af] italic">None</span>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Availability */}
-              <div>
-                <h4 className="text-[10px] font-bold text-[#111827] uppercase tracking-wider mb-2">Availability</h4>
-                <div className="flex justify-between text-xs pb-3 border-b border-[#f3f4f6]">
-                  <span className="text-[#374151]">Everyday</span>
-                  <span className="text-[#6b7280]">11:00 AM - 11:00 PM</span>
-                </div>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-[10px] font-bold text-[#9ca3af] uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-[#ef4444]" /> Preparation Time
-                  </h4>
-                  <p className="text-sm font-bold text-[#111827]">{selectedItem.preparationTime || 15} min</p>
-                </div>
-                <div>
-                  <h4 className="text-[10px] font-bold text-[#9ca3af] uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                    <Flame className="w-3.5 h-3.5 text-[#ef4444]" /> Calories
-                  </h4>
-                  <p className="text-sm font-bold text-[#111827]">{selectedItem.calories || 320} kcal</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="p-6 pt-0 mt-auto space-y-2">
-              <button onClick={() => onEditItem && onEditItem(selectedItem)} className="w-full bg-[#8B0000] text-white py-3 rounded-lg text-sm font-bold hover:bg-[#7f1d1d] transition-colors flex justify-center items-center gap-2 shadow-sm">
-                <Edit3 className="w-4 h-4" /> Edit Item
-              </button>
-              <button onClick={() => { if (onAddItem) { onAddItem(); if (onEditItem) { const duplicate = { ...selectedItem, _id: null, name: selectedItem.name + ' (Copy)' }; onEditItem(duplicate); } } }} className="w-full bg-white border border-[#e5e7eb] text-[#8B0000] py-3 rounded-lg text-sm font-bold hover:bg-[#f9fafb] transition-colors flex justify-center items-center gap-2">
-                <Copy className="w-4 h-4" /> Duplicate Item
-              </button>
-              <button onClick={() => onDeleteItem && onDeleteItem(selectedItem._id)} className="w-full bg-white border border-[#fee2e2] text-[#ef4444] py-3 rounded-lg text-sm font-bold hover:bg-[#fef2f2] transition-colors flex justify-center items-center gap-2">
-                <Trash2 className="w-4 h-4" /> Delete Item
-              </button>
-            </div>
-
-          </div>
-        )}
-
-      </div>
+      )}
     </div>
   );
 }

@@ -43,8 +43,8 @@ const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace', r
   // The mobile app requires the token in the JSON body because it doesn't automatically parse httpOnly cookies.
   // We check for x-app-secret to identify mobile app requests and return the token even in production.
   if (
-    process.env.RETURN_AUTH_TOKEN === 'true' || 
-    process.env.NODE_ENV !== 'production' || 
+    process.env.RETURN_AUTH_TOKEN === 'true' ||
+    process.env.NODE_ENV !== 'production' ||
     (response.req && response.req.headers['x-app-secret'])
   ) {
     body.token = token;
@@ -110,7 +110,7 @@ export const register = asyncHandler(async (req, response) => {
   if (phone) {
     user.savedAddresses = [];
   }
-  
+
   // Generate random 6-character referral code
   user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
 
@@ -193,7 +193,7 @@ export const googleLogin = asyncHandler(async (req, response) => {
     idToken: credential,
     audience: process.env.GOOGLE_CLIENT_ID,
   });
-  
+
   const payload = ticket.getPayload();
   const { email, name, sub: googleId, picture } = payload;
 
@@ -216,7 +216,7 @@ export const googleLogin = asyncHandler(async (req, response) => {
     // Create random robust password for DB constraint if needed
     user.setPassword(crypto.randomBytes(20).toString('hex'));
     await user.save();
-    
+
     sendWelcomeEmail(email, name).catch(e => logger.warn('Welcome email failed', { error: e.message }));
   } else {
     // Link google ID if not linked
@@ -242,8 +242,8 @@ export const logout = asyncHandler(async (req, response) => {
     (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
 
   response
-    .cookie('token', '', { 
-      httpOnly: true, 
+    .cookie('token', '', {
+      httpOnly: true,
       secure: secureCookie,
       sameSite: secureCookie ? 'none' : 'lax',
       expires: new Date(0),
@@ -257,16 +257,25 @@ export const getMe = asyncHandler(async (req, response) => {
     .findById(req.user._id)
     .populate('favoriteRestaurants', 'name cuisine banner rating reviewCount deliveryTime deliveryFee distance')
     .populate('favoriteItems', 'name description price image type');
-  
+
   if (!user) throw new AppError('User not found', 404);
-  
+
   // Ensure referral code exists for old users
   if (!user.referralCode) {
     user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
     await user.save();
   }
-  
-  res.success(response, { data: user.toSafeJSON() });
+
+  // Fetch group tag from Customer table for this user's email
+  const CustomerModel = req.getModel('Customer');
+  const customerRecord = await CustomerModel.findOne({ email: user.email, isDeleted: { $ne: true } }).sort({ createdAt: -1 });
+
+  const userData = user.toSafeJSON();
+  if (customerRecord && customerRecord.group && customerRecord.group !== 'Others') {
+    userData.merchantGroup = customerRecord.group;
+  }
+
+  res.success(response, { data: userData });
 });
 
 export const updateProfile = asyncHandler(async (req, response) => {
@@ -281,7 +290,8 @@ export const updateProfile = asyncHandler(async (req, response) => {
     runValidators: true
   });
 
-  res.success(response, { data: user.toSafeJSON(),    message: 'Profile updated successfully'
+  res.success(response, {
+    data: user.toSafeJSON(), message: 'Profile updated successfully'
   });
 });
 
@@ -395,12 +405,12 @@ export const removeAddress = asyncHandler(async (req, response) => {
   user.savedAddresses = user.savedAddresses.filter(
     a => a._id.toString() !== req.params.addressId
   );
-  
+
   // If we removed the default address, make the first one default (if any)
   if (user.savedAddresses.length > 0 && !user.savedAddresses.some(a => a.isDefault)) {
     user.savedAddresses[0].isDefault = true;
   }
-  
+
   await user.save();
 
   res.success(response, { data: user.savedAddresses, message: 'Address removed' });
@@ -409,7 +419,7 @@ export const removeAddress = asyncHandler(async (req, response) => {
 export const editAddress = asyncHandler(async (req, response) => {
   const { label, address, lat, lng, isDefault } = req.body;
   const user = await req.getModel('User').findById(req.user._id);
-  
+
   const addr = user.savedAddresses.id(req.params.addressId);
   if (!addr) throw new AppError('Address not found', 404);
 
@@ -429,7 +439,7 @@ export const editAddress = asyncHandler(async (req, response) => {
 
 export const setDefaultAddress = asyncHandler(async (req, response) => {
   const user = await req.getModel('User').findById(req.user._id);
-  
+
   const addr = user.savedAddresses.id(req.params.addressId);
   if (!addr) throw new AppError('Address not found', 404);
 
@@ -452,11 +462,11 @@ export const addCard = asyncHandler(async (req, response) => {
     user.savedCards.forEach(c => { c.isDefault = false; });
   }
 
-  user.savedCards.push({ 
-    cardId, title: title || 'Personal Card', brand, last4, expMonth, expYear, 
-    isDefault: isDefault || user.savedCards.length === 0 
+  user.savedCards.push({
+    cardId, title: title || 'Personal Card', brand, last4, expMonth, expYear,
+    isDefault: isDefault || user.savedCards.length === 0
   });
-  
+
   await user.save();
   res.success(response, { data: user.savedCards, message: 'Card saved successfully' });
 });
@@ -466,19 +476,19 @@ export const removeCard = asyncHandler(async (req, response) => {
   user.savedCards = user.savedCards.filter(
     c => c._id.toString() !== req.params.cardId
   );
-  
+
   // Reset default if needed
   if (user.savedCards.length > 0 && !user.savedCards.some(c => c.isDefault)) {
     user.savedCards[0].isDefault = true;
   }
-  
+
   await user.save();
   res.success(response, { data: user.savedCards, message: 'Card removed' });
 });
 
 export const setDefaultCard = asyncHandler(async (req, response) => {
   const user = await req.getModel('User').findById(req.user._id);
-  
+
   const card = user.savedCards.id(req.params.cardId);
   if (!card) throw new AppError('Card not found', 404);
 
@@ -494,23 +504,23 @@ export const setDefaultCard = asyncHandler(async (req, response) => {
 const sanitizeSavedCart = ({ items = [], restaurant = null, tenantId = 'marketplace' }) => {
   const safeItems = Array.isArray(items)
     ? items.slice(0, 100).map((item) => {
-        const quantity = Math.max(1, Math.min(99, parseInt(item.quantity || item.qty, 10) || 1));
-        const price = Math.max(0, Number(item.price) || 0);
-        const addOns = Array.isArray(item.addOns) ? item.addOns.slice(0, 25) : [];
-        const addOnTotal = addOns.reduce((sum, addOn) => sum + (Number(addOn.price) || 0), 0);
-        return {
-          menuItemId: String(item.menuItemId || item._id || item.id || ''),
-          name: String(item.name || '').slice(0, 160),
-          price,
-          image: item.image ? String(item.image).slice(0, 1000) : null,
-          quantity,
-          qty: quantity,
-          selectedSize: item.selectedSize || null,
-          addOns,
-          specialInstructions: String(item.specialInstructions || '').slice(0, 500),
-          lineTotal: Math.round((price + addOnTotal) * quantity * 100) / 100
-        };
-      }).filter((item) => item.menuItemId && item.name)
+      const quantity = Math.max(1, Math.min(99, parseInt(item.quantity || item.qty, 10) || 1));
+      const price = Math.max(0, Number(item.price) || 0);
+      const addOns = Array.isArray(item.addOns) ? item.addOns.slice(0, 25) : [];
+      const addOnTotal = addOns.reduce((sum, addOn) => sum + (Number(addOn.price) || 0), 0);
+      return {
+        menuItemId: String(item.menuItemId || item._id || item.id || ''),
+        name: String(item.name || '').slice(0, 160),
+        price,
+        image: item.image ? String(item.image).slice(0, 1000) : null,
+        quantity,
+        qty: quantity,
+        selectedSize: item.selectedSize || null,
+        addOns,
+        specialInstructions: String(item.specialInstructions || '').slice(0, 500),
+        lineTotal: Math.round((price + addOnTotal) * quantity * 100) / 100
+      };
+    }).filter((item) => item.menuItemId && item.name)
     : [];
 
   return {
