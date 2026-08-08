@@ -41,7 +41,7 @@ export default function LassiLoungeFooter() {
         <div className="md:pr-8 py-8 md:py-0">
           <div className="flex items-baseline gap-1.5 mb-4">
             {brand?.logo ? (
-              <img src={brand.logo} alt={brand.name} className="h-10 object-contain" />
+              <img src={brand.logo} alt={brand.name} className="h-20 w-auto object-contain" />
             ) : (
               <>
                 <span className="text-4xl font-bold text-[#E63946]" style={{ fontFamily: 'var(--font-script)' }}>

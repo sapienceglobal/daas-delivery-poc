@@ -18,7 +18,7 @@ import { useBrand } from '@/context/BrandContext';
 export default function LassiLoungeHeader() {
   const { items, openCart } = useCart();
   const { isAuthenticated } = useAuth();
-  const { brand } = useBrand();
+  const { brand, loading } = useBrand();
   const pathname = usePathname();
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -27,9 +27,11 @@ export default function LassiLoungeHeader() {
     <header className="sticky top-0 z-sticky bg-background border-b border-border">
       <div className="mx-auto max-w-7xl px-6 py-3 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/customer" className="flex items-center gap-2 shrink-0">
+        <Link href="/customer" className="flex items-center gap-2 shrink-0 py-1">
           {brand?.logo ? (
-            <img src={brand.logo} alt={brand.name} className="h-8 object-contain" />
+            <img src={brand.logo} alt={brand.name} className="h-8 md:h-9 w-auto scale-[1.5] origin-left object-contain" />
+          ) : loading ? (
+            <div className="h-8 w-24 animate-pulse bg-white/10 rounded" />
           ) : (
             <>
               <span className="text-2xl font-bold text-primary-600" style={{ fontFamily: 'var(--font-script)' }}>

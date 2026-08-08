@@ -106,6 +106,7 @@ export default function MerchantSettingsPage() {
   return (
     <SettingsView
       restaurant={restaurant}
+      onRefresh={refreshRestaurant}
       onUpdate={handleUpdateSettings}
       onboardingForm={onboardingForm}
       setOnboardingForm={setOnboardingForm}
