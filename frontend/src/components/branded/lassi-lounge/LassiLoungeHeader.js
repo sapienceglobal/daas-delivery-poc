@@ -25,13 +25,21 @@ export default function LassiLoungeHeader() {
 
   return (
     <header className="sticky top-0 z-sticky bg-background border-b border-border">
+      {/* Back to original px-6 py-3 — navbar height is exactly what it was before. */}
       <div className="mx-auto max-w-7xl px-6 py-3 flex items-center justify-between">
         {/* Logo */}
         <Link href="/customer" className="flex items-center gap-2 shrink-0 py-1">
           {brand?.logo ? (
-            <img src={brand.logo} alt={brand.name} className="h-9 md:h-10 w-auto object-contain" />
+            // Layout box stays h-9/h-10 (navbar height unaffected) —
+            // scale() only affects paint, not layout, so the logo renders
+            // ~25% bigger on screen without pushing anything else.
+            <img
+              src={brand.logo}
+              alt={brand.name}
+              className="h-10 md:h-10 w-auto scale-125 origin-left object-contain"
+            />
           ) : loading ? (
-            <div className="h-8 w-24 animate-pulse bg-white/10 rounded" />
+            <div className="h-9 md:h-[50px] w-28 animate-pulse bg-white/10 rounded" />
           ) : (
             <>
               <span className="text-2xl font-bold text-primary-600" style={{ fontFamily: 'var(--font-script)' }}>

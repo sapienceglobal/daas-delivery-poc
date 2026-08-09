@@ -47,6 +47,16 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
     
     // Fallback polling in case of long disconnections
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      final order = _order;
+      if (order != null) {
+        final status = order['status']?.toString();
+        final paymentStatus = order['paymentStatus']?.toString().toLowerCase();
+        final isPaidCancelled = status == 'cancelled' && paymentStatus == 'paid' && !_isRefunded(order);
+        if ((status == 'delivered' || status == 'failed' || status == 'cancelled') && !isPaidCancelled) {
+          _pollingTimer?.cancel();
+          return;
+        }
+      }
       _fetchOrder(isBackground: true);
     });
   }
@@ -797,4 +807,3 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
     }
   }
 }
-

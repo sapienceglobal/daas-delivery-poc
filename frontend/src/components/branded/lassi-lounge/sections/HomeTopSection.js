@@ -73,7 +73,9 @@ export default function HomeTopSection() {
         {/* Dark Rich Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#0e0d0c] via-[#0e0d0c]/85 to-transparent z-10" />
 
-        <div className="relative z-20 mx-auto max-w-7xl w-full px-4 md:px-8 flex flex-col justify-center text-left">
+        {/* ll-stagger cascades each direct child in on mount (Welcome-to, headline,
+            cuisine badge, description, CTA row) using the existing fade-lift system. */}
+        <div className="relative z-20 mx-auto max-w-7xl w-full px-4 md:px-8 flex flex-col justify-center text-left ll-stagger">
 
           <div className="relative self-start">
             <p
@@ -87,8 +89,15 @@ export default function HomeTopSection() {
           </div>
 
           <h1 className="font-serif font-black leading-[0.85] tracking-tight mt-1">
-            <span className="block text-7xl md:text-[95px] text-white uppercase">{brandName1}</span>
-            <span className="block text-7xl md:text-[95px] text-[#e8a020] uppercase">{brandName2}</span>
+            <span
+              className="block text-7xl md:text-[95px] text-white uppercase ll-text-wipe"
+              style={{ animationDelay: '500ms' }}
+            >
+              {brandName1}
+            </span>
+            <span className="block text-7xl md:text-[95px] text-[#e8a020] uppercase ll-text-wipe-shimmer">
+              {brandName2}
+            </span>
           </h1>
 
           <div className="mt-4 self-start relative ml-1">

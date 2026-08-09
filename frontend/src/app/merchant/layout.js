@@ -17,9 +17,9 @@ function MerchantLayoutContent({ children }) {
   return (
     <div className="flex h-screen bg-[#070707] overflow-hidden text-brand-text font-sans">
       <MerchantSidebar />
-      <div className="flex-1 overflow-y-auto bg-[#F8FAFC] custom-scrollbar">
+      <div className="flex-1 overflow-y-auto bg-[#F8FAFC] custom-scrollbar relative">
         <DashboardHeader user={user} />
-        <div className="max-w-7xl mx-auto space-y-8 p-6">
+        <div className="max-w-7xl mx-auto space-y-8 p-6 relative z-0">
           {children}
         </div>
       </div>

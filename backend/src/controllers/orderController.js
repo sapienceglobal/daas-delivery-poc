@@ -229,6 +229,12 @@ export const processAutoRefund = async (order, reason, io, getModel) => {
     await order.save();
     logger.info('Auto-refunded order', { orderId: order._id, refundAmount: remainingAmount, stripeRefundId: refund.id });
 
+    if (io) {
+      const payload = buildOrderSocketPayload(order);
+      io.to(order.restaurantId.toString()).emit('order_updated', payload);
+      io.to(`order_${order._id}`).emit('order_status_changed', payload);
+    }
+
     if (order.userId && io && getModel) {
       await createNotification(
         order.userId,
