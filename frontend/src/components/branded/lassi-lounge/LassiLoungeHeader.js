@@ -29,7 +29,7 @@ export default function LassiLoungeHeader() {
         {/* Logo */}
         <Link href="/customer" className="flex items-center gap-2 shrink-0 py-1">
           {brand?.logo ? (
-            <img src={brand.logo} alt={brand.name} className="h-8 md:h-9 w-auto scale-[1.5] origin-left object-contain" />
+            <img src={brand.logo} alt={brand.name} className="h-9 md:h-10 w-auto object-contain" />
           ) : loading ? (
             <div className="h-8 w-24 animate-pulse bg-white/10 rounded" />
           ) : (

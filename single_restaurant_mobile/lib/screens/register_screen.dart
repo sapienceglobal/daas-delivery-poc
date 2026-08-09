@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/screens/login_screen.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
 import 'package:single_restaurant_mobile/screens/otp_verification_screen.dart';
 import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
+import 'package:single_restaurant_mobile/widgets/app_logo.dart';
+import 'package:country_picker/country_picker.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -26,8 +29,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _agreedToTerms = false;
   bool _isLoading = false;
   String _selectedCountryCode = '+1'; // Default to US/Canada
+String _selectedCountryFlag = '🇺🇸'; // Default Flag
 
-  final RegExp _passwordRegex = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$');
+
+ 
+  final RegExp _passwordRegex = RegExp(
+    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$',
+  );
 
   @override
   void dispose() {
@@ -41,7 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     if (!_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please agree to the Terms & Conditions')),
@@ -65,15 +73,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => OtpVerificationScreen(
-              phoneNumber: _phoneController.text.trim().isNotEmpty 
-                  ? '$_selectedCountryCode ${_phoneController.text.trim()}' 
+              phoneNumber: _phoneController.text.trim().isNotEmpty
+                  ? '$_selectedCountryCode ${_phoneController.text.trim()}'
                   : '$_selectedCountryCode (123) 456-7890',
             ),
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration failed. Email might already be in use or data is invalid.')),
+          const SnackBar(
+            content: Text(
+              'Registration failed. Email might already be in use or data is invalid.',
+            ),
+          ),
         );
       }
     }
@@ -96,11 +108,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const HelpSupportScreen(),
+                ),
               );
             },
-            icon: const Icon(Icons.headset_mic_outlined, color: AppColors.secondary, size: 20),
-            label: const Text('Help', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
+            icon: const Icon(
+              Icons.headset_mic_outlined,
+              color: AppColors.secondary,
+              size: 20,
+            ),
+            label: const Text(
+              'Help',
+              style: TextStyle(
+                color: AppColors.secondary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -126,38 +150,76 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     const SizedBox(height: 80),
                     // Mock Logo
-                    const Icon(Icons.workspace_premium, color: Colors.orange, size: 40),
-                    const Text('LASSI', style: TextStyle(color: AppColors.secondary, fontSize: 40, fontFamily: 'serif', letterSpacing: 2)),
-                    const Text('LOUNGE', style: TextStyle(color: AppColors.secondary, fontSize: 20, fontFamily: 'serif', letterSpacing: 1.5, height: 0.8)),
+                    const AppLogo(height: 80),
+
                     const SizedBox(height: 8),
                     const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.spa, color: Colors.orange, size: 12),
                         SizedBox(width: 8),
-                        Text('INDIAN RESTAURANT', style: TextStyle(color: Colors.orange, fontSize: 10, letterSpacing: 1.2, fontWeight: FontWeight.bold)),
+                        Text(
+                          'INDIAN RESTAURANT',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 10,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         SizedBox(width: 8),
                         Icon(Icons.spa, color: Colors.orange, size: 12),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    const Text('Create Your Account', style: TextStyle(color: AppColors.secondary, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'serif')),
+                    const Text(
+                      'Create Your Account',
+                      style: TextStyle(
+                        color: AppColors.secondary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'serif',
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    const Text('Join Lassi Lounge and enjoy\ndelicious food & exclusive offers.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4)),
+                    const Text(
+                      'Join Lassi Lounge and enjoy\ndelicious food & exclusive offers.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    const Icon(Icons.horizontal_rule, color: Colors.orange, size: 24),
+                    const Icon(
+                      Icons.horizontal_rule,
+                      color: Colors.orange,
+                      size: 24,
+                    ),
                   ],
                 ),
               ),
             ),
             // Form Card
             Container(
-              margin: const EdgeInsets.only(top: 330, left: 16, right: 16, bottom: 24),
+              margin: const EdgeInsets.only(
+                top: 330,
+                left: 16,
+                right: 16,
+                bottom: 24,
+              ),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Form(
                 key: _formKey,
@@ -169,14 +231,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       controller: _nameController,
                       hintText: 'Enter your full name',
                       icon: Icons.person_outline,
-                      validator: (value) => value!.isEmpty ? 'Name is required' : null,
+                      validator: (value) =>
+                          value!.isEmpty ? 'Name is required' : null,
                     ),
                     const SizedBox(height: 16),
-                    
+
                     _buildLabel('Phone Number'),
                     _buildPhoneField(),
                     const SizedBox(height: 16),
-                    
+
                     _buildLabel('Email Address'),
                     _buildTextField(
                       controller: _emailController,
@@ -184,14 +247,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Email is required';
-                        final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                        if (!emailRegex.hasMatch(value)) return 'Enter a valid email format';
+                        if (value == null || value.isEmpty)
+                          return 'Email is required';
+                        final emailRegex = RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        );
+                        if (!emailRegex.hasMatch(value))
+                          return 'Enter a valid email format';
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     _buildLabel('Password'),
                     _buildTextField(
                       controller: _passwordController,
@@ -199,19 +266,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       icon: Icons.lock_outline,
                       isPassword: true,
                       isVisible: _isPasswordVisible,
-                      onVisibilityToggle: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                      onVisibilityToggle: () => setState(
+                        () => _isPasswordVisible = !_isPasswordVisible,
+                      ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Password is required';
-                        if (!_passwordRegex.hasMatch(value)) return 'Must meet complexity requirements';
+                        if (value == null || value.isEmpty)
+                          return 'Password is required';
+                        if (!_passwordRegex.hasMatch(value))
+                          return 'Must meet complexity requirements';
                         return null;
                       },
                     ),
                     const Padding(
                       padding: EdgeInsets.only(top: 8.0, left: 4.0),
-                      child: Text('At least 8 characters with a number and special character', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                      child: Text(
+                        'At least 8 characters with a number and special character',
+                        style: TextStyle(color: Colors.grey, fontSize: 11),
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     _buildLabel('Confirm Password'),
                     _buildTextField(
                       controller: _confirmPasswordController,
@@ -219,14 +293,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       icon: Icons.lock_outline,
                       isPassword: true,
                       isVisible: _isConfirmPasswordVisible,
-                      onVisibilityToggle: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                      onVisibilityToggle: () => setState(
+                        () => _isConfirmPasswordVisible =
+                            !_isConfirmPasswordVisible,
+                      ),
                       validator: (value) {
-                        if (value != _passwordController.text) return 'Passwords do not match';
+                        if (value != _passwordController.text)
+                          return 'Passwords do not match';
                         return null;
                       },
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Terms & Conditions Checkbox
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,94 +315,172 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: Checkbox(
                             value: _agreedToTerms,
                             activeColor: AppColors.secondary,
-                            onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
+                            onChanged: (val) =>
+                                setState(() => _agreedToTerms = val ?? false),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: RichText(
                             text: const TextSpan(
-                              style: TextStyle(color: Colors.black87, fontSize: 12, height: 1.4),
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
                               children: [
                                 TextSpan(text: 'I agree to the '),
-                                TextSpan(text: 'Terms & Conditions', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
+                                TextSpan(
+                                  text: 'Terms & Conditions',
+                                  style: TextStyle(
+                                    color: AppColors.secondary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                                 TextSpan(text: ' and '),
-                                TextSpan(text: 'Privacy Policy', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
-                              ]
-                            )
+                                TextSpan(
+                                  text: 'Privacy Policy',
+                                  style: TextStyle(
+                                    color: AppColors.secondary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        )
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Register Button
                     ElevatedButton(
                       onPressed: _isLoading ? null : _register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.secondary,
+                        foregroundColor:
+                            Colors.white, // ← ye line yahan bhi add karein
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      child: _isLoading 
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('Register', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Register',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Social Login Divider
                     Row(
                       children: [
                         Expanded(child: Divider(color: Colors.grey.shade300)),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('or register with', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          child: Text(
+                            'or register with',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
                         ),
                         Expanded(child: Divider(color: Colors.grey.shade300)),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Social Buttons Row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildSocialButton(Icons.g_mobiledata, 'Google', Colors.red),
+                        _buildSocialButton(
+                          Icons.g_mobiledata,
+                          'Google',
+                          Colors.red,
+                        ),
                         _buildSocialButton(Icons.apple, 'Apple', Colors.black),
-                        _buildSocialButton(Icons.facebook, 'Facebook', Colors.blue),
+                        _buildSocialButton(
+                          Icons.facebook,
+                          'Facebook',
+                          Colors.blue,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Footer Navigation
                     Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 24,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFF7F0), // Light orange/beige
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.card_giftcard, color: AppColors.secondary, size: 20),
-                          const SizedBox(width: 12),
-                          GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: RichText(
-                              text: const TextSpan(
-                                style: TextStyle(color: Colors.black87, fontSize: 14),
-                                children: [
-                                  TextSpan(text: 'Already have an account? '),
-                                  TextSpan(text: 'Login', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
-                                ]
-                              )
+                      child: GestureDetector(
+                        // Yahan onTap add kiya gaya hai
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginScreen(),
                             ),
-                          ),
-                          const Spacer(),
-                          const Icon(Icons.chevron_right, color: AppColors.secondary, size: 20),
-                        ],
+                          );
+                        },
+                        // Behavior opaque karne se pure row area par tap properly kaam karega
+                        behavior: HitTestBehavior.opaque,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.card_giftcard,
+                              color: AppColors.secondary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            GestureDetector(
+                              onTap: () => Navigator.pop(context),
+                              child: RichText(
+                                text: const TextSpan(
+                                  style: TextStyle(
+                                    color: Colors.black87,
+                                    fontSize: 14,
+                                  ),
+                                  children: [
+                                    TextSpan(text: 'Already have an account? '),
+                                    TextSpan(
+                                      text: 'Login',
+                                      style: TextStyle(
+                                        color: AppColors.secondary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            const Icon(
+                              Icons.chevron_right,
+                              color: AppColors.secondary,
+                              size: 20,
+                            ),
+                          ],
+                        ),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -338,7 +494,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+      ),
     );
   }
 
@@ -358,7 +517,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       validator: validator,
       keyboardType: keyboardType,
       onTap: () {
-        if (controller.selection.baseOffset != controller.selection.extentOffset) {
+        if (controller.selection.baseOffset !=
+            controller.selection.extentOffset) {
           final extent = controller.selection.extentOffset;
           if (extent != -1) {
             controller.selection = TextSelection.collapsed(offset: extent);
@@ -369,12 +529,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         hintText: hintText,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
         prefixIcon: Icon(icon, color: Colors.grey, size: 20),
-        suffixIcon: isPassword 
-          ? IconButton(
-              icon: Icon(isVisible! ? Icons.visibility : Icons.visibility_off, color: Colors.grey, size: 20),
-              onPressed: onVisibilityToggle,
-            )
-          : null,
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  isVisible! ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.grey,
+                  size: 20,
+                ),
+                onPressed: onVisibilityToggle,
+              )
+            : null,
         contentPadding: const EdgeInsets.symmetric(vertical: 16),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -396,7 +560,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildPhoneField() {
+Widget _buildPhoneField() {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
@@ -404,23 +568,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
       child: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedCountryCode,
-                icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600, size: 16),
-                items: const [
-                  DropdownMenuItem(value: '+1', child: Text('+1 🇺🇸', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DropdownMenuItem(value: '+91', child: Text('+91 🇮🇳', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DropdownMenuItem(value: '+44', child: Text('+44 🇬🇧', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DropdownMenuItem(value: '+61', child: Text('+61 🇦🇺', style: TextStyle(fontWeight: FontWeight.bold))),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _selectedCountryCode = value);
-                  }
+          // Yahan humne Dropdown ki jagah InkWell use kiya hai
+          InkWell(
+            onTap: () {
+              showCountryPicker(
+                context: context,
+                showPhoneCode: true, // Ye country ke sath +91, +1 dikhayega
+                countryListTheme: CountryListThemeData(
+                  bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                  inputDecoration: InputDecoration(
+                    labelText: 'Search Country',
+                    hintText: 'Start typing to search',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.grey.shade300,
+                      ),
+                    ),
+                  ),
+                ),
+                onSelect: (Country country) {
+                  setState(() {
+                    _selectedCountryCode = '+${country.phoneCode}';
+                    _selectedCountryFlag = country.flagEmoji;
+                  });
                 },
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$_selectedCountryCode $_selectedCountryFlag',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.grey.shade600,
+                    size: 18,
+                  ),
+                ],
               ),
             ),
           ),
@@ -430,10 +623,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               onTap: () {
-                if (_phoneController.selection.baseOffset != _phoneController.selection.extentOffset) {
+                if (_phoneController.selection.baseOffset !=
+                    _phoneController.selection.extentOffset) {
                   final extent = _phoneController.selection.extentOffset;
                   if (extent != -1) {
-                    _phoneController.selection = TextSelection.collapsed(offset: extent);
+                    _phoneController.selection = TextSelection.collapsed(
+                      offset: extent,
+                    );
                   }
                 }
               },
@@ -445,8 +641,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) return 'Phone is required';
-                if (!RegExp(r'^\d{10}$').hasMatch(value.replaceAll(RegExp(r'\D'), ''))) {
-                  return 'Enter a valid 10-digit number';
+                // Dhyan dein: Har country ka number 10 digit ka nahi hota.
+                // Isliye strict 10-digit validation hata kar minimum length lagana zyada sahi hai.
+                final numbersOnly = value.replaceAll(RegExp(r'\D'), '');
+                if (numbersOnly.length < 7 || numbersOnly.length > 15) {
+                  return 'Enter a valid phone number';
                 }
                 return null;
               },
@@ -471,7 +670,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           children: [
             Icon(icon, color: iconColor, size: 20),
             const SizedBox(width: 6),
-            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
           ],
         ),
       ),

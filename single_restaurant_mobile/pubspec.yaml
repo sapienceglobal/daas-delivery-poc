@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+6
+version: 1.0.0+7
 
 environment:
   sdk: ^3.11.5
@@ -53,6 +53,8 @@ dependencies:
   flutter_map: ^8.3.1
   latlong2: ^0.10.1
   flutter_native_splash: ^2.4.7
+  country_picker: ^2.0.28
+  visibility_detector: ^0.4.0+2
 
 dev_dependencies:
   flutter_test:
@@ -122,8 +124,13 @@ flutter_launcher_icons:
   image_path: "assets/images/branded/lassi-lounge/Lassi-Lounge-icon.png"
 
 flutter_native_splash:
-  color: "#ffffff"
-  image: "assets/images/branded/lassi-lounge/Lassi-Lounge-icon-padded.png"
+  color: "#0D0D0D"
+  image: "assets/images/branded/lassi-lounge/splash-icon.png"
+  branding: "assets/images/branded/lassi-lounge/splash-branding.png"
+  branding_mode: bottom
+  fullscreen: true
+
   android_12:
-    image: "assets/images/branded/lassi-lounge/Lassi-Lounge-icon-padded.png"
-    icon_background_color: "#ffffff"
+    color: "#0D0D0D"
+    image: "assets/images/branded/lassi-lounge/splash-icon-android12.png"
+    branding: "assets/images/branded/lassi-lounge/splash-branding.png"

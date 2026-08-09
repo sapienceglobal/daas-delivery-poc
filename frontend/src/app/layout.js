@@ -3,16 +3,34 @@ import { Providers } from '@/components/shared/Providers';
 import SiteChrome from '@/components/shared/SiteChrome';
 import ScrollToTop from '@/components/shared/ScrollToTop';
 
+const isLassiLounge = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
+
 export const metadata = {
-  title: 'Restaurant Commerce Platform',
-  description: 'Order food from your favorite local restaurants — delivery, pickup, or dine-in.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://195.35.20.207:3001'),
+  title: isLassiLounge ? 'Lassi Lounge' : 'Restaurant Commerce Platform',
+  description: isLassiLounge
+    ? 'Authentic Indian restaurant — order online, reserve a table, or get delivery.'
+    : 'Order food from your favorite local restaurants — delivery, pickup, or dine-in.',
   keywords: 'food delivery, restaurant, ordering, DoorDash, pickup, dine-in',
+  icons: {
+    icon: [
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    title: isLassiLounge ? 'Lassi Lounge' : 'Restaurant Commerce Platform',
+    description: isLassiLounge
+      ? 'Authentic Indian restaurant — order online, reserve a table, or get delivery.'
+      : 'Order food from your favorite local restaurants — delivery, pickup, or dine-in.',
+    images: ['/assets/images/branded/lassi-lounge/og-image.png'],
+  },
 };
 
 export default function RootLayout({ children }) {
-  const brand = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true'
-    ? 'lassi-lounge'
-    : null;
+  const brand = isLassiLounge ? 'lassi-lounge' : null;
 
   return (
     <html lang="en" data-brand={brand} suppressHydrationWarning>

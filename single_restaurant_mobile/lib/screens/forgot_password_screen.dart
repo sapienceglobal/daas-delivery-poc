@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/widgets/app_logo.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -88,9 +89,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     top: 80,
                     child: Column(
                       children: [
-                        const Icon(Icons.workspace_premium, color: Colors.orange, size: 40),
-                        const Text('LASSI', style: TextStyle(color: AppColors.secondary, fontSize: 40, fontFamily: 'serif', letterSpacing: 2)),
-                        const Text('LOUNGE', style: TextStyle(color: AppColors.secondary, fontSize: 20, fontFamily: 'serif', letterSpacing: 1.5, height: 0.8)),
+                        const AppLogo(height: 56),
+   
                         const SizedBox(height: 8),
                         const Row(
                           children: [

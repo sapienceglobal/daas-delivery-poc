@@ -7,12 +7,16 @@ export default function Loading() {
       <div className="relative flex items-center justify-center w-20 h-20 mb-6">
         {/* Outer pulsing ring */}
         <div className="absolute inset-0 rounded-full border-[3px] border-[#e8a020]/20 animate-ping" />
-        
+
         {/* Inner spinning ring */}
         <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-[#7a0b10] border-r-[#7a0b10] animate-spin" />
-        
-        {/* Center Diamond/Logo Placeholder */}
-        <div className="w-3 h-3 bg-[#e8a020] rotate-45 animate-pulse" />
+
+        {/* Center Logo */}
+        <img
+          src="/assets/images/branded/lassi-lounge/icon-small.png"
+          alt=""
+          className="w-9 h-9 object-contain animate-pulse"
+        />
       </div>
 
       {/* Premium Text Loading State */}

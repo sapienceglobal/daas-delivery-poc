@@ -24,6 +24,7 @@ import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
 import 'package:single_restaurant_mobile/widgets/shimmer_loading.dart';
 import 'package:single_restaurant_mobile/widgets/empty_state_widget.dart';
 import 'package:single_restaurant_mobile/services/coupon_service.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,13 +33,46 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Map<String, dynamic>? _activeCoupon;
-
+// 1. Logo Animation ke liye variables
+  late AnimationController _logoController;
+  late Animation<double> _logoScaleAnimation;
   @override
   void initState() {
     super.initState();
     _fetchActiveCoupon();
+    VisibilityDetectorController.instance.updateInterval = const Duration(milliseconds: 50);
+    // 2. Logo Animation ka logic setup karna
+    _logoController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200), // 1.2 seconds ka smooth effect
+    );
+    // Premium Elastic Pop Effect
+    _logoScaleAnimation = TweenSequence([
+      // Pehle halke se bada hoga (Scale 0.7 se 1.1 tak)
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.7, end: 1.15)
+            .chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 30,
+      ),
+      // Phir elastic bounce ke sath normal (1.0) par aayega
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.15, end: 1.0)
+            .chain(CurveTween(curve: Curves.elasticOut)),
+        weight: 70,
+      ),
+    ]).animate(_logoController);
+
+
+ // Animation start karein
+  _logoController.forward();
+  }
+  @override
+  void dispose() {
+    // 3. Controller ko dispose karna zaroori hai
+    _logoController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchActiveCoupon() async {
@@ -58,6 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _logoController.forward(from: 0.0);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: _buildAppBar(context),
@@ -89,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 16),
+                 
                   _buildHeroBanner(context, restaurant),
                   const SizedBox(height: 24),
                   
@@ -122,123 +157,160 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
+PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       automaticallyImplyLeading: false,
       backgroundColor: AppColors.background,
       elevation: 0,
-      title: Consumer2<AddressProvider, AuthProvider>(
-        builder: (context, addressProvider, authProvider, _) {
-          String displayAddress = 'Select Location';
-          if (authProvider.isAuthenticated && addressProvider.addresses.isNotEmpty) {
-            final defaultAddress = addressProvider.addresses.firstWhere(
-              (a) => a['isDefault'] == true,
-              orElse: () => addressProvider.addresses.first,
-            );
-            displayAddress = defaultAddress['address'] ?? 'Select Location';
-          }
+      toolbarHeight: 85, // 👈 YAHAN HEIGHT BADHAYI GAYI HAI taaki 80px ka logo fit ho sake
+      centerTitle: true,
 
-          return InkWell(
-            onTap: () {
-              if (authProvider.isAuthenticated) {
-                if (addressProvider.addresses.isEmpty) {
-                  addressProvider.fetchAddresses();
+      // 1. ADDRESS BAR LEFT SIDE (Original size wapas laaye)
+      leadingWidth: 160, 
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 12.0),
+        child: Consumer2<AddressProvider, AuthProvider>(
+          builder: (context, addressProvider, authProvider, _) {
+            String displayAddress = 'Select Location';
+            if (authProvider.isAuthenticated && addressProvider.addresses.isNotEmpty) {
+              final defaultAddress = addressProvider.addresses.firstWhere(
+                (a) => a['isDefault'] == true,
+                orElse: () => addressProvider.addresses.first,
+              );
+              displayAddress = defaultAddress['address'] ?? 'Select Location';
+            }
+
+            return InkWell(
+              onTap: () {
+                if (authProvider.isAuthenticated) {
+                  if (addressProvider.addresses.isEmpty) {
+                    addressProvider.fetchAddresses();
+                  }
+                  _showLocationBottomSheet(context, addressProvider);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please login to select address')),
+                  );
                 }
-                _showLocationBottomSheet(context, addressProvider);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please login to select address')),
-                );
-              }
-            },
-            child: Row(
-              children: [
-                const Icon(Icons.location_on, color: Colors.red, size: 28),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Deliver to',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textLight,
-                              fontSize: 12,
+              },
+              child: Row(
+                children: [
+                  const Icon(Icons.location_on, color: Colors.red, size: 28), // 👈 Icon wapas bada kiya
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Deliver to',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: AppColors.textLight,
+                                fontSize: 12, // 👈 Font size wapas normal kiya
+                              ),
+                        ),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                displayAddress,
+                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textDark,
+                                    ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                      ),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              displayAddress,
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.textDark,
-                                  ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const Icon(Icons.keyboard_arrow_down, color: AppColors.textDark),
-                        ],
-                      ),
-                    ],
+                            const Icon(Icons.keyboard_arrow_down, color: AppColors.textDark, size: 20),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            );
+          },
+        ),
       ),
+
+      // 2. LOGO CENTER
+      title: VisibilityDetector(
+        key: const Key('home-screen-logo'),
+        onVisibilityChanged: (visibilityInfo) {
+
+          // Jaise hi ye logo screen par 50% se zyada dikhega, animation trigger ho jayega
+         if (visibilityInfo.visibleFraction > 0.1) {
+            _logoController.forward(from: 0.0);
+          }
+        },
+        child: ScaleTransition(
+          scale: _logoScaleAnimation,
+          child: Image.asset(
+            'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
+            height: 75,
+            fit: BoxFit.contain,
+            errorBuilder: (c, e, s) => const Text(
+              'LASSI LOUNGE', 
+              style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)
+            ),
+          ),
+        ),
+      ),
+      // 3. ACTIONS (Icons ka size wapas bada kiya gaya hai)
       actions: [
         IconButton(
-          icon: const Icon(Icons.search, size: 28),
+          icon: const Icon(Icons.search, size: 28), // 👈 Size wapas 28
           color: AppColors.textDark,
+          constraints: const BoxConstraints(),
+          padding: const EdgeInsets.symmetric(horizontal: 6),
           onPressed: () {
             Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchScreen()));
           },
         ),
-        Padding(
-          padding: const EdgeInsets.only(right: 8.0),
-          child: Consumer<NotificationProvider>(
-            builder: (context, notificationProvider, child) {
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none_outlined, size: 28),
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
-                    },
-                    color: AppColors.textDark,
-                  ),
-                  if (notificationProvider.hasUnread)
-                    Positioned(
-                      right: 8,
-                      top: 12,
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
+        Consumer<NotificationProvider>(
+          builder: (context, notificationProvider, child) {
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_none_outlined, size: 28), // 👈 Size wapas 28
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
+                  },
+                  color: AppColors.textDark,
+                ),
+                if (notificationProvider.hasUnread)
+                  Positioned(
+                    right: 6,
+                    top: 10,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
                       ),
-                    )
-                ],
-              );
-            }
-          ),
+                    ),
+                  )
+              ],
+            );
+          }
         ),
         Padding(
-          padding: const EdgeInsets.only(right: 16.0),
+          padding: const EdgeInsets.only(right: 12.0),
           child: Consumer<CartProvider>(
             builder: (context, cart, child) {
               return Stack(
                 alignment: Alignment.center,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.shopping_cart_outlined, size: 26),
+                    icon: const Icon(Icons.shopping_cart_outlined, size: 28), // 👈 Size wapas 28
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -249,8 +321,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   if (cart.itemCount > 0)
                     Positioned(
-                      right: 4,
-                      top: 4,
+                      right: 2,
+                      top: 6,
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: const BoxDecoration(

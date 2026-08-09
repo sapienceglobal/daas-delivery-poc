@@ -80,9 +80,12 @@ export default function MerchantSidebar() {
     <div className="w-[250px] h-screen bg-[#111827] flex flex-col border-r border-[#1f2937] overflow-hidden shrink-0 shadow-2xl z-50">
       {/* Logo Area */}
       <div className="p-6 flex flex-col items-center justify-center shrink-0">
-        <div className="flex flex-col items-center mb-6">
-           <span className="text-2xl font-serif text-white italic font-bold">Lassi</span>
-           <span className="text-[#ef4444] text-[9px] font-bold tracking-[0.25em] uppercase mt-[-4px]">Lounge</span>
+        <div className="mb-6">
+          <img
+            src="/assets/images/branded/lassi-lounge/logo-email.png"
+            alt="Lassi Lounge"
+            className="h-11 w-auto object-contain"
+          />
         </div>
 
         {/* Dashboard Button */}
@@ -90,7 +93,7 @@ export default function MerchantSidebar() {
           href="/merchant"
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all duration-300
             ${isActiveNav('dashboard') 
-              ? 'bg-[#8b0000] text-white shadow-[0_4px_12px_rgba(139,0,0,0.3)]' 
+              ? 'bg-[#7a0b10] text-white shadow-[0_4px_12px_rgba(122,11,16,0.35)]' 
               : 'text-gray-400 hover:text-white hover:bg-[#1f2937]'
             }`}
         >
@@ -125,13 +128,13 @@ export default function MerchantSidebar() {
                         }`}
                     >
                       <div className="flex items-center gap-3">
-                        <Icon className={`h-4 w-4 transition-colors ${isActive ? 'text-[#ef4444]' : 'text-gray-500 group-hover:text-gray-300'}`} />
+                        <Icon className={`h-4 w-4 transition-colors ${isActive ? 'text-[#7a0b10]' : 'text-gray-500 group-hover:text-gray-300'}`} />
                         <span className="text-sm">{item.label}</span>
                       </div>
                       
                       {badgeCount > 0 && (
                         <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold
-                          ${item.badgeColor === 'red' ? 'bg-[#ef4444] text-white' : 
+                          ${item.badgeColor === 'red' ? 'bg-[#7a0b10] text-white' : 
                             item.badgeColor === 'orange' ? 'bg-[#f97316] text-white' : 
                             'bg-gray-700 text-gray-300'}`}
                         >

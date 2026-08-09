@@ -37,6 +37,21 @@ const initTransporter = () => {
 const FROM_EMAIL = process.env.FROM_EMAIL || 'projects.sapience@gmail.com';
 const FROM_NAME = process.env.FROM_NAME || 'Lassi Lounge';
 
+// ── Brand config ─────────────────────────────────────────────────────────
+// Must be a public, absolute HTTPS URL — email clients cannot load local
+// files or relative paths. Host this on your website (e.g. yourdomain.com/
+// assets/email-logo.png) or a CDN/S3 bucket, and set BRAND_LOGO_URL in your
+// env so each deployment of this white-label codebase can swap its own logo
+// without touching this file.
+const BRAND_LOGO_URL = process.env.BRAND_LOGO_URL || 'http://195.35.20.207:3001/assets/images/branded/lassi-lounge/logo-email.png';
+const BRAND_PRIMARY = '#7a0b10';   // deep maroon — matches app buttons/CTAs
+const BRAND_PRIMARY_DARK = '#680307';
+const BRAND_ACCENT = '#E8B93D';    // gold
+const BRAND_CREAM = '#FBEFD9';
+const BRAND_TEXT = '#1a1a1a';
+const BRAND_MUTED = '#6b7280';
+const BRAND_BORDER = '#eadfdb';
+
 /**
  * Send a single email.
  */
@@ -71,104 +86,176 @@ export const sendEmail = async ({ to, subject, text, html }) => {
   }
 };
 
+// ── Shared branded layout ───────────────────────────────────────────────
+// Table-based + inline styles on purpose: this is the "bulletproof" pattern
+// that renders consistently across Gmail, Outlook, Apple Mail, etc. — flex/
+// grid and <style> blocks are unreliable in many email clients.
+
+const emailButton = (label, url) => `
+  <a href="${url}" target="_blank" style="display:inline-block;background-color:${BRAND_PRIMARY};color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:0.4px;text-transform:uppercase;padding:14px 32px;border-radius:8px;">
+    ${label}
+  </a>
+`;
+
+const emailShell = ({ preheader = '', bodyHtml }) => `
+<!DOCTYPE html>
+<html lang="en">
+  <body style="margin:0;padding:0;background-color:#f4f1ee;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+    <span style="display:none;font-size:1px;color:#f4f1ee;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+      ${preheader}
+    </span>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f1ee;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${BRAND_BORDER};">
+            <tr>
+              <td align="center" style="padding:28px 24px;border-bottom:1px solid ${BRAND_BORDER};">
+                <img src="${BRAND_LOGO_URL}" alt="${FROM_NAME}" height="36" style="display:block;height:36px;width:auto;border:0;" />
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:36px 32px;color:${BRAND_TEXT};font-size:14px;line-height:1.6;">
+                ${bodyHtml}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 32px;background-color:#faf8f5;border-top:1px solid ${BRAND_BORDER};">
+                <p style="margin:0;font-size:12px;color:${BRAND_MUTED};text-align:center;">
+                  &copy; ${new Date().getFullYear()} ${FROM_NAME}. All rights reserved.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+`;
+
 // ── Template helpers ────────────────────────────────────────────────────────
 
 export const sendPasswordResetEmail = async (email, resetUrl, userName) => {
+  const bodyHtml = `
+    <h2 style="margin:0 0 16px;font-size:20px;color:${BRAND_TEXT};">Reset your password</h2>
+    <p style="margin:0 0 8px;">Hi ${userName},</p>
+    <p style="margin:0 0 24px;">
+      We received a request to reset your password. Click the button below to choose a new one —
+      this link expires in <strong>30 minutes</strong>.
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr><td>
+      ${emailButton('Reset Password', resetUrl)}
+    </td></tr></table>
+    <p style="margin:24px 0 0;font-size:12px;color:${BRAND_MUTED};">
+      If you didn't request this, you can safely ignore this email — your password won't change.
+    </p>
+  `;
+
   return sendEmail({
     to: email,
-    subject: 'Password Reset Request',
-    text: `Hi ${userName},\n\nYou requested a password reset. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link will expire in 30 minutes.\n\nIf you didn't request this, please ignore this email.`,
-    html: `
-      <div style="font-family: system-ui, sans-serif; max-width: 500px; margin: auto; padding: 24px;">
-        <h2 style="color: #10b981;">Password Reset</h2>
-        <p>Hi ${userName},</p>
-        <p>You requested a password reset. Click the button below:</p>
-        <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">Reset Password</a>
-        <p style="color: #666; font-size: 12px; margin-top: 24px;">This link expires in 30 minutes. If you didn't request this, ignore this email.</p>
-      </div>
-    `
+    subject: 'Reset your password',
+    text: `Hi ${userName},\n\nYou requested a password reset. Use the link below to reset it (expires in 30 minutes):\n\n${resetUrl}\n\nIf you didn't request this, please ignore this email.`,
+    html: emailShell({ preheader: 'Reset your password — link expires in 30 minutes.', bodyHtml })
   });
 };
 
 export const sendOrderConfirmationEmail = async (email, order) => {
-  const itemsList = order.items?.map(i => `${i.quantity}x ${i.name} — $${i.lineTotal.toFixed(2)}`).join('<br>') || 'N/A';
+  const itemsList = order.items?.map(i =>
+    `<tr>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND_BORDER};font-size:14px;">${i.quantity}x ${i.name}</td>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND_BORDER};font-size:14px;text-align:right;">$${i.lineTotal.toFixed(2)}</td>
+    </tr>`
+  ).join('') || '';
+
+  const bodyHtml = `
+    <h2 style="margin:0 0 4px;font-size:20px;color:${BRAND_TEXT};">Order confirmed ✅</h2>
+    <p style="margin:0 0 20px;color:${BRAND_MUTED};font-size:13px;">Order #${order.orderNumber} &middot; ${order.restaurantName}</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+      ${itemsList}
+    </table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr><td style="padding-top:8px;font-size:16px;font-weight:700;">Total</td>
+          <td style="padding-top:8px;font-size:16px;font-weight:700;text-align:right;color:${BRAND_PRIMARY};">$${order.total.toFixed(2)}</td></tr>
+    </table>
+    ${order.trackingUrl ? `
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:28px;"><tr><td>
+        ${emailButton('Track Delivery', order.trackingUrl)}
+      </td></tr></table>
+    ` : ''}
+  `;
 
   return sendEmail({
     to: email,
     subject: `Order Confirmed — #${order.orderNumber}`,
     text: `Your order #${order.orderNumber} has been confirmed! Total: $${order.total.toFixed(2)}`,
-    html: `
-      <div style="font-family: system-ui, sans-serif; max-width: 500px; margin: auto; padding: 24px;">
-        <h2 style="color: #10b981;">Order Confirmed! ✅</h2>
-        <p><strong>Order #${order.orderNumber}</strong></p>
-        <p>Restaurant: ${order.restaurantName}</p>
-        <hr style="border: 1px solid #eee;">
-        <p>${itemsList}</p>
-        <hr style="border: 1px solid #eee;">
-        <p><strong>Total: $${order.total.toFixed(2)}</strong></p>
-        ${order.trackingUrl ? `<a href="${order.trackingUrl}" style="display: inline-block; padding: 10px 20px; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px;">Track Delivery</a>` : ''}
-      </div>
-    `
+    html: emailShell({ preheader: `Your order #${order.orderNumber} is confirmed.`, bodyHtml })
   });
 };
 
 export const sendWelcomeEmail = async (email, userName) => {
+  const bodyHtml = `
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 20px;"><tr><td>
+      <div style="width:56px;height:56px;border-radius:999px;background-color:${BRAND_CREAM};text-align:center;line-height:56px;font-size:26px;">🎉</div>
+    </td></tr></table>
+    <h2 style="margin:0 0 8px;font-size:20px;color:${BRAND_TEXT};text-align:center;">Welcome, ${userName}!</h2>
+    <p style="margin:0 0 24px;text-align:center;">
+      Your account is ready. Start ordering from ${FROM_NAME} and earn loyalty points on every order —
+      exclusive rewards unlock as you go.
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td>
+      ${emailButton('Start Ordering', `https://${(process.env.WEBSITE_DOMAIN || 'YOUR_DOMAIN_HERE')}`)}
+    </td></tr></table>
+  `;
+
   return sendEmail({
     to: email,
-    subject: 'Welcome to Restaurant Commerce Platform!',
-    text: `Hi ${userName}, welcome! Start ordering your favorite food today.`,
-    html: `
-      <div style="font-family: system-ui, sans-serif; max-width: 500px; margin: auto; padding: 24px;">
-        <h2 style="color: #10b981;">Welcome, ${userName}! 🎉</h2>
-        <p>Your account is ready. Start ordering from your favorite local restaurants.</p>
-        <p>Earn loyalty points on every order and unlock exclusive rewards!</p>
-      </div>
-    `
+    subject: `Welcome to ${FROM_NAME}!`,
+    text: `Hi ${userName}, welcome to ${FROM_NAME}! Start ordering your favorite food today.`,
+    html: emailShell({ preheader: `Your ${FROM_NAME} account is ready.`, bodyHtml })
   });
 };
 
 export const sendInvoiceEmail = async (email, order) => {
-  const itemsList = order.items?.map(i => `<tr>
-    <td style="padding: 8px; border-bottom: 1px solid #eee;">${i.quantity}x ${i.name}</td>
-    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">$${(i.lineTotal || (i.price * i.quantity)).toFixed(2)}</td>
-  </tr>`).join('') || '';
+  const orderRef = order.orderNumber || order._id.toString().slice(-6);
+  const itemsList = order.items?.map(i => `
+    <tr>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND_BORDER};font-size:14px;">${i.quantity}x ${i.name}</td>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND_BORDER};font-size:14px;text-align:right;">$${(i.lineTotal || (i.price * i.quantity)).toFixed(2)}</td>
+    </tr>`
+  ).join('') || '';
+
+  const bodyHtml = `
+    <h2 style="margin:0 0 4px;font-size:20px;color:${BRAND_TEXT};">Invoice / Receipt</h2>
+    <p style="margin:0 0 24px;color:${BRAND_MUTED};font-size:13px;">Order #${orderRef}</p>
+
+    <p style="margin:0 0 24px;">
+      <strong>Billed To:</strong><br>${order.customerName || 'Customer'}<br>${email}
+    </p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
+      <tr>
+        <td style="padding:8px 0;border-bottom:2px solid ${BRAND_BORDER};font-size:12px;font-weight:700;color:${BRAND_MUTED};text-transform:uppercase;">Item</td>
+        <td style="padding:8px 0;border-bottom:2px solid ${BRAND_BORDER};font-size:12px;font-weight:700;color:${BRAND_MUTED};text-transform:uppercase;text-align:right;">Total</td>
+      </tr>
+      ${itemsList}
+    </table>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;">
+      <tr><td style="padding:2px 0;font-size:13px;">Subtotal</td><td style="padding:2px 0;font-size:13px;text-align:right;">$${(order.subtotal || 0).toFixed(2)}</td></tr>
+      <tr><td style="padding:2px 0;font-size:13px;">Tax</td><td style="padding:2px 0;font-size:13px;text-align:right;">$${(order.tax || 0).toFixed(2)}</td></tr>
+      <tr><td style="padding:2px 0;font-size:13px;">Delivery Fee</td><td style="padding:2px 0;font-size:13px;text-align:right;">$${(order.deliveryFee || 0).toFixed(2)}</td></tr>
+      <tr><td style="padding:2px 0;font-size:13px;">Tip</td><td style="padding:2px 0;font-size:13px;text-align:right;">$${(order.tip || 0).toFixed(2)}</td></tr>
+      <tr><td style="padding-top:10px;font-size:16px;font-weight:700;">Total Paid</td>
+          <td style="padding-top:10px;font-size:16px;font-weight:700;text-align:right;color:${BRAND_PRIMARY};">$${(order.total || 0).toFixed(2)}</td></tr>
+    </table>
+
+    <p style="margin:28px 0 0;font-size:12px;color:${BRAND_MUTED};text-align:center;">Thank you for your order!</p>
+  `;
 
   return sendEmail({
     to: email,
-    subject: `Invoice for Order #${order.orderNumber || order._id.toString().slice(-6)}`,
-    text: `Here is your invoice for Order #${order.orderNumber || order._id.toString().slice(-6)}. Total: $${(order.total || 0).toFixed(2)}`,
-    html: `
-      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 8px;">
-        <h2 style="color: #111827; margin-bottom: 4px;">Invoice / Receipt</h2>
-        <p style="color: #6b7280; font-size: 14px; margin-top: 0;">Order #${order.orderNumber || order._id.toString().slice(-6)}</p>
-        
-        <div style="margin-top: 24px; margin-bottom: 24px;">
-          <p><strong>Billed To:</strong><br>${order.customerName || 'Customer'}<br>${email}</p>
-        </div>
-
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
-          <thead>
-            <tr>
-              <th style="text-align: left; padding: 8px; border-bottom: 2px solid #eee;">Item</th>
-              <th style="text-align: right; padding: 8px; border-bottom: 2px solid #eee;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsList}
-          </tbody>
-        </table>
-
-        <div style="text-align: right; margin-top: 16px;">
-          <p style="margin: 4px 0;">Subtotal: $${(order.subtotal || 0).toFixed(2)}</p>
-          <p style="margin: 4px 0;">Tax: $${(order.tax || 0).toFixed(2)}</p>
-          <p style="margin: 4px 0;">Delivery Fee: $${(order.deliveryFee || 0).toFixed(2)}</p>
-          <p style="margin: 4px 0;">Tip: $${(order.tip || 0).toFixed(2)}</p>
-          <h3 style="color: #dc2626; margin-top: 8px;">Total Paid: $${(order.total || 0).toFixed(2)}</h3>
-        </div>
-        
-        <hr style="border: 1px solid #eee; margin: 24px 0;">
-        <p style="color: #6b7280; font-size: 12px; text-align: center;">Thank you for your order!</p>
-      </div>
-    `
+    subject: `Invoice for Order #${orderRef}`,
+    text: `Here is your invoice for Order #${orderRef}. Total: $${(order.total || 0).toFixed(2)}`,
+    html: emailShell({ preheader: `Your invoice for order #${orderRef}.`, bodyHtml })
   });
 };

@@ -11,6 +11,7 @@ import 'package:single_restaurant_mobile/providers/address_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
+import 'package:single_restaurant_mobile/widgets/app_logo.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -66,13 +67,15 @@ class _LoginScreenState extends State<LoginScreen> {
         notifProv.fetchNotifications(); // Load unread count so bell dot shows
 
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
+          MaterialPageRoute(
+            builder: (context) => const MainScreen(initialIndex: 0),
+          ),
           (route) => false,
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMsg)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMsg)));
       }
     }
   }
@@ -94,11 +97,23 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const HelpSupportScreen(),
+                ),
               );
             },
-            icon: const Icon(Icons.headset_mic_outlined, color: AppColors.secondary, size: 20),
-            label: const Text('Help', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
+            icon: const Icon(
+              Icons.headset_mic_outlined,
+              color: AppColors.secondary,
+              size: 20,
+            ),
+            label: const Text(
+              'Help',
+              style: TextStyle(
+                color: AppColors.secondary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -124,38 +139,75 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const SizedBox(height: 80),
                     // Mock Logo
-                    const Icon(Icons.workspace_premium, color: Colors.orange, size: 40),
-                    const Text('LASSI', style: TextStyle(color: AppColors.secondary, fontSize: 40, fontFamily: 'serif', letterSpacing: 2)),
-                    const Text('LOUNGE', style: TextStyle(color: AppColors.secondary, fontSize: 20, fontFamily: 'serif', letterSpacing: 1.5, height: 0.8)),
+                    const AppLogo(height: 80),
                     const SizedBox(height: 8),
                     const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.spa, color: Colors.orange, size: 12),
                         SizedBox(width: 8),
-                        Text('INDIAN RESTAURANT', style: TextStyle(color: Colors.orange, fontSize: 10, letterSpacing: 1.2, fontWeight: FontWeight.bold)),
+                        Text(
+                          'INDIAN RESTAURANT',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 10,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         SizedBox(width: 8),
                         Icon(Icons.spa, color: Colors.orange, size: 12),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    const Text('Welcome Back!', style: TextStyle(color: AppColors.secondary, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'serif')),
+                    const Text(
+                      'Welcome Back!',
+                      style: TextStyle(
+                        color: AppColors.secondary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'serif',
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    const Text('Login to continue and enjoy\nyour favorite food.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4)),
+                    const Text(
+                      'Login to continue and enjoy\nyour favorite food.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    const Icon(Icons.horizontal_rule, color: Colors.orange, size: 24),
+                    const Icon(
+                      Icons.horizontal_rule,
+                      color: Colors.orange,
+                      size: 24,
+                    ),
                   ],
                 ),
               ),
             ),
             // Form Card
             Container(
-              margin: const EdgeInsets.only(top: 330, left: 16, right: 16, bottom: 24),
+              margin: const EdgeInsets.only(
+                top: 330,
+                left: 16,
+                right: 16,
+                bottom: 24,
+              ),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Form(
                 key: _formKey,
@@ -170,14 +222,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Email is required';
-                        final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                        if (!emailRegex.hasMatch(value)) return 'Enter a valid email format';
+                        if (value == null || value.isEmpty)
+                          return 'Email is required';
+                        final emailRegex = RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        );
+                        if (!emailRegex.hasMatch(value))
+                          return 'Enter a valid email format';
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Password Field
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -189,10 +245,20 @@ class _LoginScreenState extends State<LoginScreen> {
                             onTap: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ForgotPasswordScreen(),
+                                ),
                               );
                             },
-                            child: const Text('Forgot Password?', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 12)),
+                            child: const Text(
+                              'Forgot Password?',
+                              style: TextStyle(
+                                color: AppColors.secondary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -203,14 +269,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       icon: Icons.lock_outline,
                       isPassword: true,
                       isVisible: _isPasswordVisible,
-                      onVisibilityToggle: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                      onVisibilityToggle: () => setState(
+                        () => _isPasswordVisible = !_isPasswordVisible,
+                      ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Password is required';
+                        if (value == null || value.isEmpty)
+                          return 'Password is required';
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Remember me Checkbox
                     Row(
                       children: [
@@ -220,66 +289,117 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Checkbox(
                             value: _rememberMe,
                             activeColor: AppColors.secondary,
-                            onChanged: (val) => setState(() => _rememberMe = val ?? false),
+                            onChanged: (val) =>
+                                setState(() => _rememberMe = val ?? false),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text('Remember me', style: TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.w500)),
+                        const Text(
+                          'Remember me',
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Login Button
                     ElevatedButton(
                       onPressed: _isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.secondary,
+                        foregroundColor: Colors.white, // ← ye line add karein
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      child: _isLoading 
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Login',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Social Login Divider
                     Row(
                       children: [
                         Expanded(child: Divider(color: Colors.grey.shade300)),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('or continue with', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          child: Text(
+                            'or continue with',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
                         ),
                         Expanded(child: Divider(color: Colors.grey.shade300)),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Square Social Buttons Row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildSquareSocialButton(Icons.g_mobiledata, 'Google', Colors.red),
-                        _buildSquareSocialButton(Icons.apple, 'Apple', Colors.black),
-                        _buildSquareSocialButton(Icons.facebook, 'Facebook', Colors.blue),
+                        _buildSquareSocialButton(
+                          Icons.g_mobiledata,
+                          'Google',
+                          Colors.red,
+                        ),
+                        _buildSquareSocialButton(
+                          Icons.apple,
+                          'Apple',
+                          Colors.black,
+                        ),
+                        _buildSquareSocialButton(
+                          Icons.facebook,
+                          'Facebook',
+                          Colors.blue,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Register Navigation
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Don\'t have an account? ', style: TextStyle(color: Colors.black87, fontSize: 13)),
+                        const Text(
+                          'Don\'t have an account? ',
+                          style: TextStyle(color: Colors.black87, fontSize: 13),
+                        ),
                         GestureDetector(
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                              MaterialPageRoute(
+                                builder: (context) => const RegisterScreen(),
+                              ),
                             );
                           },
-                          child: const Text('Register', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 13)),
+                          child: const Text(
+                            'Register',
+                            style: TextStyle(
+                              color: AppColors.secondary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -287,20 +407,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-            
+
             // Footer Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
                   Container(
-                    margin: const EdgeInsets.only(top: 800), // Adjusted to sit below the card roughly, actually better inside a Column below stack or wrap stack properly. 
+                    margin: const EdgeInsets.only(
+                      top: 800,
+                    ), // Adjusted to sit below the card roughly, actually better inside a Column below stack or wrap stack properly.
                     // Let's use a trick: this is inside the Stack. Better to use a Column after the stack. Wait, Stack children overlay.
                     // The Container with top:320 determines the height. I'll move this outside the stack by putting the stack inside a column.
-                  )
+                  ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -317,23 +439,54 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: const Color(0xFFFFF7F0), // Light orange/beige
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.card_giftcard, color: AppColors.secondary, size: 24),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: RichText(
-                        text: const TextSpan(
-                          style: TextStyle(color: Colors.black87, fontSize: 14),
-                          children: [
-                            TextSpan(text: 'New here? Sign up and get '),
-                            TextSpan(text: '10% OFF', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
-                          ]
-                        )
+                child: GestureDetector(
+                  // Yahan onTap add kiya gaya hai
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RegisterScreen(),
                       ),
-                    ),
-                    const Icon(Icons.chevron_right, color: AppColors.secondary, size: 20),
-                  ],
+                    );
+                  },
+                  // Behavior opaque karne se pure row area par tap properly kaam karega
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.card_giftcard,
+                        color: AppColors
+                            .secondary, // Make sure AppColors is defined in your project
+                        size: 24,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: RichText(
+                          text: const TextSpan(
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 14,
+                            ),
+                            children: [
+                              TextSpan(text: 'New here? Sign up and get '),
+                              TextSpan(
+                                text: '10% OFF',
+                                style: TextStyle(
+                                  color: AppColors.secondary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: AppColors.secondary,
+                        size: 20,
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -343,7 +496,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   Icon(Icons.lock_outline, color: Colors.grey, size: 14),
                   SizedBox(width: 6),
-                  Text('Your data is safe and secure with us', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                  Text(
+                    'Your data is safe and secure with us',
+                    style: TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
                 ],
               ),
             ],
@@ -356,7 +512,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+      ),
     );
   }
 
@@ -376,7 +535,8 @@ class _LoginScreenState extends State<LoginScreen> {
       validator: validator,
       keyboardType: keyboardType,
       onTap: () {
-        if (controller.selection.baseOffset != controller.selection.extentOffset) {
+        if (controller.selection.baseOffset !=
+            controller.selection.extentOffset) {
           final extent = controller.selection.extentOffset;
           if (extent != -1) {
             controller.selection = TextSelection.collapsed(offset: extent);
@@ -387,12 +547,16 @@ class _LoginScreenState extends State<LoginScreen> {
         hintText: hintText,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
         prefixIcon: Icon(icon, color: Colors.grey, size: 20),
-        suffixIcon: isPassword 
-          ? IconButton(
-              icon: Icon(isVisible! ? Icons.visibility : Icons.visibility_off, color: Colors.grey, size: 20),
-              onPressed: onVisibilityToggle,
-            )
-          : null,
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  isVisible! ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.grey,
+                  size: 20,
+                ),
+                onPressed: onVisibilityToggle,
+              )
+            : null,
         contentPadding: const EdgeInsets.symmetric(vertical: 16),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -414,7 +578,11 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildSquareSocialButton(IconData icon, String label, Color iconColor) {
+  Widget _buildSquareSocialButton(
+    IconData icon,
+    String label,
+    Color iconColor,
+  ) {
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -428,7 +596,14 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Icon(icon, color: iconColor, size: 28),
             const SizedBox(height: 8),
-            Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
           ],
         ),
       ),
