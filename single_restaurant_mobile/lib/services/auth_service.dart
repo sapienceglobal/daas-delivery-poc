@@ -34,7 +34,8 @@ class AuthService {
   }
 
   // Register a new user
-  Future<bool> register({
+  // Returns null on success, error message string on failure
+  Future<String?> register({
     required String name,
     required String email,
     required String password,
@@ -49,22 +50,32 @@ class AuthService {
         'role': 'customer',
       });
 
-      if (response.statusCode == 201) {
+      // Agar status 201 (Created) ya 200 (OK) hai toh success
+      if (response.statusCode == 201 || response.statusCode == 200) {
         final data = json.decode(response.body);
         final token = data['token'];
         if (token != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_tokenKey, token);
           ApiService.setAuthToken(token);
-          return true;
         }
-      } else {
-        print('Registration failed: ${response.body}');
+        return null; // Null return karne ka matlab hai Success
+      } 
+      
+      // Agar backend se koi error aati hai (jaise Email already exists)
+      try {
+        final errorData = json.decode(response.body);
+        return errorData['message'] ?? 'Registration failed. Please try again.';
+      } catch (decodeError) {
+        // Agar JSON parse na ho paye toh safe fallback
+        if (response.body.isNotEmpty && response.body.length < 100) {
+          return response.body;
+        }
+        return 'Registration failed. Please check your details and try again.';
       }
-      return false;
     } catch (e) {
       print('Error during registration: $e');
-      return false;
+      return 'Unable to connect to the server. Please check your internet connection.';
     }
   }
 
@@ -271,6 +282,97 @@ class AuthService {
     } catch (e) {
       print('Error toggling favorite item: $e');
       return false;
+    }
+  }
+
+ // Verify email OTP after registration
+  // Returns null on success, error message string on failure
+  Future<String?> verifyOtp({
+    required String email,
+    required String otp,
+  }) async {
+    try {
+      final response = await ApiService.post('/api/auth/verify-otp', {
+        'email': email,
+        'otp': otp,
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body);
+        final token = data['token'];
+        if (token != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_tokenKey, token);
+          ApiService.setAuthToken(token);
+        }
+        return null; // success
+      }
+
+      final errorData = json.decode(response.body);
+      return errorData['message'] ?? 'Invalid OTP. Please try again.';
+      
+    } catch (e) {
+      print('Error verifying OTP: $e');
+      final errorStr = e.toString();
+
+      // 1. Agar ApiService ne JSON ko Exception me wrap kar diya hai
+      try {
+        final startIndex = errorStr.indexOf('{');
+        final endIndex = errorStr.lastIndexOf('}');
+        if (startIndex != -1 && endIndex != -1) {
+          final jsonStr = errorStr.substring(startIndex, endIndex + 1);
+          final errorData = json.decode(jsonStr);
+          if (errorData['message'] != null) {
+            return errorData['message'];
+          }
+        }
+      } catch (_) {}
+
+      // 2. Direct string checks based on your logs
+      if (errorStr.contains('400') || errorStr.toLowerCase().contains('invalid')) {
+        return 'Invalid OTP. Please check and try again.';
+      }
+
+      // Safe fallback (Ab Unable to connect nahi aayega)
+      return 'Invalid OTP. Please check and try again.'; 
+    }
+  }
+
+  // Resend OTP logic
+  Future<String?> resendOtp({required String email}) async {
+    try {
+      final response = await ApiService.post('/api/auth/resend-otp', {
+        'email': email,
+      });
+      
+      if (response.statusCode == 200) {
+        return null; // success
+      }
+      
+      final errorData = json.decode(response.body);
+      return errorData['message'] ?? 'Failed to resend OTP.';
+      
+    } catch (e) {
+      print('Error resending OTP: $e');
+      final errorStr = e.toString();
+      
+      // JSON extract from exception
+      try {
+        final startIndex = errorStr.indexOf('{');
+        final endIndex = errorStr.lastIndexOf('}');
+        if (startIndex != -1 && endIndex != -1) {
+          final jsonStr = errorStr.substring(startIndex, endIndex + 1);
+          final errorData = json.decode(jsonStr);
+          if (errorData['message'] != null) return errorData['message'];
+        }
+      } catch (_) {}
+
+      // Agar 429 (Too many requests) aaye
+      if (errorStr.contains('429') || errorStr.toLowerCase().contains('wait')) {
+        return 'Please wait 60 seconds before requesting a new code.';
+      }
+      
+      return 'Failed to resend OTP. Please try again.';
     }
   }
 }

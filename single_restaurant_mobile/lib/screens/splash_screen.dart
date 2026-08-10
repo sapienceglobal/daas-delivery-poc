@@ -77,24 +77,24 @@ class _SplashScreenState extends State<SplashScreen> {
                   const SizedBox(height: 16),
 
                   // Divider with Indian Restaurant text
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(width: 30, height: 1, color: AppColors.primary),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text(
-                          'INDIAN RESTAURANT',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 10,
-                            letterSpacing: 2.0,
-                          ),
-                        ),
-                      ),
-                      Container(width: 30, height: 1, color: AppColors.primary),
-                    ],
-                  ),
+                  // Row(
+                  //   mainAxisAlignment: MainAxisAlignment.center,
+                  //   children: [
+                  //     Container(width: 30, height: 1, color: AppColors.primary),
+                  //     const Padding(
+                  //       padding: EdgeInsets.symmetric(horizontal: 8.0),
+                  //       child: Text(
+                  //         'INDIAN RESTAURANT',
+                  //         style: TextStyle(
+                  //           color: Colors.white70,
+                  //           fontSize: 10,
+                  //           letterSpacing: 2.0,
+                  //         ),
+                  //       ),
+                  //     ),
+                  //     Container(width: 30, height: 1, color: AppColors.primary),
+                  //   ],
+                  // ),
                   const SizedBox(height: 60),
 
                   // Welcome Text
@@ -142,16 +142,16 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Description
-                  const Text(
-                    'From iconic street favorites to rich\ncurries and refreshing drinks, we bring\nyou the true essence of India.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                      height: 1.5,
-                    ),
-                  ),
+                  // // Description
+                  // const Text(
+                  //   'From iconic street favorites to rich\ncurries and refreshing drinks, we bring\nyou the true essence of India.',
+                  //   textAlign: TextAlign.center,
+                  //   style: TextStyle(
+                  //     color: Colors.white70,
+                  //     fontSize: 14,
+                  //     height: 1.5,
+                  //   ),
+                  // ),
 
                   const Spacer(),
 

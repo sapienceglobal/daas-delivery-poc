@@ -30,6 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
   bool _rememberMe = true;
   bool _isLoading = false;
+  String? _errorMessage; // 👈 1. Error message store karne ke liye variable
 
   @override
   void dispose() {
@@ -41,7 +42,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null; // 👈 Login start hote hi purana error clear karein
+    });
 
     final errorMsg = await _authService.login(
       email: _emailController.text.trim(),
@@ -52,19 +56,19 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
       if (errorMsg == null) {
-        // Trigger all providers that depend on auth — same as auto-login path in main.dart
+        // Trigger all providers that depend on auth
         final authProv = context.read<AuthProvider>();
         final addressProv = context.read<AddressProvider>();
         final cartProv = context.read<CartProvider>();
         final loyaltyProv = context.read<LoyaltyProvider>();
         final notifProv = context.read<NotificationProvider>();
 
-        // Fire and forget — don't await so navigation is instant
+        // Fire and forget
         authProv.fetchUser();
         addressProv.fetchAddresses();
         cartProv.loadCart();
         loyaltyProv.fetchHistory();
-        notifProv.fetchNotifications(); // Load unread count so bell dot shows
+        notifProv.fetchNotifications(); 
 
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
@@ -73,17 +77,23 @@ class _LoginScreenState extends State<LoginScreen> {
           (route) => false,
         );
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(errorMsg)));
+        // 👈 2. SnackBar hata kar inline error state set ki
+        setState(() => _errorMessage = errorMsg);
       }
+    }
+  }
+
+  // 👈 Type karte hi error hatane ka function
+  void _clearErrorOnType(String value) {
+    if (_errorMessage != null) {
+      setState(() => _errorMessage = null);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF8F5), // Light beige background
+      backgroundColor: const Color(0xFFFAF8F5),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -138,7 +148,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 80),
-                    // Mock Logo
                     const AppLogo(height: 80),
                     const SizedBox(height: 8),
                     const Row(
@@ -189,6 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
+            
             // Form Card
             Container(
               margin: const EdgeInsets.only(
@@ -214,6 +224,39 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    
+                    // 👈 3. OTP screen jaisa Red Error Box yahan add kiya hai
+                    if (_errorMessage != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.error_outline, color: Colors.red.shade700, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: TextStyle(
+                                  color: Colors.red.shade700, 
+                                  fontSize: 12.5, 
+                                  fontWeight: FontWeight.w600, 
+                                  height: 1.3
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
                     // Email Field
                     _buildLabel('Email Address'),
                     _buildTextField(
@@ -221,6 +264,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       hintText: 'Enter your email address',
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
+                      onChanged: _clearErrorOnType, // 👈 Jaise hi user type karega, error hat jayega
                       validator: (value) {
                         if (value == null || value.isEmpty)
                           return 'Email is required';
@@ -269,6 +313,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       icon: Icons.lock_outline,
                       isPassword: true,
                       isVisible: _isPasswordVisible,
+                      onChanged: _clearErrorOnType, // 👈 Jaise hi user type karega, error hat jayega
                       onVisibilityToggle: () => setState(
                         () => _isPasswordVisible = !_isPasswordVisible,
                       ),
@@ -311,7 +356,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: _isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.secondary,
-                        foregroundColor: Colors.white, // ← ye line add karein
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -407,18 +452,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-
-            // Footer Section
+            
+            // Layout spacing trick footer
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
                   Container(
-                    margin: const EdgeInsets.only(
-                      top: 800,
-                    ), // Adjusted to sit below the card roughly, actually better inside a Column below stack or wrap stack properly.
-                    // Let's use a trick: this is inside the Stack. Better to use a Column after the stack. Wait, Stack children overlay.
-                    // The Container with top:320 determines the height. I'll move this outside the stack by putting the stack inside a column.
+                    margin: const EdgeInsets.only(top: 800),
                   ),
                 ],
               ),
@@ -436,11 +477,10 @@ class _LoginScreenState extends State<LoginScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF7F0), // Light orange/beige
+                  color: const Color(0xFFFFF7F0),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: GestureDetector(
-                  // Yahan onTap add kiya gaya hai
                   onTap: () {
                     Navigator.push(
                       context,
@@ -449,14 +489,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     );
                   },
-                  // Behavior opaque karne se pure row area par tap properly kaam karega
                   behavior: HitTestBehavior.opaque,
                   child: Row(
                     children: [
                       const Icon(
                         Icons.card_giftcard,
-                        color: AppColors
-                            .secondary, // Make sure AppColors is defined in your project
+                        color: AppColors.secondary,
                         size: 24,
                       ),
                       const SizedBox(width: 16),
@@ -527,6 +565,7 @@ class _LoginScreenState extends State<LoginScreen> {
     bool? isVisible,
     VoidCallback? onVisibilityToggle,
     String? Function(String?)? validator,
+    Function(String)? onChanged, // 👈 4. onChanged add kiya
     TextInputType keyboardType = TextInputType.text,
   }) {
     return TextFormField(
@@ -534,6 +573,7 @@ class _LoginScreenState extends State<LoginScreen> {
       obscureText: isPassword && !(isVisible ?? false),
       validator: validator,
       keyboardType: keyboardType,
+      onChanged: onChanged, // 👈 Connect kar diya
       onTap: () {
         if (controller.selection.baseOffset !=
             controller.selection.extentOffset) {
@@ -560,7 +600,9 @@ class _LoginScreenState extends State<LoginScreen> {
         contentPadding: const EdgeInsets.symmetric(vertical: 16),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(
+            color: _errorMessage != null ? Colors.red.shade300 : Colors.grey.shade300, // Error state me border red ho jayegi
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),

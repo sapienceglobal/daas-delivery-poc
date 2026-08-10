@@ -9,11 +9,12 @@ import 'package:single_restaurant_mobile/providers/address_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
+import 'package:single_restaurant_mobile/services/auth_service.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
-  final String phoneNumber;
+  final String email;
 
-  const OtpVerificationScreen({super.key, required this.phoneNumber});
+  const OtpVerificationScreen({super.key, required this.email});
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -22,19 +23,30 @@ class OtpVerificationScreen extends StatefulWidget {
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final List<TextEditingController> _controllers = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
-  
-  Timer? _timer;
-  int _start = 58; // Starting from 00:58 as in the UI
+  final _authService = AuthService();
+
+  bool _isLoading = false;
+  bool _isResending = false;
+  String? _errorMessage;
+
+  // This is ONLY the "resend" cooldown, not the OTP's actual validity
+  // window. The previous version reused this single 60s timer as if it
+  // were the OTP expiry too, which is why the UI said the code expires
+  // in under a minute when the backend actually allows 10 minutes.
+  // The real expiry is communicated as static text below instead of a
+  // live countdown, since the backend is the source of truth for it.
+  Timer? _resendTimer;
+  int _resendSecondsLeft = 60;
 
   @override
   void initState() {
     super.initState();
-    _startTimer();
+    _startResendTimer();
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _resendTimer?.cancel();
     for (var controller in _controllers) {
       controller.dispose();
     }
@@ -44,40 +56,125 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     super.dispose();
   }
 
-  void _startTimer() {
-    _start = 58;
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_start == 0) {
+  void _startResendTimer() {
+    _resendSecondsLeft = 60;
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_resendSecondsLeft == 0) {
         setState(() => timer.cancel());
       } else {
-        setState(() => _start--);
+        setState(() => _resendSecondsLeft--);
       }
     });
   }
 
-  void _onVerify() {
-    // Collect all digits
-    String otp = _controllers.map((c) => c.text).join();
-    
-    // UI Validation: We require exactly 6 digits for the UI flow to proceed
-    if (otp.length == 6) {
+  void _clearOtpFields() {
+    for (var c in _controllers) {
+      c.clear();
+    }
+    _focusNodes[0].requestFocus();
+  }
+
+  Future<void> _onVerify() async {
+    final otp = _controllers.map((c) => c.text).join();
+
+    if (otp.length < 6) {
+      setState(() => _errorMessage = 'Please enter the complete 6-digit code.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final errorMsg = await _authService.verifyOtp(
+      email: widget.email,
+      otp: otp,
+    );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (errorMsg == null) {
       // Load all user-specific providers freshly for the new account
-      if (context.mounted) {
-        context.read<AuthProvider>().fetchUser();
-        context.read<AddressProvider>().fetchAddresses();
-        context.read<CartProvider>().loadCart();
-        context.read<LoyaltyProvider>().fetchHistory();
-        context.read<NotificationProvider>().fetchNotifications();
-      }
+      context.read<AuthProvider>().fetchUser();
+      context.read<AddressProvider>().fetchAddresses();
+      context.read<CartProvider>().loadCart();
+      context.read<LoyaltyProvider>().fetchHistory();
+      context.read<NotificationProvider>().fetchNotifications();
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
         (route) => false,
       );
     } else {
+      // Wrong / expired OTP: show it inline, clear the boxes, and put
+      // focus back on the first one — never navigate forward here.
+      // NOTE: this screen only trusts `errorMsg == null` as success, so
+      // if wrong codes are still getting people registered, the bug is
+      // inside `auth_service.dart` / the backend `verify-otp` endpoint
+      // returning null when it shouldn't — not in this file.
+      setState(() => _errorMessage = errorMsg);
+      _clearOtpFields();
+    }
+  }
+
+  Future<void> _onResend() async {
+    setState(() {
+      _isResending = true;
+      _errorMessage = null;
+    });
+    final errorMsg = await _authService.resendOtp(email: widget.email);
+    if (!mounted) return;
+    setState(() => _isResending = false);
+
+    if (errorMsg == null) {
+      _clearOtpFields();
+      _startResendTimer();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter the complete 6-digit OTP.')),
+        const SnackBar(content: Text('A new code has been sent to your email.')),
       );
+    } else {
+      setState(() => _errorMessage = errorMsg);
+    }
+  }
+
+  void _handleDigitChange(int index, String rawValue) {
+    if (_errorMessage != null) {
+      setState(() => _errorMessage = null);
+    }
+
+    // Pasting a full 6-digit code into any box lands here with more
+    // than one character — distribute it across the remaining boxes
+    // instead of only keeping the first digit (previous behaviour,
+    // since `maxLength: 1` silently truncated pasted codes).
+    if (rawValue.length > 1) {
+      final digits = rawValue.split('');
+      for (int i = 0; i < digits.length && (index + i) < 6; i++) {
+        _controllers[index + i].text = digits[i];
+      }
+      final lastFilledIndex = (index + digits.length - 1).clamp(0, 5);
+      _focusNodes[lastFilledIndex].requestFocus();
+      if (_controllers.every((c) => c.text.isNotEmpty)) {
+        FocusScope.of(context).unfocus();
+        _onVerify();
+      }
+      return;
+    }
+
+    if (rawValue.isNotEmpty) {
+      if (index < 5) {
+        _focusNodes[index + 1].requestFocus();
+      } else {
+        _focusNodes[index].unfocus();
+        if (_controllers.every((c) => c.text.isNotEmpty)) {
+          _onVerify();
+        }
+      }
+    } else {
+      if (index > 0) {
+        _focusNodes[index - 1].requestFocus();
+      }
     }
   }
 
@@ -119,20 +216,42 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Stylized Background Content
-                  Positioned(
-                    top: 80,
+              Positioned(
+                    top: 70, 
                     child: Column(
                       children: [
-                        const Icon(Icons.workspace_premium, color: Colors.orange, size: 40),
-                        const Text('LASSI', style: TextStyle(color: AppColors.secondary, fontSize: 40, fontFamily: 'serif', letterSpacing: 2)),
-                        const Text('LOUNGE', style: TextStyle(color: AppColors.secondary, fontSize: 20, fontFamily: 'serif', letterSpacing: 1.5, height: 0.8)),
-                        const SizedBox(height: 8),
+                        // 1. Aapka Lassi Lounge Logo
+                        Image.asset(
+                          'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
+                          height: 120, // Height thodi 100 rakhi hai taaki niche text aaram se fit ho
+                          fit: BoxFit.contain,
+                          errorBuilder: (c, e, s) => const Text(
+                            'LASSI LOUNGE',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 0), // Logo aur text ke beech ka gap
+
+                        // 2. Premium 'Indian Restaurant' tag
                         const Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.spa, color: Colors.orange, size: 12),
                             SizedBox(width: 8),
-                            Text('INDIAN RESTAURANT', style: TextStyle(color: Colors.orange, fontSize: 10, letterSpacing: 1.2, fontWeight: FontWeight.bold)),
+                            Text(
+                              'INDIAN RESTAURANT', 
+                              style: TextStyle(
+                                color: Colors.orange, 
+                                fontSize: 10, 
+                                letterSpacing: 1.2, 
+                                fontWeight: FontWeight.bold
+                              ),
+                            ),
                             SizedBox(width: 8),
                             Icon(Icons.spa, color: Colors.orange, size: 12),
                           ],
@@ -140,7 +259,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       ],
                     ),
                   ),
-                  // Mobile illustration with speech bubble
                   Positioned(
                     bottom: 0,
                     child: SizedBox(
@@ -149,7 +267,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          // Fake phone outline
                           Container(
                             width: 90,
                             height: 150,
@@ -160,12 +277,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                               boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.2), blurRadius: 20, spreadRadius: 5)],
                             ),
                           ),
-                          // Fake screen content (Lock)
                           const Positioned(
                             top: 40,
-                            child: Icon(Icons.lock, color: AppColors.secondary, size: 32),
+                            // Mail icon instead of a lock — the code is
+                            // sent to email, not used to unlock the phone.
+                            child: Icon(Icons.mark_email_read_outlined, color: AppColors.secondary, size: 32),
                           ),
-                          // Speech bubble
                           Positioned(
                             bottom: 20,
                             right: 10,
@@ -180,7 +297,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                               child: const Text('123456', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 2)),
                             ),
                           ),
-                          // Lassi glass (Placeholder icon)
                           Positioned(
                             bottom: 10,
                             left: 10,
@@ -193,23 +309,23 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 ],
               ),
             ),
-            
+
             // Content Section
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
                   const Text(
-                    'Verify Your Mobile Number',
+                    'Verify Your Email Address',
                     style: TextStyle(color: AppColors.secondary, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'serif'),
                   ),
                   const SizedBox(height: 16),
-                  const Text('We\'ve sent a 6-digit OTP to', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                  const Text('We\'ve sent a 6-digit verification code to', style: TextStyle(color: Colors.grey, fontSize: 14)),
                   const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(widget.phoneNumber, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(widget.email, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
@@ -218,83 +334,115 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text('Please enter the OTP below to continue.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  const Text('Please check your inbox (and spam folder) for the code.', style: TextStyle(color: Colors.grey, fontSize: 13)),
                   const SizedBox(height: 24),
-                  
+
+                  if (_errorMessage != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.red.shade700, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: TextStyle(color: Colors.red.shade700, fontSize: 12.5, fontWeight: FontWeight.w600, height: 1.3),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
                   // OTP Inputs
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: List.generate(6, (index) => _buildOtpDigitInput(index)),
                   ),
                   const SizedBox(height: 24),
-                  
-                  // Security Text
+
+                  // Static expiry info — matches the backend's real
+                  // 10-minute window instead of a fake live countdown.
                   const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.verified_user_outlined, color: Colors.green, size: 14),
                       SizedBox(width: 6),
-                      Text('Your verification code is secure and will expire soon.', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                      Text('This code will expire in 10 minutes.', style: TextStyle(color: Colors.grey, fontSize: 11)),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  
-                  // Countdown Timer
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('OTP expires in ', style: TextStyle(color: Colors.grey, fontSize: 14)),
-                      const Icon(Icons.schedule, color: AppColors.secondary, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        '00:${_start.toString().padLeft(2, '0')}',
-                        style: const TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Resend Text
+
+                  // Resend cooldown
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text('Didn\'t receive the code? ', style: TextStyle(color: Colors.grey, fontSize: 14)),
-                      GestureDetector(
-                        onTap: _start == 0 ? _startTimer : null, // Allow resend only if timer is 0
-                        child: Text(
-                          'Resend OTP',
-                          style: TextStyle(color: _start == 0 ? AppColors.secondary : Colors.grey, fontWeight: FontWeight.bold, fontSize: 14),
+                      if (_resendSecondsLeft == 0)
+                        GestureDetector(
+                          onTap: _isResending ? null : _onResend,
+                          child: _isResending
+                              ? const SizedBox(
+                                  height: 14,
+                                  width: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.secondary),
+                                )
+                              : const Text(
+                                  'Resend OTP',
+                                  style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 14),
+                                ),
+                        )
+                      else
+                        Text(
+                          'Resend in 00:${_resendSecondsLeft.toString().padLeft(2, '0')}',
+                          style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 14),
                         ),
-                      )
                     ],
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Verify Button
                   ElevatedButton(
-                    onPressed: _onVerify,
+                    onPressed: _isLoading ? null : _onVerify,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.secondary,
+                      foregroundColor: Colors.white,
+                     
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      minimumSize: const Size(double.infinity, 50),
+                     
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Verify & Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward, color: Colors.white, size: 20),
-                      ],
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('Verify & Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                            ],
+                          ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Info Card
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF7F0), // Light orange
+                      color: const Color(0xFFFFF7F0),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.orange.shade100),
                     ),
@@ -306,9 +454,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Why do we need OTP?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
+                              Text('Why do we need this code?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
                               SizedBox(height: 4),
-                              Text('To verify your identity and keep your\nLassi Lounge account safe and secure.', style: TextStyle(color: Colors.black54, fontSize: 12, height: 1.4)),
+                              Text('To confirm this email is really yours and keep your\nLassi Lounge account safe and secure.', style: TextStyle(color: Colors.black54, fontSize: 12, height: 1.4)),
                             ],
                           ),
                         )
@@ -316,7 +464,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Footer
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -347,35 +495,27 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         focusNode: _focusNodes[index],
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
-        maxLength: 1,
+        // No `maxLength: 1` here on purpose — that formatter silently
+        // truncated pasted 6-digit codes down to a single character
+        // before onChanged ever saw them. Length is handled manually
+        // in `_handleDigitChange` instead, which also enables paste.
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         decoration: InputDecoration(
           counterText: '',
           contentPadding: EdgeInsets.zero,
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey.shade300),
+            borderSide: BorderSide(
+              color: _errorMessage != null ? Colors.red.shade300 : Colors.grey.shade300,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: AppColors.secondary),
           ),
         ),
-        onChanged: (value) {
-          if (value.isNotEmpty) {
-            // Move to next field if current is filled
-            if (index < 5) {
-              _focusNodes[index + 1].requestFocus();
-            } else {
-              _focusNodes[index].unfocus(); // Auto unfocus on last digit
-            }
-          } else {
-            // Move to previous field if current is empty (backspace pressed)
-            if (index > 0) {
-              _focusNodes[index - 1].requestFocus();
-            }
-          }
-        },
+        onChanged: (value) => _handleDigitChange(index, value),
       ),
     );
   }

@@ -132,6 +132,18 @@ const UserSchema = new mongoose.Schema({
   }],
 
   // ── Verification & Security ───────────────────────────────────────────
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailOtp: {
+    type: String,
+    default: null
+  },
+  emailOtpExpiry: {
+    type: Date,
+    default: null
+  },
   isVerified: {
     type: Boolean,
     default: false
@@ -141,14 +153,6 @@ const UserSchema = new mongoose.Schema({
     default: true
   },
   lastLogin: {
-    type: Date,
-    default: null
-  },
-  resetPasswordToken: {
-    type: String,
-    default: null
-  },
-  resetPasswordExpire: {
     type: Date,
     default: null
   },
@@ -190,7 +194,7 @@ const UserSchema = new mongoose.Schema({
     default: null
   },
 
-  // ── Authentication & Security ───────────────────────────────────────────
+  // ── Password Reset ───────────────────────────────────────────────────────
   resetPasswordToken: {
     type: String,
     default: null
@@ -241,9 +245,11 @@ UserSchema.methods.toSafeJSON = function () {
   delete obj.salt;
   delete obj.passwordAlgorithm;
   delete obj.resetPasswordToken;
-  delete obj.resetPasswordExpire;
+  delete obj.resetPasswordExpires;
   delete obj.failedLoginAttempts;
   delete obj.loginLockedUntil;
+  delete obj.emailOtp;
+  delete obj.emailOtpExpiry;
   delete obj.__v;
   return obj;
 };

@@ -28,11 +28,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isConfirmPasswordVisible = false;
   bool _agreedToTerms = false;
   bool _isLoading = false;
-  String _selectedCountryCode = '+1'; // Default to US/Canada
-String _selectedCountryFlag = '🇺🇸'; // Default Flag
 
+  // NOTE: Defaulted to India since the storefront is branded as an
+  // "Indian Restaurant" — change this if the business is actually
+  // based elsewhere. (Previously defaulted to +1 US/Canada, which
+  // didn't match the rest of the app's branding.)
+  String _selectedCountryCode = '+91';
+  String _selectedCountryFlag = '🇮🇳';
 
- 
+  // Top-of-form banner for anything the backend rejects (duplicate
+  // email, server error, etc). Field-specific errors ALSO populate
+  // _emailServerError below so the exact field gets highlighted too.
+  String? _errorMessage;
+  String? _emailServerError;
+
   final RegExp _passwordRegex = RegExp(
     r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$',
   );
@@ -48,45 +57,56 @@ String _selectedCountryFlag = '🇺🇸'; // Default Flag
   }
 
   Future<void> _register() async {
+    // Clear any previous server error before re-validating, otherwise a
+    // stale server error can block a resubmission that would now succeed.
+    setState(() => _emailServerError = null);
+
     if (!_formKey.currentState!.validate()) return;
 
     if (!_agreedToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please agree to the Terms & Conditions')),
-      );
+      setState(() => _errorMessage = 'Please agree to the Terms & Conditions to continue.');
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-    final success = await _authService.register(
+    final errorMsg = await _authService.register(
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
-      phone: '$_selectedCountryCode ${_phoneController.text.trim()}',
+      phone: '$_selectedCountryCode${_phoneController.text.trim()}',
     );
 
-    if (mounted) {
-      setState(() => _isLoading = false);
-      if (success) {
-        // Navigate to OTP Verification before going to the main app
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => OtpVerificationScreen(
-              phoneNumber: _phoneController.text.trim().isNotEmpty
-                  ? '$_selectedCountryCode ${_phoneController.text.trim()}'
-                  : '$_selectedCountryCode (123) 456-7890',
-            ),
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (errorMsg == null) {
+      // Navigate to OTP Verification before going to the main app
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => OtpVerificationScreen(
+            email: _emailController.text.trim(),
           ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Registration failed. Email might already be in use or data is invalid.',
-            ),
-          ),
-        );
+        ),
+      );
+    } else {
+      setState(() {
+        _errorMessage = errorMsg;
+        // Best-effort mapping: if the backend's message is about the
+        // email, surface it right under the Email field too, not just
+        // in the top banner. Ideally the backend returns a structured
+        // {field, message} pair instead of a plain string so this
+        // doesn't have to guess — happy to wire that up if you share
+        // the backend's error response shape.
+        if (errorMsg.toLowerCase().contains('email')) {
+          _emailServerError = errorMsg;
+        }
+      });
+      if (_emailServerError != null) {
+        _formKey.currentState!.validate();
       }
     }
   }
@@ -226,6 +246,11 @@ String _selectedCountryFlag = '🇺🇸'; // Default Flag
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (_errorMessage != null) ...[
+                      _buildErrorBanner(_errorMessage!),
+                      const SizedBox(height: 16),
+                    ],
+
                     _buildLabel('Full Name'),
                     _buildTextField(
                       controller: _nameController,
@@ -246,7 +271,16 @@ String _selectedCountryFlag = '🇺🇸'; // Default Flag
                       hintText: 'Enter your email address',
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
+                      onChanged: (_) {
+                        if (_emailServerError != null) {
+                          setState(() => _emailServerError = null);
+                        }
+                      },
                       validator: (value) {
+                        // Server-side error (e.g. "already registered")
+                        // takes priority so the user sees it right where
+                        // they're looking, not just in the top banner.
+                        if (_emailServerError != null) return _emailServerError;
                         if (value == null || value.isEmpty)
                           return 'Email is required';
                         final emailRegex = RegExp(
@@ -315,8 +349,10 @@ String _selectedCountryFlag = '🇺🇸'; // Default Flag
                           child: Checkbox(
                             value: _agreedToTerms,
                             activeColor: AppColors.secondary,
-                            onChanged: (val) =>
-                                setState(() => _agreedToTerms = val ?? false),
+                            onChanged: (val) => setState(() {
+                              _agreedToTerms = val ?? false;
+                              _errorMessage = null;
+                            }),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -358,8 +394,7 @@ String _selectedCountryFlag = '🇺🇸'; // Default Flag
                       onPressed: _isLoading ? null : _register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.secondary,
-                        foregroundColor:
-                            Colors.white, // ← ye line yahan bhi add karein
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -430,7 +465,6 @@ String _selectedCountryFlag = '🇺🇸'; // Default Flag
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: GestureDetector(
-                        // Yahan onTap add kiya gaya hai
                         onTap: () {
                           Navigator.push(
                             context,
@@ -439,7 +473,6 @@ String _selectedCountryFlag = '🇺🇸'; // Default Flag
                             ),
                           );
                         },
-                        // Behavior opaque karne se pure row area par tap properly kaam karega
                         behavior: HitTestBehavior.opaque,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -491,6 +524,38 @@ String _selectedCountryFlag = '🇺🇸'; // Default Flag
     );
   }
 
+  // Inline banner shown for anything the backend rejects — replaces the
+  // old ScaffoldMessenger SnackBar, which disappears too fast and isn't
+  // tied to the form the user is actually looking at.
+  Widget _buildErrorBanner(String message) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.error_outline, color: Colors.red.shade700, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: Colors.red.shade700,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
@@ -509,12 +574,14 @@ String _selectedCountryFlag = '🇺🇸'; // Default Flag
     bool? isVisible,
     VoidCallback? onVisibilityToggle,
     String? Function(String?)? validator,
+    void Function(String)? onChanged,
     TextInputType keyboardType = TextInputType.text,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: isPassword && !(isVisible ?? false),
       validator: validator,
+      onChanged: onChanged,
       keyboardType: keyboardType,
       onTap: () {
         if (controller.selection.baseOffset !=
@@ -560,7 +627,7 @@ String _selectedCountryFlag = '🇺🇸'; // Default Flag
     );
   }
 
-Widget _buildPhoneField() {
+  Widget _buildPhoneField() {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
@@ -568,12 +635,11 @@ Widget _buildPhoneField() {
       ),
       child: Row(
         children: [
-          // Yahan humne Dropdown ki jagah InkWell use kiya hai
           InkWell(
             onTap: () {
               showCountryPicker(
                 context: context,
-                showPhoneCode: true, // Ye country ke sath +91, +1 dikhayega
+                showPhoneCode: true,
                 countryListTheme: CountryListThemeData(
                   bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
                   borderRadius: const BorderRadius.vertical(
@@ -641,8 +707,6 @@ Widget _buildPhoneField() {
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) return 'Phone is required';
-                // Dhyan dein: Har country ka number 10 digit ka nahi hota.
-                // Isliye strict 10-digit validation hata kar minimum length lagana zyada sahi hai.
                 final numbersOnly = value.replaceAll(RegExp(r'\D'), '');
                 if (numbersOnly.length < 7 || numbersOnly.length > 15) {
                   return 'Enter a valid phone number';

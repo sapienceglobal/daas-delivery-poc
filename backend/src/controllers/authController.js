@@ -4,7 +4,7 @@ import User from '../models/User.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
-import { sendPasswordResetEmail, sendWelcomeEmail } from '../services/emailService.js';
+import { sendPasswordResetEmail, sendWelcomeEmail, sendOtpEmail } from '../services/emailService.js';
 import logger from '../utils/logger.js';
 import { OAuth2Client } from 'google-auth-library';
 
@@ -73,6 +73,13 @@ const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@
 
 // ── Controllers ─────────────────────────────────────────────────────────────
 
+// ── Controllers ─────────────────────────────────────────────────────────────
+// DROP-IN REPLACEMENT for the existing `register` export. Everything up to
+// the OTP generation is unchanged — only the ending is different (no more
+// sendTokenCookie call). Keep the rest of the file (imports, other exports,
+// sendTokenCookie/AppError/asyncHandler/sendOtpEmail/logger/PASSWORD_REGEX)
+// exactly as-is.
+
 export const register = asyncHandler(async (req, response) => {
   const { name, email, password, phone, role } = req.body;
 
@@ -114,13 +121,54 @@ export const register = asyncHandler(async (req, response) => {
   // Generate random 6-character referral code
   user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
 
+  // Generate 6-digit OTP for email verification.
+  // Using crypto.randomInt instead of Math.random() — this code gates
+  // account access, so it should come from a cryptographically secure
+  // source, not Math.random() (which is predictable).
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  user.emailOtp = otp;
+  user.emailOtpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  // (Combined into a single save — the old code saved twice: once
+  // right after setting referralCode, then again after setting the
+  // OTP fields. One write is enough.)
   await user.save();
 
-  // Fire-and-forget welcome email
-  sendWelcomeEmail(email, name).catch(e => logger.warn('Welcome email failed', { error: e.message }));
+  // Send OTP email (fire-and-forget — don't block registration)
+  sendOtpEmail(email, name, otp).catch(e =>
+    logger.warn('OTP email failed', { error: e.message, otp: process.env.NODE_ENV !== 'production' ? otp : '[hidden]' })
+  );
 
-  sendTokenCookie(user, 201, response, tenantId);
+  // In dev mode, always log OTP to console for easy testing without email
+  if (process.env.NODE_ENV !== 'production') {
+    logger.info(`[DEV] Email OTP for ${email}: ${otp}`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // THE FIX: registration used to call sendTokenCookie(user, 201, ...)
+  // right here, which authenticated the browser/app immediately — before
+  // the user ever verified their email. That's the actual root cause of
+  // "wrong/skipped OTP still results in a logged-in account" on BOTH the
+  // website and the mobile app: the session already existed the instant
+  // /api/auth/register succeeded, regardless of what happened on the OTP
+  // screen afterwards.
+  //
+  // The account is created as unverified (isEmailVerified: false,
+  // isVerified: false, per the schema defaults) and NO session is issued
+  // here. A session is only created inside verifyOtp() below, once the
+  // code is confirmed correct and unexpired. Do not add sendTokenCookie
+  // back here.
+  // ─────────────────────────────────────────────────────────────────────
+  return response.status(201).json({
+    success: true,
+    message: 'Registration successful. Please check your email for a verification code.',
+    email: user.email,
+  });
 });
+
+// DROP-IN REPLACEMENT for the existing `login` export. Only one block was
+// added (marked below) — everything else, including the H1 lockout logic,
+// is unchanged.
 
 export const login = asyncHandler(async (req, response) => {
   const { email, password, rememberMe = true } = req.body;
@@ -161,6 +209,27 @@ export const login = asyncHandler(async (req, response) => {
 
   if (!user.isActive) {
     throw new AppError('Your account has been deactivated. Contact support.', 403);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // THE FIX: without this check, the entire register → OTP flow was
+  // cosmetic. Nothing here ever looked at isEmailVerified, so anyone who
+  // knew the password (including the person who just registered and
+  // never finished OTP verification) could log in directly and skip
+  // verification entirely — same underlying problem as the register
+  // endpoint issuing a session too early, just reachable through a
+  // different door.
+  //
+  // Placed AFTER password validation on purpose: a wrong password still
+  // returns the same generic "Invalid email or password" either way, so
+  // this never leaks whether a given email is registered-but-unverified
+  // to someone who doesn't actually know the password.
+  // ─────────────────────────────────────────────────────────────────────
+  if (!user.isEmailVerified) {
+    throw new AppError(
+      'Please verify your email before logging in. We can resend the verification code if you need it.',
+      403
+    );
   }
 
   // Successful login — reset failed attempts
@@ -603,6 +672,96 @@ export const toggleFavoriteItem = asyncHandler(async (req, response) => {
 
   res.success(response, {
     data: user.favoriteItems,
-    message: index > -1 ? 'Removed from favorites' : 'Added to favorites'
+    message: index > -1 ? 'Removed from favorites' : 'Added from favorites'
   });
+});
+
+// ── OTP Verification ─────────────────────────────────────────────────────────
+
+export const verifyOtp = asyncHandler(async (req, response) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    throw new AppError('Email and OTP are required.', 400);
+  }
+
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+
+  if (!user) {
+    throw new AppError('User not found.', 404);
+  }
+
+  if (user.isEmailVerified) {
+    return res.success(response, { message: 'Email already verified.' });
+  }
+
+  if (!user.emailOtp || !user.emailOtpExpiry) {
+    throw new AppError('No OTP found. Please request a new one.', 400);
+  }
+
+  if (new Date() > user.emailOtpExpiry) {
+    throw new AppError('OTP has expired. Please request a new one.', 400);
+  }
+
+  if (user.emailOtp !== otp.toString()) {
+    throw new AppError('Invalid OTP. Please check and try again.', 400);
+  }
+
+  // Mark email as verified and clear OTP
+  user.isEmailVerified = true;
+  user.isVerified = true;
+  user.emailOtp = null;
+  user.emailOtpExpiry = null;
+  await user.save();
+
+  // Send welcome email now that they're verified
+  sendWelcomeEmail(user.email, user.name).catch(e =>
+    logger.warn('Welcome email failed', { error: e.message })
+  );
+
+  const tenantId = req.tenantId || 'marketplace';
+  sendTokenCookie(user, 200, response, tenantId);
+});
+
+export const resendOtp = asyncHandler(async (req, response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new AppError('Email is required.', 400);
+  }
+
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+
+  if (!user) {
+    throw new AppError('User not found.', 404);
+  }
+
+  if (user.isEmailVerified) {
+    throw new AppError('Email is already verified.', 400);
+  }
+
+  // Rate limit: allow resend only if previous OTP was sent > 60 seconds ago
+  if (user.emailOtpExpiry) {
+    const secondsSinceSent = (user.emailOtpExpiry - Date.now() + 10 * 60 * 1000) / 1000;
+    if (secondsSinceSent > (10 * 60 - 60)) { // less than 60s has passed since OTP was generated
+      throw new AppError('Please wait 60 seconds before requesting a new code.', 429);
+    }
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  user.emailOtp = otp;
+  user.emailOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+  await user.save();
+
+  sendOtpEmail(user.email, user.name, otp).catch(e =>
+    logger.warn('OTP email failed', { error: e.message })
+  );
+
+  if (process.env.NODE_ENV !== 'production') {
+    logger.info(`[DEV] Resent Email OTP for ${email}: ${otp}`);
+  }
+
+  res.success(response, { message: 'OTP sent successfully.' });
 });

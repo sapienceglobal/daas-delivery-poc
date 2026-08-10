@@ -57,7 +57,7 @@ export default function HomeTopSection() {
           1. HERO SECTION (DARK LAYER)
           ========================================= */}
 
-      <section className="relative w-full pt-30 pb-32 md:pt-38 md:pb-30 lg:pt-56 lg:pb-44 flex flex-col justify-center overflow-hidden z-10 min-h-[600px] lg:min-h-[720px]">
+      <section className="relative w-full pt-30 pb-32 md:pt-38 md:pb-30 lg:pt-56 lg:pb-44 flex flex-col justify-center overflow-hidden z-10 min-h-[600px] lg:min-h-[720px] ll-hero-mobile-fit">
 
         {/* Full-width Background Image */}
         <div className="absolute inset-0 z-0">
@@ -72,6 +72,14 @@ export default function HomeTopSection() {
 
         {/* Dark Rich Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#0e0d0c] via-[#0e0d0c]/85 to-transparent z-10" />
+
+        {/* Mobile-only bottom vignette — adds depth and keeps the headline/CTAs
+            legible edge-to-edge since text runs full width on phones (unlike
+            desktop where it sits over the dark left half only). Hidden by
+            default via .ll-hero-mobile-vignette; a real max-width media query
+            in globals.css is the only thing that ever shows it, and only
+            below 768px — desktop is untouched. */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0e0d0c] via-[#0e0d0c]/25 to-transparent z-10 ll-hero-mobile-vignette" />
 
         {/* ll-stagger cascades each direct child in on mount (Welcome-to, headline,
             cuisine badge, description, CTA row) using the existing fade-lift system. */}
@@ -112,17 +120,17 @@ export default function HomeTopSection() {
             {brand?.description || 'Experience the rich and authentic flavors. From traditional favorites to modern delights, every dish is made with love.'}
           </p>
 
-          <div className="flex flex-wrap items-center gap-4 mt-8">
+          <div className="flex flex-wrap items-center gap-4 mt-8 ll-hero-cta-row">
             <Button
               href={heroContent.primaryCta.href}
-              className="bg-[#e8a020] hover:bg-[#d68f13] text-black px-6 py-3 rounded-md font-bold uppercase text-xs tracking-wider flex items-center gap-2 transition-colors shadow-md"
+              className="bg-[#e8a020] hover:bg-[#d68f13] text-black px-6 py-3 rounded-md font-bold uppercase text-xs tracking-wider flex items-center gap-2 transition-colors shadow-md ll-hero-cta-btn ll-hero-cta-btn--primary"
             >
               <Bike size={18} strokeWidth={2.5} /> {heroContent.primaryCta.label}
             </Button>
 
             <Button
               href={heroContent.secondaryCta.href}
-              className="bg-transparent border border-[#e8a020] text-white hover:bg-[#e8a020]/10 px-6 py-3 rounded-md font-bold uppercase text-xs tracking-wider flex items-center gap-2 transition-colors"
+              className="bg-transparent border border-[#e8a020] text-white hover:bg-[#e8a020]/10 px-6 py-3 rounded-md font-bold uppercase text-xs tracking-wider flex items-center gap-2 transition-colors ll-hero-cta-btn ll-hero-cta-btn--secondary"
             >
               <Utensils size={16} strokeWidth={2.5} className="text-[#e8a020]" /> {heroContent.secondaryCta.label}
             </Button>
@@ -136,7 +144,7 @@ export default function HomeTopSection() {
       <section className="bg-[#f7f1e4] w-full relative pb-16 pt-0 flex flex-col items-center z-30 mt-0">
 
         {/* ─── EXPLORE OUR MENU CONTAINER CARD ─── */}
-        <div className="w-full max-w-7xl mx-auto px-4 md:px-8 -mt-20 relative z-40">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-8 -mt-20 relative z-40 ll-explore-mobile-gap">
 
           <div className="bg-[#fcfaf5] rounded-[2rem] shadow-[0_10px_30px_rgba(0,0,0,0.1)] py-5 md:py-6 px-6 md:px-10 w-full border border-[#ebdcc1]/50">
 
@@ -157,7 +165,7 @@ export default function HomeTopSection() {
             <div className="flex flex-col xl:flex-row items-center justify-between gap-4 xl:gap-6">
 
               <div className="relative flex-1 w-full flex items-center min-w-0">
-                <div ref={categoriesScrollRef} className="flex flex-nowrap overflow-x-auto no-scrollbar pb-4 md:pb-0 justify-start gap-6 md:gap-8 flex-1 w-full snap-x snap-mandatory px-2 md:px-8 scroll-smooth">
+                <div ref={categoriesScrollRef} className="flex flex-nowrap overflow-x-auto no-scrollbar pb-4 md:pb-0 justify-start gap-6 md:gap-8 flex-1 w-full snap-x snap-mandatory px-2 md:px-8 scroll-smooth ll-cat-scroll-fade">
                   {categories.map((category) => (
                     <div key={category.id} onClick={() => router.push(`${viewFullMenuCta.href}&categoryName=${encodeURIComponent(category.label)}`)} className="group flex flex-col items-center gap-2 cursor-pointer shrink-0 snap-center">
                       <div className="relative w-[85px] h-[85px] md:w-[100px] md:h-[100px] rounded-full p-[2px] border border-[#e8a020] bg-transparent transition-transform duration-300 group-hover:-translate-y-1">

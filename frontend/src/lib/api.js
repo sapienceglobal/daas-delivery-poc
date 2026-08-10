@@ -99,6 +99,8 @@ export const authAPI = {
   changePassword: (data) => api.put('/api/auth/me/password', data),
   forgotPassword: (email) => api.post('/api/auth/forgot-password', { email }),
   resetPassword: (token, password) => api.post(`/api/auth/reset-password/${token}`, { password }),
+  verifyOtp: (email, otp) => api.post('/api/auth/verify-otp', { email, otp }),
+  resendOtp: (email) => api.post('/api/auth/resend-otp', { email }),
 
   // Addresses
   addAddress: (data) => api.post('/api/auth/me/addresses', data),

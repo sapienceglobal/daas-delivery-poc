@@ -19,6 +19,8 @@ router.post('/login', authLimiter, validate(loginSchema), authController.login);
 router.post('/google', authLimiter, authController.googleLogin);
 router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), authController.forgotPassword);
 router.post('/reset-password/:token', authLimiter, validate(resetPasswordSchema), authController.resetPassword);
+router.post('/verify-otp', authLimiter, authController.verifyOtp);
+router.post('/resend-otp', authLimiter, authController.resendOtp);
 
 // ── Protected Routes ────────────────────────────────────────────────────────
 router.get('/me', protect, authController.getMe);

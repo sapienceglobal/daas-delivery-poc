@@ -107,15 +107,20 @@ export function AuthProvider({ children }) {
   }, []);
 
   const register = useCallback(async (formData) => {
-    const data = await authAPI.register(formData);
-    const { user: userData } = data;
-
-    localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
-    localStorage.removeItem('marketplace_token');
-    document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
-    setUser(userData);
-    setBackendVerified(true);
-    return userData;
+    // FIX: registration no longer authenticates the browser. The backend's
+    // /api/auth/register now only creates an unverified account and emails
+    // an OTP — it doesn't set a session cookie or return a `user` object
+    // anymore, so none of the old setUser/setBackendVerified/localStorage
+    // side effects apply here. The session only gets established later,
+    // when the caller navigates to the OTP screen and verifyOtp()
+    // succeeds — that flow does a full page reload to /customer, which
+    // re-runs the /me check above and populates real auth state then.
+    //
+    // Previously this function treated register() exactly like login() —
+    // caching the user and marking backendVerified true immediately —
+    // which is what let people reach authenticated pages without ever
+    // completing OTP verification.
+    return authAPI.register(formData); // { success, message, email }
   }, []);
 
   const logout = useCallback(async () => {

@@ -3,11 +3,17 @@
 import { useState, Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, User, Phone, Eye, EyeOff, ChefHat, ArrowRight, Loader2, Check } from 'lucide-react';
+import Image from 'next/image';
+import {
+  Mail, Lock, User, Eye, EyeOff, ChefHat, ArrowRight, Loader2, Check, AlertCircle,
+  ShoppingBag, Bike, Calendar, Tag, Star, Clock
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { GlassCard, Input, Button, showToast, Badge } from '@/components/ui';
 import { GoogleLogin } from '@react-oauth/google';
 import { z } from 'zod';
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 import ForgotPasswordModal from './ForgotPasswordModal';
 
 const loginSchema = z.object({
@@ -15,12 +21,35 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+// Phone is now required and validated as a real, dialable number
+// (matching the mobile app, which already requires it). If phone should
+// stay optional on the website, tell me and I'll relax this back to
+// `.optional()` — just flagging that mobile and web disagreed before.
 const registerSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().min(1, 'Email is required').email('Invalid email format'),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .min(1, 'Phone number is required')
+    .refine((val) => isValidPhoneNumber(val || ''), 'Enter a valid phone number'),
   password: z.string().min(8, 'Min 8 characters').regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, 'Requires uppercase, lowercase, number & special char'),
+  confirmPassword: z.string().min(1, 'Please confirm your password'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
 });
+
+// Customer-facing equivalent of admin/login's operational features grid —
+// swapped for things an end customer actually cares about (not
+// Menu Management / Reports, which are merchant/admin concerns).
+const customerFeatures = [
+  { icon: ShoppingBag, label: 'Easy\nOrdering' },
+  { icon: Bike, label: 'Fast\nDelivery' },
+  { icon: Calendar, label: 'Table\nBooking' },
+  { icon: Tag, label: 'Exclusive\nOffers' },
+  { icon: Star, label: 'Rewards &\nLoyalty' },
+  { icon: Clock, label: 'Live Order\nTracking' },
+];
 
 function LoginPageContent() {
   const router = useRouter();
@@ -34,9 +63,14 @@ function LoginPageContent() {
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
   const [form, setForm] = useState({
-    name: '', email: '', password: '', phone: '', role: 'customer', rememberMe: true
+    name: '', email: '', password: '', confirmPassword: '', phone: '', role: 'customer', rememberMe: true
   });
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errors, setErrors] = useState({});
+  // Top-of-form banner for anything the backend rejects (duplicate
+  // email, wrong password, server errors) — replaces relying on the
+  // toast alone, which disappears fast and isn't tied to the form.
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
@@ -61,6 +95,13 @@ function LoginPageContent() {
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
     setErrors(prev => ({ ...prev, [e.target.name]: '' }));
+    setFormError('');
+  };
+
+  const handlePhoneChange = (value) => {
+    setForm(prev => ({ ...prev, phone: value || '' }));
+    setErrors(prev => ({ ...prev, phone: '' }));
+    setFormError('');
   };
 
   const validate = () => {
@@ -87,34 +128,55 @@ function LoginPageContent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError('');
     if (!validate()) return;
+
+    if (isRegister && !agreedToTerms) {
+      setErrors(prev => ({ ...prev, terms: 'You must agree to the Terms & Conditions' }));
+      return;
+    }
 
     setLoading(true);
     try {
-      let userData;
       if (isRegister) {
-        userData = await register(form);
-        showToast('Account created successfully!', 'success');
+        // `register()` (from AuthContext) has been fixed to no longer
+        // authenticate the browser as a side effect — it now just
+        // calls /api/auth/register, which creates an unverified account
+        // and emails an OTP. The session only starts once verifyOtp()
+        // succeeds on the next screen (see AuthContext.js + the
+        // register controller for the actual fix). That's what was
+        // causing "straight to /customer, no verification": the old
+        // register() logged the browser in immediately, so the redirect
+        // effect above won the race against router.push('/verify-otp').
+        await register(form);
+        router.push(`/verify-otp?email=${encodeURIComponent(form.email)}`);
+        return;
       } else {
-        userData = await login(form.email, form.password, form.rememberMe);
-        
+        const userData = await login(form.email, form.password, form.rememberMe);
+
         // Strictly restrict this portal to customers
         if (userData.role === 'admin' || userData.role === 'merchant') {
           await logout();
-          showToast('Restaurant partners must log in through the Partner Portal.', 'error');
+          setFormError('Restaurant partners must log in through the Partner Portal.');
           return;
         }
-        
+
         showToast('Welcome back!', 'success');
       }
-
-      // Role-based routing is handled by the useEffect above, which uses window.location.href
-      // We don't need to push here, just wait for the useEffect to trigger
-      if (!isRegister) {
-        // Just for visual feedback while useEffect triggers
-      }
     } catch (err) {
-      showToast(err.message || 'Authentication failed', 'error');
+      const message = err.message || 'Something went wrong. Please try again.';
+      setFormError(message);
+      // Best-effort mapping so the exact field gets highlighted too,
+      // not just the banner. A structured {field, message} error from
+      // the backend would make this exact instead of a guess — happy
+      // to wire that up if you share the API's error response shape.
+      if (/email/i.test(message)) {
+        setErrors(prev => ({ ...prev, email: message }));
+      } else if (/phone/i.test(message)) {
+        setErrors(prev => ({ ...prev, phone: message }));
+      } else if (/password/i.test(message)) {
+        setErrors(prev => ({ ...prev, password: message }));
+      }
     } finally {
       setLoading(false);
     }
@@ -125,183 +187,358 @@ function LoginPageContent() {
       setLoading(true);
       const userData = await googleLogin(credentialResponse.credential, form.role);
       showToast(isRegister ? 'Account created via Google!' : 'Signed in via Google!', 'success');
-      
+
       // Handled by the useEffect above
     } catch (err) {
-      showToast(err.message || 'Google authentication failed', 'error');
+      setFormError(err.message || 'Google authentication failed');
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleError = () => {
-    showToast('Google Sign-In failed', 'error');
+    setFormError('Google Sign-In failed. Please try again.');
   };
 
   if (isSingleMode) {
     return (
-      <div className="flex items-center justify-center min-h-[75vh] bg-[#fdfbf7] px-4 font-sans py-12">
-        <div className="w-full max-w-[420px] bg-white rounded-2xl shadow-xl overflow-hidden border border-[#eadfdb] animate-fadeIn relative">
-          
-          {/* Top Banner Accent */}
-          <div className="h-2 w-full bg-[#7a0b10]" />
+      <div className="min-h-screen flex items-center justify-center bg-white font-sans">
+        <div className="w-full max-w-[1400px] min-h-screen lg:min-h-[90vh] lg:h-[90vh] flex flex-col lg:flex-row shadow-2xl relative overflow-hidden bg-white">
 
-          <div className="p-8">
-            <div className="text-center mb-8">
-              <h2 className="text-[26px] font-black text-[#1a1a1a] mb-1">
-                {isRegister ? 'Create Account' : 'Welcome Back'}
-              </h2>
-              <p className="text-[14px] text-[#6b7280]">
-                {isRegister ? 'Join Lassi Lounge today' : 'Sign in to your account'}
-              </p>
+          {/* Left Side: Branded Hero (mirrors admin/login's panel, with
+              customer-relevant features instead of operational/admin ones) */}
+          <div className="relative w-full lg:w-[45%] h-full flex flex-col justify-center items-center text-center px-8 pt-12 pb-32 overflow-hidden bg-[#4a090b]">
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#c99742 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+
+            <div className="absolute bottom-0 left-0 right-0 h-[45%] z-0">
+              <div className="absolute inset-0 bg-gradient-to-b from-[#4a090b] via-[#4a090b]/60 to-transparent z-10"></div>
+              <Image
+                src="/images/branded/lassi-lounge/hero-spread.jpg"
+                alt="Indian Cuisine Spread"
+                fill
+                className="object-cover object-bottom opacity-90"
+                priority
+              />
             </div>
 
-            {/* Toggle */}
-            <div className="flex bg-[#f4f7f9] p-1 rounded-xl mb-8 border border-[#eadfdb]">
-              <button
-                onClick={() => setIsRegister(false)}
-                className={`flex-1 rounded-lg py-2.5 text-[14px] font-bold transition-all ${
-                  !isRegister ? 'bg-white text-[#1a1a1a] shadow-sm' : 'text-[#6b7280] hover:text-[#1a1a1a]'
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => setIsRegister(true)}
-                className={`flex-1 rounded-lg py-2.5 text-[14px] font-bold transition-all ${
-                  isRegister ? 'bg-white text-[#1a1a1a] shadow-sm' : 'text-[#6b7280] hover:text-[#1a1a1a]'
-                }`}
-              >
-                Register
-              </button>
+            <div className="absolute top-0 right-0 h-full w-[40px] lg:w-[80px] hidden lg:block z-20 translate-x-[1px]">
+              <svg viewBox="0 0 100 1000" preserveAspectRatio="none" className="h-full w-full">
+                <path d="M0,0 C100,300 100,700 0,1000 L100,1000 L100,0 Z" fill="#fdfdfd" />
+                <path d="M0,0 C100,300 100,700 0,1000" fill="none" stroke="#c99742" strokeWidth="6" />
+              </svg>
             </div>
 
-            <form onSubmit={handleSubmit} noValidate className="space-y-4">
-              {isRegister && (
-                <>
-                  <div>
-                    <label className="block text-[12px] font-bold text-[#4b5563] mb-1.5">Full Name</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#9ca3af]" />
-                      <input
-                        name="name"
-                        placeholder="John Doe"
-                        value={form.name}
-                        onChange={handleChange}
-                        className={`w-full h-12 pl-10 pr-4 rounded-xl border focus:ring-1 outline-none transition-colors text-[14px] bg-[#f9f9f9] text-[#1a1a1a] ${errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-[#eadfdb] focus:border-[#7a0b10] focus:ring-[#7a0b10]'}`}
-                      />
-                    </div>
-                    {errors.name && <p className="text-red-500 text-[11px] mt-1 font-bold">{errors.name}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-[12px] font-bold text-[#4b5563] mb-1.5">Phone (Optional)</label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#9ca3af]" />
-                      <input
-                        name="phone"
-                        placeholder="(555) 000-0000"
-                        value={form.phone}
-                        onChange={handleChange}
-                        className="w-full h-12 pl-10 pr-4 rounded-xl border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-[#7a0b10] focus:ring-1 outline-none transition-colors text-[14px] bg-[#f9f9f9] text-[#1a1a1a]"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <div>
-                <label className="block text-[12px] font-bold text-[#4b5563] mb-1.5">Email Address</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#9ca3af]" />
-                  <input
-                    name="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={form.email}
-                    onChange={handleChange}
-                    className={`w-full h-12 pl-10 pr-4 rounded-xl border focus:ring-1 outline-none transition-colors text-[14px] bg-[#f9f9f9] text-[#1a1a1a] ${errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-[#eadfdb] focus:border-[#7a0b10] focus:ring-[#7a0b10]'}`}
-                  />
+            <div className="relative z-10 w-full max-w-md flex flex-col items-center">
+              <div className="mb-6 flex flex-col items-center">
+                <svg className="w-12 h-12 text-[#c99742] mb-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+                </svg>
+                <h1 className="text-[40px] font-serif text-white tracking-widest mb-1 leading-none">LASSI</h1>
+                <div className="flex items-center gap-4 text-white/80 w-full mb-2">
+                  <div className="h-[1px] flex-1 bg-white/40"></div>
+                  <span className="tracking-[0.3em] text-sm uppercase font-light">Lounge</span>
+                  <div className="h-[1px] flex-1 bg-white/40"></div>
                 </div>
-                {errors.email && <p className="text-red-500 text-[11px] mt-1 font-bold">{errors.email}</p>}
+                <div className="flex items-center justify-center gap-2 text-[#c99742] text-[10px] font-semibold tracking-widest mt-1">
+                  <span>∞</span>INDIAN RESTAURANT<span>∞</span>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-[12px] font-bold text-[#4b5563] mb-1.5">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#9ca3af]" />
-                  <input
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={form.password}
-                    onChange={handleChange}
-                    className={`w-full h-12 pl-10 pr-10 rounded-xl border focus:ring-1 outline-none transition-colors text-[14px] bg-[#f9f9f9] text-[#1a1a1a] ${errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-[#eadfdb] focus:border-[#7a0b10] focus:ring-[#7a0b10]'}`}
-                  />
+              <h2 className="text-[28px] font-serif text-[#c99742] mb-4">
+                {isRegister ? 'Join the Family' : 'Welcome Back'}
+              </h2>
+              <div className="flex items-center justify-center mb-6 w-full">
+                <div className="w-2 h-2 rotate-45 bg-[#c99742] mr-2 opacity-50"></div>
+                <div className="w-2 h-2 rotate-45 border border-[#c99742]"></div>
+                <div className="w-2 h-2 rotate-45 bg-[#c99742] ml-2 opacity-50"></div>
+              </div>
+
+              <p className="text-white/90 text-[15px] leading-relaxed mb-12">
+                Order your favorites, track deliveries,<br/>and never miss a table.
+              </p>
+
+              <div className="grid grid-cols-3 gap-y-10 gap-x-8 w-full max-w-[340px] mt-2">
+                {customerFeatures.map((feat, idx) => (
+                  <div key={idx} className="flex flex-col items-center group">
+                    <feat.icon className="w-8 h-8 text-[#c99742] mb-3 group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
+                    <span className="text-white/90 text-[10px] leading-snug text-center uppercase tracking-wider whitespace-pre-line font-medium">
+                      {feat.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side: Auth Form */}
+          <div className="w-full lg:w-[55%] h-full flex flex-col bg-[#fcfdfc] relative items-center justify-center px-6 lg:px-16 py-12 lg:py-0 overflow-hidden overflow-y-auto">
+
+            <div className="absolute top-[-5%] right-[-5%] w-64 h-64 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNMzAgMjBDMjAgMzAgMjAgNTAgMzAgNjBMMTAwIDEwMEM5MCA4MCA3MCA4MCA2MCA3MEwxMCAyMEMyMCAxMCA0MCAxMCAzMCAyMFoiIGZpbGw9IiNmMmVhZTQiIGZpbGwtb3BhY2l0eT0iMC41Ii8+PC9zdmc+')] bg-no-repeat bg-contain opacity-20 pointer-events-none rotate-45" />
+            <div className="absolute bottom-[5%] right-[5%] w-48 h-48 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjQgNCIvPjxwYXRoIGQ9Ik01MCAxMEMzMCAzMCA3MCA3MCA1MCA5MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=')] bg-no-repeat bg-contain opacity-30 pointer-events-none -rotate-12" />
+            <div className="absolute top-[10%] left-[5%] w-32 h-32 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNMTUgNTBDMTUgMzAgMzAgMTUgNTAgMTVMMTAwIDBDODAgMjAgODAgNTAgMTAwIDcwQzgwIDkwIDUwIDkwIDUwIDcwQzMwIDcwIDE1IDkwIDE1IDUwWiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=')] bg-no-repeat bg-contain opacity-20 pointer-events-none rotate-[30deg]" />
+
+            <div className="w-full max-w-[440px] mx-auto z-10 py-8 lg:py-0">
+              <div className="text-center mb-8">
+                <h2 className="text-[32px] font-serif text-[#4a090b] mb-3">
+                  {isRegister ? 'Create Account' : 'Welcome Back!'}
+                </h2>
+                <div className="flex items-center justify-center mb-4 w-full">
+                  <div className="w-10 h-[1px] bg-[#c99742]"></div>
+                  <div className="w-1.5 h-1.5 rotate-45 bg-[#c99742] mx-2"></div>
+                  <div className="w-10 h-[1px] bg-[#c99742]"></div>
+                </div>
+                <p className="text-[#6b7280] text-[15px]">
+                  {isRegister ? 'Join Lassi Lounge today' : 'Sign in to your Lassi Lounge account'}
+                </p>
+              </div>
+
+              <div className="bg-white rounded-3xl shadow-[0_12px_40px_rgb(0,0,0,0.06)] p-8 sm:p-10 border border-[#f9fafb] relative overflow-hidden">
+
+                {/* Sign In / Register Toggle */}
+                <div className="flex bg-[#fdf7f0] p-1 rounded-xl mb-7 border border-[#f0e4d0]">
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9ca3af] hover:text-[#4b5563]"
+                    onClick={() => { setIsRegister(false); setFormError(''); setErrors({}); }}
+                    className={`flex-1 rounded-lg py-2.5 text-[14px] font-bold transition-all ${
+                      !isRegister ? 'bg-white text-[#4a090b] shadow-sm' : 'text-[#6b7280] hover:text-[#4a090b]'
+                    }`}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsRegister(true); setFormError(''); setErrors({}); }}
+                    className={`flex-1 rounded-lg py-2.5 text-[14px] font-bold transition-all ${
+                      isRegister ? 'bg-white text-[#4a090b] shadow-sm' : 'text-[#6b7280] hover:text-[#4a090b]'
+                    }`}
+                  >
+                    Register
                   </button>
                 </div>
-                {errors.password && <p className="text-red-500 text-[11px] mt-1 font-bold">{errors.password}</p>}
-              </div>
 
-              {!isRegister && (
-                <div className="flex items-center gap-2 mt-1">
-                  <div
-                    onClick={() => setForm(prev => ({ ...prev, rememberMe: !prev.rememberMe }))}
-                    className={`w-4 h-4 rounded border flex items-center justify-center cursor-pointer transition-colors ${form.rememberMe ? 'bg-[#7a0b10] border-[#7a0b10]' : 'bg-[#f9f9f9] border-[#eadfdb]'}`}
-                  >
-                    {form.rememberMe && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                {formError && (
+                  <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-5">
+                    <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+                    <p className="text-[13px] text-red-700 font-semibold leading-snug">{formError}</p>
                   </div>
-                  <label onClick={() => setForm(prev => ({ ...prev, rememberMe: !prev.rememberMe }))} className="text-[13px] text-[#4b5563] cursor-pointer select-none">
-                    Remember me
-                  </label>
-                </div>
-              )}
+                )}
 
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full h-12 rounded-xl bg-[#7a0b10] text-white text-[14px] font-black uppercase tracking-wider hover:bg-[#680307] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {isRegister ? 'Create Account' : 'Sign In'}
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+                <form onSubmit={handleSubmit} noValidate className="space-y-5">
+                  {isRegister && (
+                    <>
+                      {/* Full Name */}
+                      <div className="space-y-2.5">
+                        <label className="text-[13px] font-bold text-[#1f2937] block">Full Name</label>
+                        <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.name ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
+                          <div className="px-4 py-3.5 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
+                            <User size={18} strokeWidth={2} />
+                          </div>
+                          <input
+                            name="name"
+                            placeholder="John Doe"
+                            value={form.name}
+                            onChange={handleChange}
+                            className="flex-1 bg-transparent border-none px-4 py-3.5 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
+                          />
+                        </div>
+                        {errors.name && <p className="text-xs text-red-500 font-medium mt-1 ml-1">{errors.name}</p>}
+                      </div>
+
+                      {/* Phone */}
+                      <div className="space-y-2.5">
+                        <label className="text-[13px] font-bold text-[#1f2937] block">Phone Number</label>
+                        {/*
+                          Same experience as the mobile app's country picker:
+                          flag + dial code + searchable country list, and the
+                          value it produces is already E.164 formatted
+                          (e.g. "+919876543210"), so it can be sent to the
+                          backend as-is.
+                        */}
+                        <div className={`phone-field-wrap h-[52px] rounded-xl border px-4 flex items-center bg-white transition-all ${errors.phone ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
+                          <PhoneInput
+                            international
+                            defaultCountry="IN"
+                            placeholder="Enter phone number"
+                            value={form.phone}
+                            onChange={handlePhoneChange}
+                            className="w-full"
+                          />
+                        </div>
+                        {errors.phone && <p className="text-xs text-red-500 font-medium mt-1 ml-1">{errors.phone}</p>}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Email */}
+                  <div className="space-y-2.5">
+                    <label className="text-[13px] font-bold text-[#1f2937] block">Email Address</label>
+                    <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.email ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
+                      <div className="px-4 py-3.5 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
+                        <Mail size={18} strokeWidth={2} />
+                      </div>
+                      <input
+                        name="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={form.email}
+                        onChange={handleChange}
+                        className="flex-1 bg-transparent border-none px-4 py-3.5 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
+                      />
+                    </div>
+                    {errors.email && <p className="text-xs text-red-500 font-medium mt-1 ml-1">{errors.email}</p>}
+                  </div>
+
+                  {/* Password */}
+                  <div className="space-y-2.5">
+                    <label className="text-[13px] font-bold text-[#1f2937] block">Password</label>
+                    <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.password ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
+                      <div className="px-4 py-3.5 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
+                        <Lock size={18} strokeWidth={2} />
+                      </div>
+                      <input
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        value={form.password}
+                        onChange={handleChange}
+                        className="flex-1 bg-transparent border-none px-4 py-3.5 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="px-4 text-[#9ca3af] hover:text-[#4a090b] focus:outline-none transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    {errors.password && <p className="text-xs text-red-500 font-medium mt-1 ml-1">{errors.password}</p>}
+                  </div>
+
+                  {/* Confirm Password */}
+                  {isRegister && (
+                    <div className="space-y-2.5">
+                      <label className="text-[13px] font-bold text-[#1f2937] block">Confirm Password</label>
+                      <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.confirmPassword ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
+                        <div className="px-4 py-3.5 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
+                          <Lock size={18} strokeWidth={2} />
+                        </div>
+                        <input
+                          name="confirmPassword"
+                          type="password"
+                          placeholder="••••••••"
+                          value={form.confirmPassword}
+                          onChange={handleChange}
+                          className="flex-1 bg-transparent border-none px-4 py-3.5 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
+                        />
+                      </div>
+                      {errors.confirmPassword && <p className="text-xs text-red-500 font-medium mt-1 ml-1">{errors.confirmPassword}</p>}
+                    </div>
+                  )}
+
+                  {/* Terms */}
+                  {isRegister && (
+                    <div className="flex items-start gap-2.5 pt-1">
+                      <div
+                        onClick={() => setAgreedToTerms(p => !p)}
+                        className={`mt-0.5 w-[18px] h-[18px] rounded-[4px] border-[1.5px] flex items-center justify-center cursor-pointer shrink-0 transition-colors ${agreedToTerms ? 'bg-[#4a090b] border-[#4a090b]' : 'bg-white border-[#d1d5db]'}`}
+                      >
+                        {agreedToTerms && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                      </div>
+                      <label onClick={() => setAgreedToTerms(p => !p)} className="text-[13px] text-[#4b5563] cursor-pointer select-none leading-snug">
+                        I agree to the <span className="text-[#4a090b] font-bold hover:underline cursor-pointer">Terms & Conditions</span> and <span className="text-[#4a090b] font-bold hover:underline cursor-pointer">Privacy Policy</span>
+                      </label>
+                    </div>
+                  )}
+                  {errors.terms && <p className="text-red-500 text-[11px] font-bold">{errors.terms}</p>}
+
+                  {/* Remember Me + Forgot Password */}
+                  {!isRegister && (
+                    <div className="flex items-center justify-between pt-1 pb-1">
+                      <label className="flex items-center gap-2.5 cursor-pointer group">
+                        <div className="relative flex items-center justify-center w-[18px] h-[18px] rounded-[4px] border-[1.5px] border-[#d1d5db] group-hover:border-[#4a090b] transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={form.rememberMe}
+                            onChange={(e) => setForm(prev => ({ ...prev, rememberMe: e.target.checked }))}
+                            className="opacity-0 absolute inset-0 cursor-pointer"
+                          />
+                          {form.rememberMe && (
+                            <div className="w-2.5 h-2.5 bg-[#4a090b] rounded-sm"></div>
+                          )}
+                        </div>
+                        <span className="text-[13px] text-[#4b5563] group-hover:text-[#111827] transition-colors">Remember me</span>
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsForgotModalOpen(true)}
+                        className="text-[13px] font-bold text-[#4a090b] hover:text-[#2a0506] hover:underline transition-colors"
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Submit */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-2 bg-[#550c0e] hover:bg-[#3a080a] text-white py-[15px] rounded-xl text-[15px] font-semibold transition-all shadow-[0_8px_20px_rgba(85,12,14,0.25)] disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+                  >
+                    {loading ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        {isRegister ? 'Create Account' : 'Sign In'}
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+
+                  <div className="relative flex items-center py-3">
+                    <div className="flex-grow border-t border-[#eadfdb]"></div>
+                    <span className="flex-shrink-0 mx-4 text-[11px] font-bold text-[#9ca3af] uppercase tracking-wider">Or continue with</span>
+                    <div className="flex-grow border-t border-[#eadfdb]"></div>
+                  </div>
+
+                  <div className="flex justify-center pb-1">
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={handleGoogleError}
+                      theme="outline"
+                      shape="rectangular"
+                      size="large"
+                      text={isRegister ? "signup_with" : "signin_with"}
+                    />
+                  </div>
+                </form>
               </div>
 
-              <div className="relative flex items-center py-4">
-                <div className="flex-grow border-t border-[#eadfdb]"></div>
-                <span className="flex-shrink-0 mx-4 text-[11px] font-bold text-[#9ca3af] uppercase tracking-wider">Or continue with</span>
-                <div className="flex-grow border-t border-[#eadfdb]"></div>
+              <div className="mt-8 text-center text-[12px] text-[#9ca3af] font-medium">
+                © {new Date().getFullYear()} Lassi Lounge. All Rights Reserved.
               </div>
-
-              <div className="flex justify-center pb-2">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  theme="outline"
-                  shape="rectangular"
-                  size="large"
-                  text={isRegister ? "signup_with" : "signin_with"}
-                />
-              </div>
-            </form>
-
-            {!isRegister && (
-              <div className="mt-6 text-center">
-                <button type="button" onClick={() => setIsForgotModalOpen(true)} className="text-[13px] font-bold text-[#7a0b10] hover:underline">
-                  Forgot your password?
-                </button>
-              </div>
-            )}
+            </div>
           </div>
         </div>
+
         <ForgotPasswordModal isOpen={isForgotModalOpen} onClose={() => setIsForgotModalOpen(false)} defaultEmail={form.email} />
+
+        {/* Blend the react-phone-number-input default styling into this
+            card's look — the library ships unstyled-ish inputs so this
+            keeps borders/colors consistent with the rest of the form. */}
+        <style jsx global>{`
+          .phone-field-wrap .PhoneInputInput {
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 14px;
+            color: #1a1a1a;
+            height: 100%;
+          }
+          .phone-field-wrap .PhoneInputCountry {
+            margin-right: 8px;
+          }
+        `}</style>
       </div>
     );
   }
@@ -327,6 +564,14 @@ function LoginPageContent() {
             </p>
           </div>
 
+          {/* NOTE: this is the multi-restaurant / non-single-mode form.
+              I've only fixed the isSingleMode branch above since that's
+              what NEXT_PUBLIC_SINGLE_RESTAURANT_MODE=true actually
+              renders for this project. Tell me if this branch is still
+              live somewhere and I'll mirror the same fixes here
+              (phone picker, inline error banner, non-authenticating
+              register call). */}
+
           {/* Toggle */}
           <div className="flex gap-1 rounded-xl bg-brand-bg/60 p-1 mb-6 border border-brand-border">
             <button
@@ -345,6 +590,13 @@ function LoginPageContent() {
             </button>
           </div>
 
+          {formError && (
+            <div className="flex items-start gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 mb-4">
+              <AlertCircle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-red-400 font-semibold leading-snug">{formError}</p>
+            </div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
             {isRegister && (
@@ -358,14 +610,20 @@ function LoginPageContent() {
                   error={errors.name}
                   icon={User}
                 />
-                <Input
-                  name="phone"
-                  label="Phone (Optional)"
-                  placeholder="+1 (555) 000-0000"
-                  value={form.phone}
-                  onChange={handleChange}
-                  icon={Phone}
-                />
+                <div>
+                  <label className="text-sm font-medium text-brand-muted">Phone Number</label>
+                  <div className={`phone-field-wrap h-11 mt-1.5 rounded-xl border px-3 flex items-center bg-brand-card/60 ${errors.phone ? 'border-red-400' : 'border-brand-border'}`}>
+                    <PhoneInput
+                      international
+                      defaultCountry="IN"
+                      placeholder="Enter phone number"
+                      value={form.phone}
+                      onChange={handlePhoneChange}
+                      className="w-full"
+                    />
+                  </div>
+                  {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone}</p>}
+                </div>
               </>
             )}
 
@@ -399,6 +657,36 @@ function LoginPageContent() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+
+            {isRegister && (
+              <div className="relative">
+                <Input
+                  name="confirmPassword"
+                  type="password"
+                  label="Confirm Password"
+                  placeholder="••••••••"
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  error={errors.confirmPassword}
+                  icon={Lock}
+                />
+              </div>
+            )}
+
+            {isRegister && (
+              <div className="flex items-start gap-2">
+                <div
+                  onClick={() => setAgreedToTerms(p => !p)}
+                  className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center cursor-pointer shrink-0 transition-colors ${agreedToTerms ? 'bg-brand-primary border-brand-primary' : 'bg-white border-brand-divider'}`}
+                >
+                  {agreedToTerms && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                </div>
+                <label onClick={() => setAgreedToTerms(p => !p)} className="text-sm text-brand-muted cursor-pointer select-none leading-snug">
+                  I agree to the <span className="text-brand-cyan font-bold hover:underline cursor-pointer">Terms & Conditions</span> and <span className="text-brand-cyan font-bold hover:underline cursor-pointer">Privacy Policy</span>
+                </label>
+              </div>
+            )}
+            {errors.terms && <p className="text-red-500 text-xs font-bold">{errors.terms}</p>}
 
             {!isRegister && (
               <div className="flex items-center gap-2">
@@ -443,7 +731,7 @@ function LoginPageContent() {
               {isRegister ? 'Create Account' : 'Sign In'}
               <ArrowRight className="h-4 w-4" />
             </Button>
-            
+
             <div className="relative flex items-center py-4">
               <div className="flex-grow border-t border-brand-border"></div>
               <span className="flex-shrink-0 mx-4 text-xs font-semibold text-brand-muted uppercase">Or continue with</span>

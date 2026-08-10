@@ -299,3 +299,74 @@ html {
   from { background-position: 200% 0; }
   to   { background-position: -50% 0; }
 }
+
+/* ── Hero: mobile-only refinements (< 768px) ──
+   Written as plain CSS behind a real max-width media query — NOT as
+   Tailwind md:/lg: utility variants. Two reasons:
+   1. This project's Tailwind build has already missed generating a rare
+      class+variant combo once before (a bare w-11 track collapsed).
+      Hand-written CSS never goes through that pipeline, so it can't
+      silently fail to compile.
+   2. Because the query is `max-width: 767px`, this block is physically
+      inert at 768px and above — there is no class-priority/source-order
+      question to get wrong, unlike stacking a base + md: Tailwind class
+      on the same property. Desktop/tablet keep their original, untouched
+      Tailwind classes exactly as they were.
+*/
+@media (max-width: 767px) {
+  .ll-hero-mobile-fit {
+    padding-top: 5rem !important;
+    padding-bottom: 4rem !important;
+    min-height: 560px !important;
+  }
+
+  .ll-hero-mobile-vignette {
+    display: block !important;
+  }
+
+  .ll-hero-cta-row {
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 0.75rem !important;
+  }
+
+  .ll-hero-cta-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    border-radius: 9999px !important;
+    padding-top: 0.875rem !important;
+    padding-bottom: 0.875rem !important;
+  }
+
+  .ll-hero-cta-btn--primary {
+    box-shadow: 0 10px 25px -5px rgba(232, 160, 32, 0.35) !important;
+  }
+
+  .ll-hero-cta-btn--secondary {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    backdrop-filter: blur(4px) !important;
+  }
+
+  /* A touch more breathing room between the CTA row and the Explore Menu
+     card — the card's -mt-20 pull was tuned against the hero's original
+     (taller) mobile padding; now that the hero is tighter, easing the
+     pull keeps the two from crowding each other. */
+  .ll-explore-mobile-gap {
+    margin-top: -2.5rem !important;
+  }
+
+  /* Soft right-edge fade on the horizontal category carousel — hints
+     there's more to scroll without needing the desktop-only arrow
+     buttons. Fades into the card's own background color. */
+  .ll-cat-scroll-fade {
+    -webkit-mask-image: linear-gradient(to right, black 0%, black 85%, transparent 100%);
+    mask-image: linear-gradient(to right, black 0%, black 85%, transparent 100%);
+  }
+}
+
+/* Vignette hidden by default (desktop); the media query above is the
+   only thing that ever turns it on, and only below 768px. */
+.ll-hero-mobile-vignette {
+  display: none;
+}
