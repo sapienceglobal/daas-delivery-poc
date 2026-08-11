@@ -742,15 +742,18 @@ export const resendOtp = asyncHandler(async (req, response) => {
     throw new AppError('Email is already verified.', 400);
   }
 
-  // Rate limit: allow resend only if previous OTP was sent > 60 seconds ago
+  // Rate limit: allow resend only if previous OTP was sent > 60 seconds ago.
+  // emailOtpExpiry is set to (sendTime + 10 minutes). So the remaining time until
+  // expiry = emailOtpExpiry - Date.now(). If remaining > 9 min (540s), it means
+  // fewer than 60 seconds have elapsed since the OTP was first generated.
   if (user.emailOtpExpiry) {
-    const secondsSinceSent = (user.emailOtpExpiry - Date.now() + 10 * 60 * 1000) / 1000;
-    if (secondsSinceSent > (10 * 60 - 60)) { // less than 60s has passed since OTP was generated
+    const secondsRemaining = (user.emailOtpExpiry - Date.now()) / 1000;
+    if (secondsRemaining > (10 * 60 - 60)) { // less than 60s has passed since OTP was generated
       throw new AppError('Please wait 60 seconds before requesting a new code.', 429);
     }
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = crypto.randomInt(100000, 1000000).toString();
   user.emailOtp = otp;
   user.emailOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
   await user.save();

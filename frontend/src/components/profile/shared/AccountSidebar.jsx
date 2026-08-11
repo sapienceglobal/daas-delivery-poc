@@ -14,14 +14,14 @@ const navItems = [
   { id: 'reservations', label: 'My Reservations', icon: Calendar },
   { id: 'favorites', label: 'Favorites', icon: Heart },
   { id: 'payments', label: 'Payment Methods', icon: CreditCard },
-  { id: 'loyalty', label: 'Loyalty Points', icon: Gift, badge: '120' },
+  { id: 'loyalty', label: 'Loyalty Points', icon: Gift },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'refer', label: 'Refer & Earn', icon: Users },
   { id: 'logout', label: 'Logout', icon: LogOut },
 ];
 
 export default function AccountSidebar({ user, activeNav, onNavClick, onOrderNow }) {
-  const points = user?.loyaltyPoints || 120;
+  const points = user?.loyaltyPoints ?? 0;
   const navRef = useRef(null);
 
   useEffect(() => {

@@ -147,8 +147,8 @@ function OtpVerificationContent() {
 
           {formError && (
             <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-5">
-              <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
-              <p className="text-[13px] text-red-700 font-semibold leading-snug">{formError}</p>
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#dc2626' }} />
+              <p className="text-[13px] font-semibold leading-snug" style={{ color: '#b91c1c' }}>{formError}</p>
             </div>
           )}
 

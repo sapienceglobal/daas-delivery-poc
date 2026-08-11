@@ -26,7 +26,7 @@ export default function OrdersPage() {
   useEffect(() => {
     if (!authLoading) {
       if (!isAuthenticated) {
-        router.replace('/login?redirect=/customer/orders');
+        router.replace('/login');
         return;
       }
       loadOrders();

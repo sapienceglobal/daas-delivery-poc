@@ -38,7 +38,7 @@ const navItems = [
   { id: 'orders', label: 'My Orders', icon: ShoppingCart },
   { id: 'favorites', label: 'Favorites', icon: Heart },
   { id: 'payments', label: 'Payment Methods', icon: CreditCard },
-  { id: 'loyalty', label: 'Loyalty Points', icon: Gift, badge: '120' },
+  { id: 'loyalty', label: 'Loyalty Points', icon: Gift },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'refer', label: 'Refer & Earn', icon: Users },
   { id: 'logout', label: 'Logout', icon: LogOut },
@@ -362,7 +362,7 @@ function ProfileHero({ activeNav }) {
 
 // ── 2. Account Sidebar ──────────────────────────────────────────────────────
 function AccountSidebar({ user, activeNav, onNavClick, onOrderNow }) {
-  const points = user?.loyaltyPoints || 120;
+  const points = user?.loyaltyPoints ?? 0;
 
   return (
     <aside className="space-y-5 lg:sticky lg:top-24">
@@ -932,7 +932,7 @@ function DashboardSubView({ user, orders, onNavClick, onReorder }) {
   const totalOrders = orders.length;
   const deliveredOrders = orders.filter(o => o.status === 'delivered').length;
   const totalSpent = orders.reduce((sum, o) => sum + (o.total || 0), 0);
-  const points = user?.loyaltyPoints || 120;
+  const points = user?.loyaltyPoints ?? 0;
   const recentOrder = orders[0];
 
   return (
@@ -1088,7 +1088,7 @@ function MyAddressesSubView({ user, updateUser }) {
 }
 
 function LoyaltySubView({ user }) {
-  const points = user?.loyaltyPoints || 120;
+  const points = user?.loyaltyPoints ?? 0;
   const cashValue = (points / 100).toFixed(2);
 
   return (

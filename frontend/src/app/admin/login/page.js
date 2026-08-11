@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { z } from 'zod';
 import { useAuth } from '@/context/AuthContext';
+import { useBrand } from '@/context/BrandContext';
 import { showToast } from '@/components/ui';
 import { authAPI } from '@/lib/api';
 
@@ -160,6 +161,7 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, logout } = useAuth();
+  const { brand } = useBrand();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -167,6 +169,7 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [isForgotOpen, setIsForgotOpen] = useState(false);
 
   const validate = () => {
@@ -191,6 +194,7 @@ export default function AdminLoginPage() {
     if (!validate()) return;
     
     setLoading(true);
+    setFormError('');
     try {
       const user = await login(email, password, rememberMe);
       if (user.role === 'admin' || user.role === 'merchant') {
@@ -198,10 +202,10 @@ export default function AdminLoginPage() {
         router.push(redirectUrl);
       } else {
         await logout();
-        showToast('Access Denied: This portal is for restaurant partners only.', 'error');
+        setFormError('Access Denied: This portal is for restaurant partners only.');
       }
     } catch (error) {
-      showToast(error.message || 'Login failed', 'error');
+      setFormError(error.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -244,15 +248,28 @@ export default function AdminLoginPage() {
 
           <div className="relative z-10 w-full max-w-md flex flex-col items-center">
             <div className="mb-6 flex flex-col items-center">
-              <svg className="w-12 h-12 text-[#c99742] mb-2" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
-              </svg>
-              <h1 className="text-[40px] font-serif text-white tracking-widest mb-1 leading-none">LASSI</h1>
-              <div className="flex items-center gap-4 text-white/80 w-full mb-2">
-                <div className="h-[1px] flex-1 bg-white/40"></div>
-                <span className="tracking-[0.3em] text-sm uppercase font-light">Lounge</span>
-                <div className="h-[1px] flex-1 bg-white/40"></div>
-              </div>
+              {brand?.logo ? (
+                <div className="relative w-full max-w-[200px] h-24 mb-3">
+                  <Image
+                    src={brand.logo}
+                    alt={brand?.name || 'Restaurant logo'}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+              ) : (
+                <>
+                  <svg className="w-12 h-12 text-[#c99742] mb-2" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+                  </svg>
+                  <h1 className="text-[40px] font-serif text-white tracking-widest mb-1 leading-none">LASSI</h1>
+                  <div className="flex items-center gap-4 text-white/80 w-full mb-2">
+                    <div className="h-[1px] flex-1 bg-white/40"></div>
+                    <span className="tracking-[0.3em] text-sm uppercase font-light">Lounge</span>
+                    <div className="h-[1px] flex-1 bg-white/40"></div>
+                  </div>
+                </>
+              )}
               <div className="flex items-center justify-center gap-2 text-[#c99742] text-[10px] font-semibold tracking-widest mt-1">
                 <span>∞</span>INDIAN RESTAURANT<span>∞</span>
               </div>
@@ -265,15 +282,17 @@ export default function AdminLoginPage() {
               <div className="w-2 h-2 rotate-45 bg-[#c99742] ml-2 opacity-50"></div>
             </div>
 
-            <p className="text-white/90 text-[15px] leading-relaxed mb-12">
+            <p className="text-white/90 text-[15px] leading-relaxed mb-10">
               Manage your restaurant operations<br/>efficiently and effortlessly.
             </p>
 
-            <div className="grid grid-cols-3 gap-y-10 gap-x-8 w-full max-w-[340px] mt-2">
+            <div className="grid grid-cols-3 gap-y-7 gap-x-6 w-full max-w-[340px] mt-2">
               {operationalFeatures.map((feat, idx) => (
                 <div key={idx} className="flex flex-col items-center group">
-                  <feat.icon className="w-8 h-8 text-[#c99742] mb-3 group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
-                  <span className="text-white/90 text-[10px] leading-snug text-center uppercase tracking-wider whitespace-pre-line font-medium">
+                  <div className="w-12 h-12 rounded-full bg-[#4a090b]/80 backdrop-blur-sm border border-[#c99742]/40 flex items-center justify-center mb-2.5 shadow-lg group-hover:scale-110 group-hover:border-[#c99742]/70 transition-all duration-300">
+                    <feat.icon className="w-5 h-5 text-[#c99742]" strokeWidth={1.75} />
+                  </div>
+                  <span className="text-white text-[10px] leading-snug text-center uppercase tracking-wider whitespace-pre-line font-bold drop-shadow-lg">
                     {feat.label}
                   </span>
                 </div>
@@ -283,13 +302,13 @@ export default function AdminLoginPage() {
         </div>
 
         {/* Right Side: Login Form */}
-        <div className="w-full lg:w-[55%] h-full flex flex-col bg-[#fcfdfc] relative items-center justify-center px-6 lg:px-16 py-12 lg:py-0 overflow-hidden">
+        <div className="w-full lg:w-[55%] h-full flex flex-col bg-[#fcfdfc] relative items-center px-6 lg:px-16 py-10 overflow-x-hidden overflow-y-auto">
           
           <div className="absolute top-[-5%] right-[-5%] w-64 h-64 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNMzAgMjBDMjAgMzAgMjAgNTAgMzAgNjBMMTAwIDEwMEM5MCA4MCA3MCA4MCA2MCA3MEwxMCAyMEMyMCAxMCA0MCAxMCAzMCAyMFoiIGZpbGw9IiNmMmVhZTQiIGZpbGwtb3BhY2l0eT0iMC41Ii8+PC9zdmc+')] bg-no-repeat bg-contain opacity-20 pointer-events-none rotate-45" />
           <div className="absolute bottom-[5%] right-[5%] w-48 h-48 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjQgNCIvPjxwYXRoIGQ9Ik01MCAxMEMzMCAzMCA3MCA3MCA1MCA5MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=')] bg-no-repeat bg-contain opacity-30 pointer-events-none -rotate-12" />
           <div className="absolute top-[10%] left-[5%] w-32 h-32 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNMTUgNTBDMTUgMzAgMzAgMTUgNTAgMTVMMTAwIDBDODAgMjAgODAgNTAgMTAwIDcwQzgwIDkwIDUwIDkwIDUwIDcwQzMwIDcwIDE1IDkwIDE1IDUwWiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=')] bg-no-repeat bg-contain opacity-20 pointer-events-none rotate-[30deg]" />
 
-          <div className="w-full max-w-[440px] mx-auto z-10">
+          <div className="w-full max-w-[440px] mx-auto z-10 my-auto py-4">
             <div className="text-center mb-10">
               <h2 className="text-[38px] font-serif text-[#4a090b] mb-4">Welcome Back!</h2>
               <div className="flex items-center justify-center mb-4 w-full">
@@ -301,6 +320,14 @@ export default function AdminLoginPage() {
             </div>
 
             <div className="bg-white rounded-3xl shadow-[0_12px_40px_rgb(0,0,0,0.06)] p-8 sm:p-10 border border-[#f9fafb] relative overflow-hidden">
+
+              {formError && (
+                <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-6">
+                  <svg className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#dc2626' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <p className="text-[13px] font-semibold leading-snug" style={{ color: '#b91c1c' }}>{formError}</p>
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-6">
                 
                 {/* Email Field */}
@@ -318,7 +345,7 @@ export default function AdminLoginPage() {
                       className="flex-1 bg-transparent border-none px-4 py-3.5 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
                     />
                   </div>
-                  {errors.email && <p className="text-xs text-red-500 font-medium mt-1 ml-1">{errors.email}</p>}
+                  {errors.email && <p className="text-xs font-medium mt-1 ml-1" style={{ color: '#ef4444' }}>{errors.email}</p>}
                 </div>
 
                 {/* Password Field */}
@@ -343,7 +370,7 @@ export default function AdminLoginPage() {
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
-                  {errors.password && <p className="text-xs text-red-500 font-medium mt-1 ml-1">{errors.password}</p>}
+                  {errors.password && <p className="text-xs font-medium mt-1 ml-1" style={{ color: '#ef4444' }}>{errors.password}</p>}
                 </div>
 
                 {/* Remember Me + Forgot Password */}

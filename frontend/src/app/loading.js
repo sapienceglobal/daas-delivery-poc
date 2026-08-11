@@ -2,7 +2,10 @@
 
 export default function Loading() {
   return (
-    <div className="w-full h-full min-h-[60vh] flex flex-col items-center justify-center bg-transparent">
+    <div
+      className="w-full h-full min-h-[60vh] flex flex-col items-center justify-center bg-transparent"
+      style={{ colorScheme: 'light', color: '#1a1a1a' }}
+    >
       {/* Animated Rings */}
       <div className="relative flex items-center justify-center w-20 h-20 mb-6">
         {/* Outer pulsing ring */}
@@ -21,7 +24,10 @@ export default function Loading() {
 
       {/* Premium Text Loading State */}
       <div className="space-y-3 text-center">
-        <h3 className="text-[20px] font-serif font-bold text-[#1a1a1a] tracking-wide animate-pulse">
+        <h3
+          className="text-[20px] font-serif font-bold tracking-wide animate-pulse"
+          style={{ color: '#1a1a1a' }}
+        >
           Curating Your Experience
         </h3>
         <div className="flex items-center justify-center gap-1.5 opacity-70">

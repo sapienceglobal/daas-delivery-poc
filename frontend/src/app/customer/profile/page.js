@@ -28,7 +28,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!authLoading) {
       if (!isAuthenticated) {
-        router.replace('/login?redirect=/customer/profile');
+        router.replace('/login');
       } else {
         refreshUser();
       }
