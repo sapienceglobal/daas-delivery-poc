@@ -32,6 +32,56 @@ export default function LassiLoungeFooter() {
     email: brand?.email || footerContent.visitUs.email,
   };
 
+  const dynamicFindUs = {
+    address: brand?.address ? `${brand.name || 'Lassi Lounge'}, ${brand.address}` : footerContent.findUs.address,
+    mapLink: brand?.address ? `https://maps.google.com/?q=${encodeURIComponent(brand.address)}` : footerContent.findUs.mapLink,
+    mapImage: footerContent.findUs.mapImage,
+  };
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    const [hours, minutes] = timeStr.split(':');
+    let h = parseInt(hours, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h}:${minutes} ${ampm}`;
+  };
+
+  const getDynamicHours = () => {
+    if (!brand?.operatingHours) return footerContent.hours;
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const formatted = [];
+    let currentGroup = null;
+
+    for (let i = 0; i < days.length; i++) {
+      const day = days[i];
+      const hrs = brand.operatingHours[day];
+      
+      const timeString = hrs?.isOpen && hrs?.openTime && hrs?.closeTime 
+        ? `${formatTime(hrs.openTime)} - ${formatTime(hrs.closeTime)}`
+        : 'Closed';
+
+      if (!currentGroup) {
+        currentGroup = { startDay: day, endDay: day, time: timeString };
+      } else if (currentGroup.time === timeString) {
+        currentGroup.endDay = day;
+      } else {
+        formatted.push(currentGroup);
+        currentGroup = { startDay: day, endDay: day, time: timeString };
+      }
+    }
+    if (currentGroup) formatted.push(currentGroup);
+
+    return formatted.map(g => {
+      const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+      const dayStr = g.startDay === g.endDay ? capitalize(g.startDay) : `${capitalize(g.startDay)} - ${capitalize(g.endDay.substring(0, 3))}`;
+      return { day: dayStr, time: g.time };
+    });
+  };
+  
+  const displayHours = getDynamicHours();
+
+
   return (
     <footer className="bg-[#141212] border-t border-white/10 pt-4">
       
@@ -94,7 +144,7 @@ export default function LassiLoungeFooter() {
         <div className="md:px-8 py-8 md:py-0">
           <h3 className="text-[#E8B93D] text-sm font-bold uppercase tracking-widest mb-5">Hours of Operation</h3>
           <ul className="flex flex-col gap-2.5 text-[13px] text-[#D8D4CF]">
-            {hours.map((row) => (
+            {displayHours.map((row) => (
               <li key={row.day} className="flex justify-between gap-4 whitespace-nowrap">
                 <span>{row.day}</span>
                 <span className="text-white font-medium">{row.time}</span>
@@ -118,21 +168,21 @@ export default function LassiLoungeFooter() {
           <h3 className="text-[#E8B93D] text-sm font-bold uppercase tracking-widest mb-5">Find Us</h3>
           
           <Link
-            href={findUs.mapLink}
+            href={dynamicFindUs.mapLink}
             target="_blank"
             rel="noopener noreferrer"
       
             className="relative block h-32 w-full rounded-lg overflow-hidden bg-[#2A2A2A] shadow-md group"
           >
-            <Image src={findUs.mapImage} alt="Map showing Lassi Lounge location" fill sizes="240px" priority className="object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+            <Image src={dynamicFindUs.mapImage} alt="Map showing location" fill sizes="240px" priority className="object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
           
             <div className="absolute bottom-2 left-2 right-2 bg-[#FCF9F4] rounded-md shadow border border-[#1a1a1a]/10 p-2.5 flex flex-row items-center gap-2.5 group-hover:-translate-y-0.5 transition-transform duration-300">
                <div className="bg-[#C8102E]/10 p-1.5 rounded-full shrink-0">
                  <MapPin size={20} className="text-[#C8102E]" fill="#C8102E" strokeWidth={1} />
                </div>
                <div className="flex flex-col flex-1 min-w-0">
-                  <p className="text-[13px] font-extrabold text-[#1a1a1a] leading-tight truncate">Lassi Lounge</p>
-                  <p className="text-[11px] text-[#1a1a1a]/70 leading-tight mt-0.5 font-medium truncate">{findUs.address}</p>
+                  <p className="text-[13px] font-extrabold text-[#1a1a1a] leading-tight truncate">{brand?.name || 'Lassi Lounge'}</p>
+                  <p className="text-[11px] text-[#1a1a1a]/70 leading-tight mt-0.5 font-medium truncate">{dynamicFindUs.address}</p>
                </div>
             </div>
           </Link>

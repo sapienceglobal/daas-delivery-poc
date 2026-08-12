@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
@@ -45,7 +46,7 @@ class HelpSupportScreen extends StatelessWidget {
             const SizedBox(height: 32),
             const Text('Contact Us', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 16),
-            _buildContactUsList(),
+            _buildContactUsList(context),
             const SizedBox(height: 24),
             _buildSatisfactionBanner(),
             const SizedBox(height: 40),
@@ -209,7 +210,11 @@ class HelpSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContactUsList() {
+  Widget _buildContactUsList(BuildContext context) {
+    final restaurant = Provider.of<RestaurantProvider>(context).restaurant;
+    final phone = restaurant?['phone'] as String? ?? '+1 555-000-0000';
+    final email = restaurant?['email'] as String? ?? 'support@example.com';
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -220,11 +225,11 @@ class HelpSupportScreen extends StatelessWidget {
         children: [
           _buildContactItem(Icons.chat_bubble_outline, 'Live Chat', 'Chat with our support executive', isLiveChat: true),
           const Divider(height: 1, indent: 64),
-          _buildContactItem(Icons.phone_outlined, 'Call Us', 'Talk to our support team', trailingText: '+91 98765 43210'),
+          _buildContactItem(Icons.phone_outlined, 'Call Us', 'Talk to our support team', trailingText: phone),
           const Divider(height: 1, indent: 64),
-          _buildContactItem(Icons.email_outlined, 'Email Us', 'Send us an email anytime', trailingText: 'support@lassilounge.com'),
+          _buildContactItem(Icons.email_outlined, 'Email Us', 'Send us an email anytime', trailingText: email),
           const Divider(height: 1, indent: 64),
-          _buildContactItem(Icons.wechat_outlined, 'WhatsApp Support', 'Message us on WhatsApp', trailingText: '+91 98765 43210'),
+          _buildContactItem(Icons.wechat_outlined, 'WhatsApp Support', 'Message us on WhatsApp', trailingText: phone),
         ],
       ),
     );

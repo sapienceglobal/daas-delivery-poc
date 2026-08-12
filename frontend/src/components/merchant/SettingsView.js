@@ -88,13 +88,13 @@ export default function SettingsView({ restaurant, onRefresh }) {
 
         acceptsOnlineOrders: restaurant.acceptsOnlineOrders !== false,
         autoAcceptOrders: restaurant.autoAcceptOrders || false,
-        preparationTime: restaurant.preparationTime || 20,
-        minimumOrder: restaurant.minimumOrder || 15.00,
+        preparationTime: restaurant.preparationTime ?? 20,
+        minimumOrder: restaurant.minimumOrder ?? 15.00,
 
         taxType: restaurant.taxType || 'Sales Tax',
-        taxRate: restaurant.taxRate || 8.875,
-        serviceCharge: restaurant.serviceCharge || 5,
-        packagingCharge: restaurant.packagingCharge || 0.50,
+        taxRate: restaurant.taxRate ?? 8.875,
+        serviceCharge: restaurant.serviceCharge ?? 5,
+        packagingCharge: restaurant.packagingCharge ?? 0.50,
         roundOff: restaurant.roundOff !== false,
       });
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -31,7 +31,8 @@ const customerFeatures = [
 
 export default function ResetPasswordPage({ params }) {
   const router = useRouter();
-  const token = params.token;
+  const unwrappedParams = use(params);
+  const token = unwrappedParams.token;
   const { brand } = useBrand();
 
   const [form, setForm] = useState({ password: '', confirmPassword: '' });
@@ -54,7 +55,8 @@ export default function ResetPasswordPage({ params }) {
     } catch (err) {
       if (err instanceof z.ZodError) {
         const newErrors = {};
-        err.errors.forEach(e => {
+        const issues = err.errors || err.issues || [];
+        issues.forEach(e => {
           newErrors[e.path[0]] = e.message;
         });
         setErrors(newErrors);

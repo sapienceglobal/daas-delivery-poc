@@ -119,7 +119,7 @@ function ForgotPasswordModal({ isOpen, onClose, defaultEmail = '' }) {
                 </p>
               </div>
 
-              <form onSubmit={handleFpSubmit} className="space-y-5">
+              <form onSubmit={handleFpSubmit} noValidate className="space-y-5">
                 <div>
                   <label className="text-[12px] font-bold text-[#1f2937] block mb-2">Email Address</label>
                   <div className={`flex items-center bg-white border rounded-xl overflow-hidden transition-all ${fpError ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
@@ -327,7 +327,7 @@ export default function AdminLoginPage() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} noValidate className="space-y-6">
 
                 {/* Email Field */}
                 <div className="space-y-2.5">
