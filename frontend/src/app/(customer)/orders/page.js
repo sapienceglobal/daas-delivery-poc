@@ -88,12 +88,12 @@ export default function OrdersPage() {
           icon={ShoppingBag}
           title="No orders found"
           description={activeTab === 'all' ? "You haven't placed any orders yet" : `No ${activeTab} orders`}
-          action={<Button onClick={() => router.push('/customer')}>Browse Restaurants</Button>}
+          action={<Button onClick={() => router.push('/')}>Browse Restaurants</Button>}
         />
       ) : (
         <div className="space-y-4">
           {orders.map(order => (
-            <Link key={order._id} href={`/customer/orders/${order._id}`}>
+            <Link key={order._id} href={`/orders/${order._id}`}>
               <GlassCard hover className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1.5">

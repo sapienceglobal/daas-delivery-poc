@@ -9,7 +9,7 @@ export function Footer() {
   const { isSingleRestaurantMode, brand } = useBrand();
 
   // In single restaurant mode, hide global footer on landing screens
-  if (isSingleRestaurantMode && (pathname === '/' || pathname === '/customer')) {
+  if (isSingleRestaurantMode && (pathname === '/' || pathname === '/')) {
     return null;
   }
 
@@ -31,9 +31,9 @@ export function Footer() {
           <div>
             <h4 className="text-xs font-semibold text-brand-muted uppercase tracking-wider mb-3">Quick Links</h4>
             <ul className="space-y-2">
-              <li><Link href="/customer" className="text-xs text-brand-muted hover:text-brand-cyan transition-colors">Browse Restaurants</Link></li>
-              <li><Link href="/customer/orders" className="text-xs text-brand-muted hover:text-brand-cyan transition-colors">My Orders</Link></li>
-              <li><Link href="/customer/profile" className="text-xs text-brand-muted hover:text-brand-cyan transition-colors">Profile</Link></li>
+              <li><Link href="/" className="text-xs text-brand-muted hover:text-brand-cyan transition-colors">Browse Restaurants</Link></li>
+              <li><Link href="/orders" className="text-xs text-brand-muted hover:text-brand-cyan transition-colors">My Orders</Link></li>
+              <li><Link href="/profile" className="text-xs text-brand-muted hover:text-brand-cyan transition-colors">Profile</Link></li>
             </ul>
           </div>
 

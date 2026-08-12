@@ -122,7 +122,7 @@ export default function OrderDetailsModal({ order, onClose, onReorder }) {
           <button
             onClick={() => {
               onClose();
-              router.push(`/customer/orders/${order._id}`);
+              router.push(`/orders/${order._id}`);
             }}
             className="rounded-lg bg-[#7a0b10] px-4 py-2.5 text-[13px] font-black text-white flex items-center gap-2 hover:bg-[#680307] transition-colors shadow-xs"
           >

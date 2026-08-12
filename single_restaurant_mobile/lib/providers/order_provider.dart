@@ -84,6 +84,12 @@ class OrderProvider with ChangeNotifier {
             payload = jsonDecode(data);
           } else if (data is Map) {
             payload = Map<String, dynamic>.from(data);
+          } else if (data is List && data.isNotEmpty) {
+            if (data.first is String) {
+              payload = jsonDecode(data.first);
+            } else {
+              payload = Map<String, dynamic>.from(data.first);
+            }
           } else {
             return;
           }
@@ -136,6 +142,12 @@ class OrderProvider with ChangeNotifier {
       final data = await _orderService.getOrderById(orderId);
       if (data != null) {
         _trackedOrdersCache[orderId] = data;
+        
+        final index = _orders.indexWhere((o) => o['_id']?.toString() == orderId);
+        if (index != -1) {
+          _orders[index] = data;
+        }
+
         _setupGlobalSocketListeners();
         _socketService.joinOrderRoom(orderId);
       }

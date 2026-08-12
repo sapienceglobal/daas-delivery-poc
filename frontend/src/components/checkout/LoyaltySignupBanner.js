@@ -19,7 +19,7 @@ export default function LoyaltySignupBanner() {
                 Earn points on every order<br />and enjoy exclusive benefits.
             </p>
             <button
-                onClick={() => router.push('/customer/profile')}
+                onClick={() => router.push('/profile')}
                 className="bg-[#e8a020] hover:bg-[#d68f13] text-[#1a1a1a] font-bold text-[12px] uppercase tracking-wider rounded-lg py-2 px-5 w-fit transition-colors"
             >
                 JOIN NOW

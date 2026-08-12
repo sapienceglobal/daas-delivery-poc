@@ -30,7 +30,6 @@ router.post('/me/fcm-token', protect, authController.saveFcmToken);
 router.post('/logout', protect, authController.logout);
 
 // ── Addresses ───────────────────────────────────────────────────────────────
-// ── Addresses ───────────────────────────────────────────────────────────────
 router.post('/me/addresses', protect, authorize('customer', 'merchant', 'admin'), authController.addAddress);
 router.put('/me/addresses/:addressId', protect, authorize('customer', 'merchant', 'admin'), authController.editAddress);
 router.delete('/me/addresses/:addressId', protect, authorize('customer', 'merchant', 'admin'), authController.removeAddress);

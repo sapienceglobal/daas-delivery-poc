@@ -17,6 +17,18 @@ class SocketService {
       if (_socket!.connected) return;
       _socket!.dispose();
     }
+    _createSocket();
+  }
+
+  void reconnect() {
+    if (_socket != null) {
+      _socket!.dispose();
+      _socket = null;
+    }
+    _createSocket();
+  }
+
+  void _createSocket() {
 
     final String baseUrl = ApiService.baseUrl;
     final String? token = ApiService.authToken;

@@ -28,7 +28,7 @@ export default function LassiLoungeHeader() {
       {/* Back to original px-6 py-3 — navbar height is exactly what it was before. */}
       <div className="mx-auto max-w-7xl px-6 py-3 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/customer" className="flex items-center gap-2 shrink-0 py-1">
+        <Link href="/" className="flex items-center gap-2 shrink-0 py-1">
           {brand?.logo ? (
             // Layout box stays h-9/h-10 (navbar height unaffected) —
             // scale() only affects paint, not layout, so the logo renders
@@ -72,7 +72,7 @@ export default function LassiLoungeHeader() {
 
         {/* Right icons (Visible on all screens) */}
         <div className="flex items-center gap-4">
-          <a href={isAuthenticated ? "/customer/profile?tab=dashboard" : "/login"} aria-label="Profile" className="text-text hover:text-accent-500">
+          <a href={isAuthenticated ? "/profile?tab=dashboard" : "/login"} aria-label="Profile" className="text-text hover:text-accent-500">
             <User size={20} />
           </a>
           <button onClick={openCart} aria-label="Cart" className="relative text-text hover:text-accent-500 bg-transparent border-none p-0 cursor-pointer">

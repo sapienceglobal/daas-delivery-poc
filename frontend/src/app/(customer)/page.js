@@ -316,7 +316,7 @@ function RestaurantCard({ restaurant, user, isAuthenticated, updateUser }) {
   };
 
   return (
-    <Link href={isActive ? `/customer/restaurant/${restaurant._id}` : '#'} onClick={handleCardClick}>
+    <Link href={isActive ? `/restaurant/${restaurant._id}` : '#'} onClick={handleCardClick}>
       <GlassCard hover={isActive} padding={false} className={`overflow-hidden group ${!isActive ? 'opacity-50 select-none' : ''}`}>
         {/* Banner */}
         <div className="relative h-44 overflow-hidden">

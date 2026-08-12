@@ -13,7 +13,7 @@ export default function SignatureDishesSection() {
   const eyebrow = signatureDishesContent?.eyebrow || 'Our Signature Dishes';
   const viewFullMenuCta = signatureDishesContent?.viewFullMenuCta || {
     label: 'View Full Menu',
-    href: '/customer/restaurant/lassi-lounge?tab=menu'
+    href: '/restaurant/lassi-lounge?tab=menu'
   };
   const fallbackDishes = signatureDishesContent?.dishes || [];
 
@@ -89,7 +89,7 @@ export default function SignatureDishesSection() {
                 onClick={() => {
                   const itemId = dish._id || dish.id;
                   const resId = dish.restaurantId || 'lassi-lounge';
-                  router.push(`/customer/restaurant/${resId}/item/${itemId}`);
+                  router.push(`/restaurant/${resId}/item/${itemId}`);
                 }}
                 className="animate-in fade-in zoom-in-95 duration-500 ease-out fill-mode-both cursor-pointer"
               >

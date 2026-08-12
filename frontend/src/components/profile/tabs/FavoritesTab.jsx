@@ -83,7 +83,7 @@ export default function FavoritesTab({ user, updateUser }) {
               {favoriteRestaurants.map(restaurant => (
                 <div 
                   key={restaurant._id}
-                  onClick={() => router.push(`/customer/restaurant/${restaurant._id}`)}
+                  onClick={() => router.push(`/restaurant/${restaurant._id}`)}
                   className="bg-white rounded-2xl border border-[#eadfdb] shadow-sm overflow-hidden cursor-pointer hover:shadow-md hover:border-[#b47b80] transition-all group"
                 >
                   <div className="h-32 bg-gray-200 relative overflow-hidden">

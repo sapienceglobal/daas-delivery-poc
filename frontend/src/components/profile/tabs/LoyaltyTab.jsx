@@ -84,7 +84,7 @@ export default function LoyaltyTab({ user }) {
           <div className="bg-white rounded-2xl border border-[#eadfdb] p-8 text-center shadow-sm">
             <p className="text-[14px] text-[#6b7280] mb-4">You don't have any points history yet.</p>
             <button
-              onClick={() => router.push('/customer/restaurant/lassi-lounge')}
+              onClick={() => router.push('/restaurant/lassi-lounge')}
               className="h-11 px-4 py-2 rounded-lg bg-[#7a0b10] text-white text-[13px] font-black uppercase tracking-wider hover:bg-[#680307] transition-colors"
             >
               Order Now to Earn

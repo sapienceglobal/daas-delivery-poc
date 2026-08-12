@@ -32,7 +32,7 @@ export default function LassiProfilePage({ user, logout, updateUser }) {
       return;
     }
     setActiveNav(id);
-    router.push(`/customer/profile?tab=${id}`, { scroll: false });
+    router.push(`/profile?tab=${id}`, { scroll: false });
   };
 
   return (
@@ -52,7 +52,7 @@ export default function LassiProfilePage({ user, logout, updateUser }) {
             user={user}
             activeNav={activeNav}
             onNavClick={handleNavClick}
-            onOrderNow={() => router.push('/customer/restaurant/lassi-lounge')}
+            onOrderNow={() => router.push('/restaurant/lassi-lounge')}
           />
 
           {/* Right Side Content with Smooth Fade-In Transition */}

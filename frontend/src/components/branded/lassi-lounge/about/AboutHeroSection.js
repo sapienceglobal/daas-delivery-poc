@@ -19,7 +19,7 @@ export default function AboutHeroSection() {
       <div className="relative z-10 mx-auto max-w-[1300px] px-6 lg:px-8 flex flex-col items-start space-y-5">
         
         <nav className="flex items-center gap-2 text-[13px] font-medium text-[#d1d5db] mb-1">
-          <Link href="/customer" className="hover:text-[#ffffff] transition-colors">
+          <Link href="/" className="hover:text-[#ffffff] transition-colors">
             Home
           </Link>
           <ChevronRight className="w-3.5 h-3.5 text-[#9ca3af]" />

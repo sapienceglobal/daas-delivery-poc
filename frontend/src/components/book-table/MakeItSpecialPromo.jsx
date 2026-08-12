@@ -19,7 +19,7 @@ export default function MakeItSpecialPromo() {
           Celebrate your special moments with our delicious food and custom arrangements.
         </p>
         <Link 
-          href={`/customer/restaurant/${id}/catering`}
+          href={`/restaurant/${id}/catering`}
           className="rounded-lg bg-[#f5a623] px-5 py-2.5 text-[11px] font-black uppercase tracking-wider text-[#1a1a1a] shadow-sm hover:bg-[#e09214] transition-colors flex items-center justify-center gap-1 inline-flex mt-2"
         >
           EXPLORE CATERING &rarr;

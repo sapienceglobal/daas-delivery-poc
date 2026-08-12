@@ -4,6 +4,7 @@ import 'package:single_restaurant_mobile/services/auth_service.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/register_screen.dart';
 import 'package:single_restaurant_mobile/screens/forgot_password_screen.dart';
+import 'package:single_restaurant_mobile/screens/otp_verification_screen.dart';
 import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
@@ -241,14 +242,57 @@ class _LoginScreenState extends State<LoginScreen> {
                             Icon(Icons.error_outline, color: Colors.red.shade700, size: 18),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: Text(
-                                _errorMessage!,
-                                style: TextStyle(
-                                  color: Colors.red.shade700, 
-                                  fontSize: 12.5, 
-                                  fontWeight: FontWeight.w600, 
-                                  height: 1.3
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _errorMessage!,
+                                    style: TextStyle(
+                                      color: Colors.red.shade700, 
+                                      fontSize: 12.5, 
+                                      fontWeight: FontWeight.w600, 
+                                      height: 1.3
+                                    ),
+                                  ),
+                                  if (_errorMessage!.toLowerCase().contains('verify your email')) ...[
+                                    const SizedBox(height: 10),
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => OtpVerificationScreen(
+                                              email: _emailController.text.trim(),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.9),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: Colors.red.shade200),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'Verify Email Now',
+                                              style: TextStyle(
+                                                color: Colors.red.shade800,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Icon(Icons.arrow_forward, size: 14, color: Colors.red.shade800),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                           ],

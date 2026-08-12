@@ -674,7 +674,7 @@ export function useCheckoutState() {
       const data = await orderAPI.create(orderData);
       clearCart();
       showToast('Order placed successfully!', 'success');
-      router.push(`/customer/orders/${data.data._id}`);
+      router.push(`/orders/${data.data._id}`);
     } catch (err) {
       console.error('Checkout failed:', err);
       const errorMsg = err.response?.data?.message || err.message || 'Checkout failed';

@@ -79,7 +79,7 @@ export default function CartSidebar() {
 
   const handleCheckout = () => {
     closeCart();
-    router.push('/customer/checkout');
+    router.push('/checkout');
   };
 
   const backdropClass = isCartOpen

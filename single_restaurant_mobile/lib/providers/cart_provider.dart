@@ -95,7 +95,12 @@ class CartProvider with ChangeNotifier, WidgetsBindingObserver {
       final data = await _cartService.getCart();
       if (data != null) {
         _items = data['items'] ?? [];
-        _restaurant = data['restaurant'];
+        final rest = data['restaurant'];
+        if (rest != null && rest['_id'] == null && rest['id'] == null) {
+          _restaurant = null;
+        } else {
+          _restaurant = rest;
+        }
         _specialInstructions = data['specialInstructions'] ?? '';
       } else {
         _items = [];
@@ -112,7 +117,7 @@ class CartProvider with ChangeNotifier, WidgetsBindingObserver {
   }
 
   void addItem(Map<String, dynamic> item, {Map<String, dynamic>? restaurantData}) {
-    if (restaurantData != null && _restaurant == null) {
+    if (restaurantData != null && (_restaurant == null || (_restaurant?['_id'] == null && _restaurant?['id'] == null))) {
       _restaurant = restaurantData;
     }
 

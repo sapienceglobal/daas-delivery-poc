@@ -22,7 +22,7 @@ export default function EmployeesDashboard() {
 
   useEffect(() => {
     if (!isAuthenticated) { router.push('/login'); return; }
-    if (!isMerchant) { router.push('/customer'); return; }
+    if (!isMerchant) { router.push('/'); return; }
     loadEmployees();
   }, [isAuthenticated, isMerchant]);
 

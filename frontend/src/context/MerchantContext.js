@@ -30,7 +30,7 @@ export function MerchantProvider({ children }) {
     if (authLoading) return;
     if (!backendVerified) return;
     if (!isAuthenticated) { router.push('/admin/login'); return; }
-    if (!isMerchant && !isAdmin) { router.push('/customer'); return; }
+    if (!isMerchant && !isAdmin) { router.push('/'); return; }
     
     initMerchantData();
   }, [isAuthenticated, isMerchant, isAdmin, authLoading, backendVerified]);

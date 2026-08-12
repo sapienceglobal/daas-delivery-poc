@@ -51,7 +51,7 @@ function POSContent() {
 
   useEffect(() => {
     if (!isAuthenticated) { router.push('/login'); return; }
-    if (!isMerchant && !isAdmin) { router.push('/customer'); return; }
+    if (!isMerchant && !isAdmin) { router.push('/'); return; }
     
     if (tableId && tableNumber) {
       setOrderType('dine_in');

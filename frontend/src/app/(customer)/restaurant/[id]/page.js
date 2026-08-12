@@ -277,7 +277,7 @@ export default function RestaurantPage() {
 
             {/* Left: Breadcrumbs */}
             <div className="flex items-center text-[13px] text-[#6b7280] font-medium gap-1 w-full md:w-auto">
-              <button className="flex items-center gap-2 hover:text-[#7a0b10] transition-colors ll-focus-ring" onClick={() => router.push('/customer')}>
+              <button className="flex items-center gap-2 hover:text-[#7a0b10] transition-colors ll-focus-ring" onClick={() => router.push('/')}>
                 <Home className="w-4 h-4 text-[#7a0b10]" /> <span className="mt-0.5">Home</span>
               </button>
               <span className=" mt-0.5 text-[#7a0b10]">&gt;</span>
@@ -503,7 +503,7 @@ export default function RestaurantPage() {
         {/* Marketplace Restaurant Header */}
         <div className="bg-brand-card border-b border-brand-border py-8">
           <div className="mx-auto max-w-[1550px] px-4 md:px-6 lg:px-8">
-            <button onClick={() => router.push('/customer')} className="flex items-center gap-2 text-sm text-brand-muted hover:text-brand-cyan mb-4">
+            <button onClick={() => router.push('/')} className="flex items-center gap-2 text-sm text-brand-muted hover:text-brand-cyan mb-4">
               <ChevronLeft className="h-4 w-4" /> Back to Restaurants
             </button>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

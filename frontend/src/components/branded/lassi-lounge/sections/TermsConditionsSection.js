@@ -68,7 +68,7 @@ export default function TermsConditionsSection() {
           <p className="text-[#6b7280] mb-8 max-w-2xl mx-auto text-lg">
             If you have any questions about these Terms, please reach out to our support team. We're here to help.
           </p>
-          <a href="/customer/contact-us" className="inline-block bg-[#7a0b10] hover:bg-[#5e080c] text-white font-bold py-3 px-8 rounded-xl shadow-md transition-colors">
+          <a href="/contact-us" className="inline-block bg-[#7a0b10] hover:bg-[#5e080c] text-white font-bold py-3 px-8 rounded-xl shadow-md transition-colors">
             Contact Support
           </a>
         </div>

@@ -19,7 +19,7 @@ export function Header() {
   const { isSingleRestaurantMode, brand } = useBrand();
 
   // In single restaurant mode, hide global header on landing screens
-  if (isSingleRestaurantMode && (pathname === '/' || pathname === '/customer')) {
+  if (isSingleRestaurantMode && (pathname === '/' || pathname === '/')) {
     return null;
   }
 
@@ -73,11 +73,11 @@ export function Header() {
         <nav className="hidden md:flex items-center gap-2">
           {!isMerchant && !isAdmin && (
             <>
-              <Link href="/customer" className="px-3 py-2 text-sm font-medium text-brand-muted hover:text-brand-cyan transition-colors rounded-lg hover:bg-white/5">
+              <Link href="/" className="px-3 py-2 text-sm font-medium text-brand-muted hover:text-brand-cyan transition-colors rounded-lg hover:bg-white/5">
                 {t('header.browse')}
               </Link>
               {isAuthenticated && (
-                <Link href="/customer/orders" className="px-3 py-2 text-sm font-medium text-brand-muted hover:text-brand-cyan transition-colors rounded-lg hover:bg-white/5">
+                <Link href="/orders" className="px-3 py-2 text-sm font-medium text-brand-muted hover:text-brand-cyan transition-colors rounded-lg hover:bg-white/5">
                   {t('header.my_orders')}
                 </Link>
               )}
@@ -120,7 +120,7 @@ export function Header() {
 
           {/* Cart - Only for Customers */}
           {!isMerchant && !isAdmin && (
-            <Link href="/customer/checkout" className="relative p-2 text-brand-muted hover:text-brand-cyan transition-colors rounded-lg hover:bg-white/5">
+            <Link href="/checkout" className="relative p-2 text-brand-muted hover:text-brand-cyan transition-colors rounded-lg hover:bg-white/5">
               <ShoppingBag className="h-5 w-5" />
               {itemCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-brand-green text-[10px] font-bold text-brand-bg animate-pulse">
@@ -152,12 +152,12 @@ export function Header() {
                       <p className="text-xs text-brand-muted">{user?.email}</p>
                       <Badge color="cyan" className="mt-1">{user?.role}</Badge>
                     </div>
-                    <Link href="/customer/profile" onClick={() => setProfileOpen(false)}
+                    <Link href="/profile" onClick={() => setProfileOpen(false)}
                       className="flex items-center gap-2 px-3 py-2 text-sm text-brand-muted hover:text-brand-text hover:bg-white/5 rounded-lg transition-colors">
                       <Settings className="h-4 w-4" /> {t('header.profile_settings')}
                     </Link>
                     {!isMerchant && !isAdmin && (
-                      <Link href="/customer/orders" onClick={() => setProfileOpen(false)}
+                      <Link href="/orders" onClick={() => setProfileOpen(false)}
                         className="flex items-center gap-2 px-3 py-2 text-sm text-brand-muted hover:text-brand-text hover:bg-white/5 rounded-lg transition-colors">
                         <History className="h-4 w-4" /> {t('header.order_history')}
                       </Link>
@@ -180,7 +180,7 @@ export function Header() {
         {/* Mobile Menu Toggle */}
         <div className="flex items-center gap-2 md:hidden">
           {!isMerchant && !isAdmin && (
-            <Link href="/customer/checkout" className="relative p-2 text-brand-muted">
+            <Link href="/checkout" className="relative p-2 text-brand-muted">
               <ShoppingBag className="h-5 w-5" />
               {itemCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand-green text-[9px] font-bold text-brand-bg">
@@ -201,9 +201,9 @@ export function Header() {
           <nav className="flex flex-col p-4 gap-1">
             {!isMerchant && !isAdmin && (
               <>
-                <Link href="/customer" onClick={() => setMenuOpen(false)} className="px-4 py-3 text-sm font-medium text-brand-text hover:bg-white/5 rounded-xl">{t('header.browse_restaurants')}</Link>
+                <Link href="/" onClick={() => setMenuOpen(false)} className="px-4 py-3 text-sm font-medium text-brand-text hover:bg-white/5 rounded-xl">{t('header.browse_restaurants')}</Link>
                 {isAuthenticated && (
-                  <Link href="/customer/orders" onClick={() => setMenuOpen(false)} className="px-4 py-3 text-sm font-medium text-brand-muted hover:bg-white/5 rounded-xl">{t('header.my_orders')}</Link>
+                  <Link href="/orders" onClick={() => setMenuOpen(false)} className="px-4 py-3 text-sm font-medium text-brand-muted hover:bg-white/5 rounded-xl">{t('header.my_orders')}</Link>
                 )}
               </>
             )}

@@ -47,7 +47,7 @@ export default function RestaurantGallerySection() {
 
         <div className="flex justify-center pt-2">
           <Link
-            href="/customer/gallery"
+            href="/gallery"
             className="bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff] font-bold text-[12px] uppercase tracking-wider px-6 py-3 rounded-lg shadow-sm inline-flex items-center gap-2 transition-colors duration-200"
           >
             View Full Gallery <ChevronRight className="w-4 h-4" strokeWidth={2.5} />

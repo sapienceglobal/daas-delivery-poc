@@ -216,7 +216,7 @@ const handleIncrement = () => {
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
         <h2 className="text-2xl font-serif font-black text-[#1a1a1a]">Item Not Found</h2>
         <button
-          onClick={() => router.push(isSingleRestaurant ? '/customer/restaurant/lassi-lounge' : `/customer/restaurant/${restaurantId}`)}
+          onClick={() => router.push(isSingleRestaurant ? '/restaurant/lassi-lounge' : `/restaurant/${restaurantId}`)}
           className="px-6 py-2 bg-[#1a1a1a] text-[#ffffff] rounded-lg font-bold"
         >
           Back to Restaurant Menu
@@ -235,7 +235,7 @@ const handleIncrement = () => {
         {/* Back navigation & Breadcrumbs */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
           <button
-            onClick={() => router.push(isSingleRestaurant ? '/customer/restaurant/lassi-lounge' : `/customer/restaurant/${restaurantId}`)}
+            onClick={() => router.push(isSingleRestaurant ? '/restaurant/lassi-lounge' : `/restaurant/${restaurantId}`)}
             className="flex items-center gap-2 text-[13px] font-bold text-[#6b7280] hover:text-[#1a1a1a] uppercase tracking-wider transition-colors shrink-0"
           >
             <ArrowLeft className="h-4 w-4" /> Back to Menu

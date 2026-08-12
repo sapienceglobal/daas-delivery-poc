@@ -43,7 +43,7 @@ const FROM_NAME = process.env.FROM_NAME || 'Lassi Lounge';
 // assets/email-logo.png) or a CDN/S3 bucket, and set BRAND_LOGO_URL in your
 // env so each deployment of this white-label codebase can swap its own logo
 // without touching this file.
-const BRAND_LOGO_URL = process.env.BRAND_LOGO_URL || 'http://195.35.20.207:3001/assets/images/branded/lassi-lounge/logo-email.png';
+const BRAND_LOGO_URL = process.env.BRAND_LOGO_URL || 'https://lassiloungeny.com/assets/images/branded/lassi-lounge/logo-email.png';
 const BRAND_PRIMARY = '#7a0b10';   // deep maroon — matches app buttons/CTAs
 const BRAND_PRIMARY_DARK = '#680307';
 const BRAND_ACCENT = '#E8B93D';    // gold
@@ -203,7 +203,7 @@ export const sendWelcomeEmail = async (email, userName) => {
       exclusive rewards unlock as you go.
     </p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td>
-      ${emailButton('Start Ordering', `https://${(process.env.WEBSITE_DOMAIN || 'YOUR_DOMAIN_HERE')}`)}
+      ${emailButton('Start Ordering', `https://${(process.env.FRONTEND_URL || 'https://lassiloungeny.com')}`)}
     </td></tr></table>
   `;
 

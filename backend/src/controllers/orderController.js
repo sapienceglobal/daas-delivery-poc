@@ -396,9 +396,14 @@ export const createOrder = asyncHandler(async (req, response) => {
 
   // Accept both MongoDB ObjectId and slug (e.g. 'lassi-lounge')
   const isObjectId = /^[a-fA-F0-9]{24}$/.test(restaurantId);
-  const restaurantCheck = isObjectId
-    ? await Restaurant.findById(restaurantId)
-    : await Restaurant.findOne({ $or: [{ slug: restaurantId }, { name: restaurantId }] });
+  let restaurantCheck;
+  if (isObjectId) {
+    restaurantCheck = await Restaurant.findById(restaurantId);
+  } else if (restaurantId === 'lassi-lounge') {
+    restaurantCheck = await Restaurant.findOne({ name: { $regex: /^lassi lounge$/i } });
+  } else {
+    restaurantCheck = await Restaurant.findOne({ $or: [{ slug: restaurantId }, { name: restaurantId }] });
+  }
   if (!restaurantCheck) {
     throw new AppError('Restaurant not found', 404);
   }
@@ -736,9 +741,14 @@ export const getDeliveryQuote = asyncHandler(async (req, response) => {
 
   // Accept both MongoDB ObjectId and slug (e.g. 'lassi-lounge')
   const isObjectId = /^[a-fA-F0-9]{24}$/.test(restaurantId);
-  const restaurant = isObjectId
-    ? await Restaurant.findById(restaurantId)
-    : await Restaurant.findOne({ $or: [{ slug: restaurantId }, { name: restaurantId }] });
+  let restaurant;
+  if (isObjectId) {
+    restaurant = await Restaurant.findById(restaurantId);
+  } else if (restaurantId === 'lassi-lounge') {
+    restaurant = await Restaurant.findOne({ name: { $regex: /^lassi lounge$/i } });
+  } else {
+    restaurant = await Restaurant.findOne({ $or: [{ slug: restaurantId }, { name: restaurantId }] });
+  }
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
   // ── Geo-distance serviceability check (same as homepage's getNearby) ──

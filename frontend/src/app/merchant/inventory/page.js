@@ -31,7 +31,7 @@ export default function InventoryDashboard() {
 
   useEffect(() => {
     if (!isAuthenticated) { router.push('/login'); return; }
-    if (!isMerchant) { router.push('/customer'); return; }
+    if (!isMerchant) { router.push('/'); return; }
     loadInventory();
   }, [isAuthenticated, isMerchant]);
 

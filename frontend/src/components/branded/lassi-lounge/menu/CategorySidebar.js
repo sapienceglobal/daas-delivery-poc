@@ -115,7 +115,7 @@ export default function CategorySidebar({
           <button
             onClick={() => {
               if (isViewOnly) {
-                router.push('/customer/restaurant/lassi-lounge?tab=order');
+                router.push('/restaurant/lassi-lounge?tab=order');
               } else {
                 setCouponApplied(true);
               }

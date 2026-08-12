@@ -49,22 +49,11 @@ export async function proxy(request) {
       if (role === 'admin') return NextResponse.redirect(new URL('/admin', request.url));
       if (role === 'merchant') return NextResponse.redirect(new URL('/merchant', request.url));
     }
-    if (SINGLE_MODE) {
-      return NextResponse.redirect(new URL('/customer', request.url));
-    }
   }
 
   // ── 2. Single Restaurant Mode routing ────────────────────────────────────
   if (SINGLE_MODE) {
-    if (token && role && pathname === '/customer') {
-      if (role === 'admin') return NextResponse.redirect(new URL('/admin', request.url));
-      if (role === 'merchant') return NextResponse.redirect(new URL('/merchant', request.url));
-    }
-    if (pathname.startsWith('/customer/restaurant') && !pathname.includes('lassi-lounge') && !pathname.includes('/item/')) {
-      return NextResponse.redirect(new URL('/customer', request.url));
-    }
-  } else {
-    if (pathname === '/customer') {
+    if (pathname.startsWith('/restaurant') && !pathname.includes('lassi-lounge') && !pathname.includes('/item/')) {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
@@ -114,9 +103,9 @@ export async function proxy(request) {
 
   // ── 6. Protect sensitive customer sub-routes ──────────────────────────────
   if (
-    pathname.startsWith('/customer/checkout') ||
-    pathname.startsWith('/customer/orders') ||
-    pathname.startsWith('/customer/profile')
+    pathname.startsWith('/checkout') ||
+    pathname.startsWith('/orders') ||
+    pathname.startsWith('/profile')
   ) {
     if (!token || !role) {
       const loginUrl = new URL('/login', request.url);
@@ -126,7 +115,10 @@ export async function proxy(request) {
   }
 
   // ── 7. Prevent merchant/admin from accessing customer-only routes ─────────
-  if (pathname.startsWith('/customer') && token && role) {
+  if (
+    (pathname === '/' || pathname.startsWith('/checkout') || pathname.startsWith('/orders') || pathname.startsWith('/profile') || pathname.startsWith('/restaurant') || pathname.startsWith('/offers') || pathname.startsWith('/loyalty'))
+    && token && role
+  ) {
     if (role === 'merchant') {
       return NextResponse.redirect(new URL('/merchant', request.url));
     }
@@ -138,13 +130,19 @@ export async function proxy(request) {
   return NextResponse.next();
 }
 
-// Next.js 16: config export (same name as before — still "config" not "proxyConfig")
 export const config = {
   matcher: [
     '/',
     '/login',
     '/admin/:path*',
     '/merchant/:path*',
-    '/customer/:path*',
+    '/checkout/:path*',
+    '/orders/:path*',
+    '/profile/:path*',
+    '/restaurant/:path*',
+    '/loyalty/:path*',
+    '/offers/:path*',
+    '/about-us/:path*',
+    '/contact-us/:path*'
   ],
 };

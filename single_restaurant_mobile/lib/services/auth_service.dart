@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:single_restaurant_mobile/services/api_service.dart';
+import 'package:single_restaurant_mobile/services/socket_service.dart';
 import 'package:http_parser/http_parser.dart';
 
 class AuthService {
@@ -13,6 +14,7 @@ class AuthService {
     final token = prefs.getString(_tokenKey);
     if (token != null) {
       ApiService.setAuthToken(token);
+      SocketService().reconnect();
       return true;
     }
     return false;
@@ -58,6 +60,7 @@ class AuthService {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_tokenKey, token);
           ApiService.setAuthToken(token);
+          SocketService().reconnect();
         }
         return null; // Null return karne ka matlab hai Success
       } 
@@ -97,8 +100,13 @@ class AuthService {
         final token = data['token'];
         if (token != null) {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(_tokenKey, token);
+          if (rememberMe) {
+            await prefs.setString(_tokenKey, token);
+          } else {
+            await prefs.remove(_tokenKey);
+          }
           ApiService.setAuthToken(token);
+          SocketService().reconnect();
           return null; // success
         }
       }
@@ -142,6 +150,7 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     ApiService.clearAuthToken();
+    SocketService().reconnect();
   }
 
   // Update profile

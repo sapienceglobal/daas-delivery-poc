@@ -174,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         child: SafeArea(
           bottom: false,
           child: Padding(
-            // 👇 2. MAIN FIX: top padding 8.0 se kam karke 2.0 kar di hai. Ye poori first line ko upar khiska dega!
+      
             padding: const EdgeInsets.only(top: 2.0, bottom: 8.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -209,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             heightFactor: 0.75, 
                             child: Transform.translate(
                               // '-6' ka matlab hai logo 6 pixel upar khisak jayega. 
-                              offset: const Offset(0, -6),
+                              offset: const Offset(0, -8),
                               child: Image.asset(
                                 'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
                                 height: 90, 

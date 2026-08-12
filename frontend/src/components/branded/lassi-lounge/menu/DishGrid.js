@@ -140,7 +140,7 @@ export default function DishGrid({
             <div 
               key={item._id}
               onClick={() => {
-                router.push(`/customer/restaurant/${item.restaurantId}/item/${item._id}`);
+                router.push(`/restaurant/${item.restaurantId}/item/${item._id}`);
               }}
               className={`bg-[#fcfaf5] rounded-xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_34px_rgba(122,11,16,0.12)] flex overflow-hidden relative group ll-interactive cursor-pointer ${!isAvailable ? 'opacity-50 pointer-events-none' : ''} ${viewMode === 'grid' ? 'flex-col' : 'flex-col sm:flex-row sm:min-h-[210px] h-auto'}`}
             >

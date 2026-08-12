@@ -29,7 +29,7 @@ export default function CheckoutPage() {
           <h3 className="text-lg font-bold text-[#1a1a1a] mb-1">Your cart is empty</h3>
           <p className="text-sm text-[#6b7280] max-w-sm mb-4">Browse and add items to your cart before checking out</p>
           <Button
-            onClick={() => c.router.push(c.isSingleRestaurantMode ? '/customer/restaurant/lassi-lounge' : '/customer')}
+            onClick={() => c.router.push(c.isSingleRestaurantMode ? '/restaurant/lassi-lounge' : '/')}
             className="bg-[#7a0b10] hover:bg-[#5e070c] text-[#ffffff] transition-colors animate-in px-6 py-2 rounded-lg font-medium"
           >
             Browse Menu
@@ -84,7 +84,7 @@ export default function CheckoutPage() {
               cardExpiry={c.cardExpiry} setCardExpiry={c.setCardExpiry}
               cardCvv={c.cardCvv} setCardCvv={c.setCardCvv}
               cardName={c.cardName} setCardName={c.setCardName}
-              onBack={() => c.router.push(c.isSingleRestaurantMode ? '/customer/restaurant/lassi-lounge' : '/customer')}
+              onBack={() => c.router.push(c.isSingleRestaurantMode ? '/restaurant/lassi-lounge' : '/')}
               onContinue={c.handleContinueToReview}
               orderType={c.orderType}
               quoteError={c.quoteError}

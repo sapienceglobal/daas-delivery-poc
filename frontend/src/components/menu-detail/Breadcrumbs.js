@@ -14,11 +14,11 @@ export default function Breadcrumbs({ restaurant, category, itemName, isSingleRe
       <ChevronRight className="w-3.5 h-3.5 text-[#9ca3af]" />
       
       {isSingleRestaurant ? (
-        <Link href="/customer/restaurant/lassi-lounge" className="hover:text-[#1a1a1a] transition-colors">
+        <Link href="/restaurant/lassi-lounge" className="hover:text-[#1a1a1a] transition-colors">
           Menu
         </Link>
       ) : (
-        <Link href={`/customer/restaurant/${restaurant?._id}`} className="hover:text-[#1a1a1a] transition-colors">
+        <Link href={`/restaurant/${restaurant?._id}`} className="hover:text-[#1a1a1a] transition-colors">
           {restaurant?.name || 'Restaurant'}
         </Link>
       )}

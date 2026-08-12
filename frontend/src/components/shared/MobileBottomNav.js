@@ -12,22 +12,22 @@ export default function MobileBottomNav() {
   const tabs = [
     {
       label: 'Home',
-      href: '/customer',
+      href: '/',
       icon: Home,
     },
     {
       label: 'Menu',
-      href: '/customer/restaurant/lassi-lounge/menu',
+      href: '/restaurant/lassi-lounge/menu',
       icon: Utensils,
     },
     {
       label: 'Order Online',
-      href: '/customer/restaurant/lassi-lounge?tab=menu',
+      href: '/restaurant/lassi-lounge?tab=menu',
       icon: Receipt,
     },
     {
       label: 'Book a Table',
-      href: '/customer/restaurant/lassi-lounge/book-a-table',
+      href: '/restaurant/lassi-lounge/book-a-table',
       icon: CalendarRange,
     },
   ];
@@ -39,7 +39,7 @@ export default function MobileBottomNav() {
         {tabs.map((tab) => {
           const Icon = tab.icon;
           // Exact match for Home, prefix match for others to keep active state when on sub-pages
-          const isActive = tab.href === '/customer' 
+          const isActive = tab.href === '/' 
             ? pathname === tab.href 
             : pathname.startsWith(tab.href);
             

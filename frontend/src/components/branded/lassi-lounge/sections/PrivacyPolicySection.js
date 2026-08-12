@@ -69,7 +69,7 @@ export default function PrivacyPolicySection() {
           <p className="text-primary-100 mb-8 max-w-2xl mx-auto text-lg">
             If you have any questions about this Privacy Policy, the practices of this site, or your dealings with this site, please contact us.
           </p>
-          <a href="/customer/contact-us" className="inline-block bg-white text-primary-900 font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-primary-50 transition-colors">
+          <a href="/contact-us" className="inline-block bg-white text-primary-900 font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-primary-50 transition-colors">
             Contact Support
           </a>
         </div>

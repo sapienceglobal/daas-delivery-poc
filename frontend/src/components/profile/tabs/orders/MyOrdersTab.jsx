@@ -91,7 +91,7 @@ export default function MyOrdersTab() {
       }, restaurantData);
     });
     showToast('Items added back to your cart!', 'success');
-    router.push('/customer/checkout');
+    router.push('/checkout');
   };
 
   return (
@@ -133,7 +133,7 @@ export default function MyOrdersTab() {
                 key={order._id}
                 order={order}
                 onReorder={() => handleReorder(order)}
-                onViewDetails={() => router.push(`/customer/orders/${order._id}`)}
+                onViewDetails={() => router.push(`/orders/${order._id}`)}
               />
             ))}
           </div>

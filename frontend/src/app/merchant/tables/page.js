@@ -33,7 +33,7 @@ export default function TablesPage() {
 
   useEffect(() => {
     if (!isAuthenticated) { router.push('/login'); return; }
-    if (!isMerchant && !isAdmin) { router.push('/customer'); return; }
+    if (!isMerchant && !isAdmin) { router.push('/'); return; }
     loadTables();
     
     if (user?.restaurantId) {

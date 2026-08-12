@@ -27,7 +27,7 @@ export const lassiLoungeConfig = {
 
 export const menuCategoryContent = {
   eyebrow: 'Explore Our Menu',
-  viewFullMenuCta: { label: 'View Full Menu', href: '/customer/restaurant/lassi-lounge?tab=menu' },
+  viewFullMenuCta: { label: 'View Full Menu', href: '/restaurant/lassi-lounge?tab=menu' },
   categories: [
     { id: 'appetizers', label: 'Appetizers', icon: '/images/branded/lassi-lounge/categories/appetizers.jpg' },
     { id: 'mains', label: 'Curries & Mains', icon: '/images/branded/lassi-lounge/categories/main-course.jpg' },
@@ -56,7 +56,7 @@ export const deliveryPartnersContent = {
 
 export const signatureDishesContent = {
   eyebrow: 'Our Signature Dishes',
-  viewFullMenuCta: { label: 'View Full Menu', href: '/customer/restaurant/lassi-lounge?tab=menu' },
+  viewFullMenuCta: { label: 'View Full Menu', href: '/restaurant/lassi-lounge?tab=menu' },
   dishes: [
     {
       id: 'butter-chicken',
@@ -123,7 +123,7 @@ export const footerContent = {
     { day: 'Saturday', time: '12:00 PM - 11:30 PM' },
     { day: 'Sunday', time: '12:00 PM - 10:00 PM' },
   ],
-  viewAllHoursCta: { label: 'View All Hours', href: '/customer/restaurant/lassi-lounge?tab=hours' },
+  viewAllHoursCta: { label: 'View All Hours', href: '/restaurant/lassi-lounge?tab=hours' },
   findUs: {
     address: 'Lassi Lounge, 34 Union Avenue, Patiala, NY 11022',
     mapImage: '/images/branded/lassi-lounge/footer/map-thumbnail.jpg',
@@ -195,13 +195,13 @@ export const testimonialsContent = {
 };
 
 export const navLinks = [
-  { label: 'Home', href: '/customer' },
-  { label: 'Order Online', href: '/customer/restaurant/lassi-lounge?tab=menu' },
-  { label: 'Rewards & Offers', href: '/customer/loyalty' },
-  { label: 'Book a Table', href: '/customer/restaurant/lassi-lounge/book-a-table' },
-  { label: 'Catering', href: '/customer/restaurant/lassi-lounge/catering' },
-  { label: 'About Us', href: '/customer/about-us' },
-  { label: 'Contact Us', href: '/customer/contact-us' },
+  { label: 'Home', href: '/' },
+  { label: 'Order Online', href: '/restaurant/lassi-lounge?tab=menu' },
+  { label: 'Rewards & Offers', href: '/loyalty' },
+  { label: 'Book a Table', href: '/restaurant/lassi-lounge/book-a-table' },
+  { label: 'Catering', href: '/restaurant/lassi-lounge/catering' },
+  { label: 'About Us', href: '/about-us' },
+  { label: 'Contact Us', href: '/contact-us' },
 ];
 
 export const storyContent = {
@@ -214,7 +214,7 @@ export const storyContent = {
     { id: 'fresh-ingredients', title: 'Fresh Ingredients', description: 'We use the freshest & highest quality ingredients.' },
     { id: 'warm-ambience', title: 'Warm Ambience', description: 'Perfect place for family, friends & special occasions.' },
   ],
-  cta: { label: 'Read More About Us', href: '/customer/about-us' },
+  cta: { label: 'Read More About Us', href: '/about-us' },
   image: {
     src: '/images/branded/lassi-lounge/story/restaurant-interior.jpg',
     alt: 'Lassi Lounge restaurant interior with warm ambient lighting',
@@ -227,7 +227,7 @@ export const cateringContent = {
   heading: 'CATERING & PRIVATE EVENTS',
   description:
     'From small gatherings to grand celebrations, we cater to all your needs with our delicious food and excellent service.',
-  cta: { label: 'Book Catering', href: '/customer/restaurant/lassi-lounge/catering' },
+  cta: { label: 'Book Catering', href: '/restaurant/lassi-lounge/catering' },
   services: [
     { id: 'weddings', label: 'Weddings' },
     { id: 'corporate-events', label: 'Corporate Events' },
@@ -246,8 +246,8 @@ export const heroContent = {
   ribbonText: 'INDIAN RESTAURANT',
   description:
     'Experience the rich and authentic flavors of India. From traditional favorites to modern delights, every dish is made with love.',
-  primaryCta: { label: 'Order Online', href: '/customer/restaurant/lassi-lounge?mode=delivery' },
-  secondaryCta: { label: 'View Menu', href: '/customer/restaurant/lassi-lounge/menu' },
+  primaryCta: { label: 'Order Online', href: '/restaurant/lassi-lounge?mode=delivery' },
+  secondaryCta: { label: 'View Menu', href: '/restaurant/lassi-lounge/menu' },
   heroImage: {
     src: '/images/branded/lassi-lounge/hero-spread.jpg',
     alt: 'Butter chicken, biryani, naan basket and mango lassi spread at Lassi Lounge',

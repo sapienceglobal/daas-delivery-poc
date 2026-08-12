@@ -233,7 +233,7 @@ export default function CartSidebar({
 
             {/* View Cart & Checkout Button */}
             <button
-              onClick={() => router.push('/customer/checkout')}
+              onClick={() => router.push('/checkout')}
               className="bg-[#5c060a] hover:bg-[#4a0508] text-[#ffffff] font-extrabold w-full rounded-lg py-3 mt-4 shadow-md text-[13px] tracking-wide uppercase flex items-center justify-center ll-interactive ll-focus-ring"
             >
               VIEW CART & CHECKOUT

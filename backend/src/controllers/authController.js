@@ -280,7 +280,8 @@ export const googleLogin = asyncHandler(async (req, response) => {
       role: finalRole,
       avatar: picture,
       socialLogin: { googleId },
-      isVerified: true
+      isVerified: true,
+      isEmailVerified: true
     });
     // Create random robust password for DB constraint if needed
     user.setPassword(crypto.randomBytes(20).toString('hex'));
@@ -420,7 +421,7 @@ export const forgotPassword = asyncHandler(async (req, response) => {
   const resetToken = user.createPasswordResetToken();
   await user.save();
 
-  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
+  const resetUrl = `${process.env.FRONTEND_URL || 'http://195.35.20.207:3001'}/reset-password/${resetToken}`;
 
   await sendPasswordResetEmail(email, resetUrl, user.name);
 
@@ -704,7 +705,16 @@ export const verifyOtp = asyncHandler(async (req, response) => {
     throw new AppError('OTP has expired. Please request a new one.', 400);
   }
 
+  if ((user.otpAttempts || 0) >= 5) {
+    user.emailOtp = null;
+    user.emailOtpExpiry = null;
+    user.otpAttempts = 0;
+    await user.save();
+    throw new AppError('Too many incorrect attempts. Please request a new code.', 429);
+  }
+
   if (user.emailOtp !== otp.toString()) {
+    await UserModel.updateOne({ _id: user._id }, { $inc: { otpAttempts: 1 } });
     throw new AppError('Invalid OTP. Please check and try again.', 400);
   }
 
@@ -713,6 +723,7 @@ export const verifyOtp = asyncHandler(async (req, response) => {
   user.isVerified = true;
   user.emailOtp = null;
   user.emailOtpExpiry = null;
+  user.otpAttempts = 0;
   await user.save();
 
   // Send welcome email now that they're verified

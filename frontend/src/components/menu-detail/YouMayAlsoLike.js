@@ -17,7 +17,7 @@ export default function YouMayAlsoLike({
 
   const handleCardClick = (recId) => {
     const restId = isSingleRestaurant ? 'lassi-lounge' : restaurantId;
-    router.push(`/customer/restaurant/${restId}/item/${recId}`);
+    router.push(`/restaurant/${restId}/item/${recId}`);
   };
 
   const recommendations = menuItems
