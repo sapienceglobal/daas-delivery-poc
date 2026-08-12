@@ -526,6 +526,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     specialInstructions: specialInstructions ? xss(String(specialInstructions).slice(0, 500)) : '',
     scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
     stripePaymentIntentId: finalStripePaymentIntentId || null,
+    deliveryProvider: deliveryQuote.quote?.provider || 'doordash',
     status: restaurant.autoAcceptOrders ? 'accepted' : 'pending',
     statusUpdates: [
       { status: 'pending', description: 'Order placed by customer', timestamp: new Date() },
