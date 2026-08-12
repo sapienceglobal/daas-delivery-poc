@@ -535,7 +535,7 @@ function OrderHistoryCard({ order, onReorder, onViewDetails, onCancelOrder }) {
         <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-[#4b5563] line-clamp-2">
           {order.orderType === 'pickup'
             ? order.restaurantAddress || 'Lassi Lounge Restaurant'
-            : order.address || '34 Union Avenue, Patiala, NY 11022, USA'}
+            : order.address || '9408 118th St, South Richmond Hill, NY 11419, USA'}
         </p>
 
         <p className="mt-3 text-[11px] font-black text-[#1a1a1a]">Total Amount</p>
@@ -689,7 +689,7 @@ function OrderDetailsModal({ order, onClose, onReorder, onCancelOrder }) {
           <div className="rounded-xl border border-[#eadfdb] p-3.5 bg-[#fbfaf7]">
             <h5 className="text-[12px] font-black text-[#7a0b10] mb-1">Delivery Address</h5>
             <p className="text-[12px] font-semibold text-[#333] leading-relaxed">
-              {order.address || '34 Union Avenue, Patiala, NY 11022, USA'}
+              {order.address || '9408 118th St, South Richmond Hill, NY 11419, USA'}
             </p>
             <p className="text-[11px] font-medium text-[#6b7280] mt-1">
               Customer: {order.customerName} ({order.customerPhone})
@@ -1052,7 +1052,7 @@ function MyProfileSubView({ user, updateUser }) {
 
 function MyAddressesSubView({ user, updateUser }) {
   const addresses = user?.addresses || [
-    { _id: '1', street: '34 Union Avenue', city: 'Patiala', state: 'NY', zip: '11022', country: 'USA', isDefault: true }
+    { _id: '1', street: '9408 118th St', city: 'South Richmond Hill', state: 'NY', zip: '11419', country: 'USA', isDefault: true }
   ];
 
   return (

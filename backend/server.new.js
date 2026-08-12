@@ -89,12 +89,12 @@ const canManageRestaurant = (user, restaurantId) => {
 const APP_SECRET = process.env.APP_SECRET;
 io.use(async (socket, next) => {
   const secret = socket.handshake.auth?.appSecret || socket.handshake.headers['x-app-secret'];
-  
+
   // Browsers often omit Origin header on same-origin polling requests, so check other headers
   const headers = socket.handshake.headers || {};
   const isBrowser = Boolean(
-    headers.origin || 
-    headers['sec-fetch-mode'] || 
+    headers.origin ||
+    headers['sec-fetch-mode'] ||
     (headers['user-agent'] && headers['user-agent'].includes('Mozilla'))
   );
 
@@ -135,7 +135,7 @@ io.use(async (socket, next) => {
 
 io.on('connection', (socket) => {
   logger.debug(`Socket connected: ${socket.id}`);
-  
+
   if (socket.data.user && socket.data.user._id) {
     socket.join(socket.data.user._id.toString());
     console.log(`[SOCKET] User ${socket.data.user._id} joined their user room`);

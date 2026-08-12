@@ -101,7 +101,7 @@ export default function OrderDetailsModal({ order, onClose, onReorder }) {
           <div className="rounded-xl border border-[#eadfdb] p-3.5 bg-[#fbfaf7]">
             <h5 className="text-[12px] font-black text-[#7a0b10] mb-1">Delivery Address</h5>
             <p className="text-[12px] font-semibold text-[#333] leading-relaxed">
-              {order.address || '34 Union Avenue, Patiala, NY 11022, USA'}
+              {order.address || '9408 118th St, South Richmond Hill, NY 11419, USA'}
             </p>
           </div>
 

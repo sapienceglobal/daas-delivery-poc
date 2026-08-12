@@ -348,6 +348,7 @@ export default function RestaurantPage() {
                 items={items}
                 handleCartAdd={handleCartAdd}
                 handleCartDecrement={handleCartDecrement}
+                isViewOnly={true}
                 toggleFavorite={async (itemId) => {
                   try {
                     const res = await authAPI.toggleFavoriteItem(itemId);
@@ -515,6 +516,7 @@ export default function RestaurantPage() {
                 items={items}
                 handleCartAdd={handleCartAdd}
                 handleCartDecrement={handleCartDecrement}
+                isViewOnly={true}
                 toggleFavorite={async (itemId) => {
                   try {
                     const res = await authAPI.toggleFavoriteItem(itemId);

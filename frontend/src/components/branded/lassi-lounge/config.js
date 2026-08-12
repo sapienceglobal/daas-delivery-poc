@@ -7,10 +7,10 @@
 export const lassiLoungeConfig = {
   restaurantSlug: 'lassi-lounge',
   contactInfo: {
-    address: '34 Union Avenue, Patiala, NY 11022',
-    phone: '(516) 612-0300',
+    address: '9408 118th St, South Richmond Hill, NY 11419',
+    phone: '+1 347-233-3733',
     email: 'info@lassilounge.com',
-    website: 'https://lassilounge.com'
+    website: 'https://lassiloungeny.com'
   },
   operatingHours: [
     { day: 'Monday - Thursday', hours: '11:30 AM - 10:00 PM' },
@@ -27,7 +27,7 @@ export const lassiLoungeConfig = {
 
 export const menuCategoryContent = {
   eyebrow: 'Explore Our Menu',
-  viewFullMenuCta: { label: 'View Full Menu', href: '/restaurant/lassi-lounge?tab=menu' },
+  viewFullMenuCta: { label: 'View Full Menu', href: '/restaurant/lassi-lounge/menu' },
   categories: [
     { id: 'appetizers', label: 'Appetizers', icon: '/images/branded/lassi-lounge/categories/appetizers.jpg' },
     { id: 'mains', label: 'Curries & Mains', icon: '/images/branded/lassi-lounge/categories/main-course.jpg' },
@@ -56,7 +56,7 @@ export const deliveryPartnersContent = {
 
 export const signatureDishesContent = {
   eyebrow: 'Our Signature Dishes',
-  viewFullMenuCta: { label: 'View Full Menu', href: '/restaurant/lassi-lounge?tab=menu' },
+  viewFullMenuCta: { label: 'View Full Menu', href: '/restaurant/lassi-lounge/menu' },
   dishes: [
     {
       id: 'butter-chicken',
@@ -113,7 +113,7 @@ export const trustFeaturesContent = {
 export const footerContent = {
   description: 'Lassi Lounge brings the authentic taste of India to your table. Good food, good mood!',
   visitUs: {
-    address: '34 Union Avenue, Patiala, New York 11022, USA',
+    address: '9408 118th St, South Richmond Hill, New York 11419, USA',
     phone: '(516) 612-0300',
     email: 'info@lassilounge.com',
   },
@@ -125,9 +125,9 @@ export const footerContent = {
   ],
   viewAllHoursCta: { label: 'View All Hours', href: '/restaurant/lassi-lounge?tab=hours' },
   findUs: {
-    address: 'Lassi Lounge, 34 Union Avenue, Patiala, NY 11022',
+    address: 'Lassi Lounge, 9408 118th St, South Richmond Hill, NY 11419',
     mapImage: '/images/branded/lassi-lounge/footer/map-thumbnail.jpg',
-    mapLink: 'https://maps.google.com/?q=34+Union+Avenue+Patiala+NY+11022',
+    mapLink: 'https://maps.google.com/?q=9408+118th+St+South+Richmond+Hill+NY+11419',
   },
   social: [
     { id: 'facebook', href: 'https://facebook.com/lassilounge' },
@@ -196,8 +196,8 @@ export const testimonialsContent = {
 
 export const navLinks = [
   { label: 'Home', href: '/' },
-  { label: 'Order Online', href: '/restaurant/lassi-lounge?tab=menu' },
-  { label: 'Rewards & Offers', href: '/loyalty' },
+  { label: 'Order Online', href: '/restaurant/lassi-lounge?mode=delivery' },
+  { label: 'Menu', href: '/restaurant/lassi-lounge/menu' },
   { label: 'Book a Table', href: '/restaurant/lassi-lounge/book-a-table' },
   { label: 'Catering', href: '/restaurant/lassi-lounge/catering' },
   { label: 'About Us', href: '/about-us' },

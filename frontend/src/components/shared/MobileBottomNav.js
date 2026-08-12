@@ -22,7 +22,7 @@ export default function MobileBottomNav() {
     },
     {
       label: 'Order Online',
-      href: '/restaurant/lassi-lounge?tab=menu',
+      href: '/restaurant/lassi-lounge?mode=delivery',
       icon: Receipt,
     },
     {

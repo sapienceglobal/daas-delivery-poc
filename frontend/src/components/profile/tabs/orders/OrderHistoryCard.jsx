@@ -43,7 +43,7 @@ export default function OrderHistoryCard({ order, onReorder, onViewDetails }) {
         <p className="mt-0.5 text-[13px] font-semibold leading-relaxed text-[#333] line-clamp-2">
           {order.orderType === 'pickup'
             ? order.restaurantAddress || 'Lassi Lounge Restaurant'
-            : order.address || '34 Union Avenue, Patiala, NY 11022, USA'}
+            : order.address || '9408 118th St, South Richmond Hill, NY 11419, USA'}
         </p>
 
         <p className="mt-4 text-[11px] font-bold text-[#6b7280] uppercase tracking-wider">Total Amount</p>

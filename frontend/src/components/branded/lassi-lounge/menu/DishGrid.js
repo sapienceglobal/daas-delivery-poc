@@ -39,64 +39,64 @@ export default function DishGrid({
 
   return (
     <div className="space-y-6 ll-reveal">
-      
+
       {/* ─── 1. HEADER CONTROLS ─── */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end justify-between bg-transparent pb-4 border-b border-[#e5e7eb]/80">
-        
+
         {/* Left Side: Title & Item Count */}
         <div className="flex flex-col flex-1 min-w-0 w-full pr-4">
           <div className="flex items-center gap-2 min-w-0 w-full">
-             <div className="shrink-0 text-[#e8a020] mt-1.5 flex items-center justify-center">
-               <svg width="22" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-             </div>
-             <h2 className="text-[28px] md:text-[32px] font-serif font-black text-[#1a1a1a] leading-none truncate w-full">
-               {searchQuery.trim() 
-                 ? `Search Results for "${searchQuery.length > 25 ? searchQuery.substring(0, 25) + '...' : searchQuery}"` 
-                 : (currentCategory?.name || 'Appetizers')}
-             </h2>
+            <div className="shrink-0 text-[#e8a020] mt-1.5 flex items-center justify-center">
+              <svg width="22" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
+            </div>
+            <h2 className="text-[28px] md:text-[32px] font-serif font-black text-[#1a1a1a] leading-none truncate w-full">
+              {searchQuery.trim()
+                ? `Search Results for "${searchQuery.length > 25 ? searchQuery.substring(0, 25) + '...' : searchQuery}"`
+                : (currentCategory?.name || 'Appetizers')}
+            </h2>
           </div>
           <div className="flex items-center gap-2 ml-1.5 mt-1.5">
-             <div className="text-[#e8a020] flex items-center">
-               <svg width="20" height="6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="12" x2="15" y2="12"/><circle cx="20" cy="12" r="2" fill="currentColor"/></svg>
-             </div>
-             <span className="text-[12px] text-[#6b7280] font-medium leading-none">
-               {visibleItems.length} Items
-             </span>
+            <div className="text-[#e8a020] flex items-center">
+              <svg width="20" height="6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="12" x2="15" y2="12" /><circle cx="20" cy="12" r="2" fill="currentColor" /></svg>
+            </div>
+            <span className="text-[12px] text-[#6b7280] font-medium leading-none">
+              {visibleItems.length} Items
+            </span>
           </div>
         </div>
 
         {/* Right Side: Sort & View Toggles (FIXED UI) */}
-       <div className="flex items-center gap-4 shrink-0">
-            
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-[13px] font-medium text-[#1a1a1a] whitespace-nowrap">Sort By:</span>
-              
-            
-              <div className="relative w-[130px] h-[36px]">
-                
-              
-                <select 
-                  value={sortBy}
-                  onChange={(event) => setSortBy(event.target.value)}
-                  className="w-full h-full bg-[#ffffff] border border-[#e5e7eb] rounded-md pl-3 pr-8 text-[13px] font-medium text-[#1a1a1a] focus:outline-none focus:border-[#7a0b10] shadow-sm cursor-pointer appearance-none outline-none ll-focus-ring"
-                  style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
-                >
-                  <option value="popular">Popular</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                </select>
-                
-              
-                <div className="absolute right-1 top-1 bottom-1 w-7 bg-[#ffffff] flex items-center justify-center pointer-events-none rounded-r-md">
-                  <ChevronDown className="w-4 h-4 text-[#1a1a1a] text-[#7a0b10]" strokeWidth={2} />
-                </div>
-                
+        <div className="flex items-center gap-4 shrink-0">
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[13px] font-medium text-[#1a1a1a] whitespace-nowrap">Sort By:</span>
+
+
+            <div className="relative w-[130px] h-[36px]">
+
+
+              <select
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value)}
+                className="w-full h-full bg-[#ffffff] border border-[#e5e7eb] rounded-md pl-3 pr-8 text-[13px] font-medium text-[#1a1a1a] focus:outline-none focus:border-[#7a0b10] shadow-sm cursor-pointer appearance-none outline-none ll-focus-ring"
+                style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+              >
+                <option value="popular">Popular</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+              </select>
+
+
+              <div className="absolute right-1 top-1 bottom-1 w-7 bg-[#ffffff] flex items-center justify-center pointer-events-none rounded-r-md">
+                <ChevronDown className="w-4 h-4 text-[#1a1a1a] text-[#7a0b10]" strokeWidth={2} />
               </div>
+
             </div>
-          
+          </div>
+
           {/* Functional Grid/List View Toggles - PERFECT SIZING */}
           <div className="hidden sm:flex gap-2 ml-1">
-            <button 
+            <button
               onClick={() => setViewMode('grid')}
               className={`w-[36px] h-[36px] flex items-center justify-center rounded-md border shadow-sm ll-interactive ll-focus-ring
                 ${viewMode === 'grid' ? 'bg-[#7a0b10] text-[#ffffff] border-[#7a0b10]' : 'bg-[#ffffff] text-[#7a0b10] border-[#e5e7eb] hover:bg-gray-50'}`}
@@ -104,7 +104,7 @@ export default function DishGrid({
             >
               <LayoutGrid className="w-[18px] h-[18px]" strokeWidth={2.5} />
             </button>
-            <button 
+            <button
               onClick={() => setViewMode('list')}
               className={`w-[36px] h-[36px] flex items-center justify-center rounded-md border shadow-sm ll-interactive ll-focus-ring
                 ${viewMode === 'list' ? 'bg-[#7a0b10] text-[#ffffff] border-[#7a0b10]' : 'bg-[#ffffff] text-[#7a0b10] border-[#e5e7eb] hover:bg-gray-50'}`}
@@ -116,12 +116,12 @@ export default function DishGrid({
         </div>
       </div>
 
-   {/* ─── 2. ITEMS GRID / LIST ─── */}
+      {/* ─── 2. ITEMS GRID / LIST ─── */}
       <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 ll-stagger" : "flex flex-col gap-4 ll-stagger"}>
         {visibleItems.map(item => {
           const isFavorite = user?.favoriteItems?.some(f => (f._id || f) === item._id);
           const isAvailable = item.isAvailable !== false;
-          
+
           const targetId = item.menuItemId || item._id || item.id;
           const cartQty = items
             .filter(i => {
@@ -137,7 +137,7 @@ export default function DishGrid({
             (item.addOns && item.addOns.length > 0);
 
           return (
-            <div 
+            <div
               key={item._id}
               onClick={() => {
                 router.push(`/restaurant/${item.restaurantId}/item/${item._id}`);
@@ -146,12 +146,12 @@ export default function DishGrid({
             >
               {/* Image header */}
               <div className={`relative bg-[#f3f4f6] overflow-hidden shrink-0 ${viewMode === 'grid' ? 'h-[200px] w-full' : 'h-[180px] sm:h-auto w-full sm:w-[240px]'}`}>
-                <img 
-                  src={getDishImage(item.name)} 
-                  alt={item.name} 
+                <img
+                  src={getDishImage(item.name)}
+                  alt={item.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
-                
+
                 {/* Heart Button */}
                 {isAuthenticated && isAvailable && (
                   <button
@@ -173,14 +173,14 @@ export default function DishGrid({
                   <h3 className="text-[17px] font-bold text-[#1a1a1a] tracking-tight line-clamp-1 font-serif">
                     {item.name}
                   </h3>
-                  
+
                   {/* Rating */}
                   <div className="flex items-center gap-2 mt-1">
                     <div className="flex text-[#e8a020]">
-                       {[...Array(4)].map((_, i) => (
-                         <Star key={i} className="h-[13px] w-[13px] fill-current" />
-                       ))}
-                       <Star className="h-[13px] w-[13px] fill-[#e5e7eb] text-[#e5e7eb]" />
+                      {[...Array(4)].map((_, i) => (
+                        <Star key={i} className="h-[13px] w-[13px] fill-current" />
+                      ))}
+                      <Star className="h-[13px] w-[13px] fill-[#e5e7eb] text-[#e5e7eb]" />
                     </div>
                     <span className="text-[11px] font-bold text-[#6b7280]">4.4 (96)</span>
                   </div>
@@ -188,7 +188,7 @@ export default function DishGrid({
                   <p className="text-[12px] text-[#4b5563] leading-relaxed line-clamp-2 mt-2.5">
                     {item.description || 'Crispy rolls stuffed with fresh vegetables & served hot.'}
                   </p>
-                  
+
                   {/* Veg & Spice Indicators */}
                   <div className="flex items-center gap-4 mt-3">
                     <span className="text-[11px] font-bold text-[#4b5563] flex items-center gap-2">
@@ -206,45 +206,45 @@ export default function DishGrid({
 
                 {/* Bottom Section: Price & Actions */}
                 <div className="mt-5 flex items-center justify-between w-full pt-1">
-                   <div className="text-[18px] font-black text-[#1a1a1a] leading-none">
-                     ${item.price?.toFixed(2) || '9.99'}
-                   </div>
-                   
-                   <div className="flex flex-col items-center select-none">
-                      {cartQty > 0 ? (
-                        <div className="flex items-center border border-[#7a0b10]/20 rounded-lg h-[38px] bg-[#ffffff] shadow-sm shrink-0 w-[110px] overflow-hidden">
-                           <button 
-                             onClick={(e) => { e.stopPropagation(); handleCartDecrement(item); }} 
-                             className="w-10 text-[#7a0b10] hover:bg-[#7a0b10]/5 h-full flex items-center justify-center transition-colors font-bold ll-focus-ring"
-                             aria-label={`Remove ${item.name}`}
-                           >
-                             <Minus className="h-[13px] w-[13px]" strokeWidth={3} />
-                           </button>
-                           <span className="flex-1 text-[13px] font-black text-[#7a0b10] text-center">
-                             {cartQty}
-                           </span>
-                           <button 
-                             onClick={(e) => { e.stopPropagation(); handleCartAdd(item); }} 
-                             className="w-10 text-[#7a0b10] hover:bg-[#7a0b10]/5 h-full flex items-center justify-center transition-colors font-bold ll-focus-ring"
-                             aria-label={`Add one more ${item.name}`}
-                           >
-                             <Plus className="h-[13px] w-[13px]" strokeWidth={3} />
-                           </button>
-                        </div>
-                      ) : (
+                  <div className="text-[18px] font-black text-[#1a1a1a] leading-none">
+                    ${item.price?.toFixed(2) || '9.99'}
+                  </div>
+
+                  <div className="flex flex-col items-center select-none">
+                    {cartQty > 0 ? (
+                      <div className="flex items-center border border-[#7a0b10]/20 rounded-lg h-[38px] bg-[#ffffff] shadow-sm shrink-0 w-[110px] overflow-hidden">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleCartDecrement(item); }}
+                          className="w-10 text-[#7a0b10] hover:bg-[#7a0b10]/5 h-full flex items-center justify-center transition-colors font-bold ll-focus-ring"
+                          aria-label={`Remove ${item.name}`}
+                        >
+                          <Minus className="h-[13px] w-[13px]" strokeWidth={3} />
+                        </button>
+                        <span className="flex-1 text-[13px] font-black text-[#7a0b10] text-center">
+                          {cartQty}
+                        </span>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleCartAdd(item); }}
-                          className="bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff] text-[12px] font-black h-[38px] px-6 rounded-lg shadow-sm flex items-center justify-center gap-1.5 uppercase tracking-wider min-w-[110px] transition-colors ll-interactive ll-focus-ring"
+                          className="w-10 text-[#7a0b10] hover:bg-[#7a0b10]/5 h-full flex items-center justify-center transition-colors font-bold ll-focus-ring"
+                          aria-label={`Add one more ${item.name}`}
                         >
-                          ADD <Plus className="h-[14px] w-[14px]" strokeWidth={3} />
+                          <Plus className="h-[13px] w-[13px]" strokeWidth={3} />
                         </button>
-                      )}
-                      {hasCustomizations && (
-                        <span className="text-[9px] text-[#6b7280] font-medium tracking-wide uppercase mt-1.5 block">
-                          Customisable
-                        </span>
-                      )}
-                   </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleCartAdd(item); }}
+                        className="bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff] text-[12px] font-black h-[38px] px-6 rounded-lg shadow-sm flex items-center justify-center gap-1.5 uppercase tracking-wider min-w-[110px] transition-colors ll-interactive ll-focus-ring"
+                      >
+                        ADD <Plus className="h-[14px] w-[14px]" strokeWidth={3} />
+                      </button>
+                    )}
+                    {hasCustomizations && (
+                      <span className="text-[9px] text-[#6b7280] font-medium tracking-wide uppercase mt-1.5 block">
+                        Customisable
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
