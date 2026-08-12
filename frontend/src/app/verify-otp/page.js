@@ -131,20 +131,20 @@ function OtpVerificationContent() {
   return (
     <div className="min-h-screen flex bg-white font-sans">
       <div className="w-full h-screen flex flex-col lg:flex-row relative overflow-hidden bg-white">
-        
+
         {/* Left Side: Branded Hero */}
-        <div className="relative w-full lg:w-[50%] h-full flex flex-col justify-center items-center text-center px-8 pt-12 pb-32 overflow-hidden bg-[#4a090b]">
+        <div className="relative hidden lg:flex w-full lg:w-[50%] h-full flex-col justify-center items-center text-center px-8 pt-12 pb-32 overflow-hidden bg-[#4a090b]">
           <div className="absolute inset-0 z-0">
-            <Image 
-              src="/images/branded/lassi-lounge/hero-spread-auth.png" 
-              alt="Indian Cuisine Spread" 
-              fill 
+            <Image
+              src="/images/branded/lassi-lounge/hero-spread-auth.png"
+              alt="Indian Cuisine Spread"
+              fill
               className="object-cover object-bottom"
               priority
             />
             <div className="absolute inset-0 bg-gradient-to-b from-[#4a090b] via-[#4a090b]/85 to-transparent z-10"></div>
           </div>
-          
+
           <div className="absolute top-0 right-0 h-full w-[40px] lg:w-[80px] hidden lg:block z-20 translate-x-[1px]">
             <svg viewBox="0 0 100 1000" preserveAspectRatio="none" className="h-full w-full">
               <path d="M0,0 C100,300 100,700 0,1000 L100,1000 L100,0 Z" fill="#fdfdfd" />
@@ -154,17 +154,14 @@ function OtpVerificationContent() {
 
           <div className="relative z-10 w-full max-w-md flex flex-col items-center">
             <div className="mb-6 flex flex-col items-center">
-              <svg className="w-12 h-12 text-[#c99742] mb-2" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
-              </svg>
-              <h1 className="text-[40px] font-serif text-white tracking-widest mb-1 leading-none">LASSI</h1>
-              <div className="flex items-center gap-4 text-white/80 w-full mb-2">
-                <div className="h-[1px] flex-1 bg-white/40"></div>
-                <span className="tracking-[0.3em] text-sm uppercase font-light">Lounge</span>
-                <div className="h-[1px] flex-1 bg-white/40"></div>
-              </div>
-              <div className="flex items-center justify-center gap-2 text-[#c99742] text-[10px] font-semibold tracking-widest mt-1">
-                <span>∞</span>INDIAN RESTAURANT<span>∞</span>
+              <div className="relative w-[360px] h-[130px]">
+                <Image
+                  src="/assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png"
+                  alt="Lassi Lounge"
+                  fill
+                  className="object-contain"
+                  priority
+                />
               </div>
             </div>
 
@@ -178,7 +175,7 @@ function OtpVerificationContent() {
             </div>
 
             <p className="text-white/90 text-[15px] leading-relaxed mb-10">
-              Verify your identity to secure your account<br/>and access your dashboard.
+              Verify your identity to secure your account<br />and access your dashboard.
             </p>
 
             <div className="grid grid-cols-3 gap-y-10 gap-x-6 w-full max-w-[380px] mt-6">
@@ -197,13 +194,27 @@ function OtpVerificationContent() {
         </div>
 
         {/* Right Side: Auth Form */}
-        <div className="w-full lg:w-[50%] h-full flex flex-col bg-[#fcfdfc] relative items-center px-6 lg:px-16 py-12 lg:py-16 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          
-          <div className="absolute top-[-5%] right-[-5%] w-64 h-64 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNMzAgMjBDMjAgMzAgMjAgNTAgMzAgNjBMMTAwIDEwMEM5MCA4MCA3MCA4MCA2MCA3MEwxMCAyMEMyMCAxMCA0MCAxMCAzMCAyMFoiIGZpbGw9IiNmMmVhZTQiIGZpbGwtb3BhY2l0eT0iMC41Ii8+PC9zdmc+')] bg-no-repeat bg-contain opacity-20 pointer-events-none rotate-45" />
+        <div className="w-full lg:w-[50%] h-full flex flex-col bg-[#fcfdfc] relative items-center px-6 lg:px-16 py-6 lg:py-8 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+
+          <div className="absolute top-[-5%] right-[-5%] w-64 h-64 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNMTUgNTBDMTUgMzAgMzAgMTUgNTAgMTVMMTAwIDBDODAgMjAgODAgNTAgMTAwIDcwQzgwIDkwIDUwIDkwIDUwIDcwQzMwIDcwIDE1IDkwIDE1IDUwWiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=')] bg-no-repeat bg-contain opacity-20 pointer-events-none rotate-45" />
           <div className="absolute bottom-[5%] right-[5%] w-48 h-48 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjQgNCIvPjxwYXRoIGQ9Ik01MCAxMEMzMCAzMCA3MCA3MCA1MCA5MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=')] bg-no-repeat bg-contain opacity-30 pointer-events-none -rotate-12" />
           <div className="absolute top-[10%] left-[5%] w-32 h-32 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNMTUgNTBDMTUgMzAgMzAgMTUgNTAgMTVMMTAwIDBDODAgMjAgODAgNTAgMTAwIDcwQzgwIDkwIDUwIDkwIDUwIDcwQzMwIDcwIDE1IDkwIDE1IDUwWiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=')] bg-no-repeat bg-contain opacity-20 pointer-events-none rotate-[30deg]" />
 
-          <div className="w-full max-w-[440px] mx-auto z-10 my-auto py-4">
+          <div className="w-full mx-auto z-10 my-auto max-w-[400px]">
+
+            {/* Mobile Logo (Visible only on small screens) */}
+            <div className="flex flex-col items-center mb-6 lg:hidden">
+              <div className="relative w-[240px] h-[90px]">
+                <Image
+                  src="/assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png"
+                  alt="Lassi Lounge"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            </div>
+
             <div className="text-center mb-8">
               <h2 className="text-[32px] font-serif text-[#4a090b] mb-3">
                 Verify Your Email
@@ -214,12 +225,12 @@ function OtpVerificationContent() {
                 <div className="w-10 h-[1px] bg-[#c99742]"></div>
               </div>
               <p className="text-[#6b7280] text-[15px]">
-                We sent a 6-digit code to <br/><strong className="text-[#1f2937] break-all">{email}</strong>
+                We sent a 6-digit code to <br /><strong className="text-[#1f2937] break-all">{email}</strong>
               </p>
             </div>
 
             <div className="bg-white rounded-3xl shadow-[0_12px_40px_rgb(0,0,0,0.06)] p-8 sm:p-10 border border-[#f9fafb] relative overflow-hidden">
-              
+
               {formError && (
                 <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-5">
                   <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#dc2626' }} />
@@ -238,9 +249,8 @@ function OtpVerificationContent() {
                     value={digit}
                     onChange={e => handleChange(i, e.target.value)}
                     onKeyDown={e => handleKeyDown(i, e)}
-                    className={`w-[46px] h-[54px] text-center text-[22px] font-black rounded-xl border-2 outline-none transition-all text-[#1f2937] bg-[#fdfaf8] shadow-sm ${
-                      formError ? 'border-red-300' : digit ? 'border-[#4a090b] bg-[#fdf7f0]' : 'border-[#e5e7eb] focus:border-[#4a090b] focus:bg-white focus:ring-4 focus:ring-[#4a090b]/10'
-                    }`}
+                    className={`w-[46px] h-[54px] text-center text-[22px] font-black rounded-xl border-2 outline-none transition-all text-[#1f2937] bg-[#fdfaf8] shadow-sm ${formError ? 'border-red-300' : digit ? 'border-[#4a090b] bg-[#fdf7f0]' : 'border-[#e5e7eb] focus:border-[#4a090b] focus:bg-white focus:ring-4 focus:ring-[#4a090b]/10'
+                      }`}
                   />
                 ))}
               </div>
