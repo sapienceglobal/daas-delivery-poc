@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:single_restaurant_mobile/services/api_service.dart';
@@ -78,6 +79,9 @@ class AuthService {
       }
     } catch (e) {
       print('Error during registration: $e');
+      if (e is HttpException) {
+        return e.message;
+      }
       return 'Unable to connect to the server. Please check your internet connection.';
     }
   }
@@ -118,6 +122,9 @@ class AuthService {
       }
     } catch (e) {
       print('Error during social login: $e');
+      if (e is HttpException) {
+        return e.message;
+      }
       return 'Unable to connect to the server. Please check your internet connection.';
     }
   }

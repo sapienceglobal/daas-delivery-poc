@@ -444,7 +444,7 @@ function LoginPageContent() {
                           placeholder="••••••••"
                           value={form.password}
                           onChange={handleChange}
-                          className="flex-1 bg-transparent border-none px-4 py-3 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
+                          className="flex-1 min-w-0 bg-transparent border-none px-4 py-3 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
                         />
                         <button
                           type="button"
@@ -471,7 +471,7 @@ function LoginPageContent() {
                             placeholder="••••••••"
                             value={form.confirmPassword}
                             onChange={handleChange}
-                            className="flex-1 bg-transparent border-none px-4 py-3 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
+                            className="flex-1 min-w-0 bg-transparent border-none px-4 py-3 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
                           />
                           <button
                             type="button"

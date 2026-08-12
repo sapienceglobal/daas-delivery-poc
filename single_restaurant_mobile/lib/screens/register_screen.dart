@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/screens/login_screen.dart';
@@ -45,6 +46,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // didn't match the rest of the app's branding.)
   String _selectedCountryCode = '+91';
   String _selectedCountryFlag = '🇮🇳';
+  int _phoneMaxLength = 10;
 
   // Top-of-form banner for anything the backend rejects (duplicate
   // email, server error, etc). Field-specific errors ALSO populate
@@ -712,6 +714,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   setState(() {
                     _selectedCountryCode = '+${country.phoneCode}';
                     _selectedCountryFlag = country.flagEmoji;
+                    _phoneMaxLength = country.example.isNotEmpty ? country.example.length : 15;
                   });
                 },
               );
@@ -740,6 +743,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
+              inputFormatters: [
+                LengthLimitingTextInputFormatter(_phoneMaxLength),
+              ],
               onTap: () {
                 if (_phoneController.selection.baseOffset !=
                     _phoneController.selection.extentOffset) {
