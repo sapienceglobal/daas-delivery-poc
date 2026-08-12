@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/screens/login_screen.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
@@ -6,6 +7,14 @@ import 'package:single_restaurant_mobile/screens/otp_verification_screen.dart';
 import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
 import 'package:single_restaurant_mobile/widgets/app_logo.dart';
 import 'package:country_picker/country_picker.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:provider/provider.dart';
+import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/providers/address_provider.dart';
+import 'package:single_restaurant_mobile/providers/cart_provider.dart';
+import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
+import 'package:single_restaurant_mobile/providers/notification_provider.dart';
+import 'package:single_restaurant_mobile/screens/main_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -28,6 +37,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isConfirmPasswordVisible = false;
   bool _agreedToTerms = false;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   // NOTE: Defaulted to India since the storefront is branded as an
   // "Indian Restaurant" — change this if the business is actually
@@ -108,6 +118,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (_emailServerError != null) {
         _formKey.currentState!.validate();
       }
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isGoogleLoading = true);
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: ['email'],
+        serverClientId: '960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com',
+      );
+      final GoogleSignInAccount? account = await googleSignIn.signIn();
+      if (account != null) {
+        final GoogleSignInAuthentication auth = await account.authentication;
+        if (auth.idToken != null) {
+          final errorMsg = await _authService.socialLogin(
+            provider: 'google',
+            token: auth.idToken!,
+            email: account.email,
+            name: account.displayName,
+          );
+          if (errorMsg == null && mounted) {
+            // Trigger all providers that depend on auth
+            final authProv = context.read<AuthProvider>();
+            final addressProv = context.read<AddressProvider>();
+            final cartProv = context.read<CartProvider>();
+            final loyaltyProv = context.read<LoyaltyProvider>();
+            final notifProv = context.read<NotificationProvider>();
+
+            // Fire and forget
+            authProv.fetchUser();
+            addressProv.fetchAddresses();
+            cartProv.loadCart();
+            loyaltyProv.fetchHistory();
+            notifProv.fetchNotifications();
+
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
+              (route) => false,
+            );
+          } else if (mounted) {
+            setState(() => _errorMessage = errorMsg);
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => _errorMessage = 'Google Sign In failed: $e');
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -435,22 +493,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Social Buttons Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildSocialButton(
-                          Icons.g_mobiledata,
-                          'Google',
-                          Colors.red,
-                        ),
-                        _buildSocialButton(Icons.apple, 'Apple', Colors.black),
-                        _buildSocialButton(
-                          Icons.facebook,
-                          'Facebook',
-                          Colors.blue,
-                        ),
-                      ],
+                    // Full Width Google Button
+                    _buildSocialButton(
+                      SvgPicture.string(
+                        '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>''',
+                        width: 24,
+                        height: 24,
+                      ),
+                      'Google',
+                      onTap: _handleGoogleSignIn,
+                      isLoading: _isGoogleLoading,
                     ),
                     const SizedBox(height: 24),
 
@@ -720,29 +772,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildSocialButton(IconData icon, String label, Color iconColor) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: iconColor, size: 20),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+  Widget _buildSocialButton(Widget iconWidget, String label, {VoidCallback? onTap, bool isLoading = false}) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 0),
+      child: InkWell(
+        onTap: isLoading ? null : onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade300),
+            color: Colors.white,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isLoading)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black54),
+                )
+              else
+                iconWidget,
+              const SizedBox(width: 12),
+              Text(
+                isLoading ? 'Signing in...' : 'Continue with $label',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -3,14 +3,14 @@ import Order from '../models/Order.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import logger from '../utils/logger.js';
 import { calculateOrderPricing } from '../services/orderPricing.js';
-import { getDeliveryQuoteAPI } from '../services/doordashService.js';
+import { getBestDeliveryQuote } from '../services/deliveryAggregatorService.js';
 
 const roundMoney = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
 const getTrustedDeliveryFee = async ({ restaurant, address, subtotal, scheduledTime }) => {
   if (!address) return 0;
   try {
-    const quote = await getDeliveryQuoteAPI(restaurant.address, address, subtotal || 10, scheduledTime);
+    const quote = await getBestDeliveryQuote(restaurant.address, address, subtotal || 10, scheduledTime);
     return roundMoney((quote.deliveryFee || 0) / 100);
   } catch (err) {
     const errReason = err.response?.data?.reason || err.response?.data?.error?.reason;

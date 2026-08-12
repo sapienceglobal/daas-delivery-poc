@@ -1,5 +1,5 @@
 import Restaurant from '../models/Restaurant.js';
-import { getDeliveryQuoteAPI } from '../services/doordashService.js';
+import { getBestDeliveryQuote } from '../services/deliveryAggregatorService.js';
 import logger from '../utils/logger.js';
 
 export const getRestaurantETA = async (req, res, next) => {
@@ -24,7 +24,7 @@ export const getRestaurantETA = async (req, res, next) => {
     if (address && restaurant.address) {
       try {
         // Try to get actual DoorDash quote (default order value $20)
-        const quote = await getDeliveryQuoteAPI(restaurant.address, address, 20, null);
+        const quote = await getBestDeliveryQuote(restaurant.address, address, 20, null);
         if (quote && quote.deliveryTime) {
           const now = new Date();
           const dropoffDate = new Date(quote.deliveryTime);

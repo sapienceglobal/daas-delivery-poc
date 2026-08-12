@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
@@ -13,6 +14,8 @@ import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/widgets/app_logo.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,6 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
   bool _rememberMe = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   String? _errorMessage; // 👈 1. Error message store karne ke liye variable
 
   @override
@@ -81,6 +85,88 @@ class _LoginScreenState extends State<LoginScreen> {
         // 👈 2. SnackBar hata kar inline error state set ki
         setState(() => _errorMessage = errorMsg);
       }
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isGoogleLoading = true);
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: ['email'],
+        serverClientId: '960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com',
+      );
+      final GoogleSignInAccount? account = await googleSignIn.signIn();
+      if (account != null) {
+        final GoogleSignInAuthentication auth = await account.authentication;
+        if (auth.idToken != null) {
+          final errorMsg = await _authService.socialLogin(
+            provider: 'google',
+            token: auth.idToken!,
+            email: account.email,
+            name: account.displayName,
+          );
+          if (errorMsg == null && mounted) {
+            // Trigger all providers that depend on auth
+            final authProv = context.read<AuthProvider>();
+            final addressProv = context.read<AddressProvider>();
+            final cartProv = context.read<CartProvider>();
+            final loyaltyProv = context.read<LoyaltyProvider>();
+            final notifProv = context.read<NotificationProvider>();
+
+            // Fire and forget
+            authProv.fetchUser();
+            addressProv.fetchAddresses();
+            cartProv.loadCart();
+            loyaltyProv.fetchHistory();
+            notifProv.fetchNotifications();
+
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
+              (route) => false,
+            );
+          } else if (mounted) {
+            setState(() => _errorMessage = errorMsg);
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => _errorMessage = 'Google Sign In failed: $e');
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
+  }
+
+  Future<void> _handleAppleSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [AppleIDAuthorizationScopes.email, AppleIDAuthorizationScopes.fullName],
+      );
+      
+      final name = (credential.givenName != null && credential.familyName != null) 
+          ? '${credential.givenName} ${credential.familyName}'
+          : null;
+
+      final errorMsg = await _authService.socialLogin(
+        provider: 'apple',
+        token: credential.identityToken ?? '',
+        email: credential.email,
+        name: name,
+      );
+      
+      if (errorMsg == null && mounted) {
+        context.read<AuthProvider>().fetchUser();
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
+          (route) => false,
+        );
+      } else if (mounted) {
+        setState(() => _errorMessage = errorMsg);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _errorMessage = 'Apple Sign In failed: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -441,26 +527,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Square Social Buttons Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildSquareSocialButton(
-                          Icons.g_mobiledata,
-                          'Google',
-                          Colors.red,
-                        ),
-                        _buildSquareSocialButton(
-                          Icons.apple,
-                          'Apple',
-                          Colors.black,
-                        ),
-                        _buildSquareSocialButton(
-                          Icons.facebook,
-                          'Facebook',
-                          Colors.blue,
-                        ),
-                      ],
+                    // Full Width Google Button
+                    _buildSquareSocialButton(
+                      'Google',
+                      SvgPicture.string(
+                        '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>''',
+                        width: 24,
+                        height: 24,
+                      ),
+                      _handleGoogleSignIn,
+                      isLoading: _isGoogleLoading,
                     ),
                     const SizedBox(height: 32),
 
@@ -664,33 +740,42 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildSquareSocialButton(
-    IconData icon,
-    String label,
-    Color iconColor,
-  ) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: iconColor, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+  Widget _buildSquareSocialButton(String label, Widget iconWidget, VoidCallback onTap, {bool isLoading = false}) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 0),
+      child: InkWell(
+        onTap: isLoading ? null : onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade300),
+            color: Colors.white,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isLoading)
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black54),
+                )
+              else
+                iconWidget,
+              const SizedBox(width: 12),
+              Text(
+                isLoading ? 'Signing in...' : 'Continue with $label',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -94,22 +94,34 @@ class CartProvider with ChangeNotifier, WidgetsBindingObserver {
     try {
       final data = await _cartService.getCart();
       if (data != null) {
-        _items = data['items'] ?? [];
-        final rest = data['restaurant'];
-        if (rest != null && rest['_id'] == null && rest['id'] == null) {
-          _restaurant = null;
+        final serverItems = data['items'] ?? [];
+        
+        if (serverItems.isEmpty && _items.isNotEmpty) {
+          // If server is empty but we have local items (added as guest before login),
+          // sync local items up to the server instead of wiping them out.
+          _triggerSync();
         } else {
-          _restaurant = rest;
+          // Server cart wins
+          _items = serverItems;
+          final rest = data['restaurant'];
+          if (rest != null && rest['_id'] == null && rest['id'] == null) {
+            _restaurant = null;
+          } else {
+            _restaurant = rest;
+          }
+          _specialInstructions = data['specialInstructions'] ?? '';
         }
-        _specialInstructions = data['specialInstructions'] ?? '';
       } else {
-        _items = [];
-        _restaurant = null;
-        _specialInstructions = '';
+        // Fallback: don't wipe local items if request failed silently, just keep them.
+        if (_items.isEmpty) {
+          _items = [];
+          _restaurant = null;
+          _specialInstructions = '';
+        }
       }
     } catch (e) {
       _error = 'Failed to load cart';
-      _items = [];
+      // Do not clear the cart on error, so user doesn't lose items on network blip
     }
 
     _isLoading = false;

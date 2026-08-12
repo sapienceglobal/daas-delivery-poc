@@ -448,7 +448,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
   Widget _buildMapPlaceholder() {
     final hasRestaurant = _order!['restaurantLat'] != null && _order!['restaurantLng'] != null;
     final hasCustomer = _order!['addressLat'] != null && _order!['addressLng'] != null;
-    final hasCourier = _order!['dasherLat'] != null && _order!['dasherLng'] != null;
+    final hasCourier = _order!['courierLat'] != null && _order!['courierLng'] != null;
 
     final markers = <Marker>[];
     if (hasRestaurant) {
@@ -474,7 +474,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
     if (hasCourier) {
       markers.add(
         Marker(
-          point: LatLng((_order!['dasherLat'] as num).toDouble(), (_order!['dasherLng'] as num).toDouble()),
+          point: LatLng((_order!['courierLat'] as num).toDouble(), (_order!['courierLng'] as num).toDouble()),
           width: 50,
           height: 50,
           child: _buildDriverMarker(),
@@ -598,11 +598,14 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Your Delivery Partner', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                Text(
+                  'Powered by ${(_order!['deliveryProvider']?.toString() == 'doordash') ? 'DoorDash' : (_order!['deliveryProvider']?.toString() == 'ubereats') ? 'UberEats' : (_order!['deliveryProvider']?.toString() == 'grubhub') ? 'Grubhub' : 'Delivery Partner'}', 
+                  style: const TextStyle(color: Colors.grey, fontSize: 11)
+                ),
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    Text(_order!['dasherName']?.toString().isNotEmpty == true ? _order!['dasherName'] : 'Assigning rider...', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(_order!['courierName']?.toString().isNotEmpty == true ? _order!['courierName'] : 'Assigning rider...', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -610,7 +613,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                   children: [
                     const Icon(Icons.phone_outlined, color: AppColors.secondary, size: 14),
                     const SizedBox(width: 4),
-                    Text(_order!['dasherPhone']?.toString().isNotEmpty == true ? _order!['dasherPhone'] : 'Awaiting assignment', style: const TextStyle(fontSize: 12)),
+                    Text(_order!['courierPhone']?.toString().isNotEmpty == true ? _order!['courierPhone'] : 'Awaiting assignment', style: const TextStyle(fontSize: 12)),
                   ],
                 ),
               ],

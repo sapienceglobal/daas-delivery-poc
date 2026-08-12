@@ -480,7 +480,7 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
                       <td className="px-4 py-4">
                         {(order.orderType || order.type) === 'delivery' ? (
                           <>
-                            <div className="text-xs font-bold text-[#374151]">Rider: {order.dasherName || 'Assigning'}</div>
+                            <div className="text-xs font-bold text-[#374151]">Rider: {order.courierName || 'Assigning'}</div>
                             <div className="text-xs font-bold text-[#16a34a]">{order.status === 'out_for_delivery' ? 'ETA: 15 mins' : (order.status === 'delivered' ? 'Delivered' : '')}</div>
                           </>
                         ) : (order.orderType || order.type) === 'dine_in' ? (

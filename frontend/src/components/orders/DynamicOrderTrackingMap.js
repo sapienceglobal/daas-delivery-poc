@@ -73,12 +73,12 @@ function MapBounds({ markers }) {
 export default function OrderTrackingMap({ order }) {
   const hasRestaurant = typeof order.restaurantLat === 'number' && typeof order.restaurantLng === 'number';
   const hasCustomer = typeof order.addressLat === 'number' && typeof order.addressLng === 'number';
-  const hasCourier = typeof order.dasherLat === 'number' && typeof order.dasherLng === 'number';
+  const hasCourier = typeof order.courierLat === 'number' && typeof order.courierLng === 'number';
 
   const markers = [];
   if (hasRestaurant) markers.push({ lat: order.restaurantLat, lng: order.restaurantLng });
   if (hasCustomer) markers.push({ lat: order.addressLat, lng: order.addressLng });
-  if (hasCourier) markers.push({ lat: order.dasherLat, lng: order.dasherLng });
+  if (hasCourier) markers.push({ lat: order.courierLat, lng: order.courierLng });
 
   const defaultCenter = markers.length > 0 ? [markers[0].lat, markers[0].lng] : [37.7749, -122.4194];
 
@@ -103,7 +103,7 @@ export default function OrderTrackingMap({ order }) {
         )}
         
         {hasCourier && (
-          <Marker position={[order.dasherLat, order.dasherLng]} icon={courierIcon}>
+          <Marker position={[order.courierLat, order.courierLng]} icon={courierIcon}>
             <Popup>Live Courier</Popup>
           </Marker>
         )}

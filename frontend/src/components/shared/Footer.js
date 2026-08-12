@@ -23,7 +23,7 @@ export function Footer() {
               {isSingleRestaurantMode ? brand?.name : 'Restaurant Commerce'}
             </h3>
             <p className="text-xs text-brand-muted leading-relaxed">
-              Order food from your favorite local restaurants. Delivery by DoorDash Drive.
+              Order food from your favorite local restaurants. Multi-Provider Fast Delivery.
             </p>
           </div>
 
@@ -62,7 +62,7 @@ export function Footer() {
           </p>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-brand-green animate-pulse" />
-            <span className="text-xs text-brand-muted">Powered by DoorDash Drive API</span>
+            <span className="text-xs text-brand-muted">Powered by Multi-Provider Delivery Aggregator</span>
           </div>
         </div>
       </div>

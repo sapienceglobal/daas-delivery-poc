@@ -147,7 +147,8 @@ const OrderSchema = new mongoose.Schema({
   },
   statusUpdates: [StatusUpdateSchema],
 
-  // ── Delivery (DoorDash) ───────────────────────────────────────────────
+  // ── Delivery (Multi-Provider) ─────────────────────────────────────────────
+  deliveryProvider: { type: String, enum: ['doordash', 'ubereats', 'grubhub'], default: 'doordash' },
   deliveryId: { type: String, default: null },
   trackingUrl: { type: String, default: null },
   pickupTime: { type: Date, default: null },
@@ -162,11 +163,11 @@ const OrderSchema = new mongoose.Schema({
     ref: 'Driver',
     default: null
   },
-  dasherName: { type: String, default: null },
-  dasherPhone: { type: String, default: null },
-  dasherLat: { type: Number, default: null },
-  dasherLng: { type: Number, default: null },
-  lastDoorDashSyncAt: { type: Date, default: null },
+  courierName: { type: String, default: null },
+  courierPhone: { type: String, default: null },
+  courierLat: { type: Number, default: null },
+  courierLng: { type: Number, default: null },
+  lastDeliverySyncAt: { type: Date, default: null },
 
   // ── Rating (inline for quick access; detailed in Review model) ────────
   rating: { type: Number, min: 1, max: 5, default: null },

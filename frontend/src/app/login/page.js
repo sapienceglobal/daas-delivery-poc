@@ -56,12 +56,13 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get('redirect') || '';
-  const { login, register, googleLogin, logout, isAuthenticated, user, loading: authLoading } = useAuth();
+  const { login, register, socialLogin, logout, isAuthenticated, user, loading: authLoading } = useAuth();
   const { brand } = useBrand();
   const isSingleMode = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
   const [form, setForm] = useState({
@@ -190,7 +191,7 @@ function LoginPageContent() {
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       setLoading(true);
-      const userData = await googleLogin(credentialResponse.credential, form.role);
+      const userData = await socialLogin('google', credentialResponse.credential, form.role);
       showToast(isRegister ? 'Account created via Google!' : 'Signed in via Google!', 'success');
 
       // Handled by the useEffect above
@@ -201,29 +202,33 @@ function LoginPageContent() {
     }
   };
 
+  const handleAppleSuccess = async () => {
+    // In a real app, you would use react-apple-signin-auth.
+    // For this boilerplate, we'll show an error since it requires Apple Dev Setup.
+    showToast('Apple Sign In requires an Apple Developer Account setup.', 'error');
+  };
+
   const handleGoogleError = () => {
     setFormError('Google Sign-In failed. Please try again.');
   };
 
   if (isSingleMode) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white font-sans">
-        <div className="w-full max-w-[1400px] min-h-screen lg:min-h-[90vh] lg:h-[90vh] flex flex-col lg:flex-row shadow-2xl relative overflow-hidden bg-white">
+      <div className="min-h-screen flex bg-white font-sans">
+        <div className="w-full h-screen flex flex-col lg:flex-row relative overflow-hidden bg-white">
 
           {/* Left Side: Branded Hero (mirrors admin/login's panel, with
               customer-relevant features instead of operational/admin ones) */}
-          <div className="relative w-full lg:w-[45%] h-full flex flex-col justify-center items-center text-center px-8 pt-12 pb-32 overflow-hidden bg-[#4a090b]">
-            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#c99742 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-
-            <div className="absolute bottom-0 left-0 right-0 h-[45%] z-0">
-              <div className="absolute inset-0 bg-gradient-to-b from-[#4a090b] via-[#4a090b]/60 to-transparent z-10"></div>
+          <div className="relative w-full lg:w-[50%] h-full flex flex-col justify-center items-center text-center px-8 pt-12 pb-32 overflow-hidden bg-[#4a090b]">
+            <div className="absolute inset-0 z-0">
               <Image
-                src="/images/branded/lassi-lounge/hero-spread.jpg"
+                src="/images/branded/lassi-lounge/hero-spread-auth.png"
                 alt="Indian Cuisine Spread"
                 fill
-                className="object-cover object-bottom opacity-90"
+                className="object-cover object-bottom"
                 priority
               />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#4a090b] via-[#4a090b]/85 to-transparent z-10"></div>
             </div>
 
             <div className="absolute top-0 right-0 h-full w-[40px] lg:w-[80px] hidden lg:block z-20 translate-x-[1px]">
@@ -235,28 +240,15 @@ function LoginPageContent() {
 
             <div className="relative z-10 w-full max-w-md flex flex-col items-center">
               <div className="mb-6 flex flex-col items-center">
-                {brand?.logo ? (
-                  <div className="relative w-full max-w-[200px] h-24 mb-3">
-                    <Image
-                      src={brand.logo}
-                      alt={brand?.name || 'Restaurant logo'}
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <svg className="w-12 h-12 text-[#c99742] mb-2" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
-                    </svg>
-                    <h1 className="text-[40px] font-serif text-white tracking-widest mb-1 leading-none">LASSI</h1>
-                    <div className="flex items-center gap-4 text-white/80 w-full mb-2">
-                      <div className="h-[1px] flex-1 bg-white/40"></div>
-                      <span className="tracking-[0.3em] text-sm uppercase font-light">Lounge</span>
-                      <div className="h-[1px] flex-1 bg-white/40"></div>
-                    </div>
-                  </>
-                )}
+                <svg className="w-12 h-12 text-[#c99742] mb-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+                </svg>
+                <h1 className="text-[40px] font-serif text-white tracking-widest mb-1 leading-none">LASSI</h1>
+                <div className="flex items-center gap-4 text-white/80 w-full mb-2">
+                  <div className="h-[1px] flex-1 bg-white/40"></div>
+                  <span className="tracking-[0.3em] text-sm uppercase font-light">Lounge</span>
+                  <div className="h-[1px] flex-1 bg-white/40"></div>
+                </div>
                 <div className="flex items-center justify-center gap-2 text-[#c99742] text-[10px] font-semibold tracking-widest mt-1">
                   <span>∞</span>INDIAN RESTAURANT<span>∞</span>
                 </div>
@@ -275,13 +267,13 @@ function LoginPageContent() {
                 Order your favorites, track deliveries,<br/>and never miss a table.
               </p>
 
-              <div className="grid grid-cols-3 gap-y-7 gap-x-6 w-full max-w-[340px] mt-2">
+              <div className="grid grid-cols-3 gap-y-10 gap-x-6 w-full max-w-[380px] mt-6">
                 {customerFeatures.map((feat, idx) => (
-                  <div key={idx} className="flex flex-col items-center group">
-                    <div className="w-12 h-12 rounded-full bg-[#4a090b]/80 backdrop-blur-sm border border-[#c99742]/40 flex items-center justify-center mb-2.5 shadow-lg group-hover:scale-110 group-hover:border-[#c99742]/70 transition-all duration-300">
-                      <feat.icon className="w-5 h-5 text-[#c99742]" strokeWidth={1.75} />
+                  <div key={idx} className="flex flex-col items-center group cursor-default">
+                    <div className="mb-3 group-hover:scale-110 transition-transform duration-300">
+                      <feat.icon className="w-8 h-8 text-[#c99742]" strokeWidth={1.5} />
                     </div>
-                    <span className="text-white text-[10px] leading-snug text-center uppercase tracking-wider whitespace-pre-line font-bold drop-shadow-lg">
+                    <span className="text-white text-[11px] leading-snug text-center uppercase tracking-wider whitespace-pre-line font-medium drop-shadow-md">
                       {feat.label}
                     </span>
                   </div>
@@ -290,15 +282,15 @@ function LoginPageContent() {
             </div>
           </div>
 
-          {/* Right Side: Auth Form */}
-          <div className="w-full lg:w-[55%] h-full flex flex-col bg-[#fcfdfc] relative items-center px-6 lg:px-16 py-10 overflow-x-hidden overflow-y-auto">
+          {/* Right Side: Login Form */}
+          <div className="w-full lg:w-[50%] h-full flex flex-col bg-[#fcfdfc] relative items-center px-6 lg:px-16 py-12 lg:py-16 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
-            <div className="absolute top-[-5%] right-[-5%] w-64 h-64 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNMzAgMjBDMjAgMzAgMjAgNTAgMzAgNjBMMTAwIDEwMEM5MCA4MCA3MCA4MCA2MCA3MEwxMCAyMEMyMCAxMCA0MCAxMCAzMCAyMFoiIGZpbGw9IiNmMmVhZTQiIGZpbGwtb3BhY2l0eT0iMC41Ii8+PC9zdmc+')] bg-no-repeat bg-contain opacity-20 pointer-events-none rotate-45" />
+            <div className="absolute top-[-5%] right-[-5%] w-64 h-64 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNMTUgNTBDMTUgMzAgMzAgMTUgNTAgMTVMMTAwIDBDODAgMjAgODAgNTAgMTAwIDcwQzgwIDkwIDUwIDkwIDUwIDcwQzMwIDcwIDE1IDkwIDE1IDUwWiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=')] bg-no-repeat bg-contain opacity-20 pointer-events-none rotate-45" />
             <div className="absolute bottom-[5%] right-[5%] w-48 h-48 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjQgNCIvPjxwYXRoIGQ9Ik01MCAxMEMzMCAzMCA3MCA3MCA1MCA5MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=')] bg-no-repeat bg-contain opacity-30 pointer-events-none -rotate-12" />
             <div className="absolute top-[10%] left-[5%] w-32 h-32 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNMTUgNTBDMTUgMzAgMzAgMTUgNTAgMTVMMTAwIDBDODAgMjAgODAgNTAgMTAwIDcwQzgwIDkwIDUwIDkwIDUwIDcwQzMwIDcwIDE1IDkwIDE1IDUwWiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=')] bg-no-repeat bg-contain opacity-20 pointer-events-none rotate-[30deg]" />
 
-            <div className={`w-full mx-auto z-10 my-auto py-4 transition-all duration-300 ${isRegister ? 'max-w-[560px]' : 'max-w-[440px]'}`}>
-              <div className="text-center mb-8">
+            <div className={`w-full mx-auto z-10 my-auto transition-all duration-300 ${isRegister ? 'max-w-[560px]' : 'max-w-[440px]'}`}>
+              <div className="text-center mb-5">
                 <h2 className="text-[32px] font-serif text-[#4a090b] mb-3">
                   {isRegister ? 'Create Account' : 'Welcome Back!'}
                 </h2>
@@ -312,10 +304,10 @@ function LoginPageContent() {
                 </p>
               </div>
 
-              <div className="bg-white rounded-3xl shadow-[0_12px_40px_rgb(0,0,0,0.06)] p-8 sm:p-10 border border-[#f9fafb] relative overflow-hidden">
+              <div className="bg-white rounded-3xl shadow-[0_12px_40px_rgb(0,0,0,0.06)] px-6 pt-6 pb-4 sm:px-8 sm:pt-8 sm:pb-5 border border-[#f9fafb] relative overflow-hidden">
 
                 {/* Sign In / Register Toggle */}
-                <div className="flex bg-[#fdf7f0] p-1 rounded-xl mb-7 border border-[#f0e4d0]">
+                <div className="flex bg-[#fdf7f0] p-1 rounded-xl mb-5 border border-[#f0e4d0]">
                   <button
                     type="button"
                     onClick={() => { setIsRegister(false); setFormError(''); setErrors({}); setIsUnverifiedEmail(false); }}
@@ -371,14 +363,14 @@ function LoginPageContent() {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} noValidate className="space-y-5">
+                <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
                   {isRegister && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Full Name */}
                       <div className="space-y-2.5">
                         <label className="text-[13px] font-bold text-[#1f2937] block">Full Name</label>
                         <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.name ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
-                          <div className="px-4 py-3.5 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
+                          <div className="px-4 py-3 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
                             <User size={18} strokeWidth={2} />
                           </div>
                           <input
@@ -386,7 +378,7 @@ function LoginPageContent() {
                             placeholder="John Doe"
                             value={form.name}
                             onChange={handleChange}
-                            className="flex-1 bg-transparent border-none px-4 py-3.5 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
+                            className="flex-1 bg-transparent border-none px-4 py-3 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
                           />
                         </div>
                         {errors.name && <p className="text-xs text-red-500 font-medium mt-1 ml-1">{errors.name}</p>}
@@ -395,13 +387,6 @@ function LoginPageContent() {
                       {/* Phone */}
                       <div className="space-y-2.5">
                         <label className="text-[13px] font-bold text-[#1f2937] block">Phone Number</label>
-                        {/*
-                          Same experience as the mobile app's country picker:
-                          flag + dial code + searchable country list, and the
-                          value it produces is already E.164 formatted
-                          (e.g. "+919876543210"), so it can be sent to the
-                          backend as-is.
-                        */}
                         <div className={`phone-field-wrap h-[52px] rounded-xl border px-4 flex items-center bg-white transition-all ${errors.phone ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
                           <PhoneInput
                             international
@@ -421,7 +406,7 @@ function LoginPageContent() {
                   <div className="space-y-2.5">
                     <label className="text-[13px] font-bold text-[#1f2937] block">Email Address</label>
                     <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.email ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
-                      <div className="px-4 py-3.5 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
+                      <div className="px-4 py-3 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
                         <Mail size={18} strokeWidth={2} />
                       </div>
                       <input
@@ -430,7 +415,7 @@ function LoginPageContent() {
                         placeholder="you@example.com"
                         value={form.email}
                         onChange={handleChange}
-                        className="flex-1 bg-transparent border-none px-4 py-3.5 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
+                        className="flex-1 bg-transparent border-none px-4 py-3 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
                       />
                     </div>
                     {errors.email && <p className="text-xs font-medium mt-1 ml-1" style={{ color: '#ef4444' }}>{errors.email}</p>}
@@ -441,7 +426,7 @@ function LoginPageContent() {
                     <div className="space-y-2.5">
                       <label className="text-[13px] font-bold text-[#1f2937] block">Password</label>
                       <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.password ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
-                        <div className="px-4 py-3.5 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
+                        <div className="px-4 py-3 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
                           <Lock size={18} strokeWidth={2} />
                         </div>
                         <input
@@ -450,7 +435,7 @@ function LoginPageContent() {
                           placeholder="••••••••"
                           value={form.password}
                           onChange={handleChange}
-                          className="flex-1 bg-transparent border-none px-4 py-3.5 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
+                          className="flex-1 bg-transparent border-none px-4 py-3 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
                         />
                         <button
                           type="button"
@@ -465,20 +450,27 @@ function LoginPageContent() {
 
                     {/* Confirm Password */}
                     {isRegister && (
-                      <div className="space-y-2.5">
+                      <div className="space-y-1.5">
                         <label className="text-[13px] font-bold text-[#1f2937] block">Confirm Password</label>
                         <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.confirmPassword ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
-                          <div className="px-4 py-3.5 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
+                          <div className="px-4 py-3 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
                             <Lock size={18} strokeWidth={2} />
                           </div>
                           <input
                             name="confirmPassword"
-                            type="password"
+                            type={showConfirmPassword ? 'text' : 'password'}
                             placeholder="••••••••"
                             value={form.confirmPassword}
                             onChange={handleChange}
-                            className="flex-1 bg-transparent border-none px-4 py-3.5 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
+                            className="flex-1 bg-transparent border-none px-4 py-3 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="px-4 text-[#9ca3af] hover:text-[#4a090b] transition-colors"
+                          >
+                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
                         </div>
                         {errors.confirmPassword && <p className="text-xs font-medium mt-1 ml-1" style={{ color: '#ef4444' }}>{errors.confirmPassword}</p>}
                       </div>
@@ -551,7 +543,7 @@ function LoginPageContent() {
                     <div className="flex-grow border-t border-[#eadfdb]"></div>
                   </div>
 
-                  <div className="flex justify-center pb-1">
+                  <div className="flex justify-center">
                     <GoogleLogin
                       onSuccess={handleGoogleSuccess}
                       onError={handleGoogleError}
@@ -564,7 +556,7 @@ function LoginPageContent() {
                 </form>
               </div>
 
-              <div className="mt-8 text-center text-[12px] text-[#9ca3af] font-medium">
+              <div className="mt-1.5 text-center text-[11px] text-[#9ca3af] font-medium">
                 © {new Date().getFullYear()} Lassi Lounge. All Rights Reserved.
               </div>
             </div>

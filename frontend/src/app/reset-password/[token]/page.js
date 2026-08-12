@@ -75,22 +75,20 @@ export default function ResetPasswordPage({ params }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white font-sans">
-      <div className="w-full max-w-[1400px] min-h-screen lg:min-h-[90vh] lg:h-[90vh] flex flex-col lg:flex-row shadow-2xl relative overflow-hidden bg-white">
+    <div className="min-h-screen flex bg-white font-sans">
+      <div className="w-full h-screen flex flex-col lg:flex-row relative overflow-hidden bg-white">
         
         {/* Left Side: Branded Hero */}
-        <div className="relative w-full lg:w-[45%] h-full flex flex-col justify-center items-center text-center px-8 pt-12 pb-32 overflow-hidden bg-[#4a090b]">
-          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#c99742 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-          
-          <div className="absolute bottom-0 left-0 right-0 h-[45%] z-0">
-            <div className="absolute inset-0 bg-gradient-to-b from-[#4a090b] via-[#4a090b]/60 to-transparent z-10"></div>
+        <div className="relative w-full lg:w-[50%] h-full flex flex-col justify-center items-center text-center px-8 pt-12 pb-32 overflow-hidden bg-[#4a090b]">
+          <div className="absolute inset-0 z-0">
             <Image 
-              src="/images/branded/lassi-lounge/hero-spread.jpg" 
+              src="/images/branded/lassi-lounge/hero-spread-auth.png" 
               alt="Indian Cuisine Spread" 
               fill 
-              className="object-cover object-bottom opacity-90"
+              className="object-cover object-bottom"
               priority
             />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#4a090b] via-[#4a090b]/85 to-transparent z-10"></div>
           </div>
           
           <div className="absolute top-0 right-0 h-full w-[40px] lg:w-[80px] hidden lg:block z-20 translate-x-[1px]">
@@ -102,28 +100,15 @@ export default function ResetPasswordPage({ params }) {
 
           <div className="relative z-10 w-full max-w-md flex flex-col items-center">
             <div className="mb-6 flex flex-col items-center">
-              {brand?.logo ? (
-                <div className="relative w-full max-w-[200px] h-24 mb-3">
-                  <Image 
-                    src={brand.logo} 
-                    alt={brand?.name || 'Restaurant logo'} 
-                    fill 
-                    className="object-contain"
-                  />
-                </div>
-              ) : (
-                <>
-                  <svg className="w-12 h-12 text-[#c99742] mb-2" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
-                  </svg>
-                  <h1 className="text-[40px] font-serif text-white tracking-widest mb-1 leading-none">LASSI</h1>
-                  <div className="flex items-center gap-4 text-white/80 w-full mb-2">
-                    <div className="h-[1px] flex-1 bg-white/40"></div>
-                    <span className="tracking-[0.3em] text-sm uppercase font-light">Lounge</span>
-                    <div className="h-[1px] flex-1 bg-white/40"></div>
-                  </div>
-                </>
-              )}
+              <svg className="w-12 h-12 text-[#c99742] mb-2" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+              </svg>
+              <h1 className="text-[40px] font-serif text-white tracking-widest mb-1 leading-none">LASSI</h1>
+              <div className="flex items-center gap-4 text-white/80 w-full mb-2">
+                <div className="h-[1px] flex-1 bg-white/40"></div>
+                <span className="tracking-[0.3em] text-sm uppercase font-light">Lounge</span>
+                <div className="h-[1px] flex-1 bg-white/40"></div>
+              </div>
               <div className="flex items-center justify-center gap-2 text-[#c99742] text-[10px] font-semibold tracking-widest mt-1">
                 <span>∞</span>INDIAN RESTAURANT<span>∞</span>
               </div>
@@ -142,13 +127,13 @@ export default function ResetPasswordPage({ params }) {
               Choose a strong password to protect your<br/>Lassi Lounge profile.
             </p>
 
-            <div className="grid grid-cols-3 gap-y-7 gap-x-6 w-full max-w-[340px] mt-2">
+            <div className="grid grid-cols-3 gap-y-10 gap-x-6 w-full max-w-[380px] mt-6">
               {customerFeatures.map((feat, idx) => (
-                <div key={idx} className="flex flex-col items-center group">
-                  <div className="w-12 h-12 rounded-full bg-[#4a090b]/80 backdrop-blur-sm border border-[#c99742]/40 flex items-center justify-center mb-2.5 shadow-lg group-hover:scale-110 group-hover:border-[#c99742]/70 transition-all duration-300">
-                    <feat.icon className="w-5 h-5 text-[#c99742]" strokeWidth={1.75} />
+                <div key={idx} className="flex flex-col items-center group cursor-default">
+                  <div className="mb-3 group-hover:scale-110 transition-transform duration-300">
+                    <feat.icon className="w-8 h-8 text-[#c99742]" strokeWidth={1.5} />
                   </div>
-                  <span className="text-white text-[10px] leading-snug text-center uppercase tracking-wider whitespace-pre-line font-bold drop-shadow-lg">
+                  <span className="text-white text-[11px] leading-snug text-center uppercase tracking-wider whitespace-pre-line font-medium drop-shadow-md">
                     {feat.label}
                   </span>
                 </div>
@@ -158,7 +143,7 @@ export default function ResetPasswordPage({ params }) {
         </div>
 
         {/* Right Side: Auth Form */}
-        <div className="w-full lg:w-[55%] h-full flex flex-col bg-[#fcfdfc] relative items-center px-6 lg:px-16 py-10 overflow-x-hidden overflow-y-auto">
+        <div className="w-full lg:w-[50%] h-full flex flex-col bg-[#fcfdfc] relative items-center px-6 lg:px-16 py-12 lg:py-16 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           
           <div className="absolute top-[-5%] right-[-5%] w-64 h-64 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNMzAgMjBDMjAgMzAgMjAgNTAgMzAgNjBMMTAwIDEwMEM5MCA4MCA3MCA4MCA2MCA3MEwxMCAyMEMyMCAxMCA0MCAxMCAzMCAyMFoiIGZpbGw9IiNmMmVhZTQiIGZpbGwtb3BhY2l0eT0iMC41Ii8+PC9zdmc+')] bg-no-repeat bg-contain opacity-20 pointer-events-none rotate-45" />
           <div className="absolute bottom-[5%] right-[5%] w-48 h-48 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjQgNCIvPjxwYXRoIGQ9Ik01MCAxMEMzMCAzMCA3MCA3MCA1MCA5MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJlYWU0IiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=')] bg-no-repeat bg-contain opacity-30 pointer-events-none -rotate-12" />

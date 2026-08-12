@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { rollbackLoyaltyPoints, awardLoyaltyPoints, processAutoRefund } from '../controllers/orderController.js';
-import { buildOrderSocketPayload } from './doordashSyncService.js';
+import { buildOrderSocketPayload } from './deliverySyncService.js';
 import { createNotification } from '../controllers/notificationController.js';
 import logger from '../utils/logger.js';
 

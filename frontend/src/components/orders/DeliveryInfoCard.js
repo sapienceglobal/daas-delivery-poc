@@ -35,7 +35,7 @@ export default function DeliveryInfoCard({ order }) {
     return `${formatTime(startEta)} - ${formatTime(endEta)}`;
   };
 
-  const hasCourierLocation = typeof order.dasherLat === 'number' && typeof order.dasherLng === 'number';
+  const hasCourierLocation = typeof order.courierLat === 'number' && typeof order.courierLng === 'number';
   const progressPercent = {
     pending: 8,
     accepted: 18,

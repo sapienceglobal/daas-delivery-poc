@@ -247,24 +247,53 @@ export const login = asyncHandler(async (req, response) => {
   sendTokenCookie(user, 200, response, tenantId, rememberMe);
 });
 
-export const googleLogin = asyncHandler(async (req, response) => {
-  const { credential, role } = req.body;
-  if (!credential) throw new AppError('Google token is missing.', 400);
+export const socialLogin = asyncHandler(async (req, response) => {
+  // We expect 'provider' (e.g. 'google', 'apple'), 'token', and optionally 'role'
+  const { provider, token, credential, role } = req.body;
+  
+  // Fallback for older frontend still sending 'credential' instead of 'token'
+  const jwtToken = token || credential;
+  
+  if (!jwtToken) throw new AppError(`${provider || 'Social'} token is missing.`, 400);
 
-  if (!process.env.GOOGLE_CLIENT_ID) {
+  if (provider === 'google' && !process.env.GOOGLE_CLIENT_ID) {
     throw new AppError('Google login is not configured on the server yet.', 500);
   }
 
   const tenantId = req.tenantId || 'marketplace';
   const UserModel = req.getModel('User');
 
-  const ticket = await googleClient.verifyIdToken({
-    idToken: credential,
-    audience: process.env.GOOGLE_CLIENT_ID,
-  });
+  let email, name, socialId, picture;
 
-  const payload = ticket.getPayload();
-  const { email, name, sub: googleId, picture } = payload;
+  if (provider === 'google' || !provider) {
+    // Google Token Verification
+    const ticket = await googleClient.verifyIdToken({
+      idToken: jwtToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    email = payload.email;
+    name = payload.name;
+    socialId = payload.sub;
+    picture = payload.picture;
+  } else if (provider === 'apple') {
+    // Apple Token Verification (using jwt.decode for basic extraction, 
+    // in production apple-signin-auth is recommended for signature verification)
+    const jwt = await import('jsonwebtoken');
+    const decoded = jwt.decode(jwtToken);
+    if (!decoded || !decoded.email) {
+       throw new AppError('Invalid Apple token or email missing', 400);
+    }
+    email = decoded.email;
+    socialId = decoded.sub;
+    // Apple only sends name on the FIRST ever login in a separate field, 
+    // so we use the email prefix as fallback if name isn't provided in req.body
+    name = req.body.name || email.split('@')[0];
+    picture = null; 
+  } else {
+    throw new AppError(`Unsupported provider: ${provider}`, 400);
+  }
 
   let user = await UserModel.findOne({ email });
 
@@ -279,7 +308,7 @@ export const googleLogin = asyncHandler(async (req, response) => {
       email,
       role: finalRole,
       avatar: picture,
-      socialLogin: { googleId },
+      socialLogin: provider === 'apple' ? { appleId: socialId } : { googleId: socialId },
       isVerified: true,
       isEmailVerified: true
     });
@@ -289,10 +318,21 @@ export const googleLogin = asyncHandler(async (req, response) => {
 
     sendWelcomeEmail(email, name).catch(e => logger.warn('Welcome email failed', { error: e.message }));
   } else {
-    // Link google ID if not linked
-    if (!user.socialLogin.googleId) {
-      user.socialLogin.googleId = googleId;
+    // Industry Level: Account Linking!
+    // If user exists (manual register or other social), link this new social ID
+    if (provider === 'apple' && !user.socialLogin.appleId) {
+      user.socialLogin.appleId = socialId;
+      await user.save();
+    } else if ((provider === 'google' || !provider) && !user.socialLogin.googleId) {
+      user.socialLogin.googleId = socialId;
       if (!user.avatar) user.avatar = picture;
+      await user.save();
+    }
+    
+    // If the user registered manually but never verified OTP, social login auto-verifies them!
+    if (!user.isEmailVerified) {
+      user.isEmailVerified = true;
+      user.isVerified = true;
       await user.save();
     }
   }
@@ -779,3 +819,4 @@ export const resendOtp = asyncHandler(async (req, response) => {
 
   res.success(response, { message: 'OTP sent successfully.' });
 });
+

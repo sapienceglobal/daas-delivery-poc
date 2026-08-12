@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
-import logger from '../utils/logger.js';
+import logger from '../../utils/logger.js';
 
 // ── Credentials ─────────────────────────────────────────────────────────────
 const developerId = process.env.DOORDASH_DEVELOPER_ID || process.env.DOORDASH_CLIENT_ID;
@@ -164,7 +164,7 @@ export const getDeliveryQuoteAPI = async (pickupAddress, dropoffAddress, orderVa
 
     logger.info(`DoorDash quote received — Fee: ${response.data.fee} cents`);
     return {
-      deliveryFee: response.data.fee,
+      fee: response.data.fee,
       pickupTime: response.data.pickup_time ? new Date(response.data.pickup_time) : null,
       deliveryTime: response.data.delivery_time ? new Date(response.data.delivery_time) : null,
       realRequest: true
@@ -200,7 +200,7 @@ export const getDeliveryQuoteAPI = async (pickupAddress, dropoffAddress, orderVa
 
       // Return simulated quote instead of throwing error unconditionally
       return {
-        deliveryFee: simulatedFee,
+        fee: simulatedFee,
         pickupTime: new Date(Date.now() + 15 * 60000),
         deliveryTime: new Date(Date.now() + 45 * 60000),
         realRequest: false

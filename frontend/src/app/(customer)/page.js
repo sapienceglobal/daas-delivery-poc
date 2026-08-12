@@ -147,7 +147,7 @@ export default function HomePage() {
         <div className="relative">
           <div className="flex items-center gap-2 mb-4">
             <Badge color="green" dot>Live Ordering</Badge>
-            <Badge color="cyan">DoorDash Delivery</Badge>
+            <Badge color="cyan">Smart Fast Delivery</Badge>
           </div>
 
           <h1 className="text-3xl md:text-5xl font-black text-brand-text leading-tight">

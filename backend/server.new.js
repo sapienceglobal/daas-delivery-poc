@@ -7,7 +7,7 @@ import app from './src/app.js';
 import connectDB from './src/config/db.js';
 import seedDemoData from './src/config/seed.js';
 import { initChangeStreams } from './src/config/changeStreams.js';
-import { startDoorDashPolling } from './src/services/doordashSyncService.js';
+import { startDeliveryPolling } from './src/services/deliverySyncService.js';
 import { initCronJobs } from './src/services/cronService.js';
 import logger from './src/utils/logger.js';
 import { getTenantModel, resolveTenantId } from './src/utils/tenant.js';
@@ -207,7 +207,7 @@ const startServer = async () => {
   await connectDB();
   await seedDemoData();
   initChangeStreams(io);
-  startDoorDashPolling(io, (model) => getTenantModel('lassi-lounge', model));
+  startDeliveryPolling(io, (model) => getTenantModel('lassi-lounge', model));
   initCronJobs(io, (model) => getTenantModel('lassi-lounge', model));
 
   server.listen(PORT, '0.0.0.0', () => {

@@ -176,8 +176,10 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
             </div>
             {(order.orderType || order.type) === 'delivery' && (
               <div className="text-center">
-                <p className="text-[14px] font-black text-[#111827]">{order.dasherName ? order.dasherName.split(' ')[0] : 'N/A'}</p>
-                <p className="text-xs font-bold text-[#6b7280]">Rider</p>
+                <p className="text-[14px] font-black text-[#111827]">{order.courierName ? order.courierName.split(' ')[0] : 'N/A'}</p>
+                <p className="text-xs font-bold text-[#6b7280]">
+                  Rider {order.deliveryProvider ? `(${order.deliveryProvider === 'doordash' ? 'DoorDash' : order.deliveryProvider === 'ubereats' ? 'UberEats' : order.deliveryProvider === 'grubhub' ? 'Grubhub' : 'Partner'})` : ''}
+                </p>
               </div>
             )}
           </div>
@@ -234,10 +236,10 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
           
           <div className="mt-4 pt-3 border-t border-[#f3f4f6] flex justify-between items-center">
             <div>
-              <p className="text-xs font-bold text-[#111827]">Rider: {order.dasherName || 'Assigning...'}</p>
-              <p className="text-xs text-[#6b7280]">{order.dasherPhone || 'N/A'}</p>
+              <p className="text-xs font-bold text-[#111827]">Rider: {order.courierName || 'Assigning...'}</p>
+              <p className="text-xs text-[#6b7280]">{order.courierPhone || 'N/A'}</p>
             </div>
-            <a href={`tel:${order.dasherPhone || ''}`} className="w-6 h-6 rounded border border-[#e5e7eb] flex items-center justify-center text-[#374151] hover:bg-gray-50">
+            <a href={`tel:${order.courierPhone || ''}`} className="w-6 h-6 rounded border border-[#e5e7eb] flex items-center justify-center text-[#374151] hover:bg-gray-50">
               <Phone className="w-3 h-3" />
             </a>
           </div>

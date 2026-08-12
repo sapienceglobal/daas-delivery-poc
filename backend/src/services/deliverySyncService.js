@@ -1,4 +1,4 @@
-import { getDeliveryAPI } from './doordashService.js';
+import { getDeliveryTracking } from './deliveryAggregatorService.js';
 import Order from '../models/Order.js';
 import logger from '../utils/logger.js';
 import { awardLoyaltyPoints } from '../controllers/orderController.js';
@@ -33,7 +33,7 @@ const statusRank = {
   cancelled: -1
 };
 
-const getDoorDashStatus = (payload = {}) => {
+const getDeliveryStatus = (payload = {}) => {
   return String(
     payload.delivery_status ||
     payload.delivery_status_update ||
@@ -56,8 +56,8 @@ const assignIfPresent = (order, key, value) => {
   }
 };
 
-export const applyDoorDashDeliveryUpdate = (order, payload = {}) => {
-  const rawStatus = getDoorDashStatus(payload);
+export const applyDeliveryUpdate = (order, payload = {}) => {
+  const rawStatus = getDeliveryStatus(payload);
   const mappedStatus = statusMap[rawStatus];
 
   if (mappedStatus && order.status !== mappedStatus) {
@@ -76,16 +76,16 @@ export const applyDoorDashDeliveryUpdate = (order, payload = {}) => {
   }
 
   const dasher = getDasher(payload);
-  assignIfPresent(order, 'dasherName', dasher.name || payload.dasher_name || payload.driver_name || payload.courier_name);
-  assignIfPresent(order, 'dasherPhone', dasher.phone_number || dasher.phone || payload.dasher_phone || payload.driver_phone || payload.courier_phone);
+  assignIfPresent(order, 'courierName', dasher.name || payload.courier_name || payload.driver_name || payload.courier_name);
+  assignIfPresent(order, 'courierPhone', dasher.phone_number || dasher.phone || payload.courier_phone || payload.driver_phone || payload.courier_phone);
 
   const location = getDasherLocation(payload);
   if (location) {
     const lat = location.lat ?? location.latitude;
     const lng = location.lng ?? location.lon ?? location.longitude;
     if (typeof lat === 'number' && typeof lng === 'number') {
-      order.dasherLat = lat;
-      order.dasherLng = lng;
+      order.courierLat = lat;
+      order.courierLng = lng;
     }
   }
 
@@ -99,37 +99,37 @@ export const applyDoorDashDeliveryUpdate = (order, payload = {}) => {
   return {
     rawStatus,
     mappedStatus,
-    hasDasherLocation: Boolean(order.dasherLat && order.dasherLng)
+    hasDasherLocation: Boolean(order.courierLat && order.courierLng)
   };
 };
 
-export const shouldPollDoorDash = (order, { force = false } = {}) => {
+export const shouldPollDelivery = (order, { force = false } = {}) => {
   if (force) return true;
   if (!order || order.orderType !== 'delivery') return false;
   if (!order.externalDeliveryId) return false;
   if (!ACTIVE_STATUSES.has(order.status)) return false;
 
   const intervalMs = Number(process.env.DOORDASH_POLL_INTERVAL_MS || 30000);
-  if (!order.lastDoorDashSyncAt) return true;
-  return Date.now() - new Date(order.lastDoorDashSyncAt).getTime() >= intervalMs;
+  if (!order.lastDeliverySyncAt) return true;
+  return Date.now() - new Date(order.lastDeliverySyncAt).getTime() >= intervalMs;
 };
 
-export const syncDoorDashDelivery = async (order, options = {}) => {
-  if (!shouldPollDoorDash(order, options)) {
+export const syncDeliveryTracking = async (order, options = {}) => {
+  if (!shouldPollDelivery(order, options)) {
     return { updated: false, skipped: true, order };
   }
 
   try {
-    const payload = await getDeliveryAPI(order.externalDeliveryId);
-    const result = applyDoorDashDeliveryUpdate(order, payload);
-    order.lastDoorDashSyncAt = new Date();
+    const payload = await getDeliveryTracking(order);
+    const result = applyDeliveryUpdate(order, payload);
+    order.lastDeliverySyncAt = new Date();
     await order.save();
     if (order.status === 'delivered' || order.status === 'picked_up') {
       await awardLoyaltyPoints(order);
     }
     return { updated: true, order, payload, result };
   } catch (error) {
-    order.lastDoorDashSyncAt = new Date();
+    order.lastDeliverySyncAt = new Date();
     await order.save();
     logger.warn('DoorDash delivery polling failed', {
       orderId: order._id,
@@ -150,10 +150,10 @@ export const buildOrderSocketPayload = (order) => {
     refunded: plainOrder.refunded,
     refundAmount: plainOrder.refundAmount,
     refundReason: plainOrder.refundReason,
-    dasherName: plainOrder.dasherName,
-    dasherPhone: plainOrder.dasherPhone,
-    dasherLat: plainOrder.dasherLat,
-    dasherLng: plainOrder.dasherLng,
+    courierName: plainOrder.courierName,
+    courierPhone: plainOrder.courierPhone,
+    courierLat: plainOrder.courierLat,
+    courierLng: plainOrder.courierLng,
     trackingUrl: plainOrder.trackingUrl,
     pickupTime: plainOrder.pickupTime,
     deliveryTime: plainOrder.deliveryTime,
@@ -161,7 +161,7 @@ export const buildOrderSocketPayload = (order) => {
   };
 };
 
-export const pollActiveDoorDashDeliveries = async (io) => {
+export const pollActiveDeliveries = async (io) => {
   const orders = await Order.find({
     orderType: 'delivery',
     externalDeliveryId: { $exists: true, $ne: null },
@@ -171,16 +171,16 @@ export const pollActiveDoorDashDeliveries = async (io) => {
   for (const order of orders) {
     const before = {
       status: order.status,
-      dasherName: order.dasherName,
-      dasherPhone: order.dasherPhone,
-      dasherLat: order.dasherLat,
-      dasherLng: order.dasherLng,
+      courierName: order.courierName,
+      courierPhone: order.courierPhone,
+      courierLat: order.courierLat,
+      courierLng: order.courierLng,
       trackingUrl: order.trackingUrl,
       pickupTime: order.pickupTime,
       deliveryTime: order.deliveryTime
     };
 
-    const result = await syncDoorDashDelivery(order);
+    const result = await syncDeliveryTracking(order);
     if (!result.updated || !io) continue;
 
     const changed = Object.entries(before).some(([key, value]) => {
@@ -196,12 +196,12 @@ export const pollActiveDoorDashDeliveries = async (io) => {
   }
 };
 
-export const startDoorDashPolling = (io) => {
+export const startDeliveryPolling = (io) => {
   if (process.env.DOORDASH_POLLING_ENABLED === 'false') return null;
 
   const intervalMs = Number(process.env.DOORDASH_POLL_INTERVAL_MS || 30000);
   const timer = setInterval(() => {
-    pollActiveDoorDashDeliveries(io).catch((error) => {
+    pollActiveDeliveries(io).catch((error) => {
       logger.warn('DoorDash polling cycle failed', {
         error: error.response?.data || error.message
       });

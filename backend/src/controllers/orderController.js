@@ -9,8 +9,8 @@ import { getTenantModel } from '../utils/tenant.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
-import { triggerDeliveryAPI, getDeliveryQuoteAPI, checkServiceabilityAPI, cancelDeliveryAPI } from '../services/doordashService.js';
-import { buildOrderSocketPayload, syncDoorDashDelivery } from '../services/doordashSyncService.js';
+import { triggerDelivery, getBestDeliveryQuote, cancelDelivery } from '../services/deliveryAggregatorService.js';
+import { buildOrderSocketPayload, syncDeliveryTracking } from '../services/deliverySyncService.js';
 import { retrievePaymentIntent, refundPayment as refundStripePayment, chargeSavedCard } from '../services/stripeService.js';
 import { calculateOrderPricing, roundMoney } from '../services/orderPricing.js';
 import { sendOrderConfirmationEmail, sendInvoiceEmail } from '../services/emailService.js';
@@ -291,7 +291,7 @@ const createDoorDashDeliveryForOrder = async (order) => {
   if (order.orderType !== 'delivery' || order.deliveryId) return order;
 
   try {
-    const delivery = await triggerDeliveryAPI(order);
+    const delivery = await triggerDelivery(order);
     order.deliveryId = delivery.deliveryId;
     order.trackingUrl = delivery.trackingUrl;
     order.pickupTime = delivery.pickupTime;
@@ -316,9 +316,9 @@ const getTrustedDeliveryQuote = async ({ restaurant, address, subtotal, schedule
   if (!address) return { deliveryFee: 0, quote: null };
 
   try {
-    const quote = await getDeliveryQuoteAPI(restaurant.address, address, subtotal || 10, scheduledTime);
+    const quote = await getBestDeliveryQuote(restaurant.address, address, subtotal || 10, scheduledTime);
     return {
-      deliveryFee: roundMoney((quote.deliveryFee || 0) / 100),
+      deliveryFee: roundMoney((quote.fee || 0) / 100),
       quote
     };
   } catch (err) {
@@ -663,7 +663,7 @@ export const getOrderById = asyncHandler(async (req, response) => {
     ensureCanManageRestaurant(req.user, order.restaurantId);
   }
 
-  await syncDoorDashDelivery(order);
+  await syncDeliveryTracking(order);
 
   res.success(response, { data: order.toObject() });
 });
@@ -682,7 +682,7 @@ export const cancelOrder = asyncHandler(async (req, response) => {
   }
 
   if (order.deliveryId) {
-    cancelDeliveryAPI(order.externalDeliveryId, 'Cancelled by customer').catch(err => {
+    cancelDelivery(order.externalDeliveryId, 'Cancelled by customer').catch(err => {
       logger.warn('DoorDash cancellation failed during customer cancel', {
         orderId: order._id,
         error: err.response?.data || err.message
@@ -887,7 +887,7 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
     const io = req.app.get('io');
     processAutoRefund(order, 'Cancelled by restaurant', io, req.getModel).catch(err => logger.error('Auto refund error', err));
     if (order.deliveryId) {
-      cancelDeliveryAPI(order.externalDeliveryId, 'Cancelled via status update').catch(err => logger.error('DoorDash cancel error', err));
+      cancelDelivery(order.externalDeliveryId, 'Cancelled via status update').catch(err => logger.error('DoorDash cancel error', err));
     }
   } else if (status === 'delivered' || status === 'picked_up') {
     awardLoyaltyPoints(order).catch(err => logger.error('Award points error', err));
@@ -969,7 +969,7 @@ export const rejectOrder = asyncHandler(async (req, response) => {
   order.statusUpdates.push({ status: 'cancelled', description: req.body.reason || 'Rejected by restaurant' });
   if (order.deliveryId) {
     try {
-      await cancelDeliveryAPI(order.externalDeliveryId, req.body.reason || 'Rejected by restaurant');
+      await cancelDelivery(order.externalDeliveryId, req.body.reason || 'Rejected by restaurant');
     } catch (err) {
       logger.warn('DoorDash cancellation failed during restaurant reject', {
         orderId: order._id,

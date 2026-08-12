@@ -159,7 +159,6 @@ export function CartProvider({ children }) {
       authLoading ||
       !user?._id ||
       hydratedOwner !== storageKeys.owner ||
-      serverHydratedOwner !== storageKeys.owner ||
       applyingServerCartRef.current
     ) {
       return;

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "960808501824",
+    "project_id": "lassi-lounge-48123",
+    "storage_bucket": "lassi-lounge-48123.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:960808501824:android:deb6aedcc6ca22aee415a5",
+        "android_client_info": {
+          "package_name": "com.example.single_restaurant_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "960808501824-r07dgtht167395jrhgdtu9b3je72j02a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.single_restaurant_mobile",
+            "certificate_hash": "9d02bc6095a7f44797b31b98dbe6e6683387a1f2"
+          }
+        },
+        {
+          "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFAW_DKJaqoB_q9Xx9o5JY8-Zu0MwKBCo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

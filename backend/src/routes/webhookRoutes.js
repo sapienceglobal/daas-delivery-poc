@@ -4,7 +4,7 @@ import Order from '../models/Order.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import logger from '../utils/logger.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { applyDoorDashDeliveryUpdate, buildOrderSocketPayload } from '../services/doordashSyncService.js';
+import { applyDeliveryUpdate, buildOrderSocketPayload } from '../services/deliverySyncService.js';
 
 const router = Router();
 
@@ -57,8 +57,8 @@ router.post('/', asyncHandler(async (req, response) => {
     return response.status(200).json({ received: true });
   }
 
-  applyDoorDashDeliveryUpdate(order, event);
-  order.lastDoorDashSyncAt = new Date();
+  applyDeliveryUpdate(order, event);
+  order.lastDeliverySyncAt = new Date();
 
   await order.save();
 

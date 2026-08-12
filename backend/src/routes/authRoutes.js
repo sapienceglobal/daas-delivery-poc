@@ -16,7 +16,7 @@ const authLimiter = rateLimit({
 // ── Public Routes ───────────────────────────────────────────────────────────
 router.post('/register', authLimiter, validate(registerSchema), authController.register);
 router.post('/login', authLimiter, validate(loginSchema), authController.login);
-router.post('/google', authLimiter, authController.googleLogin);
+router.post('/social-login', authLimiter, authController.socialLogin);
 router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), authController.forgotPassword);
 router.post('/reset-password/:token', authLimiter, validate(resetPasswordSchema), authController.resetPassword);
 router.post('/verify-otp', authLimiter, authController.verifyOtp);

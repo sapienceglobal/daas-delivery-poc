@@ -18,7 +18,14 @@ export default function LiveCourierTrackingCard({ order, isNaked = false, classN
   if (!isDelivery || order.status === 'delivered') return null;
 
   const isCancelled = order.status === 'cancelled';
-  const hasCourierLocation = typeof order.dasherLat === 'number' && typeof order.dasherLng === 'number';
+  const hasCourierLocation = typeof order.courierLat === 'number' && typeof order.courierLng === 'number';
+
+  const getProviderName = (provider) => {
+    if (provider === 'doordash') return 'DoorDash';
+    if (provider === 'ubereats') return 'UberEats';
+    if (provider === 'grubhub') return 'Grubhub';
+    return 'Delivery Partner';
+  };
 
   const wrapperClass = isNaked 
     ? `space-y-4 ${className}` 
@@ -53,7 +60,7 @@ export default function LiveCourierTrackingCard({ order, isNaked = false, classN
               <span className="font-bold text-[#ef4444]">—</span>
             </div>
             <div className="rounded-xl border border-[#e5e7eb] bg-[#ffffff] p-2 shadow-sm">
-              <span className="font-bold text-[#6b7280] block mb-1">Dasher Status</span>
+              <span className="font-bold text-[#6b7280] block mb-1">Courier Status</span>
               <span className="font-bold text-[#ef4444]">—</span>
             </div>
           </div>
@@ -65,8 +72,8 @@ export default function LiveCourierTrackingCard({ order, isNaked = false, classN
               <h3 className="text-[14px] font-bold text-[#1a1a1a] uppercase tracking-wider">Live Courier Tracking</h3>
               <p className="text-[12px] text-[#6b7280] mt-0.5">
                 {hasCourierLocation
-                  ? `Last GPS: ${order.dasherLat.toFixed(5)}, ${order.dasherLng.toFixed(5)}`
-                  : 'Awaiting DoorDash driver allocation and GPS update.'}
+                  ? `Last GPS: ${order.courierLat.toFixed(5)}, ${order.courierLng.toFixed(5)}`
+                  : 'Awaiting delivery partner allocation and GPS update.'}
               </p>
             </div>
             {order.trackingUrl && (
@@ -76,7 +83,7 @@ export default function LiveCourierTrackingCard({ order, isNaked = false, classN
                 rel="noopener noreferrer"
                 className="text-[13px] font-bold text-[#7a0b10] hover:underline flex items-center gap-1"
               >
-                DoorDash Link <span>&rarr;</span>
+                Track via {getProviderName(order.deliveryProvider)} <span>&rarr;</span>
               </a>
             )}
           </div>
@@ -89,13 +96,13 @@ export default function LiveCourierTrackingCard({ order, isNaked = false, classN
             <div className="rounded-xl border border-[#e5e7eb] bg-[#ffffff] p-3 shadow-sm flex items-center justify-between">
               <div>
                 <span className="font-bold text-[#6b7280] block mb-1">Courier Partner</span>
-                <span className="font-bold text-[#1a1a1a]">{order.dasherName || 'Awaiting Assignment'}</span>
+                <span className="font-bold text-[#1a1a1a]">{order.courierName || 'Awaiting Assignment'}</span>
               </div>
             </div>
             <div className="rounded-xl border border-[#e5e7eb] bg-[#ffffff] p-3 shadow-sm flex items-center justify-between">
               <div>
                 <span className="font-bold text-[#6b7280] block mb-1">Contact Number</span>
-                <span className="font-bold text-[#1a1a1a]">{order.dasherPhone || 'Awaiting Assignment'}</span>
+                <span className="font-bold text-[#1a1a1a]">{order.courierPhone || 'Awaiting Assignment'}</span>
               </div>
             </div>
           </div>

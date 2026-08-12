@@ -176,8 +176,8 @@ export default function LiveOrdersView({
         )}
         {col.id === 'out_for_delivery' && (
           <div className="flex flex-col gap-0.5 text-xs font-medium text-[#6b7280] mb-3">
-            <span>Rider: {order.dasherName ? order.dasherName : 'Assigning rider...'}</span>
-            {order.dasherPhone && <span className="flex items-center gap-1"><Phone className="w-3 h-3"/> {order.dasherPhone}</span>}
+            <span>Rider: {order.courierName ? order.courierName : 'Assigning rider...'}</span>
+            {order.courierPhone && <span className="flex items-center gap-1"><Phone className="w-3 h-3"/> {order.courierPhone}</span>}
           </div>
         )}
 

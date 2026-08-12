@@ -82,6 +82,46 @@ class AuthService {
     }
   }
 
+  // Social Login
+  Future<String?> socialLogin({
+    required String provider,
+    required String token,
+    String? name,
+    String? email,
+  }) async {
+    try {
+      final response = await ApiService.post('/api/auth/social-login', {
+        'provider': provider,
+        'token': token,
+        if (name != null) 'name': name,
+        if (email != null) 'email': email,
+        'role': 'customer',
+      });
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final jwtToken = data['token'];
+        if (jwtToken != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_tokenKey, jwtToken);
+          ApiService.setAuthToken(jwtToken);
+          SocketService().reconnect();
+        }
+        return null;
+      }
+
+      try {
+        final errorData = json.decode(response.body);
+        return errorData['message'] ?? 'Social login failed. Please try again.';
+      } catch (decodeError) {
+        return 'Social login failed. Please try again.';
+      }
+    } catch (e) {
+      print('Error during social login: $e');
+      return 'Unable to connect to the server. Please check your internet connection.';
+    }
+  }
+
   // Login an existing user
   Future<String?> login({
     required String email,

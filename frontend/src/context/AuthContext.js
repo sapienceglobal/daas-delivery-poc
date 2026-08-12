@@ -94,13 +94,14 @@ export function AuthProvider({ children }) {
     return userData;
   }, []);
 
-  const googleLogin = useCallback(async (credential, role = 'customer') => {
-    const data = await authAPI.googleLogin({ credential, role });
+  const socialLogin = useCallback(async (provider, token, role = 'customer') => {
+    const data = await authAPI.socialLogin({ provider, token, role });
     const { user: userData } = data;
 
     localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
     localStorage.removeItem('marketplace_token');
-    document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
+    document.cookie = `user_role=${userData.role}; path=/; max-age=2592000; SameSite=Lax`;
+
     setUser(userData);
     setBackendVerified(true);
     return userData;
@@ -183,7 +184,7 @@ export function AuthProvider({ children }) {
     isAdmin: user?.role === 'admin' && backendVerified,
     isDriver: user?.role === 'driver' && backendVerified,
     login,
-    googleLogin,
+    socialLogin,
     register,
     logout,
     refreshUser,
