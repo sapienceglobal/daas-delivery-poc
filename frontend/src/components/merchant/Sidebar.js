@@ -35,6 +35,7 @@ const SIDEBAR_STRUCTURE = [
     heading: 'CUSTOMERS',
     items: [
       { id: 'crm', label: 'Customers & CRM', icon: Users },
+      { id: 'messages', label: 'Support Messages', icon: MessageSquare },
       { id: 'promotions', label: 'Promotions & Coupons', icon: Ticket },
       { id: 'loyalty', label: 'Loyalty Rewards', icon: Gift },
     ]

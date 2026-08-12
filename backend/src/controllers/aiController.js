@@ -184,6 +184,7 @@ export const searchMenu = asyncHandler(async (req, response) => {
 
   // 1. Fetch full menu items for this restaurant
   const items = await MenuItem.find({ restaurantId: actualRestaurantId, isAvailable: true });
+  console.log(`[AI Search] actualRestaurantId: ${actualRestaurantId}, items found: ${items?.length}`);
   if (!items || items.length === 0) {
     return res.success(response, { data: [] });
   }

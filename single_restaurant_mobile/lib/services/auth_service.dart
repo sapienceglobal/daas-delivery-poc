@@ -369,28 +369,10 @@ class AuthService {
       
     } catch (e) {
       print('Error verifying OTP: $e');
-      final errorStr = e.toString();
-
-      // 1. Agar ApiService ne JSON ko Exception me wrap kar diya hai
-      try {
-        final startIndex = errorStr.indexOf('{');
-        final endIndex = errorStr.lastIndexOf('}');
-        if (startIndex != -1 && endIndex != -1) {
-          final jsonStr = errorStr.substring(startIndex, endIndex + 1);
-          final errorData = json.decode(jsonStr);
-          if (errorData['message'] != null) {
-            return errorData['message'];
-          }
-        }
-      } catch (_) {}
-
-      // 2. Direct string checks based on your logs
-      if (errorStr.contains('400') || errorStr.toLowerCase().contains('invalid')) {
-        return 'Invalid OTP. Please check and try again.';
+      if (e is HttpException) {
+        return e.message;
       }
-
-      // Safe fallback (Ab Unable to connect nahi aayega)
-      return 'Invalid OTP. Please check and try again.'; 
+      return 'Unable to connect to the server. Please check your internet connection.';
     }
   }
 
@@ -410,25 +392,10 @@ class AuthService {
       
     } catch (e) {
       print('Error resending OTP: $e');
-      final errorStr = e.toString();
-      
-      // JSON extract from exception
-      try {
-        final startIndex = errorStr.indexOf('{');
-        final endIndex = errorStr.lastIndexOf('}');
-        if (startIndex != -1 && endIndex != -1) {
-          final jsonStr = errorStr.substring(startIndex, endIndex + 1);
-          final errorData = json.decode(jsonStr);
-          if (errorData['message'] != null) return errorData['message'];
-        }
-      } catch (_) {}
-
-      // Agar 429 (Too many requests) aaye
-      if (errorStr.contains('429') || errorStr.toLowerCase().contains('wait')) {
-        return 'Please wait 60 seconds before requesting a new code.';
+      if (e is HttpException) {
+        return e.message;
       }
-      
-      return 'Failed to resend OTP. Please try again.';
+      return 'Unable to connect to the server. Please check your internet connection.';
     }
   }
 }

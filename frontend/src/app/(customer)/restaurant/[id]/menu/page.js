@@ -129,9 +129,7 @@ export default function RestaurantPage() {
     setIsAiSearching(true);
     try {
       const res = await aiAPI.searchMenu(restaurant._id, searchQuery);
-      const matchIds = res.data?.results || [];
-      const allItems = (menu || []).reduce((acc, cat) => acc.concat(cat.items || []), []);
-      const matchedItems = matchIds.map(id => allItems.find(i => i._id === id || i.id === id)).filter(Boolean);
+      const matchedItems = Array.isArray(res.data) ? res.data : [];
       
       if (matchedItems.length > 0) {
         setSearchResults(matchedItems);

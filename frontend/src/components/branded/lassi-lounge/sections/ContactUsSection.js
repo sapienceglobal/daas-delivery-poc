@@ -3,37 +3,54 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, MessageCircle } from 'lucide-react';
 import { showToast } from '@/components/ui';
+import { useBrand } from '@/context/BrandContext';
 
 export default function ContactUsSection() {
+  const { brand } = useBrand();
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
+    
+    try {
+      const response = await fetch('/api/public/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setFormData({ name: '', email: '', subject: '', message: '' });
+        showToast('Your message has been sent successfully! We will get back to you soon.', 'success');
+      } else {
+        showToast(data.message || 'Failed to send message', 'error');
+      }
+    } catch (error) {
+      showToast('An error occurred. Please try again.', 'error');
+    } finally {
       setIsSubmitting(false);
-      setFormData({ name: '', email: '', subject: '', message: '' });
-      showToast('Your message has been sent successfully! We will get back to you soon.', 'success');
-    }, 1500);
+    }
   };
 
   const contactInfo = [
     {
       icon: <MapPin className="w-6 h-6 text-primary-600" />,
       title: 'Our Location',
-      details: 'Lassi Lounge, 450 Powell Street, San Francisco, CA 94102',
+      details: brand?.address || 'Lassi Lounge, 450 Powell Street, San Francisco, CA 94102',
     },
     {
       icon: <Phone className="w-6 h-6 text-primary-600" />,
       title: 'Phone Number',
-      details: '+1 (415) 555-1234',
+      details: brand?.phone || '+1 (415) 555-1234',
     },
     {
       icon: <Mail className="w-6 h-6 text-primary-600" />,
       title: 'Email Address',
-      details: 'hello@lassilounge.com',
+      details: brand?.email || 'hello@lassilounge.com',
     },
   ];
 
@@ -55,7 +72,6 @@ export default function ContactUsSection() {
         </div>
 
         <div className="grid lg:grid-cols-5 gap-12 lg:gap-8 items-start">
-          {/* Contact Information (Left Col) */}
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-white p-8 rounded-3xl shadow-sm border border-[#e5e7eb] ll-pop group hover:shadow-md transition-shadow">
               <h3 className="text-2xl font-bold font-serif text-[#1a1a1a] mb-8">Contact Information</h3>
@@ -72,17 +88,6 @@ export default function ContactUsSection() {
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-primary-900 to-primary-800 p-8 rounded-3xl text-white shadow-lg ll-pop">
-              <MessageCircle className="w-10 h-10 text-primary-200 mb-4" />
-              <h3 className="text-xl font-bold font-serif mb-3">Live Chat Support</h3>
-              <p className="text-primary-100 mb-6 text-sm leading-relaxed">
-                Need immediate assistance? Our support team is available from 10 AM to 10 PM daily.
-              </p>
-              <button className="w-full bg-white text-primary-900 py-3 rounded-xl font-bold text-sm tracking-wide hover:bg-primary-50 transition-colors">
-                Start Chat
-              </button>
             </div>
           </div>
 

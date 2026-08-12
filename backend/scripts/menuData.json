@@ -1,0 +1,176 @@
+{
+  "restaurant": {
+    "name": "Lassi Lounge",
+    "tagline": "Authentic Indian restaurant",
+    "phone": "347-233-3733",
+    "website": "www.LassiLoungeNY.com",
+    "address": "9408 118 Street, South Richmond Hill, New York 11419",
+    "delivery_platforms": ["Uber Eats", "DoorDash", "Grubhub"],
+    "currency": "USD"
+  },
+  "categories": [
+    {
+      "category": "Veg Main Course",
+      "items": [
+        { "name": "Shahi Paneer", "price": 14.49 },
+        { "name": "Kadai Paneer", "price": 14.49 },
+        { "name": "Palak Paneer", "price": 14.49 },
+        { "name": "Dal Makhni", "price": 12.99 },
+        { "name": "Paneer Makhni", "price": 14.49 },
+        { "name": "Yellow Dal Tadka", "price": 12.49 },
+        { "name": "Malai Kofta", "price": 14.49 },
+        { "name": "Aloo Gobi", "price": 13.99 },
+        { "name": "Mutter Mushroom", "price": 14.49 },
+        { "name": "Methi Malai Mutter", "price": 14.49 },
+        { "name": "Paneer Bhurji", "price": 14.99 },
+        { "name": "Sarson Ka Saag", "price": 13.99 },
+        { "name": "Rajma", "price": 12.99 },
+        { "name": "Navratan Korma", "price": 14.49 },
+        { "name": "Aloo Methi", "price": 13.99 },
+        { "name": "Mutter Paneer", "price": 14.49 },
+        { "name": "Paneer Tikka Masala", "price": 14.99 },
+        { "name": "Aloo Palak", "price": 13.99 },
+        { "name": "Kadhi Pakora", "price": 12.99 },
+        { "name": "Chana Masala", "price": 12.99 }
+      ]
+    },
+    {
+      "category": "Non Veg Main Course",
+      "items": [
+        { "name": "Butter Chicken", "price": 14.99 },
+        { "name": "Kadai Chicken", "price": 15.49 },
+        { "name": "Chicken Tikka Masala", "price": 14.99 },
+        { "name": "Chicken Saag", "price": 15.49 },
+        { "name": "Chicken Curry", "price": 14.49 },
+        { "name": "Chicken Korma", "price": 14.99 },
+        { "name": "Goat Curry", "price": 15.99 },
+        { "name": "Goat Saag", "price": 15.99 },
+        { "name": "Goat Kadahi", "price": 15.99 },
+        { "name": "Goat Korma", "price": 15.99 }
+      ]
+    },
+    {
+      "category": "Naan / Roti",
+      "items": [
+        { "name": "Butter Naan", "price": 2.50 },
+        { "name": "Chilli Garlic Naan", "price": 3.99 },
+        { "name": "Garlic Naan", "price": 2.99 },
+        { "name": "Lachha Paratha", "price": 2.99 },
+        { "name": "Sesame Naan", "price": 2.99 },
+        { "name": "Bullet Naan", "price": 3.99 },
+        { "name": "Plain Naan", "price": 1.99 },
+        { "name": "Tandoori Roti", "price": 1.99 },
+        { "name": "Tawa Roti", "price": 1.49 },
+        { "name": "Makki ki Roti", "price": 2.49 }
+      ]
+    },
+    {
+      "category": "Paratha's",
+      "items": [
+        { "name": "Paneer Paratha", "price": 4.99 },
+        { "name": "Methi Paratha", "price": 4.99 },
+        { "name": "Mix Paratha", "price": 4.99 },
+        { "name": "Gobi Paratha", "price": 4.99 },
+        { "name": "Moodi Paratha", "price": 4.99 },
+        { "name": "Onion Paratha", "price": 4.99 },
+        { "name": "Aloo Paratha", "price": 4.99 }
+      ]
+    },
+    {
+      "category": "Rice Dishes",
+      "items": [
+        { "name": "Veg Fry Rice", "price": 10.99 },
+        { "name": "Veg Biryani", "price": 11.99 },
+        { "name": "Paneer Biryani", "price": 13.99 },
+        { "name": "Jeera Rice", "price": 5.99 },
+        { "name": "Plain Rice", "price": 3.99 },
+        { "name": "Chicken Biryani", "price": 14.99 },
+        { "name": "Goat Biryani", "price": 16.99 }
+      ]
+    },
+    {
+      "category": "Rice Combo",
+      "items": [
+        { "name": "Daal Rice", "price": 7.49 },
+        { "name": "Kadhi Rice", "price": 7.49 },
+        { "name": "Rajma Rice", "price": 7.49 },
+        { "name": "Chole Rice", "price": 7.49 }
+      ]
+    },
+    {
+      "category": "Beverages",
+      "items": [
+        { "name": "Kesar Badam Milk", "price": 6.00 },
+        { "name": "Sweet Lassi", "price": 3.99 },
+        { "name": "Mango Lassi", "price": 4.99 },
+        { "name": "Salt Lassi", "price": 3.99 },
+        { "name": "Tea", "price": 1.99 },
+        { "name": "Water Bottle", "price": 1.49 },
+        { "name": "Can Soda", "price": 1.99 },
+        { "name": "Jaljeera Mojito", "price": 4.99 }
+      ]
+    },
+    {
+      "category": "Desserts",
+      "items": [
+        { "name": "Rasmalai (2pcs)", "price": 3.99 },
+        { "name": "Gulab Jamun (2pcs)", "price": 3.99 },
+        { "name": "Gajar Halwa 8oz", "price": 7.99, "description": "Home Made with Desi Ghee" },
+        { "name": "Kheer", "price": 5.99 }
+      ]
+    },
+    {
+      "category": "Amritsar Special",
+      "items": [
+        { "name": "Amritsari Kulcha", "price": 10.99, "description": "Served with Chole, Raita, Butter" },
+        { "name": "Chole Bhature", "price": 10.99 },
+        { "name": "Extra Kulcha", "price": 5.99 },
+        { "name": "Extra Bhature", "price": 2.99 }
+      ]
+    },
+    {
+      "category": "Appetizers / Snacks",
+      "items": [
+        { "name": "Pao Bhaji", "price": 10.49 },
+        { "name": "Aloo Tikki Chaat", "price": 8.99 },
+        { "name": "Samosa (2pc)", "price": 3.99 },
+        { "name": "Samosa Chaat", "price": 8.99 },
+        { "name": "Mix Veg Pakora", "price": 9.99 },
+        { "name": "Tandoori Malai Chaap", "price": 13.99 },
+        { "name": "Dahi Bhalla", "price": 8.99 },
+        { "name": "Pani Poori (Gol Gappe)", "price": 8.99 },
+        { "name": "Dahi Poori", "price": 8.99 },
+        { "name": "French Fries", "price": 6.99 },
+        { "name": "Gobi Manchurian", "price": 13.99 },
+        { "name": "Veg Manchurian", "price": 13.99 },
+        { "name": "Tandoori Paneer Tikka", "price": 14.99 },
+        { "name": "Chilli Paneer", "price": 14.99 },
+        { "name": "Tandoori Achari Paneer Tikka", "price": 15.99 },
+        { "name": "Veg Hakka Noodles", "price": 11.49, "description": "House Special" }
+      ]
+    },
+    {
+      "category": "Special Thali",
+      "items": [
+        { "name": "Special Thali", "price": 13.99, "description": "1 Dal, 1 Sabzi, Dahi with 3 Tawa Roti. Served 10 AM to 4 PM" }
+      ]
+    },
+    {
+      "category": "Momos",
+      "items": [
+        { "name": "Veg Momos (8pcs)", "price": 10.99, "description": "Steamed or Fried" },
+        { "name": "Chicken Momos (8pcs)", "price": 11.99, "description": "Steamed" }
+      ]
+    },
+    {
+      "category": "Non Veg Appetizer",
+      "items": [
+        { "name": "Tandoori Chicken", "price": 17.49 },
+        { "name": "Chicken Malai Tikka", "price": 16.49 },
+        { "name": "Chicken Tikka", "price": 15.99 },
+        { "name": "Tandoori Salmon", "price": 19.99 },
+        { "name": "Tandoori Mix Grill", "price": 18.99 }
+      ]
+    }
+  ]
+}

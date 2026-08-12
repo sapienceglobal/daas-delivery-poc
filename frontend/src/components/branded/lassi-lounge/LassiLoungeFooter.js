@@ -57,8 +57,8 @@ export default function LassiLoungeFooter() {
       const day = days[i];
       const hrs = brand.operatingHours[day];
       
-      const timeString = hrs?.isOpen && hrs?.openTime && hrs?.closeTime 
-        ? `${formatTime(hrs.openTime)} - ${formatTime(hrs.closeTime)}`
+      const timeString = !hrs?.isClosed && hrs?.open && hrs?.close 
+        ? `${formatTime(hrs.open)} - ${formatTime(hrs.close)}`
         : 'Closed';
 
       if (!currentGroup) {

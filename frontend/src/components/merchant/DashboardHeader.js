@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Search, Menu, ShoppingBag, Bell, HelpCircle, Settings, LogOut,
   ClipboardList, Utensils, CalendarCheck, Users, Ticket, BarChart3,
-  ChefHat, Store, X, ArrowRight, Loader2, UserCircle
+  ChefHat, Store, X, ArrowRight, Loader2, UserCircle, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMerchantContext } from '@/context/MerchantContext';
@@ -24,6 +24,7 @@ const NAV_ACTIONS = [
   { id: 'reservations', label: 'Reservations', hint: 'Tables and bookings', href: '/merchant/reservations', icon: CalendarCheck, keywords: 'booking table dine in guest' },
   { id: 'catering', label: 'Catering Enquiries', hint: 'Events and catering leads', href: '/merchant/catering', icon: CalendarCheck, keywords: 'event inquiry catering party' },
   { id: 'crm', label: 'Customers & CRM', hint: 'Customer profiles', href: '/merchant/crm', icon: Users, keywords: 'customer phone email loyalty' },
+  { id: 'messages', label: 'Support Messages', hint: 'Customer inquiries and support tickets', href: '/merchant/messages', icon: MessageSquare, keywords: 'message support contact inbox ticket' },
   { id: 'promotions', label: 'Promotions & Coupons', hint: 'Discount campaigns', href: '/merchant/promotions', icon: Ticket, keywords: 'coupon discount promo offer' },
   { id: 'analytics', label: 'Reports & Analytics', hint: 'Finance and performance', href: '/merchant/analytics', icon: BarChart3, keywords: 'reports revenue sales finance' },
   { id: 'settings', label: 'Restaurant Settings', hint: 'Business settings', href: '/merchant/settings', icon: Settings, keywords: 'profile hours tax payment setup' },
