@@ -146,12 +146,12 @@ export default function ContactUsSection() {
                   placeholder="Tell us more about your query..."
                 />
               </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full h-14 bg-[#7a0b10] hover:bg-[#5e080c] text-white font-bold rounded-xl shadow-md text-[15px] tracking-wide flex items-center justify-center gap-3 transition-all disabled:opacity-70 disabled:cursor-not-allowed group"
-              >
+              <div className="flex justify-start sm:justify-end">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-[200px] h-12 rounded-lg bg-[#7a0b10] text-white text-[13px] font-black uppercase tracking-wider hover:bg-[#680307] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md group"
+                >
                 {isSubmitting ? (
                   <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
@@ -160,7 +160,8 @@ export default function ContactUsSection() {
                     <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                   </>
                 )}
-              </button>
+                </button>
+              </div>
             </form>
           </div>
         </div>

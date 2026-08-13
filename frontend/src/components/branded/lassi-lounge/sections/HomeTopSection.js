@@ -15,7 +15,19 @@ export default function HomeTopSection() {
   const categoriesScrollRef = useRef(null);
   const { brand } = useBrand();
 
+  const isPausedRef = useRef(false);
+  const pauseTimeoutRef = useRef(null);
+
+  const pauseAutoScroll = () => {
+    isPausedRef.current = true;
+    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
+    pauseTimeoutRef.current = setTimeout(() => {
+      isPausedRef.current = false;
+    }, 1000);
+  };
+
   const scrollCategories = (direction) => {
+    pauseAutoScroll();
     if (categoriesScrollRef.current) {
       const scrollAmount = 300;
       categoriesScrollRef.current.scrollBy({
@@ -24,6 +36,48 @@ export default function HomeTopSection() {
       });
     }
   };
+
+  useEffect(() => {
+    const container = categoriesScrollRef.current;
+    if (!container) return;
+
+    let animationFrameId;
+
+    const handleMouseEnter = () => { isPausedRef.current = true; };
+    const handleMouseLeave = () => { isPausedRef.current = false; };
+    const handleTouchStart = () => { isPausedRef.current = true; };
+    const handleTouchEnd = () => { 
+      if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
+      pauseTimeoutRef.current = setTimeout(() => { isPausedRef.current = false; }, 1000); 
+    };
+
+    container.addEventListener('mouseenter', handleMouseEnter);
+    container.addEventListener('mouseleave', handleMouseLeave);
+    container.addEventListener('touchstart', handleTouchStart);
+    container.addEventListener('touchend', handleTouchEnd);
+
+    const scrollLoop = () => {
+      if (!isPausedRef.current && container) {
+        const maxScroll = container.scrollWidth - container.clientWidth;
+        if (container.scrollLeft >= maxScroll - 1) {
+          container.scrollTo({ left: 0, behavior: 'auto' });
+        } else {
+          container.scrollLeft += 1;
+        }
+      }
+      animationFrameId = requestAnimationFrame(scrollLoop);
+    };
+
+    animationFrameId = requestAnimationFrame(scrollLoop);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      container.removeEventListener('mouseenter', handleMouseEnter);
+      container.removeEventListener('mouseleave', handleMouseLeave);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
 
   useEffect(() => {
     if (partnersScrollRef.current) {
@@ -164,10 +218,10 @@ export default function HomeTopSection() {
 
             <div className="flex flex-col xl:flex-row items-center justify-between gap-4 xl:gap-6">
 
-              <div className="relative flex-1 w-full flex items-center min-w-0">
-                <div ref={categoriesScrollRef} className="flex flex-nowrap overflow-x-auto no-scrollbar pb-4 md:pb-0 justify-start gap-6 md:gap-8 flex-1 w-full snap-x snap-mandatory px-2 md:px-8 scroll-smooth ll-cat-scroll-fade">
+              <div className="relative w-full flex items-center min-w-0">
+                <div ref={categoriesScrollRef} className="flex flex-nowrap overflow-x-auto no-scrollbar pb-4 md:pb-0 justify-start gap-6 md:gap-8 flex-1 w-full px-2 md:px-8 ll-cat-scroll-fade">
                   {categories.map((category) => (
-                    <div key={category.id} onClick={() => router.push(`${viewFullMenuCta.href}&categoryName=${encodeURIComponent(category.label)}`)} className="group flex flex-col items-center gap-2 cursor-pointer shrink-0 snap-center">
+                    <div key={category.id} onClick={() => router.push(`${viewFullMenuCta.href}?categoryName=${encodeURIComponent(category.label)}`)} className="group flex flex-col items-center gap-2 cursor-pointer shrink-0">
                       <div className="relative w-[85px] h-[85px] md:w-[100px] md:h-[100px] rounded-full p-[2px] border border-[#e8a020] bg-transparent transition-transform duration-300 group-hover:-translate-y-1">
                         <div className="w-full h-full rounded-full border-[3px] border-[#fcfaf5] bg-white overflow-hidden shadow-sm">
                           <img
@@ -199,15 +253,6 @@ export default function HomeTopSection() {
                 >
                   <ChevronRight size={24} strokeWidth={2.5} />
                 </button>
-              </div>
-
-              <div className="shrink-0 w-full xl:w-auto text-center mt-3 xl:mt-0">
-                <Button
-                  href={viewFullMenuCta.href}
-                  className="bg-[#8a1620] hover:bg-[#6f1119] text-white font-bold text-[11px] md:text-xs uppercase tracking-widest py-3 px-5 md:py-3.5 md:px-6 rounded-lg shadow-md inline-flex items-center gap-1.5 transition-colors"
-                >
-                  {viewFullMenuCta.label} <ChevronRight size={16} strokeWidth={2.5} />
-                </Button>
               </div>
             </div>
 

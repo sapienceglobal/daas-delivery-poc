@@ -6,32 +6,32 @@ const OCCASIONS = [
   {
     icon: Heart,
     title: 'Weddings',
-    image: '/images/branded/lassi-lounge/catering/wedding.jpg'
+    image: '/images/branded/lassi-lounge/catering/weddings.webp'
   },
   {
     icon: Gift,
     title: 'Birthday Parties',
-    image: '/images/branded/lassi-lounge/catering/birthday.jpg'
+    image: '/images/branded/lassi-lounge/catering/Birthday parties.webp'
   },
   {
     icon: Briefcase,
     title: 'Corporate Events',
-    image: '/images/branded/lassi-lounge/catering/corporate.jpg'
+    image: '/images/branded/lassi-lounge/catering/Corporate Events.webp'
   },
   {
     icon: Users,
     title: 'Family Gatherings',
-    image: '/images/branded/lassi-lounge/catering/family.jpg'
+    image: '/images/branded/lassi-lounge/catering/Family Gatherings.webp'
   },
   {
     icon: GraduationCap,
     title: 'School & College Events',
-    image: '/images/branded/lassi-lounge/catering/school.jpg'
+    image: '/images/branded/lassi-lounge/catering/School & College Events.webp'
   },
   {
     icon: Music,
     title: 'Religious & Cultural Events',
-    image: '/images/branded/lassi-lounge/catering/cultural.jpg'
+    image: '/images/branded/lassi-lounge/catering/Religious & Cultural Events.webp'
   }
 ];
 

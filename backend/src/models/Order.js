@@ -226,12 +226,6 @@ OrderSchema.pre('save', function (next) {
     });
   }
 
-  // Calculate total
-  this.total = Math.max(
-    0,
-    Math.round((this.subtotal + this.tax + this.deliveryFee + this.platformFee + this.serviceFee + this.tip - this.discount - this.loyaltyDiscount) * 100) / 100
-  );
-
   next();
 });
 

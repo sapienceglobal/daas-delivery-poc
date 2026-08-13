@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Star, Clock, MapPin, Phone, Globe, ChevronLeft,
   Plus, Minus, Flame, Leaf, ShoppingBag, Heart,
@@ -38,6 +38,8 @@ const getDishImage = (itemName) => {
 export default function RestaurantPage() {
   const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const categoryNameQuery = searchParams.get('categoryName');
   const { addItem, switchRestaurant, restaurant: cartRestaurant, itemCount, items, subtotal, updateQuantity, removeItem, specialInstructions, setSpecialInstructions } = useCart();
   const { user, updateUser, isAuthenticated } = useAuth();
 
@@ -66,9 +68,15 @@ export default function RestaurantPage() {
       try {
         const data = await restaurantAPI.getById(id);
         setRestaurant(data.data);
-        setMenu(data.data.menu || []);
-        if (data.data.menu?.length > 0) {
-          setActiveCategory(data.data.menu[0]._id);
+        const fetchedMenu = data.data.menu || [];
+        setMenu(fetchedMenu);
+        if (fetchedMenu.length > 0) {
+          let selectedId = fetchedMenu[0]._id;
+          if (categoryNameQuery) {
+            const matched = fetchedMenu.find(c => c.name.toLowerCase() === categoryNameQuery.toLowerCase());
+            if (matched) selectedId = matched._id;
+          }
+          setActiveCategory(selectedId);
         }
       } catch {
         showToast('Failed to load restaurant', 'error');
@@ -77,7 +85,7 @@ export default function RestaurantPage() {
       }
     };
     load();
-  }, [id]);
+  }, [id, categoryNameQuery]);
 
   useEffect(() => {
     if (restaurant?._id && menu?.length > 0) {

@@ -246,7 +246,7 @@ export default function AdminLoginPage() {
 
           <div className="relative z-10 w-full max-w-md flex flex-col items-center">
             <div className="mb-6 flex flex-col items-center">
-              <div className="relative w-[360px] h-[130px]">
+              <div className="relative w-[480px] h-[180px]">
                 <Image
                   src="/assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png"
                   alt="Lassi Lounge"

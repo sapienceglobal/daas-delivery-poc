@@ -10,6 +10,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import { triggerDelivery, getBestDeliveryQuote, cancelDelivery } from '../services/deliveryAggregatorService.js';
+import { validateDeliveryDistance } from '../utils/distance.js';
 import { buildOrderSocketPayload, syncDeliveryTracking } from '../services/deliverySyncService.js';
 import { retrievePaymentIntent, refundPayment as refundStripePayment, chargeSavedCard } from '../services/stripeService.js';
 import { calculateOrderPricing, roundMoney } from '../services/orderPricing.js';
@@ -322,25 +323,12 @@ const getTrustedDeliveryQuote = async ({ restaurant, address, subtotal, schedule
       quote
     };
   } catch (err) {
-    const errReason = err.response?.data?.reason || err.response?.data?.error?.reason;
-    if (errReason === 'distance_too_long' || err.message === 'OUT_OF_SERVICE_AREA') {
-      logger.warn('DoorDash rejected quote due to distance_too_long', {
-        address,
-        restaurantId: restaurant._id
-      });
-      throw new AppError('Delivery is not available for this location. The distance is too far.', 400);
-    }
-
-    // For all other DoorDash errors (including fake seed addresses that DoorDash can't resolve),
-    // fall back to the restaurant's default delivery fee so the PoC works.
-    logger.warn('DoorDash quote unavailable, using restaurant default delivery fee', {
+    logger.warn('All delivery providers failed to return a quote', {
       restaurantId: restaurant._id,
-      error: err.response?.data || err.message
+      address,
+      error: err.message
     });
-    return {
-      deliveryFee: roundMoney(restaurant.deliveryFee || 0),
-      quote: null
-    };
+    throw new AppError('Delivery is not available for this location. We cannot find a delivery partner for this address.', 400);
   }
 };
 
@@ -414,20 +402,8 @@ export const createOrder = asyncHandler(async (req, response) => {
   }
 
   // Geo-distance serviceability check for delivery orders
-  if (orderType === 'delivery' && addressLat && addressLng && Number(addressLat) !== 0 && Number(addressLng) !== 0) {
-    const restaurant = restaurantCheck; // already fetched above
-    if (restaurant?.location?.coordinates) {
-      const [restLng, restLat] = restaurant.location.coordinates;
-      const toRad = (deg) => (deg * Math.PI) / 180;
-      const R = 3958.8;
-      const dLat = toRad(addressLat - restLat);
-      const dLon = toRad(addressLng - restLng);
-      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(restLat)) * Math.cos(toRad(addressLat)) * Math.sin(dLon / 2) ** 2;
-      const distanceMiles = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      if (distanceMiles > 15) {
-        throw new AppError(`Delivery is not available for this location. It is ${Math.round(distanceMiles)} miles away.`, 400);
-      }
-    }
+  if (orderType === 'delivery') {
+    validateDeliveryDistance(restaurantCheck, addressLat, addressLng);
   }
 
   const prePricing = await calculateOrderPricing({
@@ -442,14 +418,27 @@ export const createOrder = asyncHandler(async (req, response) => {
     getModel: req.getModel
   });
 
-  const deliveryQuote = orderType === 'delivery'
+  let deliveryFeeOverride = null;
+  let deliveryProviderOverride = null;
+
+  if (stripePaymentIntentId) {
+    const paymentIntent = await retrievePaymentIntent(stripePaymentIntentId);
+    if (paymentIntent.metadata?.deliveryFee !== undefined) {
+      deliveryFeeOverride = Number(paymentIntent.metadata.deliveryFee);
+    }
+    if (paymentIntent.metadata?.deliveryProvider) {
+      deliveryProviderOverride = paymentIntent.metadata.deliveryProvider;
+    }
+  }
+
+  const deliveryQuote = (orderType === 'delivery' && deliveryFeeOverride === null)
     ? await getTrustedDeliveryQuote({
       restaurant: prePricing.restaurant,
       address,
       subtotal: prePricing.subtotal,
       scheduledTime
     })
-    : { deliveryFee: 0, quote: null };
+    : { deliveryFee: deliveryFeeOverride || 0, quote: { provider: deliveryProviderOverride } };
 
   const pricing = await calculateOrderPricing({
     restaurantId: normalizedRestaurantId,
@@ -492,7 +481,8 @@ export const createOrder = asyncHandler(async (req, response) => {
     userId: req.user._id
   });
 
-  const order = new Order({
+  try {
+    const order = new Order({
     userId: req.user._id,
     customerName: req.user.name,
     customerPhone: req.user.phone || '',
@@ -609,12 +599,22 @@ export const createOrder = asyncHandler(async (req, response) => {
     });
   }
 
-  // Send confirmation email (fire and forget)
-  if (req.user.email && req.user.notificationPreferences?.email !== false) {
-    sendOrderConfirmationEmail(req.user.email, order).catch(() => { });
-  }
+    if (req.user.email && req.user.notificationPreferences?.email !== false) {
+      sendOrderConfirmationEmail(req.user.email, order).catch(() => { });
+    }
 
-  res.created(response, { data: order });
+    res.created(response, { data: order });
+  } catch (error) {
+    if (finalStripePaymentIntentId) {
+      try {
+        await refundStripePayment(finalStripePaymentIntentId, pricing.total, 'order_creation_failed');
+        logger.info(`Auto-refunded failed order payment: ${finalStripePaymentIntentId}`);
+      } catch (refundError) {
+        logger.error(`Failed to auto-refund after order creation error: ${refundError.message}`);
+      }
+    }
+    throw error;
+  }
 });
 
 export const getMyOrders = asyncHandler(async (req, response) => {
@@ -752,27 +752,8 @@ export const getDeliveryQuote = asyncHandler(async (req, response) => {
   }
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
-  // ── Geo-distance serviceability check (same as homepage's getNearby) ──
-  // If the frontend sent lat/lng, check if the delivery address is within 15 miles of the restaurant.
-  // This is the same check the homepage uses to decide whether to show restaurants.
-  const MAX_DELIVERY_MILES = 15;
-  if (addressLat && addressLng && Number(addressLat) !== 0 && Number(addressLng) !== 0 && restaurant.location?.coordinates) {
-    const [restLng, restLat] = restaurant.location.coordinates;
-    const toRad = (deg) => (deg * Math.PI) / 180;
-    const R = 3958.8; // Earth radius in miles
-    const dLat = toRad(addressLat - restLat);
-    const dLon = toRad(addressLng - restLng);
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(restLat)) * Math.cos(toRad(addressLat)) * Math.sin(dLon / 2) ** 2;
-    const distanceMiles = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    if (distanceMiles > MAX_DELIVERY_MILES) {
-      throw new AppError(
-        `Delivery is not available for this location. It is ${Math.round(distanceMiles)} miles away — we deliver within ${MAX_DELIVERY_MILES} miles.`,
-        400
-      );
-    }
-    logger.info(`Delivery distance check passed: ${distanceMiles.toFixed(1)} miles (max ${MAX_DELIVERY_MILES})`);
-  }
+  // ── Geo-distance serviceability check ──
+  validateDeliveryDistance(restaurant, addressLat, addressLng);
 
   let subtotal = 10;
   if (items.length > 0) {

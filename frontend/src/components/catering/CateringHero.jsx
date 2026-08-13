@@ -1,6 +1,7 @@
 'use client';
 
 import { ChefHat, Star, Users, Truck, ArrowRight, BookOpen } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const FEATURES = [
   { icon: ChefHat, label: 'Authentic Flavors' },
@@ -10,6 +11,7 @@ const FEATURES = [
 ];
 
 export default function CateringHero({ onGetQuote }) {
+  const router = useRouter();
   return (
     <section className="relative w-full bg-[#fdfbf7] overflow-hidden min-h-[550px] flex items-center">
       {/* Right side image gradient fade */}
@@ -69,6 +71,7 @@ export default function CateringHero({ onGetQuote }) {
               GET A QUOTE <ArrowRight className="h-4 w-4" />
             </button>
             <button 
+              onClick={() => router.push('/restaurant/lassi-lounge/menu')}
               className="px-8 h-[52px] rounded-lg border-2 border-[#eadfdb] bg-white text-[#7a0b10] text-[13px] font-black uppercase tracking-wider hover:border-[#b47b80] transition-colors flex items-center gap-2 shadow-sm"
             >
               <BookOpen className="h-4 w-4" /> VIEW MENU

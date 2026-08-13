@@ -1,7 +1,7 @@
 'use client';
 
 import { Star, ShoppingCart, ChevronLeft, ChevronRight, Minus, Plus } from 'lucide-react';
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext'; // Cart Context Import kiya
 
@@ -47,17 +47,72 @@ export default function YouMayAlsoLike({
 
   const scrollContainerRef = useRef(null);
 
+  const isPausedRef = useRef(false);
+  const pauseTimeoutRef = useRef(null);
+
+  const pauseAutoScroll = () => {
+    isPausedRef.current = true;
+    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
+    pauseTimeoutRef.current = setTimeout(() => {
+      isPausedRef.current = false;
+    }, 1000);
+  };
+
   const scrollLeft = () => {
+    pauseAutoScroll();
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({ left: -300, behavior: 'smooth' });
     }
   };
 
   const scrollRight = () => {
+    pauseAutoScroll();
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
     }
   };
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    let animationFrameId;
+
+    const handleMouseEnter = () => { isPausedRef.current = true; };
+    const handleMouseLeave = () => { isPausedRef.current = false; };
+    const handleTouchStart = () => { isPausedRef.current = true; };
+    const handleTouchEnd = () => { 
+      if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
+      pauseTimeoutRef.current = setTimeout(() => { isPausedRef.current = false; }, 1000); 
+    };
+
+    container.addEventListener('mouseenter', handleMouseEnter);
+    container.addEventListener('mouseleave', handleMouseLeave);
+    container.addEventListener('touchstart', handleTouchStart);
+    container.addEventListener('touchend', handleTouchEnd);
+
+    const scrollLoop = () => {
+      if (!isPausedRef.current && container) {
+        const maxScroll = container.scrollWidth - container.clientWidth;
+        if (container.scrollLeft >= maxScroll - 1) {
+          container.scrollTo({ left: 0, behavior: 'auto' });
+        } else {
+          container.scrollLeft += 1;
+        }
+      }
+      animationFrameId = requestAnimationFrame(scrollLoop);
+    };
+
+    animationFrameId = requestAnimationFrame(scrollLoop);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      container.removeEventListener('mouseenter', handleMouseEnter);
+      container.removeEventListener('mouseleave', handleMouseLeave);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
 
   return (
     <div className="space-y-6 select-none pt-4">
@@ -90,7 +145,7 @@ export default function YouMayAlsoLike({
         {/* Scrollable Container */}
         <div 
           ref={scrollContainerRef}
-          className="flex overflow-x-auto gap-4 md:gap-5 w-full pb-4 pt-2 px-1 snap-x snap-mandatory hide-scrollbar"
+          className="flex overflow-x-auto gap-4 md:gap-5 w-full pb-4 pt-2 px-1 hide-scrollbar"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {recommendations.map((rec) => {
@@ -117,10 +172,10 @@ export default function YouMayAlsoLike({
             };
 
             return (
-              <div
-                key={rec._id}
-                onClick={() => handleCardClick(rec._id)}
-                className="group cursor-pointer rounded-2xl border border-[#e5e7eb] bg-[#ffffff] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(122,11,16,0.12)] transition-all duration-300 flex flex-col flex-none w-[160px] md:w-[220px] lg:w-[240px] snap-start"
+              <div 
+                key={rec._id || rec.id}
+                onClick={() => handleCardClick(rec._id || rec.id)}
+                className="shrink-0 w-[160px] md:w-[220px] lg:w-[240px] bg-[#ffffff] rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(122,11,16,0.12)] border border-[#e5e7eb] overflow-hidden cursor-pointer group transition-all duration-300 flex flex-col"
               >
                 {/* Product Image */}
                 <div className="aspect-[4/3] w-full overflow-hidden bg-[#f3f4f6] relative">

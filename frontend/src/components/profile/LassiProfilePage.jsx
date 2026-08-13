@@ -28,7 +28,7 @@ export default function LassiProfilePage({ user, logout, updateUser }) {
   const handleNavClick = async (id) => {
     if (id === 'logout') {
       if (logout) await logout();
-      router.push('/login');
+      window.location.href = '/login';
       return;
     }
     setActiveNav(id);

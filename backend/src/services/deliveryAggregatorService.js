@@ -15,7 +15,7 @@ const providers = {
 export const getBestDeliveryQuote = async (pickupAddress, dropoffAddress, subtotal, scheduledTime) => {
   logger.info(`Aggregating quotes for delivery to ${dropoffAddress}`);
   
-  const enabledProviders = ['doordash', 'ubereats', 'grubhub'];
+  const enabledProviders = ['doordash', 'ubereats'];
   const quotes = [];
   
   // Run all requests in parallel

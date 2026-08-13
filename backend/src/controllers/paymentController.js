@@ -4,28 +4,23 @@ import asyncHandler from '../utils/asyncHandler.js';
 import logger from '../utils/logger.js';
 import { calculateOrderPricing } from '../services/orderPricing.js';
 import { getBestDeliveryQuote } from '../services/deliveryAggregatorService.js';
+import { validateDeliveryDistance } from '../utils/distance.js';
+import { AppError } from '../middleware/errorHandler.js';
 
 const roundMoney = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
-const getTrustedDeliveryFee = async ({ restaurant, address, subtotal, scheduledTime }) => {
-  if (!address) return 0;
+const getTrustedDeliveryQuoteForPayment = async ({ restaurant, address, subtotal, scheduledTime }) => {
+  if (!address) return { fee: 0, provider: null };
   try {
     const quote = await getBestDeliveryQuote(restaurant.address, address, subtotal || 10, scheduledTime);
-    return roundMoney((quote.deliveryFee || 0) / 100);
+    return { fee: roundMoney((quote.fee || 0) / 100), provider: quote.provider };
   } catch (err) {
-    const errReason = err.response?.data?.reason || err.response?.data?.error?.reason;
-    if (errReason === 'distance_too_long' || err.message === 'OUT_OF_SERVICE_AREA') {
-      logger.warn('DoorDash rejected quote due to distance_too_long during payment intent', {
-        address,
-        restaurantId: restaurant._id
-      });
-      throw new AppError('Delivery is not available for this location. The distance is too far.', 400);
-    }
-    logger.warn('DoorDash quote unavailable while creating payment intent, using restaurant default fee', {
+    logger.warn('All delivery providers failed to return a quote', {
       restaurantId: restaurant._id,
-      error: err.response?.data || err.message
+      address,
+      error: err.message
     });
-    return roundMoney(restaurant.deliveryFee || 0);
+    throw new AppError('Delivery is not available for this location. We cannot find a delivery partner for this address.', 400);
   }
 };
 
@@ -40,7 +35,7 @@ export const createIntent = asyncHandler(async (req, res) => {
     ? { ...req.body, ...req.body.checkoutData }
     : req.body;
 
-  const { amount, orderId, restaurantId, items, orderType, tip, couponCode, useLoyaltyPoints, address, scheduledTime, paymentMethod } = body;
+  const { amount, orderId, restaurantId, items, orderType, tip, couponCode, useLoyaltyPoints, address, addressLat, addressLng, scheduledTime, paymentMethod } = body;
 
   logger.info('createIntent called', { restaurantId, orderType, itemCount: items?.length, amount });
 
@@ -76,14 +71,20 @@ export const createIntent = asyncHandler(async (req, res) => {
       getModel: req.getModel
     });
 
-    const deliveryFeeOverride = orderType === 'delivery'
-      ? await getTrustedDeliveryFee({
+    if (orderType === 'delivery') {
+      validateDeliveryDistance(prePricing.restaurant, addressLat, addressLng);
+    }
+
+    const deliveryQuoteObj = orderType === 'delivery'
+      ? await getTrustedDeliveryQuoteForPayment({
         restaurant: prePricing.restaurant,
         address,
         subtotal: prePricing.subtotal,
         scheduledTime
       })
       : null;
+
+    const deliveryFeeOverride = deliveryQuoteObj ? deliveryQuoteObj.fee : null;
 
     const pricing = await calculateOrderPricing({
       restaurantId,
@@ -100,6 +101,10 @@ export const createIntent = asyncHandler(async (req, res) => {
 
     verifiedAmount = pricing.total;
     metadata.restaurantId = restaurantId.toString();
+    if (deliveryQuoteObj) {
+      metadata.deliveryFee = deliveryQuoteObj.fee;
+      metadata.deliveryProvider = deliveryQuoteObj.provider || 'doordash';
+    }
   }
 
   if (!verifiedAmount || verifiedAmount <= 0) {

@@ -18,14 +18,37 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
     additionalNotes: ''
   });
 
+  const [errors, setErrors] = useState({});
+
   if (!isOpen) return null;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error when user starts typing
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: false });
+    }
   };
+
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.customerName.trim()) newErrors.customerName = true;
+    if (!formData.customerEmail.trim()) newErrors.customerEmail = true;
+    if (!formData.customerPhone.trim()) newErrors.customerPhone = true;
+    if (!formData.eventType.trim()) newErrors.eventType = true;
+    if (!formData.eventDate.trim()) newErrors.eventDate = true;
+    if (!formData.guestCount || parseInt(formData.guestCount, 10) < 1) newErrors.guestCount = true;
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const getInputClass = (fieldName) => 
+    `w-full h-11 px-3 rounded-lg border focus:ring-1 text-[14px] bg-white text-[#1a1a1a] outline-none transition-colors ${errors[fieldName] ? '!border-[#dc2626] focus:!border-[#dc2626] focus:!ring-[#dc2626]' : 'border-[#eadfdb] focus:border-[#7a0b10] focus:ring-[#7a0b10]'}`;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validate()) return;
     setLoading(true);
 
     const formEl = e.target;
@@ -95,9 +118,10 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
                   required
                   value={formData.customerName}
                   onChange={handleChange}
-                  className="w-full h-11 px-3 rounded-lg border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] text-[14px] bg-white text-[#1a1a1a] outline-none"
+                  className={getInputClass('customerName')}
                   placeholder="John Doe"
                 />
+                {errors.customerName && <p className="!text-[#dc2626] text-[11px] mt-1.5 font-bold">This field is required.</p>}
               </div>
               <div>
                 <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Email Address *</label>
@@ -107,9 +131,10 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
                   required
                   value={formData.customerEmail}
                   onChange={handleChange}
-                  className="w-full h-11 px-3 rounded-lg border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] text-[14px] bg-white text-[#1a1a1a] outline-none"
+                  className={getInputClass('customerEmail')}
                   placeholder="john@example.com"
                 />
+                {errors.customerEmail && <p className="!text-[#dc2626] text-[11px] mt-1.5 font-bold">This field is required.</p>}
               </div>
               <div className="md:col-span-2">
                 <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Phone Number *</label>
@@ -119,9 +144,10 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
                   required
                   value={formData.customerPhone}
                   onChange={handleChange}
-                  className="w-full h-11 px-3 rounded-lg border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] text-[14px] bg-white text-[#1a1a1a] outline-none"
+                  className={getInputClass('customerPhone')}
                   placeholder="(555) 123-4567"
                 />
+                {errors.customerPhone && <p className="!text-[#dc2626] text-[11px] mt-1.5 font-bold">This field is required.</p>}
               </div>
             </div>
           </div>
@@ -137,7 +163,7 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
                   required
                   value={formData.eventType}
                   onChange={handleChange}
-                  className="w-full h-11 px-3 rounded-lg border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] text-[14px] bg-white text-[#1a1a1a] outline-none"
+                  className={getInputClass('eventType')}
                 >
                   <option value="">Select event type...</option>
                   <option value="Wedding">Wedding</option>
@@ -146,6 +172,7 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
                   <option value="Family Gathering">Family Gathering</option>
                   <option value="Other">Other</option>
                 </select>
+                {errors.eventType && <p className="!text-[#dc2626] text-[11px] mt-1.5 font-bold">This field is required.</p>}
               </div>
               <div>
                 <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Event Date *</label>
@@ -155,8 +182,9 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
                   required
                   value={formData.eventDate}
                   onChange={handleChange}
-                  className="w-full h-11 px-3 rounded-lg border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] text-[14px] bg-white text-[#1a1a1a] outline-none"
+                  className={getInputClass('eventDate')}
                 />
+                {errors.eventDate && <p className="!text-[#dc2626] text-[11px] mt-1.5 font-bold">This field is required.</p>}
               </div>
               <div>
                 <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Guest Count *</label>
@@ -167,9 +195,10 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
                   min="1"
                   value={formData.guestCount}
                   onChange={handleChange}
-                  className="w-full h-11 px-3 rounded-lg border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] text-[14px] bg-white text-[#1a1a1a] outline-none"
+                  className={getInputClass('guestCount')}
                   placeholder="e.g. 50"
                 />
+                {errors.guestCount && <p className="!text-[#dc2626] text-[11px] mt-1.5 font-bold">This field is required.</p>}
               </div>
               <div>
                 <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Package Preference</label>
@@ -199,18 +228,18 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
             </div>
           </div>
 
-          <div className="pt-4 flex justify-end gap-3">
+          <div className="pt-4 flex flex-col sm:flex-row justify-end gap-4 mt-6">
             <button 
               type="button"
               onClick={onClose}
-              className="px-6 h-11 rounded-lg border border-[#eadfdb] text-[#4b5563] text-[13px] font-bold hover:bg-gray-50 transition-colors"
+              className="w-full sm:w-[160px] h-12 rounded-lg border border-[#eadfdb] text-[#4b5563] text-[13px] font-bold hover:bg-gray-50 transition-colors flex items-center justify-center"
             >
               CANCEL
             </button>
             <button 
               type="submit"
               disabled={loading}
-              className="px-8 h-11 rounded-lg bg-[#7a0b10] text-white text-[13px] font-black uppercase tracking-wider hover:bg-[#680307] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-[200px] h-12 rounded-lg bg-[#7a0b10] text-white text-[13px] font-black uppercase tracking-wider hover:bg-[#680307] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               SUBMIT INQUIRY

@@ -39,7 +39,7 @@ export const getRestaurantETA = async (req, res, next) => {
         }
       } catch (err) {
         const errReason = err.response?.data?.reason || err.response?.data?.error?.reason;
-        if (errReason === 'distance_too_long' || err.message === 'OUT_OF_SERVICE_AREA') {
+        if (errReason === 'distance_too_long' || err.message === 'OUT_OF_SERVICE_AREA' || err.message?.includes('Delivery is currently unavailable') || err.message?.includes('address is out of bounds')) {
           return res.json({
             success: true,
             data: {

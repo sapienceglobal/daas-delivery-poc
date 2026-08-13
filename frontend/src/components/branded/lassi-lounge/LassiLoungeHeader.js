@@ -17,7 +17,7 @@ import { useBrand } from '@/context/BrandContext';
  */
 export default function LassiLoungeHeader() {
   const { items, openCart } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, loading: authLoading } = useAuth();
   const { brand, loading } = useBrand();
   const pathname = usePathname();
 
@@ -72,9 +72,27 @@ export default function LassiLoungeHeader() {
 
         {/* Right icons (Visible on all screens) */}
         <div className="flex items-center gap-4">
-          <a href={isAuthenticated ? "/profile?tab=dashboard" : "/login"} aria-label="Profile" className="text-text hover:text-accent-500">
-            <User size={20} />
-          </a>
+          {authLoading ? (
+            <div className="flex items-center gap-2 animate-pulse">
+              <div className="rounded-full bg-white/10 shrink-0" style={{ width: '32px', height: '32px' }}></div>
+              <div className="hidden sm:block w-16 h-4 bg-white/10 rounded"></div>
+            </div>
+          ) : isAuthenticated && user ? (
+            <a href="/profile?tab=dashboard" aria-label="Profile" className="flex items-center gap-2 text-text hover:text-accent-500 transition-colors">
+              <div 
+                className="rounded-full bg-primary-600 text-white flex items-center justify-center text-[12px] font-bold uppercase shadow-sm shrink-0"
+                style={{ width: '32px', height: '32px', minWidth: '32px', minHeight: '32px' }}
+              >
+                {user.name ? user.name.charAt(0) : <User size={14} />}
+              </div>
+              <span className="hidden sm:inline-block text-[12px] font-bold tracking-wider">{user.name?.split(' ')[0] || 'Profile'}</span>
+            </a>
+          ) : (
+            <a href="/login" className="flex items-center gap-1.5 text-text hover:text-accent-500 text-[11px] font-bold uppercase tracking-wider transition-colors">
+              <User size={18} />
+              <span className="hidden sm:inline-block mt-0.5">Log In</span>
+            </a>
+          )}
           <button onClick={openCart} aria-label="Cart" className="relative text-text hover:text-accent-500 bg-transparent border-none p-0 cursor-pointer">
             <ShoppingCart size={20} />
             {cartCount > 0 && (

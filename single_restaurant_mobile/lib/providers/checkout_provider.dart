@@ -572,6 +572,8 @@ class CheckoutProvider with ChangeNotifier {
         'couponCode': _couponApplied ? _couponCode : null,
         'useLoyaltyPoints': _useLoyaltyPoints,
         'address': compiledAddress,
+        'addressLat': _addressLat,
+        'addressLng': _addressLng,
         'specialInstructions': _deliveryInstructions,
         'paymentMethod': finalPaymentMethod,
       };
