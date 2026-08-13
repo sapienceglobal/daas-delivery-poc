@@ -497,13 +497,15 @@ class _AddressFormBottomSheetState extends State<_AddressFormBottomSheet> {
     }
     final compiledAddress = '$baseStreet, ${_cityController.text}, $_state ${_zipController.text}';
 
+    final isFirstAddress = widget.existingAddress == null && widget.provider.addresses.isEmpty;
+
     final payload = {
       'label': _labelController.text.isNotEmpty ? _labelController.text : 'Other',
       'address': compiledAddress,
       'phone': _phoneController.text,
       'lat': _lat,
       'lng': _lng,
-      'isDefault': widget.existingAddress?['isDefault'] ?? false,
+      'isDefault': widget.existingAddress?['isDefault'] ?? isFirstAddress,
     };
 
     bool success;

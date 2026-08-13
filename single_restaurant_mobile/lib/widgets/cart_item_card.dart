@@ -6,12 +6,14 @@ class CartItemCard extends StatelessWidget {
   final Map<String, dynamic> item;
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
+  final VoidCallback onDelete;
 
   const CartItemCard({
     super.key,
     required this.item,
     required this.onIncrement,
     required this.onDecrement,
+    required this.onDelete,
   });
 
   @override
@@ -88,15 +90,7 @@ class CartItemCard extends StatelessWidget {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () {
-                        if (quantity > 0) {
-                          // Assuming we want to delete it completely. We can call decrement until it's 0 or have an onDelete.
-                          // Since we only have onDecrement, we'll let the user click it, or we could just decrement.
-                          // Actually, we can just call onDecrement for now, or cartProvider.removeItem...
-                          // Wait, we don't have onDelete in the signature. I'll just trigger a loop of decrements or add onDelete.
-                          // Better: add onDelete to signature if we can, but since I can't easily change the parent yet, I'll ignore the trash logic temporarily.
-                        }
-                      },
+                      onTap: onDelete,
                       child: const Icon(Icons.delete_outline, color: Color(0xFF9CA3AF), size: 20),
                     )
                   ],
@@ -171,17 +165,14 @@ class CartItemCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 14),
                         // Total Price
-                        SizedBox(
-                          width: 55,
-                          child: Text(
-                            '\$${lineTotal.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              color: Color(0xFF7A0B10),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                            textAlign: TextAlign.right,
+                        Text(
+                          '\$${lineTotal.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            color: Color(0xFF7A0B10),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
                           ),
+                          textAlign: TextAlign.right,
                         ),
                       ],
                     ),

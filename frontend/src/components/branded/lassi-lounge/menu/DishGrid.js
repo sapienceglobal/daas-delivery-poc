@@ -1,17 +1,29 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Star, Heart, Minus, Plus, Flame, Leaf, SearchX, LayoutGrid, List, ChevronDown } from 'lucide-react';
+import { Star, Heart, Minus, Plus, Flame, Leaf, SearchX, LayoutGrid, List, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const getDishImage = (itemName) => {
   const name = itemName.toLowerCase();
-  if (name.includes('butter chicken')) return '/images/branded/lassi-lounge/dishes/butter-chicken.jpg';
+  if (name.includes('butter chicken')) return '/images/branded/lassi-lounge/dishes/butter-chicken.png';
+  if (name.includes('cheese naan')) return '/images/branded/lassi-lounge/dishes/cheese-naan.jpg';
+  if (name.includes('chicken pakora')) return '/images/branded/lassi-lounge/dishes/chicken-pakora.jpg';
+  if (name.includes('chicken tikka masala')) return '/images/branded/lassi-lounge/dishes/chicken-tikka-masala.jpg';
+  if (name.includes('garlic naan')) return '/images/branded/lassi-lounge/dishes/garlic-naan.png';
+  if (name.includes('kesar badam') || name.includes('badam milk') || name.includes('kesarbadammilk')) return '/images/branded/lassi-lounge/dishes/kesar-badam-milk.jpg';
   if (name.includes('rogan josh') || name.includes('lamb')) return '/images/branded/lassi-lounge/dishes/lamb-rogan-josh.jpg';
+  if (name.includes('masala chai') || name.includes('tea')) return '/images/branded/lassi-lounge/dishes/masala-chai.jpg';
+  if (name.includes('salt lassi') || name.includes('salted lassi')) return '/images/branded/lassi-lounge/dishes/salt-lassi.jpg';
+  if (name.includes('sweet lassi')) return '/images/branded/lassi-lounge/dishes/sweet-lassi.jpg';
+  if (name.includes('mango lassi')) return '/images/branded/lassi-lounge/dishes/mango-lassi.jpg';
+  if (name.includes('samosa')) return '/images/branded/lassi-lounge/dishes/samosa.jpg';
+  if (name.includes('tandoori chiken') || name.includes('tandoori chicken')) return '/images/branded/lassi-lounge/dishes/tandoori-chiken.png';
   if (name.includes('paneer tikka')) return '/images/branded/lassi-lounge/dishes/paneer-tikka.jpg';
+  if (name.includes('tandoori roti')) return '/images/branded/lassi-lounge/dishes/tandoori-roti.png';
+  
   if (name.includes('biryani')) return '/images/branded/lassi-lounge/dishes/chicken-biryani.jpg';
   if (name.includes('dal makhani')) return '/images/branded/lassi-lounge/dishes/dal-makhani.jpg';
-  if (name.includes('lassi')) return '/images/branded/lassi-lounge/dishes/mango-lassi.jpg';
   if (name.includes('roll') || name.includes('spring')) return '/images/branded/lassi-lounge/dishes/veg-spring-rolls.png';
-  if (name.includes('corn')) return 'https://images.unsplash.com/photo-1626804475297-41609ea004eb?auto=format&fit=crop&w=400&q=80';
+  
   return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
 };
 
@@ -37,8 +49,32 @@ export default function DishGrid({
     return items.sort((a, b) => Number(b.isBestseller || false) - Number(a.isBestseller || false));
   }, [filteredItems, sortBy]);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(visibleItems.length / itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [currentCategory, searchQuery]);
+
+  const paginatedItems = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return visibleItems.slice(start, start + itemsPerPage);
+  }, [visibleItems, currentPage]);
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    setTimeout(() => {
+      const element = document.getElementById('dish-grid-top');
+      if (element) {
+        const rect = element.getBoundingClientRect();
+        window.scrollTo({ top: window.scrollY + rect.top - 120, behavior: 'smooth' });
+      }
+    }, 50);
+  };
+
   return (
-    <div className="space-y-6 ll-reveal">
+    <div id="dish-grid-top" className="space-y-6 ll-reveal">
 
       {/* ─── 1. HEADER CONTROLS ─── */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end justify-between bg-transparent pb-4 border-b border-[#e5e7eb]/80">
@@ -118,7 +154,7 @@ export default function DishGrid({
 
       {/* ─── 2. ITEMS GRID / LIST ─── */}
       <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 ll-stagger" : "flex flex-col gap-4 ll-stagger"}>
-        {visibleItems.map(item => {
+        {paginatedItems.map((item) => {
           const isFavorite = user?.favoriteItems?.some(f => (f._id || f) === item._id);
           const isAvailable = item.isAvailable !== false;
 
@@ -254,8 +290,28 @@ export default function DishGrid({
 
       {/* ─── 3. PAGINATION ─── */}
       {visibleItems.length > 0 && (
-        <div className="flex justify-center items-center mt-10 py-4 text-[12px] font-bold uppercase tracking-wider text-[#6b7280]">
-          Showing {visibleItems.length} dishes from {currentCategory?.name || 'this category'}
+        <div className="flex justify-center items-center mt-10 py-4 text-[12px] font-bold uppercase tracking-wider text-[#6b7280] gap-4">
+          <button 
+             onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+             disabled={currentPage === 1}
+             className="p-2 disabled:opacity-30 hover:text-[#7a0b10] transition-colors ll-focus-ring"
+             aria-label="Previous page"
+          >
+            <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
+          </button>
+          
+          <span className="min-w-[200px] text-center">
+            Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, visibleItems.length)} of {visibleItems.length} dishes from {currentCategory?.name || 'this category'}
+          </span>
+          
+          <button 
+             onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+             disabled={currentPage === totalPages}
+             className="p-2 disabled:opacity-30 hover:text-[#7a0b10] transition-colors ll-focus-ring"
+             aria-label="Next page"
+          >
+            <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
+          </button>
         </div>
       )}
 

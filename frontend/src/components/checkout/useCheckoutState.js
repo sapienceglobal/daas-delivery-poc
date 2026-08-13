@@ -159,6 +159,32 @@ export function useCheckoutState() {
     if (isAuthenticated) refreshUser();
   }, [isAuthenticated, refreshUser]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const pendingCoupon = localStorage.getItem('pendingCouponCode');
+    if (pendingCoupon && subtotal > 0 && restaurant?._id && !couponApplied) {
+      setCouponCode(pendingCoupon);
+      localStorage.removeItem('pendingCouponCode');
+      
+      const validatePending = async () => {
+        setCouponLoading(true);
+        try {
+          const data = await couponAPI.validate(pendingCoupon, subtotal, restaurant._id);
+          setCouponDiscount(data.data.discount);
+          setCouponApplied(true);
+          showToast(`Coupon applied! -$${data.data.discount.toFixed(2)}`, 'success');
+        } catch (err) {
+          showToast(err.message || 'Invalid coupon code', 'error');
+          setCouponDiscount(0);
+          setCouponApplied(false);
+        } finally {
+          setCouponLoading(false);
+        }
+      };
+      validatePending();
+    }
+  }, [subtotal, restaurant?._id, couponApplied]);
+
   const handleSelectSavedAddress = (addrObj) => {
     if (!addrObj.address) return;
 

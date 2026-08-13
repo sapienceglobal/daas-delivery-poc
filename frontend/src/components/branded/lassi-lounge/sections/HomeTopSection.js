@@ -150,14 +150,14 @@ export default function HomeTopSection() {
             <span className="absolute top-2 -right-6 text-[#e8a020] text-base font-bold rotate-[65deg]">\</span>
           </div>
 
-          <h1 className="font-serif font-black leading-[0.85] tracking-tight mt-1">
+          <h1 className="font-serif font-black leading-[0.85] flex-col flex gap-[7px] mt-1 md:block">
             <span
-              className="block text-7xl md:text-[95px] text-white uppercase ll-text-wipe"
+              className="block text-[48px] md:text-[95px] text-white uppercase ll-text-wipe"
               style={{ animationDelay: '500ms' }}
             >
               {brandName1}
             </span>
-            <span className="block text-7xl md:text-[95px] text-[#e8a020] uppercase ll-text-wipe-shimmer">
+            <span className="block text-[48px] md:text-[95px] text-[#e8a020] uppercase ll-text-wipe-shimmer">
               {brandName2}
             </span>
           </h1>

@@ -24,7 +24,7 @@ export default function CateringSection() {
         className="object-cover -z-10 object-right"
       />
       
-      <div className="absolute inset-0 bg-gradient-to-r from-primary-900 via-primary-900/90 to-transparent -z-10" />
+      <div className="absolute inset-0 bg-gradient-to-r from-primary-900 from-50% via-primary-900/80 via-90% to-transparent -z-10" />
 
       <div className="relative p-6 md:p-8 lg:p-10 w-full z-10">
         <p className="text-3xl text-accent-500 mb-2" style={{ fontFamily: 'var(--font-script)' }}>

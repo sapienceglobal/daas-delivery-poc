@@ -6,12 +6,14 @@ import { useAuth } from '@/context/AuthContext';
 import { restaurantAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 import LassiAddressModal from '../LassiAddressModal';
+import LassiLocationModal from './LassiLocationModal';
 
 export default function OrderOnlineHero() {
   const { user, updateUser } = useAuth();
   const [eta, setEta] = useState({ pickup: null, delivery: null, isOutOfRange: false });
   const [loadingEta, setLoadingEta] = useState(true);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState(null);
 
   // Get default address from user or local state
@@ -118,7 +120,8 @@ export default function OrderOnlineHero() {
 
               {/* Pickup Box */}
               <div 
-                className="flex items-center gap-3 px-4 sm:px-5 py-3.5 rounded-xl bg-white border border-[#e5e7eb] text-[#1a1a1a] shadow-sm hover:border-[#4a0b0d]/30 transition-all duration-200 select-none"
+                onClick={() => setIsLocationModalOpen(true)}
+                className="flex items-center gap-3 px-4 sm:px-5 py-3.5 rounded-xl bg-white border border-[#e5e7eb] text-[#1a1a1a] shadow-sm hover:border-[#4a0b0d]/30 transition-all duration-200 cursor-pointer select-none"
               >
                 <div className="w-10 h-10 rounded-lg bg-[#4a0b0d]/5 flex items-center justify-center shrink-0">
                   <ShoppingBag className="w-5 h-5 text-[#4a0b0d]" />
@@ -171,6 +174,11 @@ export default function OrderOnlineHero() {
         isOpen={isAddressModalOpen} 
         onClose={() => setIsAddressModalOpen(false)} 
         onSelect={handleAddressSelect}
+      />
+
+      <LassiLocationModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
       />
     </div>
   );

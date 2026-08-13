@@ -26,14 +26,25 @@ export default function ProductInfo({ item, isSingleRestaurant, isFavorite, onTo
 
   const getDishImage = (itemName) => {
     const name = itemName.toLowerCase();
-    if (name.includes('butter chicken')) return '/images/branded/lassi-lounge/dishes/butter-chicken.jpg';
+    if (name.includes('butter chicken')) return '/images/branded/lassi-lounge/dishes/butter-chicken.png';
+    if (name.includes('cheese naan')) return '/images/branded/lassi-lounge/dishes/cheese-naan.jpg';
+    if (name.includes('chicken pakora')) return '/images/branded/lassi-lounge/dishes/chicken-pakora.jpg';
+    if (name.includes('chicken tikka masala')) return '/images/branded/lassi-lounge/dishes/chicken-tikka-masala.jpg';
+    if (name.includes('garlic naan')) return '/images/branded/lassi-lounge/dishes/garlic-naan.png';
+    if (name.includes('kesar badam') || name.includes('badam milk') || name.includes('kesarbadammilk')) return '/images/branded/lassi-lounge/dishes/kesar-badam-milk.jpg';
     if (name.includes('rogan josh') || name.includes('lamb')) return '/images/branded/lassi-lounge/dishes/lamb-rogan-josh.jpg';
+    if (name.includes('masala chai') || name.includes('tea')) return '/images/branded/lassi-lounge/dishes/masala-chai.jpg';
+    if (name.includes('salt lassi') || name.includes('salted lassi')) return '/images/branded/lassi-lounge/dishes/salt-lassi.jpg';
+    if (name.includes('sweet lassi')) return '/images/branded/lassi-lounge/dishes/sweet-lassi.jpg';
+    if (name.includes('mango lassi')) return '/images/branded/lassi-lounge/dishes/mango-lassi.jpg';
+    if (name.includes('samosa')) return '/images/branded/lassi-lounge/dishes/samosa.jpg';
+    if (name.includes('tandoori chiken') || name.includes('tandoori chicken')) return '/images/branded/lassi-lounge/dishes/tandoori-chiken.png';
     if (name.includes('paneer tikka')) return '/images/branded/lassi-lounge/dishes/paneer-tikka.jpg';
+    if (name.includes('tandoori roti')) return '/images/branded/lassi-lounge/dishes/tandoori-roti.png';
     if (name.includes('biryani')) return '/images/branded/lassi-lounge/dishes/chicken-biryani.jpg';
     if (name.includes('dal makhani')) return '/images/branded/lassi-lounge/dishes/dal-makhani.jpg';
-    if (name.includes('lassi')) return '/images/branded/lassi-lounge/dishes/mango-lassi.jpg';
     if (name.includes('roll') || name.includes('spring')) return '/images/branded/lassi-lounge/dishes/veg-spring-rolls.png';
-    return item.image || MOCK_THUMBNAILS[0];
+    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
   };
 
   const images = [getDishImage(item.name), ...MOCK_THUMBNAILS.slice(1)];

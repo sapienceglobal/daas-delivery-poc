@@ -56,8 +56,8 @@ export default function LassiLoungeFooter() {
     for (let i = 0; i < days.length; i++) {
       const day = days[i];
       const hrs = brand.operatingHours[day];
-      
-      const timeString = !hrs?.isClosed && hrs?.open && hrs?.close 
+
+      const timeString = !hrs?.isClosed && hrs?.open && hrs?.close
         ? `${formatTime(hrs.open)} - ${formatTime(hrs.close)}`
         : 'Closed';
 
@@ -78,16 +78,15 @@ export default function LassiLoungeFooter() {
       return { day: dayStr, time: g.time };
     });
   };
-  
+
   const displayHours = getDynamicHours();
 
 
   return (
     <footer className="bg-[#141212] border-t border-white/10 pt-4">
-      
-      <div className="mx-auto max-w-7xl px-4 md:px-8 py-10 grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/10">
-        
-    
+
+      <div className="mx-auto max-w-7xl px-4 md:px-8 py-6 md:py-10 grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/10">
+
         <div className="md:pr-8 py-8 md:py-0">
           <div className="flex items-baseline gap-1.5 mb-4">
             {brand?.logo ? (
@@ -121,7 +120,7 @@ export default function LassiLoungeFooter() {
           </div>
         </div>
 
-     
+
         <div className="md:px-8 py-8 md:py-0">
           <h3 className="text-[#E8B93D] text-sm font-bold uppercase tracking-widest mb-5">Visit Us</h3>
           <ul className="flex flex-col gap-4 text-[13px] text-[#D8D4CF]">
@@ -140,7 +139,7 @@ export default function LassiLoungeFooter() {
           </ul>
         </div>
 
- 
+
         <div className="md:px-8 py-8 md:py-0">
           <h3 className="text-[#E8B93D] text-sm font-bold uppercase tracking-widest mb-5">Hours of Operation</h3>
           <ul className="flex flex-col gap-2.5 text-[13px] text-[#D8D4CF]">
@@ -151,7 +150,7 @@ export default function LassiLoungeFooter() {
               </li>
             ))}
           </ul>
-       
+
           <Button
             href={viewAllHoursCta.href}
             variant="custom"
@@ -162,34 +161,34 @@ export default function LassiLoungeFooter() {
           </Button>
         </div>
 
-      
+
         <div className="md:pl-8 py-8 md:py-0">
-       
+
           <h3 className="text-[#E8B93D] text-sm font-bold uppercase tracking-widest mb-5">Find Us</h3>
-          
+
           <Link
             href={dynamicFindUs.mapLink}
             target="_blank"
             rel="noopener noreferrer"
-      
+
             className="relative block h-32 w-full rounded-lg overflow-hidden bg-[#2A2A2A] shadow-md group"
           >
             <Image src={dynamicFindUs.mapImage} alt="Map showing location" fill sizes="240px" priority className="object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-          
+
             <div className="absolute bottom-2 left-2 right-2 bg-[#FCF9F4] rounded-md shadow border border-[#1a1a1a]/10 p-2.5 flex flex-row items-center gap-2.5 group-hover:-translate-y-0.5 transition-transform duration-300">
-               <div className="bg-[#C8102E]/10 p-1.5 rounded-full shrink-0">
-                 <MapPin size={20} className="text-[#C8102E]" fill="#C8102E" strokeWidth={1} />
-               </div>
-               <div className="flex flex-col flex-1 min-w-0">
-                  <p className="text-[13px] font-extrabold text-[#1a1a1a] leading-tight truncate">{brand?.name || 'Lassi Lounge'}</p>
-                  <p className="text-[11px] text-[#1a1a1a]/70 leading-tight mt-0.5 font-medium truncate">{dynamicFindUs.address}</p>
-               </div>
+              <div className="bg-[#C8102E]/10 p-1.5 rounded-full shrink-0">
+                <MapPin size={20} className="text-[#C8102E]" fill="#C8102E" strokeWidth={1} />
+              </div>
+              <div className="flex flex-col flex-1 min-w-0">
+                <p className="text-[13px] font-extrabold text-[#1a1a1a] leading-tight truncate">{brand?.name || 'Lassi Lounge'}</p>
+                <p className="text-[11px] text-[#1a1a1a]/70 leading-tight mt-0.5 font-medium truncate">{dynamicFindUs.address}</p>
+              </div>
             </div>
           </Link>
         </div>
       </div>
 
-  
+
       <div className="border-t border-white/10 mt-2">
         <div className="mx-auto max-w-7xl px-4 md:px-8 py-5 flex items-center justify-between gap-4 text-[11px] text-[#A8A49F]">
           <span>© {year} Lassi Lounge. All Rights Reserved.</span>
@@ -204,8 +203,8 @@ export default function LassiLoungeFooter() {
                 </span>
               ))}
             </div>
-            
-           
+
+
             <button
               type="button"
               aria-label="Back to top"

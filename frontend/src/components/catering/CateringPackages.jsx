@@ -8,7 +8,7 @@ const PACKAGES = [
     name: 'Basic Package',
     price: 12.99,
     popular: true,
-    image: '/images/branded/lassi-lounge/catering/basic-package.jpg',
+    image: '/images/branded/lassi-lounge/catering/Basic Packages .webp',
     features: [
       '2 Appetizers',
       '2 Main Course',
@@ -23,7 +23,7 @@ const PACKAGES = [
     name: 'Premium Package',
     price: 18.99,
     popular: false,
-    image: '/images/branded/lassi-lounge/catering/premium-package.jpg',
+    image: '/images/branded/lassi-lounge/catering/Premium Package.webp',
     features: [
       '3 Appetizers',
       '3 Main Course',
@@ -39,7 +39,7 @@ const PACKAGES = [
     name: 'Deluxe Package',
     price: 24.99,
     popular: false,
-    image: '/images/branded/lassi-lounge/catering/deluxe-package.jpg',
+    image: '/images/branded/lassi-lounge/catering/Deluxe Package.webp',
     features: [
       '4 Appetizers',
       '4 Main Course',

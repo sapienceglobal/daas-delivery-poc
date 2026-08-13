@@ -28,6 +28,7 @@ class CheckoutProvider with ChangeNotifier {
   double? _addressLat;
   double? _addressLng;
   bool _addressVerified = false;
+  bool _isAddressAutoSelected = false;
 
   // User Details
   String _fullName = '';
@@ -138,6 +139,7 @@ class CheckoutProvider with ChangeNotifier {
     _addressLat = null;
     _addressLng = null;
     _addressVerified = false;
+    _isAddressAutoSelected = false;
     _fullName = '';
     _phone = '';
     _email = '';
@@ -197,14 +199,32 @@ class CheckoutProvider with ChangeNotifier {
   }
 
   void autoSelectDefaultAddress(AddressProvider addressProvider, CartProvider cart) {
-    if (addressProvider.addresses.isEmpty) return;
-    // Find the address marked as default; fall back to the first one
-    final defaultAddr = addressProvider.addresses.firstWhere(
-      (a) => a['isDefault'] == true,
-      orElse: () => addressProvider.addresses.first,
-    );
-    // Always apply the saved default address so cart always shows it pre-selected
-    handleSelectSavedAddress(defaultAddr, cart);
+    if (addressProvider.addresses.isEmpty) {
+      if (_addressLine1.isNotEmpty && _isAddressAutoSelected) {
+        _addressLine1 = '';
+        _addressLine2 = '';
+        _city = '';
+        _state = 'NY';
+        _zipCode = '';
+        _addressLat = null;
+        _addressLng = null;
+        _addressVerified = false;
+        _isAddressAutoSelected = false;
+        _deliveryQuote = null;
+        notifyListeners();
+        _onAddressChanged(cart);
+      }
+      return;
+    }
+    
+    // Only auto-select if address is empty, OR if we previously auto-selected 
+    if (_addressLine1.isEmpty || _isAddressAutoSelected) {
+      final defaultAddr = addressProvider.addresses.firstWhere(
+        (a) => a['isDefault'] == true,
+        orElse: () => addressProvider.addresses.first,
+      );
+      handleSelectSavedAddress(defaultAddr, cart);
+    }
   }
 
   void _onAddressChanged(CartProvider cart) {
@@ -219,6 +239,7 @@ class CheckoutProvider with ChangeNotifier {
   void setAddressLine1(String val, CartProvider cart) {
     _addressLine1 = val;
     _addressVerified = false;
+    _isAddressAutoSelected = false;
     _addressLat = null;
     _addressLng = null;
     _deliveryQuote = null;
@@ -274,6 +295,7 @@ class CheckoutProvider with ChangeNotifier {
     
     _addressLine1 = rawAddress;
     _addressLabel = addrObj['label'] ?? 'Other';
+    _isAddressAutoSelected = true;
     _city = '';
     _state = 'NY';
     _zipCode = '';

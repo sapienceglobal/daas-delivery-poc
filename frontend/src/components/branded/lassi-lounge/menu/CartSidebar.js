@@ -195,9 +195,9 @@ export default function CartSidebar({
               </div>
               
               {/* Promo Discount Row */}
-              {couponApplied ? (
+              {couponApplied && (
                 <div className="flex justify-between text-[#1a1a1a]/80">
-                  <span className="text-[#1a1a1a]/60 font-medium">Discount (LASSI10)</span>
+                  <span className="text-[#1a1a1a]/60 font-medium">Discount</span>
                   <span className="flex items-center gap-1.5 text-[#1a1a1a]">
                     <span>-${discount.toFixed(2)}</span>
                     <button 
@@ -207,16 +207,6 @@ export default function CartSidebar({
                       (Remove)
                     </button>
                   </span>
-                </div>
-              ) : (
-                <div className="flex justify-between items-center text-[12px] pt-1">
-                  <span className="text-[#1a1a1a]/50 font-medium font-sans">Have a coupon?</span>
-                  <button 
-                    onClick={() => setCouponApplied && setCouponApplied(true)}
-                    className="text-[#7a0b10] font-bold hover:underline ll-focus-ring"
-                  >
-                    Apply LASSI10
-                  </button>
                 </div>
               )}
               

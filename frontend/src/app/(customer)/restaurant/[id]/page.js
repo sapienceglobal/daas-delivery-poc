@@ -76,7 +76,7 @@ export default function RestaurantPage() {
           if (categoryName) {
             matchedCategory = data.data.menu.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
           }
-          setActiveCategory(matchedCategory ? matchedCategory._id : data.data.menu[0]._id);
+          setActiveCategory(matchedCategory ? matchedCategory._id : 'all');
         }
       } catch {
         showToast('Failed to load restaurant', 'error');
@@ -250,12 +250,14 @@ export default function RestaurantPage() {
 
   if (isSingleRestaurantMode) {
     const categories = menu || [];
-    const currentCategory = categories.find(cat => cat._id === activeCategory) || categories[0];
+    const currentCategory = activeCategory === 'all' 
+      ? { _id: 'all', name: 'All Items' } 
+      : (categories.find(cat => cat._id === activeCategory) || categories[0]);
     // If searchQuery is present, we show the fuzzy search results (or AI results).
     // Otherwise, we show the items from the active category.
     const filteredItems = searchQuery.trim()
       ? (searchResults || [])
-      : (currentCategory?.items || []);
+      : (activeCategory === 'all' ? categories.flatMap(c => c.items || []) : (currentCategory?.items || []));
 
     const deliveryFee = restaurant?.deliveryFee !== undefined ? restaurant.deliveryFee : 2.99;
     const taxes = subtotal * 0.0875;

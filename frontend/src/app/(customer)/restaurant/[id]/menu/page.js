@@ -71,7 +71,7 @@ export default function RestaurantPage() {
         const fetchedMenu = data.data.menu || [];
         setMenu(fetchedMenu);
         if (fetchedMenu.length > 0) {
-          let selectedId = fetchedMenu[0]._id;
+          let selectedId = 'all';
           if (categoryNameQuery) {
             const matched = fetchedMenu.find(c => c.name.toLowerCase() === categoryNameQuery.toLowerCase());
             if (matched) selectedId = matched._id;
@@ -250,12 +250,14 @@ export default function RestaurantPage() {
 
   if (isSingleRestaurantMode) {
     const categories = menu || [];
-    const currentCategory = categories.find(cat => cat._id === activeCategory) || categories[0];
+    const currentCategory = activeCategory === 'all' 
+      ? { _id: 'all', name: 'All Items' } 
+      : (categories.find(cat => cat._id === activeCategory) || categories[0]);
     // If searchQuery is present, we show the fuzzy search results (or AI results).
     // Otherwise, we show the items from the active category.
     const filteredItems = searchQuery.trim() 
       ? (searchResults || []) 
-      : (currentCategory?.items || []);
+      : (activeCategory === 'all' ? categories.flatMap(c => c.items || []) : (currentCategory?.items || []));
 
     const deliveryFee = restaurant?.deliveryFee !== undefined ? restaurant.deliveryFee : 2.99;
     const taxes = subtotal * 0.0875;

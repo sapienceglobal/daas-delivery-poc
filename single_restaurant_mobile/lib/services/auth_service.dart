@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:single_restaurant_mobile/services/api_service.dart';
 import 'package:single_restaurant_mobile/services/socket_service.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   static const String _tokenKey = 'auth_token';
@@ -197,6 +198,11 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     ApiService.clearAuthToken();
+    try {
+      await GoogleSignIn().signOut();
+    } catch (e) {
+      print('Google sign out error: $e');
+    }
     SocketService().reconnect();
   }
 

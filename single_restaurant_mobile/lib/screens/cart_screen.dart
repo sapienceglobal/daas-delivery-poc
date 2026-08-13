@@ -232,6 +232,21 @@ class _CartScreenState extends State<CartScreen> {
                                   }
                                 }
                               },
+                              onDelete: () async {
+                                cartProvider.removeItem(index);
+                                if (checkoutProvider.couponApplied) {
+                                  try {
+                                    await checkoutProvider.handleApplyCoupon(cartProvider);
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                        content: Text('Coupon removed: ${e.toString().replaceAll('Exception: ', '')}'),
+                                        backgroundColor: Colors.orange,
+                                      ));
+                                    }
+                                  }
+                                }
+                              },
                             );
                           }).toList(),
                         ),

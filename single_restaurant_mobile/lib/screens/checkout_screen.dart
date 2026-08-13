@@ -590,8 +590,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final packagingFee = checkout.getPackagingFee(cart, restaurant);
     final tax = checkout.getTax(cart, restaurant);
     final couponDiscount = checkout.couponDiscount;
-    // Loyalty points not applied here — redeemed via coupon on cart screen
-    final total = checkout.getTotal(cart, restaurant);
+    
+    final double maxRedeemable = checkout.getTotal(cart, restaurant);
+    final double calculatedLoyalty = checkout.useLoyaltyPoints ? (loyalty.currentBalance / 100) : 0.0;
+    final double loyaltyDiscount = calculatedLoyalty > maxRedeemable ? maxRedeemable : calculatedLoyalty;
+    
+    double total = maxRedeemable - loyaltyDiscount;
+    if (total < 0) total = 0.0;
 
     return Container(
       decoration: const BoxDecoration(color: Colors.transparent),
@@ -619,7 +624,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ],
               ),
             ),
-          // Loyalty discount removed — handled via coupon on cart screen
+          if (loyaltyDiscount > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(children: [
+                    Icon(Icons.monetization_on, color: Colors.green.shade700, size: 14),
+                    const SizedBox(width: 4),
+                    Text('Loyalty Points Used', style: TextStyle(color: Colors.green.shade700, fontSize: 14)),
+                  ]),
+                  Text('-${Formatters.formatCurrency(loyaltyDiscount, restaurant?['currency'])}', style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.bold, fontSize: 14)),
+                ],
+              ),
+            ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Divider(height: 1, thickness: 1, color: Colors.grey),

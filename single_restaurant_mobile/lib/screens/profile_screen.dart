@@ -168,8 +168,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Text(user?.name ?? 'Guest User', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                     const SizedBox(height: 4),
-                    Text(user?.phone ?? '', style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                    const SizedBox(height: 2),
+                    if (user?.phone != null && user!.phone!.trim().isNotEmpty) ...[
+                      Text(user!.phone!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                      const SizedBox(height: 2),
+                    ],
                     Text(user?.email ?? '', style: const TextStyle(color: Colors.grey, fontSize: 13)),
                     const SizedBox(height: 6),
                     Container(

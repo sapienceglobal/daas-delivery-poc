@@ -178,8 +178,8 @@ export const calculateOrderPricing = async ({
     throw new AppError(`Minimum order amount is $${restaurant.minimumOrder.toFixed(2)}`, 400);
   }
 
-  const taxRatePercent = restaurant.taxRate !== undefined ? restaurant.taxRate : PLATFORM_DEFAULTS.DEFAULT_TAX_RATE * 100;
-  const taxRateDecimal = taxRatePercent / 100;
+  const rawTaxRate = restaurant.taxRate !== undefined ? restaurant.taxRate : PLATFORM_DEFAULTS.DEFAULT_TAX_RATE * 100;
+  const taxRateDecimal = rawTaxRate < 1 ? rawTaxRate : (rawTaxRate / 100);
   const tax = roundMoney(subtotal * taxRateDecimal);
 
   const deliveryFee = orderType === 'delivery'
@@ -187,8 +187,8 @@ export const calculateOrderPricing = async ({
     : 0;
   const platformFee = roundMoney(PLATFORM_DEFAULTS.PLATFORM_FEE);
   
-  const serviceChargePercent = restaurant.serviceCharge !== undefined ? restaurant.serviceCharge : 3.0;
-  const serviceChargeDecimal = serviceChargePercent / 100;
+  const rawServiceCharge = restaurant.serviceCharge !== undefined ? restaurant.serviceCharge : 3.0;
+  const serviceChargeDecimal = rawServiceCharge < 1 ? rawServiceCharge : (rawServiceCharge / 100);
   const serviceFee = roundMoney(subtotal * serviceChargeDecimal);
   
   const packagingFee = roundMoney(restaurant.packagingCharge ?? 0);
