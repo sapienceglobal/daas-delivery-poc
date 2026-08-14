@@ -143,41 +143,61 @@ export default function ProductInfo({ item, isSingleRestaurant, isFavorite, onTo
         </div>
 
         {/* Description */}
-        <p className="text-[14px] leading-relaxed text-[#4b5563] font-medium max-w-[90%]">
-          {item.description || 'Delectable and cooked to perfection using the finest spices and recipes.'}
-        </p>
+        {item.description && (
+          <p className="text-[14px] leading-relaxed text-[#4b5563] font-medium max-w-[90%]">
+            {item.description}
+          </p>
+        )}
 
         {/* Attributes row */}
-        <div className="grid grid-cols-2 gap-y-4 gap-x-2 pt-3 pb-5 text-[14px] font-medium text-[#1a1a1a]">
-          <div className="flex items-center gap-2">
-            <Leaf className="w-4.5 h-4.5 text-[#16a34a] stroke-[2.5]" />
-            <span>{item.isVeg ? 'Veg' : 'Non Veg'}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Flame className="w-4.5 h-4.5 text-[#dc2626] stroke-[2.5]" />
-            <span>{item.isSpicy ? 'Medium Spicy' : 'Mild'}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock className="w-4.5 h-4.5 text-[#e8a020] stroke-[2.5]" />
-            <span>{item.preparationTime ? `${item.preparationTime} mins` : '25-30 mins'}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[#7a0b10] flex items-center shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v20M17 5H7a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3Z"/></svg>
+        <div className="flex flex-wrap gap-3 pt-3 pb-5 text-[14px] font-medium text-[#1a1a1a]">
+          {item.isVeg ? (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#dcfce7] text-[#166534] font-bold border border-[#bbf7d0] shadow-sm">
+              <Leaf className="w-4 h-4 fill-current text-[#16a34a]" />
+              Veg
             </span>
-            <span>{item.cookingMethod || 'Tandoor Grilled'}</span>
-          </div>
+          ) : (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#fee2e2] text-[#991b1b] font-bold border border-[#fecaca] shadow-sm">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#dc2626]"></div>
+              Non-Veg
+            </span>
+          )}
+
+          {typeof item.isSpicy !== 'undefined' && (
+            <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold border shadow-sm ${item.isSpicy ? 'bg-[#ffedd5] text-[#9a3412] border-[#fed7aa]' : 'bg-[#f3f4f6] text-[#374151] border-[#e5e7eb]'}`}>
+              <Flame className={`w-4 h-4 ${item.isSpicy ? 'text-[#ea580c]' : 'text-[#6b7280]'}`} />
+              {item.isSpicy ? 'Spicy' : 'Mild'}
+            </span>
+          )}
+
+          {item.preparationTime && (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#dbeafe] text-[#1e40af] font-bold border border-[#bfdbfe] shadow-sm">
+              <Clock className="w-4 h-4 text-[#2563eb]" />
+              {item.preparationTime} mins
+            </span>
+          )}
+
+          {item.cookingMethod && (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#f3e8ff] text-[#6b21a8] font-bold border border-[#e9d5ff] shadow-sm">
+              <span className="flex items-center shrink-0 text-[#9333ea]">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v20M17 5H7a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3Z"/></svg>
+              </span>
+              {item.cookingMethod}
+            </span>
+          )}
         </div>
 
         {/* Ingredients section */}
-        <div className="space-y-1.5 pt-2 border-t border-[#e5e7eb]">
-          <h3 className={`text-[20px] font-bold font-serif mt-4 ${isSingleRestaurant ? 'text-[#7a0b10]' : 'text-[#6b52ff]'}`}>
-            Ingredients
-          </h3>
-          <p className="text-[14px] text-[#4b5563] leading-relaxed font-medium">
-            {item.ingredients || 'Paneer, Yogurt, Ginger Garlic Paste, Lemon Juice, Garam Masala, Turmeric, Red Chili Powder, Cumin Powder, Coriander Powder, Salt, Kasuri Methi, Mustard Oil, Capsicum, Onion.'}
-          </p>
-        </div>
+        {item.ingredients && item.ingredients.length > 0 && (
+          <div className="space-y-1.5 pt-2 border-t border-[#e5e7eb]">
+            <h3 className={`text-[20px] font-bold font-serif mt-4 ${isSingleRestaurant ? 'text-[#7a0b10]' : 'text-[#6b52ff]'}`}>
+              Ingredients
+            </h3>
+            <p className="text-[14px] text-[#4b5563] leading-relaxed font-medium">
+              {Array.isArray(item.ingredients) ? item.ingredients.join(', ') : item.ingredients}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

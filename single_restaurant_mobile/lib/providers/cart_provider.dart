@@ -65,7 +65,7 @@ class CartProvider with ChangeNotifier, WidgetsBindingObserver {
   }
 
   double get deliveryFee => subtotal > 0 ? ((_restaurant?['deliveryFee'] as num?)?.toDouble() ?? 2.99) : 0.0;
-  double get platformFee => subtotal > 0 ? 2.0 : 0.0;
+  double get platformFee => subtotal > 0 ? 0.0 : 0.0;
   
   double get serviceFee {
     if (subtotal <= 0) return 0.0;

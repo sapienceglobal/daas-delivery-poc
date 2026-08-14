@@ -18,8 +18,8 @@ import { sendOrderConfirmationEmail, sendInvoiceEmail } from '../services/emailS
 import { createNotification } from './notificationController.js';
 import logger from '../utils/logger.js';
 
-const CUSTOMER_PAYMENT_METHODS = ['credit_card', 'apple_pay', 'google_pay'];
-const STRIPE_REFUND_PAYMENT_METHODS = ['credit_card', 'debit_card', 'apple_pay', 'google_pay'];
+const CUSTOMER_PAYMENT_METHODS = ['credit_card', 'apple_pay', 'google_pay', 'stripe_online'];
+const STRIPE_REFUND_PAYMENT_METHODS = ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'];
 
 const canManageRestaurant = (user, restaurantId) => {
   if (user.role === 'admin') return true;
@@ -256,7 +256,7 @@ export const processAutoRefund = async (order, reason, io, getModel) => {
 };
 
 const verifyCardPayment = async ({ paymentMethod, stripePaymentIntentId, expectedTotal, userId }) => {
-  if (!['credit_card', 'debit_card', 'apple_pay', 'google_pay'].includes(paymentMethod)) {
+  if (!['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(paymentMethod)) {
     return { paymentStatus: paymentMethod === 'cash' ? 'pending' : 'paid' };
   }
 
@@ -855,7 +855,7 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
   if (!allowedTransitions[order.status]?.includes(status)) {
     throw new AppError(`Cannot change order from ${order.status} to ${status}`, 400);
   }
-  if (status === 'accepted' && ['credit_card', 'debit_card', 'apple_pay', 'google_pay'].includes(order.paymentMethod) && order.paymentStatus !== 'paid') {
+  if (status === 'accepted' && ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(order.paymentMethod) && order.paymentStatus !== 'paid') {
     throw new AppError('Card orders must be paid before acceptance', 400);
   }
 
@@ -906,7 +906,7 @@ export const acceptOrder = asyncHandler(async (req, response) => {
   if (order.status !== 'pending') {
     throw new AppError(`Only pending orders can be accepted. Current status: ${order.status}`, 400);
   }
-  if (['credit_card', 'debit_card', 'apple_pay', 'google_pay'].includes(order.paymentMethod) && order.paymentStatus !== 'paid') {
+  if (['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(order.paymentMethod) && order.paymentStatus !== 'paid') {
     throw new AppError('Card orders must be paid before acceptance', 400);
   }
 
@@ -1315,3 +1315,4 @@ export const sendInvoice = asyncHandler(async (req, response) => {
   
   res.success(response, { data: null, message: 'Invoice sent successfully' });
 });
+

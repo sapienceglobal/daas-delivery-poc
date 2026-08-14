@@ -526,7 +526,7 @@ class CheckoutProvider with ChangeNotifier {
     return 0.0;
   }
 
-  double getPlatformFee() => 2.0;
+  double getPlatformFee() => 0.0;
 
   double getServiceFee(CartProvider cart, Map<String, dynamic>? restaurant) {
     if (cart.subtotal <= 0) return 0.0;

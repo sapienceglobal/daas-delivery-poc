@@ -113,7 +113,7 @@ export default function CheckoutPage() {
               />
               <div className="hidden lg:block space-y-5">
                 {c.isSingleRestaurantMode && <LoyaltySignupBanner />}
-                <SupportCard isSingleRestaurantMode={c.isSingleRestaurantMode} t={t} />
+                <SupportCard isSingleRestaurantMode={c.isSingleRestaurantMode} restaurant={c.restaurant} t={t} />
               </div>
             </div>
           </div>
@@ -123,7 +123,7 @@ export default function CheckoutPage() {
         {/* Mobile only: Loyalty and Support at the bottom of the grid */}
         <div className="lg:hidden mt-6 space-y-5">
           {c.isSingleRestaurantMode && <LoyaltySignupBanner />}
-          <SupportCard isSingleRestaurantMode={c.isSingleRestaurantMode} t={t} />
+          <SupportCard isSingleRestaurantMode={c.isSingleRestaurantMode} restaurant={c.restaurant} t={t} />
         </div>
       </div>
 
@@ -165,3 +165,4 @@ export default function CheckoutPage() {
     </div>
   );
 }
+

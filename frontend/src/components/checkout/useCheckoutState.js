@@ -68,7 +68,7 @@ const resolveStateCode = (address, stateName) => {
   return stateName ? stateName.substring(0, 2).toUpperCase() : '';
 };
 
-const ONLINE_PAYMENT_METHODS = ['credit_card', 'apple_pay', 'google_pay'];
+const ONLINE_PAYMENT_METHODS = ['stripe_online'];
 
 /**
  * useCheckoutState — every piece of state, derived value, effect, and
@@ -128,7 +128,7 @@ export function useCheckoutState() {
   const [addressLng, setAddressLng] = useState(null);
 
   const [orderType, setOrderType] = useState('delivery');
-  const [paymentMethod, setPaymentMethod] = useState('credit_card');
+  const [paymentMethod, setPaymentMethod] = useState('stripe_online');
 
   const [cardNo, setCardNo] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');

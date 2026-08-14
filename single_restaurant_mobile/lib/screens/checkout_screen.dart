@@ -604,7 +604,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         children: [
           _buildBillRow('Subtotal (${cart.items.length} items)', subtotal, restaurant?['currency']),
           if (checkout.isDelivery) _buildBillRow('Delivery Fee', deliveryFee, restaurant?['currency'], isInfo: true),
-          _buildBillRow('Platform Fee', platformFee, restaurant?['currency'], isInfo: true),
+          if (platformFee > 0) _buildBillRow('Platform Fee', platformFee, restaurant?['currency'], isInfo: true),
           if (serviceFee > 0) _buildBillRow('Service Fee', serviceFee, restaurant?['currency'], isInfo: true),
           if (packagingFee > 0) _buildBillRow('Packaging Fee', packagingFee, restaurant?['currency'], isInfo: true),
           _buildBillRow(restaurant?['taxType'] ?? 'Taxes', tax, restaurant?['currency'], isInfo: true),

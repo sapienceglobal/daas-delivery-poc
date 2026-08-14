@@ -128,11 +128,11 @@ export default function ItemDetailModal({ item, onClose, onAdd }) {
       <p className="text-[13px] text-[#6b7280] mb-5 leading-relaxed">{item.description}</p>
 
       <div className="flex flex-wrap gap-2 mb-5">
-        {item.isVeg && <span className="text-[10px] bg-green-100 text-green-800 font-bold px-2 py-1 rounded-md uppercase tracking-wider">Vegetarian</span>}
-        {item.isVegan && <span className="text-[10px] bg-green-100 text-green-800 font-bold px-2 py-1 rounded-md uppercase tracking-wider">Vegan</span>}
-        {item.isSpicy && <span className="text-[10px] bg-red-100 text-red-800 font-bold px-2 py-1 rounded-md uppercase tracking-wider">Spicy</span>}
-        {item.isGlutenFree && <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-1 rounded-md uppercase tracking-wider">Gluten-Free</span>}
-        {item.isBestseller && <span className="text-[10px] bg-[#e8a020] text-[#1a1a1a] font-bold px-2 py-1 rounded-md uppercase tracking-wider">Bestseller</span>}
+        {item.isVeg && <span className="text-[10px] bg-[#dcfce7] text-[#166534] border border-[#bbf7d0] font-bold px-2 py-1 rounded-md uppercase tracking-wider">Vegetarian</span>}
+        {item.isVegan && <span className="text-[10px] bg-[#dcfce7] text-[#166534] border border-[#bbf7d0] font-bold px-2 py-1 rounded-md uppercase tracking-wider">Vegan</span>}
+        {item.isSpicy && <span className="text-[10px] bg-[#fee2e2] text-[#991b1b] border border-[#fecaca] font-bold px-2 py-1 rounded-md uppercase tracking-wider">Spicy</span>}
+        {item.isGlutenFree && <span className="text-[10px] bg-[#dbeafe] text-[#1e40af] border border-[#bfdbfe] font-bold px-2 py-1 rounded-md uppercase tracking-wider">Gluten-Free</span>}
+        {item.isBestseller && <span className="text-[10px] bg-[#ffedd5] text-[#9a3412] border border-[#fed7aa] font-bold px-2 py-1 rounded-md uppercase tracking-wider">Bestseller</span>}
       </div>
 
       {/* Size Variations */}
