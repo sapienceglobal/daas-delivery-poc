@@ -7,6 +7,8 @@ import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
+import 'package:single_restaurant_mobile/screens/map_location_picker_screen.dart';
+import 'package:latlong2/latlong.dart';
 
 class SavedAddressesScreen extends StatefulWidget {
   final bool selectingMode;
@@ -577,10 +579,71 @@ class _AddressFormBottomSheetState extends State<_AddressFormBottomSheet> {
             const SizedBox(height: 16),
             
             // Autocomplete Street
-            AddressAutocompleteField(
-              controller: _streetController,
-              label: 'Street Address *',
-              onSelected: _handleAutocomplete,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: AddressAutocompleteField(
+                    controller: _streetController,
+                    label: 'Street Address *',
+                    onSelected: _handleAutocomplete,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFCEDEC),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.secondary.withOpacity(0.2)),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.map, color: AppColors.secondary),
+                      tooltip: 'Pick on Map',
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MapLocationPickerScreen(
+                              initialCenter: (_lat != null && _lng != null) 
+                                  ? LatLng(_lat!, _lng!) 
+                                  : null,
+                            ),
+                          ),
+                        );
+                        
+                        if (result != null && result is Map) {
+                          setState(() {
+                            _lat = result['lat'];
+                            _lng = result['lng'];
+                            
+                            final details = result['addressDetails'];
+                            if (details != null) {
+                              final road = details['road'] ?? details['pedestrian'] ?? details['neighbourhood'] ?? '';
+                              final houseNumber = details['house_number'] ?? '';
+                              _streetController.text = '$houseNumber $road'.trim();
+                              
+                              _cityController.text = details['city'] ?? details['town'] ?? details['village'] ?? details['suburb'] ?? _cityController.text;
+                              
+                              if (details['state'] != null) {
+                                String s = details['state'].toString().substring(0, 2).toUpperCase();
+                                if (usStates.contains(s)) _state = s;
+                              }
+                              
+                              if (details['postcode'] != null) {
+                                _zipController.text = details['postcode'].toString().substring(0, 5);
+                              }
+                            } else if (result['address'] != null) {
+                              _streetController.text = result['address'];
+                            }
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             

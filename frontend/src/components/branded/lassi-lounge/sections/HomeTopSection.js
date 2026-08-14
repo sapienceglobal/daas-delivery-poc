@@ -164,7 +164,7 @@ export default function HomeTopSection() {
 
           <div className="mt-4 self-start relative ml-1">
             <div className="bg-[#cd131b] text-white text-xs md:text-sm font-bold tracking-widest px-6 py-2.5 uppercase relative z-10 shadow-lg">
-              {brand?.cuisine ? `${brand.cuisine} RESTAURANT` : 'INDIAN RESTAURANT'}
+              {brand?.cuisine ? `${brand.cuisine}` : 'INDIAN RESTAURANT'}
             </div>
             <div className="absolute -left-1.5 top-0 h-full w-2 bg-[#cd131b] z-0"></div>
             <div className="absolute -left-1.5 -bottom-1.5 border-t-[6px] border-t-[#78060b] border-l-[6px] border-l-transparent z-0"></div>

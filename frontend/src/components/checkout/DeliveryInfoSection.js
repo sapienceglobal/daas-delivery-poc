@@ -1,5 +1,7 @@
 'use client';
+import { useState } from 'react';
 import { Package, MapPin, Navigation, Store, Check, Loader2 } from 'lucide-react';
+import AddressModal from '@/components/shared/AddressModal';
 
 const US_STATES = [
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
@@ -22,6 +24,7 @@ export default function DeliveryInfoSection({
   onAddressLine1Change, suggestions = [], suggestionsLoading, onSelectSuggestion, quoteError, quoteLoading, isLocationLoading,
   subtotal = 0,
 }) {
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const minOrderAmount = restaurant?.minOrderAmount || 0;
   const isMinOrderMet = subtotal >= minOrderAmount;
   return (
@@ -179,42 +182,91 @@ export default function DeliveryInfoSection({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="md:col-span-2 relative">
                     <label className="block text-[13px] font-bold text-[#1a1a1a] mb-1.5">Address Line 1*</label>
-                    <div className="relative">
-                      <input
-                        type="text" 
-                        required 
-                        name="addressLine1"
-                        autoComplete="address-line1"
-                        value={addressLine1}
-                        onChange={(e) => onAddressLine1Change ? onAddressLine1Change(e.target.value) : setAddressLine1(e.target.value)}
-                        placeholder="House No., Street Name"
-                        className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
-                      />
-                      {suggestionsLoading && (
-                        <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
-                          <Loader2 className="w-4 h-4 text-[#6b7280] animate-spin" />
+                      <div className="flex gap-2 items-start">
+                        <div className="relative flex-1">
+                          <input
+                            type="text" 
+                            required 
+                            name="addressLine1"
+                            autoComplete="address-line1"
+                            value={addressLine1}
+                            onChange={(e) => onAddressLine1Change ? onAddressLine1Change(e.target.value) : setAddressLine1(e.target.value)}
+                            placeholder="House No., Street Name"
+                            className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
+                          />
                         </div>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => setIsAddressModalOpen(true)}
+                          className="shrink-0 bg-[#fcedec] text-[#7a0b10] hover:bg-[#fadbd8] transition-colors px-4 py-3 rounded-xl flex items-center justify-center border border-[#7a0b10]/20 ll-interactive ll-focus-ring"
+                          title="Pick on Map"
+                        >
+                          <MapPin className="w-5 h-5" />
+                        </button>
+                      </div>
 
-                      {/* Autocomplete Suggestions Dropdown */}
-                      {suggestions && suggestions.length > 0 && (
-                        <div className="absolute left-0 right-0 top-full mt-1.5 rounded-xl border border-[#e5e7eb] bg-[#ffffff] shadow-xl z-[100] overflow-hidden max-h-[220px] overflow-y-auto ll-pop ll-soft-scroll">
-                          <ul className="divide-y divide-[#e5e7eb]">
-                            {suggestions.map((s, idx) => (
-                              <li key={idx}>
-                                <button
-                                  type="button"
-                                  onClick={() => onSelectSuggestion(s)}
-                                  className="w-full text-left px-4 py-3.5 text-xs font-bold hover:bg-[#f9fafb] text-[#1a1a1a] transition-colors block truncate ll-focus-ring"
-                                >
-                                  {s.display_name}
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
+                      {/* Modal for Map Picker */}
+                      <AddressModal 
+                        isOpen={isAddressModalOpen} 
+                        initialView="map"
+                        onClose={() => setIsAddressModalOpen(false)}
+                        onSelect={(locationData) => {
+                          // Handle selection from map
+                          const { address, lat, lng, addressDetails, flatNo, landmark } = locationData;
+                          
+                          let line1 = address;
+                          let line2 = '';
+                          let newCity = city;
+                          let newState = state;
+                          let newZip = zipCode;
+                          
+                          if (addressDetails) {
+                            const road = addressDetails.road || addressDetails.pedestrian || addressDetails.neighbourhood || '';
+                            const houseNumber = addressDetails.house_number || '';
+                            line1 = `${houseNumber} ${road}`.trim() || address;
+                            
+                            newCity = addressDetails.city || addressDetails.town || addressDetails.village || addressDetails.suburb || newCity;
+                            
+                            if (addressDetails.state) {
+                              // basic parsing, or rely on existing state resolver in parent if we just pass a string
+                              newState = addressDetails.state.substring(0,2).toUpperCase();
+                            }
+                            
+                            if (addressDetails.postcode) {
+                              newZip = addressDetails.postcode.substring(0, 5);
+                            }
+                          }
+                          
+                          if (flatNo) {
+                            line2 = `Flat/House: ${flatNo}`;
+                            if (landmark) {
+                              line2 += `, Landmark: ${landmark}`;
+                            }
+                          }
+
+                          if (onAddressLine1Change) {
+                            // We construct a mock 'suggestion' format if parent relies on `handleSelectSuggestion`
+                            // Or better, directly set fields via props
+                            setAddressLine1(line1);
+                            if (line2) setAddressLine2(line2);
+                            setCity(newCity);
+                            setState(newState);
+                            setZipCode(newZip);
+                            // Also need to set coordinates in parent. Since parent triggers quote automatically on address match,
+                            // But we need to feed lat/lng to parent. `DeliveryInfoSection` receives suggestions.
+                            // We can use `onSelectSuggestion` mock:
+                            onSelectSuggestion({
+                              display_name: `${line1}, ${newCity}, ${newState} ${newZip}`,
+                              lat: lat.toString(),
+                              lon: lng.toString(),
+                              address: addressDetails || { road: line1, city: newCity, state: newState, postcode: newZip }
+                            });
+                          }
+                          
+                          setIsAddressModalOpen(false);
+                        }}
+                      />
+
                   </div>
                   <div>
                     <label className="block text-[13px] font-bold text-[#1a1a1a] mb-1.5">Address Line 2</label>

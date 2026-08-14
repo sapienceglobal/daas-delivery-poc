@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { MapPin, Phone, Mail, Facebook, Instagram, MessageCircle, Star, ChevronRight, ArrowUp } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { footerContent } from './config';
+import { useState } from 'react';
 import { useBrand } from '@/context/BrandContext';
+import HoursModal from '@/components/shared/HoursModal';
 
 const SOCIAL_ICONS = {
   facebook: Facebook,
@@ -23,6 +25,7 @@ const SOCIAL_BG = {
 
 export default function LassiLoungeFooter() {
   const { brand } = useBrand();
+  const [isHoursModalOpen, setIsHoursModalOpen] = useState(false);
   const { description, hours, viewAllHoursCta, findUs, social, legalLinks } = footerContent;
   const year = new Date().getFullYear();
 
@@ -152,7 +155,7 @@ export default function LassiLoungeFooter() {
           </ul>
 
           <Button
-            href={viewAllHoursCta.href}
+            onClick={() => setIsHoursModalOpen(true)}
             variant="custom"
             className="bg-transparent border border-[#E8B93D] text-[#E8B93D] hover:bg-[#E8B93D] hover:text-black mt-6 !px-5 !py-2.5 text-[11px] font-bold uppercase tracking-widest inline-flex items-center gap-1.5 rounded-md transition-colors"
           >
@@ -216,6 +219,8 @@ export default function LassiLoungeFooter() {
           </div>
         </div>
       </div>
+
+      <HoursModal isOpen={isHoursModalOpen} onClose={() => setIsHoursModalOpen(false)} brand={brand} />
     </footer>
   );
 }

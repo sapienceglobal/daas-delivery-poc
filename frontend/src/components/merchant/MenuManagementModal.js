@@ -6,6 +6,7 @@ import { showToast } from '@/components/ui';
 export default function MenuManagementModal({
   item,
   categories = [],
+  restaurantId,
   onClose,
   onSave
 }) {
@@ -40,6 +41,7 @@ export default function MenuManagementModal({
       
       const payload = {
         ...itemForm,
+        restaurantId: restaurantId, // Ensure restaurantId is included
         price: Number(itemForm.price),
         preparationTime: Number(itemForm.preparationTime),
         sizeVariations: itemForm.sizeVariationsText?.split('\n').filter(Boolean).map(l => {

@@ -86,6 +86,7 @@ export default function MerchantMenuPage() {
         <MenuManagementModal
           item={editingItem}
           categories={menu}
+          restaurantId={roomId}
           onClose={() => { setIsModalOpen(false); setEditingItem(null); }}
           onSave={loadData}
         />
