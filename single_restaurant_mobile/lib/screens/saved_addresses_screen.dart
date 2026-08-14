@@ -8,7 +8,7 @@ import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
 import 'package:single_restaurant_mobile/screens/map_location_picker_screen.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 
 class SavedAddressesScreen extends StatefulWidget {
   final bool selectingMode;
@@ -530,208 +530,239 @@ class _AddressFormBottomSheetState extends State<_AddressFormBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 20, right: 20, top: 24,
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(widget.existingAddress != null ? 'Edit Address' : 'Add New Address', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            
-            // Label & Phone
-            Row(
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24, right: 24, top: 12,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Label (Home/Work)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _labelController,
-                        decoration: _inputDecoration('e.g. Home'),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Phone', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: _inputDecoration('Phone number'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // Autocomplete Street
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: AddressAutocompleteField(
-                    controller: _streetController,
-                    label: 'Street Address *',
-                    onSelected: _handleAutocomplete,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2.0),
+                // Drag handle
+                Center(
                   child: Container(
+                    width: 48,
+                    height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFCEDEC),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.secondary.withOpacity(0.2)),
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    child: IconButton(
-                      icon: const Icon(Icons.map, color: AppColors.secondary),
-                      tooltip: 'Pick on Map',
-                      onPressed: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => MapLocationPickerScreen(
-                              initialCenter: (_lat != null && _lng != null) 
-                                  ? LatLng(_lat!, _lng!) 
-                                  : null,
-                            ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(widget.existingAddress != null ? 'Edit Address' : 'Add New Address', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+                const SizedBox(height: 24),
+                
+                // Label & Phone
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Label (Home/Work)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _labelController,
+                            decoration: _inputDecoration('e.g. Home'),
                           ),
-                        );
-                        
-                        if (result != null && result is Map) {
-                          setState(() {
-                            _lat = result['lat'];
-                            _lng = result['lng'];
-                            
-                            final details = result['addressDetails'];
-                            if (details != null) {
-                              final road = details['road'] ?? details['pedestrian'] ?? details['neighbourhood'] ?? '';
-                              final houseNumber = details['house_number'] ?? '';
-                              _streetController.text = '$houseNumber $road'.trim();
-                              
-                              _cityController.text = details['city'] ?? details['town'] ?? details['village'] ?? details['suburb'] ?? _cityController.text;
-                              
-                              if (details['state'] != null) {
-                                String s = details['state'].toString().substring(0, 2).toUpperCase();
-                                if (usStates.contains(s)) _state = s;
-                              }
-                              
-                              if (details['postcode'] != null) {
-                                _zipController.text = details['postcode'].toString().substring(0, 5);
-                              }
-                            } else if (result['address'] != null) {
-                              _streetController.text = result['address'];
-                            }
-                          });
-                        }
-                      },
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Apt, Suite, Floor (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _address2Controller,
-                  decoration: _inputDecoration('Apt, Suite, Floor'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // City & State
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('City *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _cityController,
-                        decoration: _inputDecoration('City'),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Phone', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _phoneController,
+                            keyboardType: TextInputType.phone,
+                            decoration: _inputDecoration('Phone number'),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 1,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('State *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                      const SizedBox(height: 6),
-                      DropdownButtonFormField<String>(
-                        value: usStates.contains(_state) ? _state : 'NY',
-                        decoration: _inputDecoration(''),
-                        items: usStates.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                        onChanged: (v) {
-                          if (v != null) setState(() => _state = v);
-                        },
+                const SizedBox(height: 20),
+                
+                // Autocomplete Street
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: AddressAutocompleteField(
+                        controller: _streetController,
+                        label: 'Street Address *',
+                        onSelected: _handleAutocomplete,
                       ),
-                    ],
+                    ),
+                    const SizedBox(width: 12),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFCEDEC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.secondary.withOpacity(0.2)),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.map, color: AppColors.secondary),
+                          tooltip: 'Pick on Map',
+                          onPressed: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MapLocationPickerScreen(
+                                  initialCenter: (_lat != null && _lng != null) 
+                                      ? LatLng(_lat!, _lng!) 
+                                      : null,
+                                ),
+                              ),
+                            );
+                            
+                            if (result != null && result is Map) {
+                              setState(() {
+                                _lat = result['lat'];
+                                _lng = result['lng'];
+                                
+                                final details = result['addressDetails'];
+                                if (details != null) {
+                                  final road = details['road'] ?? details['pedestrian'] ?? details['neighbourhood'] ?? '';
+                                  final houseNumber = details['house_number'] ?? '';
+                                  _streetController.text = '$houseNumber $road'.trim();
+                                  
+                                  _cityController.text = details['city'] ?? details['town'] ?? details['village'] ?? details['suburb'] ?? _cityController.text;
+                                  
+                                  if (details['state'] != null) {
+                                    String s = details['state'].toString().substring(0, 2).toUpperCase();
+                                    if (usStates.contains(s)) _state = s;
+                                  }
+                                  
+                                  if (details['postcode'] != null) {
+                                    _zipController.text = details['postcode'].toString().substring(0, 5);
+                                  }
+                                } else if (result['address'] != null) {
+                                  _streetController.text = result['address'];
+                                }
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Apt, Suite, Floor (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _address2Controller,
+                      decoration: _inputDecoration('Apt, Suite, Floor'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                
+                // City & State
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('City *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _cityController,
+                            decoration: _inputDecoration('City'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('State *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            value: usStates.contains(_state) ? _state : 'NY',
+                            decoration: _inputDecoration(''),
+                            icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+                            items: usStates.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                            onChanged: (v) {
+                              if (v != null) setState(() => _state = v);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                
+                // Zip Code
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Zip Code *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _zipController,
+                      keyboardType: TextInputType.number,
+                      decoration: _inputDecoration('Zip Code'),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 36),
+                Container(
+                  width: double.infinity,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.secondary.withOpacity(0.25),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      )
+                    ]
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _saveAddress,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: _isLoading 
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('SAVE ADDRESS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 1.0)),
                   ),
                 ),
+                const SizedBox(height: 24),
               ],
             ),
-            const SizedBox(height: 16),
-            
-            // Zip Code
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Zip Code *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _zipController,
-                  keyboardType: TextInputType.number,
-                  decoration: _inputDecoration('Zip Code'),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _saveAddress,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: _isLoading 
-                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('SAVE ADDRESS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
+          ),
         ),
       ),
     );
@@ -740,12 +771,13 @@ class _AddressFormBottomSheetState extends State<_AddressFormBottomSheet> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
       filled: true,
       fillColor: Colors.grey.shade50,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.secondary)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.secondary, width: 1.5)),
     );
   }
 }

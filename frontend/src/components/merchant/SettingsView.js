@@ -121,6 +121,16 @@ export default function SettingsView({ restaurant, onRefresh }) {
     }));
   };
 
+  const handleGlobalHourChange = (field, value) => {
+    setOperatingHours(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(day => {
+        next[day] = { ...next[day], [field]: value };
+      });
+      return next;
+    });
+  };
+
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -141,8 +151,21 @@ export default function SettingsView({ restaurant, onRefresh }) {
       setSaving(true);
       // Update general fields
       await restaurantAPI.update(restaurant._id, formData);
+      
+      // Force all days to use the global open/close time
+      const globalOpen = operatingHours['monday']?.open || '11:30';
+      const globalClose = operatingHours['monday']?.close || '22:00';
+      const normalizedHours = {};
+      Object.keys(operatingHours).forEach(day => {
+        normalizedHours[day] = {
+          ...operatingHours[day],
+          open: globalOpen,
+          close: globalClose
+        };
+      });
+
       // Update hours
-      await restaurantAPI.updateHours(restaurant._id, { operatingHours });
+      await restaurantAPI.updateHours(restaurant._id, { operatingHours: normalizedHours });
 
       showToast('Settings saved successfully!', 'success');
       if (onRefresh) onRefresh();
@@ -347,48 +370,56 @@ export default function SettingsView({ restaurant, onRefresh }) {
                 </span>
                 <h2 className="text-base font-bold text-[#111827]">Operating Hours</h2>
               </div>
-              <div className="p-6 space-y-2">
-                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => {
-                  const isClosed = !!operatingHours[day]?.isClosed;
-                  return (
-                    <div
-                      key={day}
-                      className={`flex flex-wrap items-center justify-between gap-4 border-b border-[#f3f4f6] py-3 last:border-0 rounded-lg px-3 -mx-3 transition-colors ${isClosed ? 'bg-[#f9fafb]' : ''}`}
-                    >
-                      <div className="w-24">
-                        <span className="text-sm font-bold text-[#111827] capitalize">{day}</span>
+              <div className="p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-[#f9fafb] border border-[#e5e7eb] rounded-xl mb-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-[#111827]">Standard Operating Hours</h4>
+                    <p className="text-xs text-[#6b7280]">These hours will apply to all open days.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="time"
+                      value={operatingHours['monday']?.open || ''}
+                      onChange={(e) => handleGlobalHourChange('open', e.target.value)}
+                      className={`px-3 py-2 text-sm font-bold bg-white ${fieldBase}`}
+                    />
+                    <span className="text-[#9ca3af] font-bold">TO</span>
+                    <input
+                      type="time"
+                      value={operatingHours['monday']?.close || ''}
+                      onChange={(e) => handleGlobalHourChange('close', e.target.value)}
+                      className={`px-3 py-2 text-sm font-bold bg-white ${fieldBase}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="text-sm font-bold text-[#111827] px-2 mb-3">Operating Days</h4>
+                  {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => {
+                    const isClosed = !!operatingHours[day]?.isClosed;
+                    return (
+                      <div
+                        key={day}
+                        className={`flex items-center justify-between border-b border-[#f3f4f6] py-3 last:border-0 rounded-lg px-3 -mx-3 transition-colors ${isClosed ? 'bg-[#f9fafb]' : 'bg-white'}`}
+                      >
+                        <div className="w-32">
+                          <span className={`text-sm font-bold capitalize ${isClosed ? 'text-[#9ca3af]' : 'text-[#111827]'}`}>{day}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className={`text-xs font-bold w-14 text-right ${isClosed ? 'text-[#9ca3af]' : 'text-[#059669]'}`}>
+                            {isClosed ? 'Closed' : 'Open'}
+                          </span>
+                          <Toggle
+                            size="sm"
+                            checked={!isClosed}
+                            onChange={(open) => handleHourChange(day, 'isClosed', !open)}
+                            label={`Toggle ${day} open or closed`}
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <Toggle
-                          size="sm"
-                          checked={!isClosed}
-                          onChange={(open) => handleHourChange(day, 'isClosed', !open)}
-                          label={`Toggle ${day} open or closed`}
-                        />
-                        <span className={`text-xs font-bold w-14 ${isClosed ? 'text-[#9ca3af]' : 'text-[#059669]'}`}>
-                          {isClosed ? 'Closed' : 'Open'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="time"
-                          value={operatingHours[day]?.open || ''}
-                          onChange={(e) => handleHourChange(day, 'open', e.target.value)}
-                          disabled={isClosed}
-                          className={`px-2 py-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldBase}`}
-                        />
-                        <span className="text-[#9ca3af]">-</span>
-                        <input
-                          type="time"
-                          value={operatingHours[day]?.close || ''}
-                          onChange={(e) => handleHourChange(day, 'close', e.target.value)}
-                          disabled={isClosed}
-                          className={`px-2 py-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed ${fieldBase}`}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
 

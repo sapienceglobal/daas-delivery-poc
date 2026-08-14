@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/widgets/address_autocomplete_field.dart';
 
 class MapLocationPickerScreen extends StatefulWidget {
   final LatLng? initialCenter;
@@ -23,9 +24,8 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
   bool _isGeocoding = false;
   String _currentAddress = '';
   Map<String, dynamic>? _addressDetails;
-
-  final TextEditingController _flatNoController = TextEditingController();
-  final TextEditingController _landmarkController = TextEditingController();
+  
+  final TextEditingController _searchController = TextEditingController();
 
   Timer? _debounce;
 
@@ -44,8 +44,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
-    _flatNoController.dispose();
-    _landmarkController.dispose();
+    _searchController.dispose();
     _mapController.dispose();
     super.dispose();
   }
@@ -132,17 +131,6 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
 
   void _handleConfirm() {
     String finalAddress = _currentAddress;
-    List<String> prefixes = [];
-    if (_flatNoController.text.trim().isNotEmpty) {
-      prefixes.add('Flat/House: ${_flatNoController.text.trim()}');
-    }
-    if (_landmarkController.text.trim().isNotEmpty) {
-      prefixes.add('Landmark: ${_landmarkController.text.trim()}');
-    }
-    
-    if (prefixes.isNotEmpty) {
-      finalAddress = '${prefixes.join(', ')} - $_currentAddress';
-    }
 
     Navigator.pop(context, {
       'address': finalAddress,
@@ -169,14 +157,44 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
         ),
         centerTitle: true,
       ),
-      body: Stack(
+      body: Column(
         children: [
-          // Flutter Map
-          Column(
-            children: [
-              Expanded(
-                child: Stack(
-                  children: [
+          // Search Bar Container
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: AddressAutocompleteField(
+                controller: _searchController,
+                label: '', // No label needed
+                onSelected: (data) {
+                  final latStr = data['lat']?.toString();
+                  final lonStr = data['lon']?.toString();
+                  if (latStr != null && lonStr != null) {
+                    final lat = double.tryParse(latStr);
+                    final lon = double.tryParse(lonStr);
+                    if (lat != null && lon != null) {
+                      final newCenter = LatLng(lat, lon);
+                      _mapController.move(newCenter, 17.0);
+                      setState(() {
+                        _center = newCenter;
+                      });
+                      _performReverseGeocode(newCenter);
+                    }
+                  }
+                },
+              ),
+            ),
+          ),
+          
+          Expanded(
+            child: Stack(
+              children: [
                     FlutterMap(
                       mapController: _mapController,
                       options: MapOptions(
@@ -191,8 +209,6 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
                         ),
                       ],
                     ),
-                    
-                    // Fixed Center Marker
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 30.0), // Adjust to center the pin point
@@ -303,42 +319,6 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    
-                    // Manual Inputs
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _flatNoController,
-                            decoration: InputDecoration(
-                              hintText: 'House / Flat No.',
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.secondary)),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _landmarkController,
-                            decoration: InputDecoration(
-                              hintText: 'Landmark (Optional)',
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.secondary)),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 24),
                     
                     // Confirm Button
@@ -357,8 +337,6 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
                   ],
                 ),
               ),
-            ],
-          ),
         ],
       ),
     );

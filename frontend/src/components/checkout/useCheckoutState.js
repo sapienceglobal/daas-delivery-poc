@@ -135,7 +135,7 @@ export function useCheckoutState() {
   const [cardCvv, setCardCvv] = useState('');
   const [cardName, setCardName] = useState('');
 
-  const [tip] = useState(0);
+  const [tip, setTip] = useState(0);
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponApplied, setCouponApplied] = useState(false);
@@ -269,7 +269,8 @@ export function useCheckoutState() {
         : (quoteError || hasDeliveryAddressInput ? null : (restaurant?.deliveryFee || 2.99))
       : 0;
 
-  const platformFee = 2.0;
+  // TEMPORARY FOR TESTING: Set platform fee to 0
+  const platformFee = 0;
   
   const rawServiceCharge = restaurant?.serviceCharge ?? 3.0;
   const serviceChargeMultiplier = rawServiceCharge < 1 ? rawServiceCharge : (rawServiceCharge / 100);
@@ -758,7 +759,7 @@ export function useCheckoutState() {
     quoteLoading, isLocationLoading, quoteError,
     suggestions, suggestionsLoading, addressVerified,
     items, restaurant, subtotal, itemCount, updateQuantity, removeItem, user,
-    compiledAddress, checkoutPayload, tax, deliveryFee, platformFee, serviceFee, packagingFee, total,
+    compiledAddress, checkoutPayload, tax, deliveryFee, platformFee, serviceFee, packagingFee, tip, setTip, total,
     handleSelectSavedAddress, handleUseCurrentLocation,
     handleAddressLine1Change, handleSelectSuggestion,
     handleApplyCoupon, handleRemoveCoupon,

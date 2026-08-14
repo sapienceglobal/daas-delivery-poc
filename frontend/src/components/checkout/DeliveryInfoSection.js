@@ -352,24 +352,47 @@ export default function DeliveryInfoSection({
               </>
             )}
 
-            {restaurant && (
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 border border-[#f5ebe9] bg-[#fffcfb] rounded-xl mt-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-[#fcedec] text-[#7a0b10] shrink-0 border border-[#7a0b10]/10">
-                    <Store className="w-5 h-5" />
+            {restaurant && (() => {
+              const todayIndex = new Date().getDay();
+              const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+              const todayName = daysOfWeek[todayIndex];
+              const todayHours = restaurant.operatingHours?.[todayName];
+              
+              const formatTime = (timeStr) => {
+                if (!timeStr) return '';
+                const [hours, minutes] = timeStr.split(':');
+                let h = parseInt(hours, 10);
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12 || 12;
+                return `${h}:${minutes} ${ampm}`;
+              };
+
+              const isClosed = todayHours?.isClosed;
+              const timeDisplay = isClosed 
+                ? 'Closed Today' 
+                : (todayHours?.open && todayHours?.close ? `${formatTime(todayHours.open)} - ${formatTime(todayHours.close)}` : 'Hours unavailable');
+              const statusDisplay = isClosed ? 'Closed' : 'Open Now';
+              const statusColor = isClosed ? 'text-[#d0150f]' : 'text-[#1fae64]';
+
+              return (
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 border border-[#f5ebe9] bg-[#fffcfb] rounded-xl mt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-full bg-[#fcedec] text-[#7a0b10] shrink-0 border border-[#7a0b10]/10">
+                      <Store className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-[14px] text-[#1a1a1a] mb-0.5 leading-tight">{restaurant.name}</h4>
+                      <p className="text-[12px] text-[#6b7280] leading-relaxed">{restaurant.address}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-extrabold text-[14px] text-[#1a1a1a] mb-0.5 leading-tight">{restaurant.name}</h4>
-                    <p className="text-[12px] text-[#6b7280] leading-relaxed">{restaurant.address}</p>
+                  <div className="flex items-center gap-3 mt-2 md:mt-0 text-[11px] pl-16 md:pl-0">
+                    <span className={`${statusColor} font-bold`}>{statusDisplay}</span>
+                    <span className="opacity-50 text-[#6b7280]">&bull;</span>
+                    <span className="text-[#6b7280] font-medium">{timeDisplay}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 mt-2 md:mt-0 text-[11px] pl-16 md:pl-0">
-                  <span className="text-[#1fae64] font-bold">Open Now</span>
-                  <span className="opacity-50 text-[#6b7280]">&bull;</span>
-                  <span className="text-[#6b7280] font-medium">11:30 AM - 10:00 PM</span>
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Minimum Order Amount Error (Contextual to Restaurant Policy) */}
             {orderType === 'delivery' && quoteError && quoteError.toLowerCase().includes('minimum') && (

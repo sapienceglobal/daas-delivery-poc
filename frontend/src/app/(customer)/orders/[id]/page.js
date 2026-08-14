@@ -244,7 +244,7 @@ export default function OrderDetailPage() {
 
             <div className="hidden lg:block space-y-6">
               {/* Need Help? Box */}
-              <HelpCard isSingleRestaurantMode={isSingleRestaurantMode} />
+              <HelpCard isSingleRestaurantMode={isSingleRestaurantMode} restaurant={order.restaurantId} />
 
               {/* Lassi Lounge reward promo block */}
               <PromoBanner isSingleRestaurantMode={isSingleRestaurantMode} />

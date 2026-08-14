@@ -71,34 +71,35 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
               controller: controller,
               focusNode: focusNode,
               onChanged: widget.onChanged,
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white,
-                hintText: 'Start typing to search...',
-                suffixIcon: _isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: Padding(
-                          padding: EdgeInsets.all(12.0),
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    : const Icon(Icons.search, color: Colors.grey),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  hintText: 'Start typing to search...',
+                  hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                  suffixIcon: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: Padding(
+                            padding: EdgeInsets.all(12.0),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : const Icon(Icons.search, color: Colors.grey),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.red.shade900, width: 1.5),
+                  ),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.red.shade900),
-                ),
-              ),
             );
           },
           optionsViewBuilder: (context, onSelected, options) {

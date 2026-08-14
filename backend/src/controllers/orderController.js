@@ -653,7 +653,7 @@ export const getMyOrders = asyncHandler(async (req, response) => {
 
 export const getOrderById = asyncHandler(async (req, response) => {
   const Order = req.getModel('Order');
-  const order = await Order.findById(req.params.id);
+  const order = await Order.findById(req.params.id).populate('restaurantId');
   if (!order) throw new AppError('Order not found', 404);
 
   // Customer can only see their own orders; merchant/admin can see restaurant orders
@@ -661,7 +661,7 @@ export const getOrderById = asyncHandler(async (req, response) => {
     throw new AppError('Not authorized to view this order', 403);
   }
   if (req.user.role === 'merchant') {
-    ensureCanManageRestaurant(req.user, order.restaurantId);
+    ensureCanManageRestaurant(req.user, order.restaurantId._id || order.restaurantId);
   }
 
   await syncDeliveryTracking(order);

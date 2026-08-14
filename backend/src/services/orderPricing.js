@@ -185,7 +185,8 @@ export const calculateOrderPricing = async ({
   const deliveryFee = orderType === 'delivery'
     ? roundMoney(deliveryFeeOverride ?? restaurant.deliveryFee ?? 0)
     : 0;
-  const platformFee = roundMoney(PLATFORM_DEFAULTS.PLATFORM_FEE);
+  // TEMPORARY FOR TESTING: Set platform fee to 0 instead of PLATFORM_DEFAULTS.PLATFORM_FEE
+  const platformFee = 0;
   
   const rawServiceCharge = restaurant.serviceCharge !== undefined ? restaurant.serviceCharge : 3.0;
   const serviceChargeDecimal = rawServiceCharge < 1 ? rawServiceCharge : (rawServiceCharge / 100);

@@ -1,6 +1,20 @@
 import { Phone, Mail } from 'lucide-react';
 
-export default function SupportCard({ isSingleRestaurantMode }) {
+export default function SupportCard({ isSingleRestaurantMode, restaurant }) {
+  // Use real backend data if available, fallback to hardcoded if not
+  // Prioritize restaurant.phone / restaurant.email as these are what SettingsView updates
+  let phoneValue = restaurant?.phone || restaurant?.businessInfo?.businessPhone || (isSingleRestaurantMode ? '5166120300' : '18005550199');
+  let emailValue = restaurant?.email || restaurant?.businessInfo?.businessEmail || (isSingleRestaurantMode ? 'info@lassilounge.com' : 'support@daasplatform.com');
+  
+  // Format phone if it's 10 or 11 digits
+  const numericPhone = phoneValue.replace(/\D/g, '');
+  let phoneLabel = phoneValue;
+  if (numericPhone.length === 10) {
+    phoneLabel = `(${numericPhone.substring(0,3)}) ${numericPhone.substring(3,6)}-${numericPhone.substring(6,10)}`;
+  } else if (numericPhone.length === 11 && numericPhone.startsWith('1')) {
+    phoneLabel = `+1 (${numericPhone.substring(1,4)}) ${numericPhone.substring(4,7)}-${numericPhone.substring(7,11)}`;
+  }
+
   return (
     <div className="rounded-2xl border border-[#e5e7eb] bg-[#ffffff] p-6 shadow-sm font-sans space-y-4">
       <div>
@@ -10,21 +24,21 @@ export default function SupportCard({ isSingleRestaurantMode }) {
       
       <div className="space-y-3 pt-1">
         <a 
-          href={isSingleRestaurantMode ? 'tel:5166120300' : 'tel:18005550199'} 
+          href={`tel:${numericPhone}`} 
           className="flex items-center gap-3 hover:underline text-[#1a1a1a] group"
         >
           <Phone className="w-4 h-4 text-[#7a0b10] group-hover:opacity-80 transition-opacity" strokeWidth={2} />
           <span className="font-bold text-[14px]">
-            {isSingleRestaurantMode ? '(516) 612-0300' : '1 (800) 555-0199'}
+            {phoneLabel}
           </span>
         </a>
         <a
-          href={isSingleRestaurantMode ? 'mailto:info@lassilounge.com' : 'mailto:support@daasplatform.com'}
+          href={`mailto:${emailValue}`}
           className="flex items-center gap-3 hover:underline text-[#1a1a1a] group"
         >
           <Mail className="w-4 h-4 text-[#7a0b10] group-hover:opacity-80 transition-opacity" strokeWidth={2} />
           <span className="font-bold text-[14px]">
-            {isSingleRestaurantMode ? 'info@lassilounge.com' : 'support@daasplatform.com'}
+            {emailValue}
           </span>
         </a>
       </div>

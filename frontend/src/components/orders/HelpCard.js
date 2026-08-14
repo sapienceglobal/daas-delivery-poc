@@ -2,13 +2,23 @@
 
 import { Phone, MessageSquare, Mail, ChevronRight } from 'lucide-react';
 
-export default function HelpCard({ isSingleRestaurantMode }) {
-  const phoneLabel = isSingleRestaurantMode ? '(516) 612-0300' : '1 (800) 555-0199';
-  const phoneValue = isSingleRestaurantMode ? '5166120300' : '18005550199';
-  const emailValue = isSingleRestaurantMode ? 'info@lassilounge.com' : 'support@daasplatform.com';
+export default function HelpCard({ isSingleRestaurantMode, restaurant }) {
+  // Use real backend data if available, fallback to hardcoded if not
+  // Prioritize restaurant.phone / restaurant.email as these are what SettingsView updates
+  let phoneValue = restaurant?.phone || restaurant?.businessInfo?.businessPhone || (isSingleRestaurantMode ? '5166120300' : '18005550199');
+  let emailValue = restaurant?.email || restaurant?.businessInfo?.businessEmail || (isSingleRestaurantMode ? 'info@lassilounge.com' : 'support@daasplatform.com');
+  
+  // Clean phone number for WhatsApp and format for display
+  const numericPhone = phoneValue.replace(/\D/g, '');
+  let phoneLabel = phoneValue;
+  if (numericPhone.length === 10) {
+    phoneLabel = `(${numericPhone.substring(0,3)}) ${numericPhone.substring(3,6)}-${numericPhone.substring(6,10)}`;
+  } else if (numericPhone.length === 11 && numericPhone.startsWith('1')) {
+    phoneLabel = `+1 (${numericPhone.substring(1,4)}) ${numericPhone.substring(4,7)}-${numericPhone.substring(7,11)}`;
+  }
   
   // WhatsApp redirect link
-  const whatsappUrl = `https://wa.me/${phoneValue.replace(/\D/g, '')}`;
+  const whatsappUrl = `https://wa.me/${numericPhone}`;
 
   return (
     <div className="rounded-2xl border border-[#e5e7eb] bg-[#ffffff] p-6 shadow-sm font-sans space-y-4">
