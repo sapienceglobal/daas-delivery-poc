@@ -183,7 +183,7 @@ export default function DishGrid({
               {/* Image header */}
               <div className={`relative bg-[#f3f4f6] overflow-hidden shrink-0 ${viewMode === 'grid' ? 'h-[200px] w-full' : 'h-[180px] sm:h-auto w-full sm:w-[240px]'}`}>
                 <img
-                  src={getDishImage(item.name)}
+                  src={item.image || getDishImage(item.name)}
                   alt={item.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />

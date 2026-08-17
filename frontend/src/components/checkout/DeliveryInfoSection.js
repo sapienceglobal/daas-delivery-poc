@@ -194,6 +194,32 @@ export default function DeliveryInfoSection({
                             placeholder="House No., Street Name"
                             className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
                           />
+                          {/* Suggestions dropdown */}
+                          {(suggestionsLoading || (suggestions && suggestions.length > 0)) && (
+                            <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white rounded-xl border border-[#e5e7eb] shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+                              {suggestionsLoading ? (
+                                <div className="flex items-center gap-2 px-4 py-3 text-sm text-[#6b7280]">
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span>Searching...</span>
+                                </div>
+                              ) : (
+                                suggestions.map((s, i) => (
+                                  <button
+                                    key={i}
+                                    type="button"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => onSelectSuggestion && onSelectSuggestion(s)}
+                                    className="w-full text-left px-4 py-3 text-sm hover:bg-[#fffaf9] transition-colors border-b border-[#f3f4f6] last:border-0"
+                                  >
+                                    <div className="font-medium text-[#1a1a1a] truncate">{s.main_text || s.display_name}</div>
+                                    {s.secondary_text && (
+                                      <div className="text-xs text-[#6b7280] truncate mt-0.5">{s.secondary_text}</div>
+                                    )}
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          )}
                         </div>
                         <button
                           type="button"

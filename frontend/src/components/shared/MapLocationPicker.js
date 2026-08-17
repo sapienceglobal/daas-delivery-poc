@@ -56,6 +56,16 @@ export default function MapLocationPicker({
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef(null);
+  const sessionTokenRef = useRef(null);
+
+  const getSessionToken = () => {
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : Math.random().toString(36).substring(2, 15);
+    }
+    return sessionTokenRef.current;
+  };
 
   const mapRef = useRef(null);
 
@@ -94,9 +104,7 @@ export default function MapLocationPicker({
   const reverseGeocode = useCallback(async (lat, lng) => {
     setIsGeocoding(true);
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
-        headers: { 'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0' }
-      });
+      const res = await fetch(`/api/location/reverse-geocode?lat=${lat}&lng=${lng}`);
       const data = await res.json();
       
       let addressString = data.display_name || 'Unknown Location';
@@ -168,9 +176,7 @@ export default function MapLocationPicker({
     setIsSearching(true);
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&countrycodes=us&limit=5`, {
-          headers: { 'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0' }
-        });
+        const res = await fetch(`/api/location/autocomplete?q=${encodeURIComponent(val)}&sessionToken=${getSessionToken()}`);
         const data = await res.json();
         setSearchSuggestions(data || []);
       } catch (err) {
@@ -181,14 +187,34 @@ export default function MapLocationPicker({
     }, 500);
   };
 
-  const handleSuggestionSelect = (suggestion) => {
-    const lat = parseFloat(suggestion.lat);
-    const lng = parseFloat(suggestion.lon);
-    setSearchInput('');
+  const handleSuggestionSelect = async (suggestion) => {
+    setSearchInput(suggestion.display_name);
     setSearchSuggestions([]);
     
-    if (mapRef.current) {
-      mapRef.current.setView([lat, lng], 17, { animate: true, duration: 0.5 });
+    if (suggestion.place_id) {
+      try {
+        setIsGeocoding(true);
+        const res = await fetch(`/api/location/place?place_id=${suggestion.place_id}&sessionToken=${sessionTokenRef.current || ''}`);
+        const data = await res.json();
+        sessionTokenRef.current = null; // Clear token after place details is fetched
+        if (data.lat && data.lng) {
+          const newCenter = { lat: parseFloat(data.lat), lng: parseFloat(data.lng) };
+          setCenter(newCenter);
+          if (mapRef.current) {
+            mapRef.current.setView([newCenter.lat, newCenter.lng], 18, { animate: true });
+          }
+        }
+      } catch (err) {
+        console.error('Place details error:', err);
+      } finally {
+        setIsGeocoding(false);
+      }
+    } else if (suggestion.lat && suggestion.lon) {
+      const newCenter = { lat: parseFloat(suggestion.lat), lng: parseFloat(suggestion.lon) };
+      setCenter(newCenter);
+      if (mapRef.current) {
+        mapRef.current.setView([newCenter.lat, newCenter.lng], 18, { animate: true });
+      }
     }
   };
 

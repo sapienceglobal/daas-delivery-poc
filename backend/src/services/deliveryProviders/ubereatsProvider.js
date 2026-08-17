@@ -90,7 +90,8 @@ export const triggerDeliveryAPI = async (order) => {
       quantity: item.quantity,
       price: Math.round(item.price * 100)
     })),
-    manifest_total_value: Math.round((order.subtotal || 0) * 100)
+    manifest_total_value: Math.round((order.subtotal || 0) * 100),
+    courier_tip: Math.round((order.tip || 0) * 100)
   };
 
   const data = await makeUberRequest('POST', `/customers/${UBEREATS_CUSTOMER_ID}/deliveries`, payload);

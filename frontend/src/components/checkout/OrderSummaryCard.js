@@ -1,6 +1,7 @@
 'use client';
 import { Minus, Plus, ShieldCheck, Tag, Info, X, Check } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
+import { getDishImage } from '@/components/profile/profileUtils';
 
 export default function OrderSummaryCard({
   t,
@@ -19,7 +20,7 @@ export default function OrderSummaryCard({
         {items.map((item, idx) => (
           <div key={idx} className="flex gap-4 items-start">
             <img
-              src={item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80'}
+              src={item.image || getDishImage(item.name)}
               alt={item.name}
               className="w-[72px] h-[72px] rounded-xl object-cover border border-[#e5e7eb] shrink-0"
             />

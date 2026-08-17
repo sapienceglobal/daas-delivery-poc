@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/widgets/address_autocomplete_field.dart';
+import 'package:single_restaurant_mobile/services/location_service.dart';
 
 class MapLocationPickerScreen extends StatefulWidget {
   final LatLng? initialCenter;
@@ -26,6 +27,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
   Map<String, dynamic>? _addressDetails;
   
   final TextEditingController _searchController = TextEditingController();
+  final LocationService _locationService = LocationService();
 
   Timer? _debounce;
 
@@ -82,11 +84,9 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
   Future<void> _performReverseGeocode(LatLng position) async {
     setState(() => _isGeocoding = true);
     try {
-      final url = Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.latitude}&lon=${position.longitude}&zoom=18&addressdetails=1');
-      final response = await http.get(url, headers: {'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0'});
+      final data = await _locationService.reverseGeocode(position.latitude, position.longitude);
       
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+      if (data != null) {
         setState(() {
           _currentAddress = data['display_name'] ?? 'Unknown Location';
           _addressDetails = data['address'];
@@ -172,9 +172,20 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
               child: AddressAutocompleteField(
                 controller: _searchController,
                 label: '', // No label needed
-                onSelected: (data) {
-                  final latStr = data['lat']?.toString();
-                  final lonStr = data['lon']?.toString();
+                onSelected: (data) async {
+                  String? latStr = data['lat']?.toString();
+                  String? lonStr = data['lon']?.toString() ?? data['lng']?.toString();
+                  
+                  if (data['place_id'] != null) {
+                    setState(() => _isGeocoding = true);
+                    final details = await _locationService.geocodeAddress(data['place_id'], isPlaceId: true);
+                    if (mounted) setState(() => _isGeocoding = false);
+                    if (details != null) {
+                      latStr = details['lat']?.toString();
+                      lonStr = details['lon']?.toString() ?? details['lng']?.toString();
+                    }
+                  }
+
                   if (latStr != null && lonStr != null) {
                     final lat = double.tryParse(latStr);
                     final lon = double.tryParse(lonStr);

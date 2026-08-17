@@ -122,8 +122,13 @@ export default function RestaurantPage() {
     }, []);
 
     const fuse = new Fuse(allItems, {
-      keys: ['name', 'description', 'tags', 'catName'],
-      threshold: 0.4, // typo tolerance
+      keys: [
+        { name: 'name', weight: 0.5 },
+        { name: 'tags', weight: 0.3 },
+        { name: 'catName', weight: 0.1 },
+        { name: 'description', weight: 0.1 }
+      ],
+      threshold: 0.2, // stricter typo tolerance
       ignoreLocation: true,
     });
     
@@ -290,22 +295,13 @@ export default function RestaurantPage() {
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9ca3af] ml-2" />
                 <input
                   type="text"
-                  placeholder="Search dishes (Press Enter for AI)..."
+                  placeholder="Search dishes..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
                   maxLength={60}
                   className="w-full pl-10 pr-4 py-2 border border-[#e5e7eb] rounded-md text-[13px] focus:outline-none focus:border-[#7a0b10] focus:ring-4 focus:ring-[#7a0b10]/10 transition-all text-[#1a1a1a] placeholder-[#9ca3af] bg-[#ffffff] shadow-sm"
                 />
               </div>
-              <Button 
-                onClick={handleAiSearch} 
-                loading={isAiSearching} 
-                variant="primary" 
-                className="whitespace-nowrap px-4 py-2 !rounded-md text-[13px] h-[38px] bg-[#7a0b10] border-none text-white shadow-md shadow-[#7a0b10]/20 hover:brightness-110"
-              >
-                Ask AI ✨
-              </Button>
             </div>
           </div>
         </div>

@@ -3,13 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Star, Leaf, Flame, Clock, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const MOCK_THUMBNAILS = [
-  'https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=600&q=80', // Paneer tikka
-  'https://images.unsplash.com/photo-1626804475297-41609ea004eb?auto=format&fit=crop&w=600&q=80', // Mint chutney
-  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80', // Alternate view
-  'https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&w=600&q=80', // Tandoor / Grill
-  'https://images.unsplash.com/photo-1601050690597-df056fb4ce78?auto=format&fit=crop&w=600&q=80', // Curry samosa side
-];
 
 export default function ProductInfo({ item, isSingleRestaurant, isFavorite, onToggleFavorite }) {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
@@ -47,7 +40,9 @@ export default function ProductInfo({ item, isSingleRestaurant, isFavorite, onTo
     return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
   };
 
-  const images = [getDishImage(item.name), ...MOCK_THUMBNAILS.slice(1)];
+  const images = (item.images && item.images.length > 0) 
+    ? item.images 
+    : [item.image || getDishImage(item.name)];
 
   const handlePrev = () => {
     setActiveImageIdx((prev) => (prev === 0 ? images.length - 1 : prev - 1));
@@ -78,42 +73,44 @@ export default function ProductInfo({ item, isSingleRestaurant, isFavorite, onTo
         </div>
 
         {/* Thumbnail gallery */}
-        <div className="flex items-center gap-2 relative select-none">
-          <button
-            onClick={handlePrev}
-            className="w-8 h-8 rounded-full border border-[#e5e7eb] bg-[#ffffff] hover:bg-[#f9fafb] flex items-center justify-center text-[#4b5563] shadow-sm shrink-0 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          
-          <div 
-            ref={scrollRef}
-            className="flex-1 flex gap-2 overflow-x-auto py-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-          >
-            {images.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveImageIdx(idx)}
-                className={`relative aspect-[4/3] w-16 md:w-20 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
-                  activeImageIdx === idx
-                    ? isSingleRestaurant
-                      ? 'border-[#7a0b10] scale-[1.02]'
-                      : 'border-[#6b52ff] scale-[1.02]'
-                    : 'border-transparent hover:border-[#d1d5db]'
-                }`}
-              >
-                <img src={img} alt="" className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
+        {images.length > 1 && (
+          <div className="flex items-center gap-2 relative select-none">
+            <button
+              onClick={handlePrev}
+              className="w-8 h-8 rounded-full border border-[#e5e7eb] bg-[#ffffff] hover:bg-[#f9fafb] flex items-center justify-center text-[#4b5563] shadow-sm shrink-0 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            
+            <div 
+              ref={scrollRef}
+              className="flex-1 flex gap-2 overflow-x-auto py-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            >
+              {images.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveImageIdx(idx)}
+                  className={`relative aspect-[4/3] w-16 md:w-20 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
+                    activeImageIdx === idx
+                      ? isSingleRestaurant
+                        ? 'border-[#7a0b10] scale-[1.02]'
+                        : 'border-[#6b52ff] scale-[1.02]'
+                      : 'border-transparent hover:border-[#d1d5db]'
+                  }`}
+                >
+                  <img src={img} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
 
-          <button
-            onClick={handleNext}
-            className="w-8 h-8 rounded-full border border-[#e5e7eb] bg-[#ffffff] hover:bg-[#f9fafb] flex items-center justify-center text-[#4b5563] shadow-sm shrink-0 transition-colors"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
+            <button
+              onClick={handleNext}
+              className="w-8 h-8 rounded-full border border-[#e5e7eb] bg-[#ffffff] hover:bg-[#f9fafb] flex items-center justify-center text-[#4b5563] shadow-sm shrink-0 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Right 7 Columns: Product details text */}

@@ -24,6 +24,16 @@ export default function LassiAddressModal({ isOpen, onClose, onSelect }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const searchTimeout = useRef(null);
+  const sessionTokenRef = useRef(null);
+
+  const getSessionToken = () => {
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : Math.random().toString(36).substring(2, 15);
+    }
+    return sessionTokenRef.current;
+  };
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -48,9 +58,7 @@ export default function LassiAddressModal({ isOpen, onClose, onSelect }) {
     setIsLoading(true);
     searchTimeout.current = setTimeout(async () => {
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&countrycodes=us&limit=5`, {
-          headers: { 'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0' }
-        });
+        const res = await fetch(`/api/location/autocomplete?q=${encodeURIComponent(val)}&sessionToken=${getSessionToken()}`);
         const data = await res.json();
         setSuggestions(data || []);
       } catch (err) {
@@ -61,9 +69,23 @@ export default function LassiAddressModal({ isOpen, onClose, onSelect }) {
     }, 500);
   };
 
-  const handleSuggestionSelect = (suggestion) => {
-    setSelectedCenter({ lat: parseFloat(suggestion.lat), lng: parseFloat(suggestion.lon) });
-    setView('map');
+  const handleSuggestionSelect = async (suggestion) => {
+    if (suggestion.place_id) {
+      try {
+        const res = await fetch(`/api/location/place?place_id=${suggestion.place_id}&sessionToken=${sessionTokenRef.current || ''}`);
+        const data = await res.json();
+        sessionTokenRef.current = null; // Clear token after place details is fetched
+        if (data.lat && data.lng) {
+          setSelectedCenter({ lat: parseFloat(data.lat), lng: parseFloat(data.lng) });
+          setView('map');
+        }
+      } catch (err) {
+        console.error('Place details error:', err);
+      }
+    } else if (suggestion.lat && suggestion.lon) {
+      setSelectedCenter({ lat: parseFloat(suggestion.lat), lng: parseFloat(suggestion.lon) });
+      setView('map');
+    }
   };
 
   const handleCurrentLocation = () => {

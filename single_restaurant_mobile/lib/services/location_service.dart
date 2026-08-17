@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
+import 'api_service.dart';
 
 class LocationService {
   Future<Position?> getCurrentLocation() async {
@@ -29,10 +30,8 @@ class LocationService {
 
   Future<Map<String, dynamic>?> reverseGeocode(double lat, double lon) async {
     try {
-      final url = Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon&zoom=18&addressdetails=1');
-      final response = await http.get(url, headers: {
-        'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0',
-      });
+      final url = Uri.parse('${ApiService.baseUrl}/api/location/reverse-geocode?lat=$lat&lng=$lon');
+      final response = await http.get(url, headers: ApiService.buildHeaders());
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -45,10 +44,8 @@ class LocationService {
 
   Future<List<dynamic>> searchAddress(String query) async {
     try {
-      final url = Uri.parse('https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(query)}&addressdetails=1&limit=5');
-      final response = await http.get(url, headers: {
-        'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0',
-      });
+      final url = Uri.parse('${ApiService.baseUrl}/api/location/autocomplete?q=${Uri.encodeComponent(query)}');
+      final response = await http.get(url, headers: ApiService.buildHeaders());
 
       if (response.statusCode == 200) {
         return json.decode(response.body) as List<dynamic>;
@@ -59,11 +56,23 @@ class LocationService {
     return [];
   }
 
-  Future<Map<String, dynamic>?> geocodeAddress(String query) async {
+  Future<Map<String, dynamic>?> geocodeAddress(String queryOrPlaceId, {bool isPlaceId = false}) async {
     try {
-      final results = await searchAddress(query);
-      if (results.isNotEmpty) {
-        return results.first; // Returns the top result containing lat/lon
+      if (isPlaceId) {
+        final url = Uri.parse('${ApiService.baseUrl}/api/location/place?place_id=$queryOrPlaceId');
+        final response = await http.get(url, headers: ApiService.buildHeaders());
+        if (response.statusCode == 200) {
+           return json.decode(response.body);
+        }
+      } else {
+        final url = Uri.parse('${ApiService.baseUrl}/api/location/geocode?address=${Uri.encodeComponent(queryOrPlaceId)}');
+        final response = await http.get(url, headers: ApiService.buildHeaders());
+        if (response.statusCode == 200) {
+          final results = json.decode(response.body) as List<dynamic>;
+          if (results.isNotEmpty) {
+            return results.first;
+          }
+        }
       }
     } catch (e) {
       print('Geocode address error: $e');

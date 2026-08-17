@@ -112,7 +112,28 @@ export const createIntent = asyncHandler(async (req, res) => {
     throw new Error('Amount is required');
   }
 
-  const paymentIntent = await createPaymentIntent(verifiedAmount, metadata, stripeCustomerId);
+  let paymentIntent;
+  try {
+    paymentIntent = await createPaymentIntent(verifiedAmount, metadata, stripeCustomerId);
+  } catch (err) {
+    if (err.message && err.message.includes('No such customer')) {
+      logger.warn(`Stripe customer ${stripeCustomerId} not found. Auto-recreating for seamless dev...`);
+      stripeCustomerId = null;
+      if (req.user) {
+        try {
+          const customer = await createCustomer(req.user.email, req.user.name || 'DaaS User', { userId: req.user._id.toString() });
+          stripeCustomerId = customer.id;
+          req.user.stripeCustomerId = stripeCustomerId;
+          await req.user.save();
+        } catch (createErr) {
+          logger.warn('Failed to recreate stripe customer', createErr);
+        }
+      }
+      paymentIntent = await createPaymentIntent(verifiedAmount, metadata, stripeCustomerId);
+    } else {
+      throw err;
+    }
+  }
   let ephemeralKey = null;
   if (stripeCustomerId) {
     try {
@@ -163,7 +184,28 @@ export const createSetupIntent = asyncHandler(async (req, res) => {
     }
   }
 
-  const setupIntent = await createStripeSetupIntent(metadata, stripeCustomerId);
+  let setupIntent;
+  try {
+    setupIntent = await createStripeSetupIntent(metadata, stripeCustomerId);
+  } catch (err) {
+    if (err.message && err.message.includes('No such customer')) {
+      logger.warn(`Stripe customer ${stripeCustomerId} not found. Auto-recreating for seamless dev...`);
+      stripeCustomerId = null;
+      if (req.user) {
+        try {
+          const customer = await createCustomer(req.user.email, req.user.name || 'DaaS User', { userId: req.user._id.toString() });
+          stripeCustomerId = customer.id;
+          req.user.stripeCustomerId = stripeCustomerId;
+          await req.user.save();
+        } catch (createErr) {
+          logger.warn('Failed to recreate stripe customer', createErr);
+        }
+      }
+      setupIntent = await createStripeSetupIntent(metadata, stripeCustomerId);
+    } else {
+      throw err;
+    }
+  }
   let ephemeralKey = null;
   if (stripeCustomerId) {
     try {

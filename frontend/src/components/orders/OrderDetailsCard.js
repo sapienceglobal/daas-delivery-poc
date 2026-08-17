@@ -1,6 +1,7 @@
 'use client';
 
 import { FileText } from 'lucide-react';
+import { getDishImage } from '@/components/profile/profileUtils';
 
 export default function OrderDetailsCard({ order }) {
   if (!order) return null;
@@ -38,7 +39,7 @@ export default function OrderDetailsCard({ order }) {
               {/* Thumbnail */}
               <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-[#e5e7eb] shrink-0 bg-[#f9fafb]">
                 <img
-                  src={item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80'}
+                  src={item.image || getDishImage(item.name)}
                   alt={item.name}
                   className="w-full h-full object-cover"
                 />

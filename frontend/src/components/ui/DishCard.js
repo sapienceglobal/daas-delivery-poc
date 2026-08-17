@@ -105,7 +105,7 @@ export default function DishCard({ item }) {
   };
 
   return (
-    <div className="bg-card rounded-2xl overflow-hidden shadow-md flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 group border border-border/40 select-none">
+    <div className="bg-card rounded-2xl overflow-hidden shadow-md flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 group border border-border/40 select-none h-full">
       <div className="w-full h-32 relative overflow-hidden bg-surface">
         <Image
           src={item.image || getDishImage(item.name)}

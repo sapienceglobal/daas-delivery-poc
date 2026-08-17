@@ -248,14 +248,11 @@ function AddressesTab({ user, updateUser }) {
     setSuggestionsLoading(true);
     const to = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&addressdetails=1&limit=5`,
-          { headers: { 'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0' } }
-        );
+        const res = await fetch(`http://localhost:5001/api/location/autocomplete?q=${encodeURIComponent(val)}`);
         const data = await res.json();
-        setSuggestions(data || []);
+        setSuggestions(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error('Nominatim search error:', err);
+        console.error('Location autocomplete error:', err);
       } finally {
         setSuggestionsLoading(false);
       }
@@ -263,24 +260,39 @@ function AddressesTab({ user, updateUser }) {
     setSearchTimeout(to);
   };
 
-  const handleSelectSuggestion = (suggestion) => {
-    const parts = suggestion.display_name.split(',').map((p) => p.trim());
-    const addr = suggestion.address || {};
-    const road = addr.road || '';
-    const houseNumber = addr.house_number || '';
-    const line1 = `${houseNumber} ${road}`.trim() || parts.slice(0, 2).join(', ');
+  const handleSelectSuggestion = async (suggestion) => {
+    try {
+      setSuggestionsLoading(true); // Reuse loading state for geocoding
+      const res = await fetch(`http://localhost:5001/api/location/place?place_id=${suggestion.place_id}`);
+      const details = await res.json();
 
-    const cityVal = addr.city || addr.town || addr.village || addr.suburb || '';
-    const stateVal = (addr.state || '').substring(0, 2).toUpperCase() || 'NY';
-    const postcodeVal = addr.postcode || '';
+      const addr = details.address || {};
+      const road = addr.road || '';
+      const houseNumber = addr.house_number || '';
+      
+      let line1 = '';
+      if (houseNumber && road) {
+        line1 = `${houseNumber} ${road}`;
+      } else {
+        line1 = road || suggestion.display_name?.split(',')[0] || '';
+      }
 
-    setAddressLine1(line1);
-    setCity(cityVal);
-    setState(stateVal);
-    setZipCode(postcodeVal.substring(0, 5));
-    setLat(parseFloat(suggestion.lat));
-    setLng(parseFloat(suggestion.lon));
-    setSuggestions([]);
+      const cityVal = addr.city || addr.town || addr.village || addr.suburb || '';
+      const stateVal = (addr.state || '').substring(0, 2).toUpperCase() || 'NY';
+      const postcodeVal = addr.postcode || '';
+
+      setAddressLine1(line1);
+      setCity(cityVal);
+      setState(stateVal);
+      setZipCode(postcodeVal.substring(0, 5));
+      setLat(parseFloat(details.lat));
+      setLng(parseFloat(details.lng));
+      setSuggestions([]);
+    } catch (err) {
+      console.error('Failed to get place details:', err);
+    } finally {
+      setSuggestionsLoading(false);
+    }
   };
 
   const handleSaveAddress = async (e) => {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
@@ -20,6 +21,7 @@ class ItemDetailScreen extends StatefulWidget {
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
   int _localQuantity = 1;
   final Set<int> _selectedAddOnIndices = {};
+  int _currentImageIndex = 0;
 
   @override
   void initState() {
@@ -94,7 +96,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     final isSpicy = item['isSpicy'] ?? false;
     final isVeg = item['isVeg'] ?? true;
     final description = item['description'] ?? 'Cottage cheese cubes marinated in a blend of yogurt, spices and herbs, grilled to perfection in a tandoor for a smoky and flavorful taste.';
-    final imageUrl = ImageHelper.getDishImageUrl(widget.item);
+    
+    List<String> images = [];
+    if (widget.item['images'] != null && (widget.item['images'] as List).isNotEmpty) {
+      images = List<String>.from(widget.item['images']);
+    } else {
+      images = [ImageHelper.getDishImageUrl(widget.item)];
+    }
+    
     final basePrice = (item['price'] ?? 0.0).toDouble();
     final addons = _getAddOns();
     
@@ -180,24 +189,51 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
-                      ImageHelper.buildDishImage(widget.item, fit: BoxFit.cover),
-                      Positioned(
-                        bottom: 16,
-                        left: 0,
-                        right: 0,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(4, (index) => Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: index == 0 ? Colors.white : Colors.white54,
-                            ),
-                          )),
+                      if (images.length == 1)
+                        ImageHelper.buildDishImage(widget.item, fit: BoxFit.cover)
+                      else
+                        PageView.builder(
+                          itemCount: images.length,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentImageIndex = index;
+                            });
+                          },
+                          itemBuilder: (context, index) {
+                            final url = images[index];
+                            if (url.startsWith('http')) {
+                              return CachedNetworkImage(
+                                imageUrl: url,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Container(color: Colors.grey.shade200),
+                                errorWidget: (context, url, error) => Container(color: Colors.grey.shade300, child: const Icon(Icons.error, color: Colors.grey)),
+                              );
+                            }
+                            return Image.asset(
+                              url.startsWith('/') ? url.substring(1) : url,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey.shade300),
+                            );
+                          },
                         ),
-                      )
+                      if (images.length > 1)
+                        Positioned(
+                          bottom: 16,
+                          left: 0,
+                          right: 0,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(images.length, (index) => Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: index == _currentImageIndex ? Colors.white : Colors.white54,
+                              ),
+                            )),
+                          ),
+                        )
                     ],
                   ),
                 ),

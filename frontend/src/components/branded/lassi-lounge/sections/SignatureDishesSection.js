@@ -91,7 +91,7 @@ export default function SignatureDishesSection() {
                   const resId = dish.restaurantId || 'lassi-lounge';
                   router.push(`/restaurant/${resId}/item/${itemId}`);
                 }}
-                className="animate-in fade-in zoom-in-95 duration-500 ease-out fill-mode-both cursor-pointer"
+                className="animate-in fade-in zoom-in-95 duration-500 ease-out fill-mode-both cursor-pointer h-full"
               >
                 <DishCard item={dish} />
               </div>

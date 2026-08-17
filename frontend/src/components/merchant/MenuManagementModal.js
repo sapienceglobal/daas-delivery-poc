@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, Sparkles, Image as ImageIcon, Tag, Activity } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Save, Sparkles, Image as ImageIcon, Tag, Activity, Upload, Loader2 } from 'lucide-react';
 import { menuAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 
@@ -12,16 +12,20 @@ export default function MenuManagementModal({
 }) {
   const [itemForm, setItemForm] = useState({
     name: '', categoryId: '', description: '', price: '', preparationTime: '15',
-    image: '', tags: '', sizeVariationsText: '', addOnsText: '',
+    image: '', images: [], tags: '', sizeVariationsText: '', addOnsText: '',
     isVeg: false, isVegan: false, isSpicy: false, isGlutenFree: false,
     isBestseller: false, isAvailable: true
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [errors, setErrors] = useState({});
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (item) {
       setItemForm({
         ...item,
+        images: item.images || (item.image ? [item.image] : []),
         categoryId: item.categoryId || categories.find(c => c.name === item.categoryName)?._id || '',
         price: item.price?.toString() || '',
         preparationTime: item.preparationTime?.toString() || '15',
@@ -33,14 +37,23 @@ export default function MenuManagementModal({
 
   const handleSaveItem = async () => {
     try {
-      if (!itemForm.name || !itemForm.categoryId || !itemForm.price) {
-        showToast('Please fill all required fields', 'error');
+      const newErrors = {};
+      if (!itemForm.name?.trim()) newErrors.name = 'Item name is required';
+      if (!itemForm.categoryId) newErrors.categoryId = 'Category is required';
+      if (!itemForm.price || Number(itemForm.price) <= 0) newErrors.price = 'Valid price is required';
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        // showToast('Please fix the errors in the form', 'error'); // Fallback is optional, inline errors show it
         return;
       }
+      setErrors({});
       setIsSaving(true);
       
       const payload = {
         ...itemForm,
+        image: itemForm.image || itemForm.images?.[0] || null,
+        images: itemForm.images || [],
         restaurantId: restaurantId, // Ensure restaurantId is included
         price: Number(itemForm.price),
         preparationTime: Number(itemForm.preparationTime),
@@ -70,6 +83,48 @@ export default function MenuManagementModal({
     }
   };
 
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const oversized = files.find(f => f.size > 10 * 1024 * 1024);
+    if (oversized) {
+      showToast('Each image size should be less than 10MB', 'error');
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+      const formData = new FormData();
+      files.forEach(file => formData.append('images', file));
+      
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/upload/multiple', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to upload images');
+      
+      const newUrls = data.data.map(d => d.url);
+      setItemForm(f => {
+        const updatedImages = [...(f.images || []), ...newUrls];
+        const newMainImage = f.image ? f.image : updatedImages[0];
+        return { ...f, images: updatedImages, image: newMainImage };
+      });
+      showToast(`${newUrls.length} image(s) uploaded successfully!`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleSmartPricing = () => {
     if (!itemForm.price) {
       showToast('Please enter a base price first', 'info');
@@ -82,9 +137,9 @@ export default function MenuManagementModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
       <div 
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+        className="bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.25)] border border-[#e5e7eb] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -124,21 +179,29 @@ export default function MenuManagementModal({
                     <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Item Name *</label>
                     <input
                       value={itemForm.name || ''}
-                      onChange={(e) => setItemForm(f => ({ ...f, name: e.target.value }))}
+                      onChange={(e) => {
+                        setItemForm(f => ({ ...f, name: e.target.value }));
+                        if (errors.name) setErrors(e => ({ ...e, name: null }));
+                      }}
                       placeholder="e.g. Garlic Naan"
-                      className="w-full rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20 focus:border-[#8B0000] transition-all"
+                      className={`w-full rounded-xl bg-[#f9fafb] border ${errors.name ? 'border-[#dc2626] focus:ring-[#dc2626]/20 focus:border-[#dc2626]' : 'border-[#e5e7eb] focus:ring-[#8B0000]/20 focus:border-[#8B0000]'} text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 transition-all`}
                     />
+                    {errors.name && <p className="text-[#dc2626] text-xs mt-1 font-bold">{errors.name}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Category *</label>
                     <select
                       value={itemForm.categoryId || ''}
-                      onChange={(e) => setItemForm(f => ({ ...f, categoryId: e.target.value }))}
-                      className="w-full rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20 focus:border-[#8B0000] transition-all appearance-none cursor-pointer"
+                      onChange={(e) => {
+                        setItemForm(f => ({ ...f, categoryId: e.target.value }));
+                        if (errors.categoryId) setErrors(e => ({ ...e, categoryId: null }));
+                      }}
+                      className={`w-full rounded-xl bg-[#f9fafb] border ${errors.categoryId ? 'border-[#dc2626] focus:ring-[#dc2626]/20 focus:border-[#dc2626]' : 'border-[#e5e7eb] focus:ring-[#8B0000]/20 focus:border-[#8B0000]'} text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 transition-all appearance-none cursor-pointer`}
                     >
                       <option value="">Select category</option>
                       {categories.map(cat => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
                     </select>
+                    {errors.categoryId && <p className="text-[#dc2626] text-xs mt-1 font-bold">{errors.categoryId}</p>}
                   </div>
                 </div>
 
@@ -163,11 +226,15 @@ export default function MenuManagementModal({
                         type="number"
                         step="0.01"
                         value={itemForm.price || ''}
-                        onChange={(e) => setItemForm(f => ({ ...f, price: e.target.value }))}
+                        onChange={(e) => {
+                          setItemForm(f => ({ ...f, price: e.target.value }));
+                          if (errors.price) setErrors(e => ({ ...e, price: null }));
+                        }}
                         placeholder="0.00"
-                        className="w-full rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm font-bold text-[#111827] pl-8 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20 focus:border-[#8B0000] transition-all"
+                        className={`w-full rounded-xl bg-[#f9fafb] border ${errors.price ? 'border-[#dc2626] focus:ring-[#dc2626]/20 focus:border-[#dc2626]' : 'border-[#e5e7eb] focus:ring-[#8B0000]/20 focus:border-[#8B0000]'} text-sm font-bold text-[#111827] pl-8 pr-4 py-3 focus:outline-none focus:ring-2 transition-all`}
                       />
                     </div>
+                    {errors.price && <p className="text-[#dc2626] text-xs mt-1 font-bold">{errors.price}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Prep Time (mins)</label>
@@ -195,16 +262,76 @@ export default function MenuManagementModal({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Image URL</label>
-                  <input
-                    value={itemForm.image || ''}
-                    onChange={(e) => setItemForm(f => ({ ...f, image: e.target.value }))}
-                    placeholder="https://example.com/image.jpg"
-                    className="w-full rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20 focus:border-[#8B0000] transition-all"
-                  />
-                  {itemForm.image && (
-                    <div className="mt-3 w-full h-32 rounded-xl bg-[#f3f4f6] border border-[#e5e7eb] overflow-hidden">
-                      <img src={itemForm.image} alt="Preview" className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'} />
+                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Image Link OR Upload (Multiple)</label>
+                  <div className="flex gap-2">
+                    <input
+                      value={itemForm.image || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setItemForm(f => {
+                          const newImages = [...(f.images || [])];
+                          if (val && !newImages.includes(val)) newImages.push(val);
+                          return { ...f, image: val, images: newImages };
+                        });
+                      }}
+                      placeholder="https://example.com/image.jpg"
+                      className="flex-1 rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20 focus:border-[#8B0000] transition-all"
+                    />
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      multiple
+                      className="hidden" 
+                      ref={fileInputRef} 
+                      onChange={handleImageUpload} 
+                    />
+                    <button 
+                      type="button"
+                      disabled={isUploadingImage}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 px-4 py-3 bg-white border border-[#e5e7eb] text-[#374151] rounded-xl hover:bg-[#f3f4f6] transition-colors font-medium text-sm whitespace-nowrap disabled:opacity-50"
+                    >
+                      {isUploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      Upload Files
+                    </button>
+                  </div>
+                  {itemForm.images && itemForm.images.length > 0 && (
+                    <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-3">
+                      {itemForm.images.map((imgUrl, idx) => {
+                        const isMain = itemForm.image === imgUrl;
+                        return (
+                          <div key={idx} className={`relative group w-full aspect-square rounded-xl overflow-hidden border-2 ${isMain ? 'border-[#8B0000]' : 'border-[#e5e7eb]'}`}>
+                            <img src={imgUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'} />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                              {!isMain && (
+                                <button 
+                                  type="button"
+                                  onClick={() => setItemForm(f => ({ ...f, image: imgUrl }))}
+                                  className="px-2 py-1 bg-white text-xs font-bold text-[#8B0000] rounded shadow-sm hover:scale-105 transition-transform"
+                                >
+                                  Set Main
+                                </button>
+                              )}
+                              <button 
+                                type="button"
+                                onClick={() => setItemForm(f => ({ 
+                                  ...f, 
+                                  images: f.images.filter(url => url !== imgUrl),
+                                  image: f.image === imgUrl ? (f.images.find(url => url !== imgUrl) || '') : f.image
+                                }))}
+                                className="px-2 py-1 bg-[#dc2626] text-xs font-bold text-white rounded shadow-sm hover:scale-105 transition-transform"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                            {isMain && (
+                              <div className="absolute top-1 right-1 bg-[#8B0000] text-white p-1.5 rounded-full shadow-md">
+                                <Sparkles className="w-3 h-3" />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

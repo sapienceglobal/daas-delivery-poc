@@ -85,13 +85,11 @@ export default function HomePage() {
     }
     try {
       setIsLocating(true);
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&limit=1`, {
-        headers: { 'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0 (adars.gemini.antigravity)' }
-      });
+      const res = await fetch(`http://localhost:5001/api/location/geocode?address=${encodeURIComponent(query)}`);
       const data = await res.json();
-      if (data && data.length > 0) {
-        setLat(parseFloat(data[0].lat));
-        setLng(parseFloat(data[0].lon));
+      if (data && data.lat && data.lng) {
+        setLat(parseFloat(data.lat));
+        setLng(parseFloat(data.lng));
       }
     } catch (err) {
       console.error('Geocoding error:', err);

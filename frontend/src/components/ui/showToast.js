@@ -8,7 +8,7 @@ function getToastContainer() {
   if (!toastContainer) {
     toastContainer = document.createElement('div');
     toastContainer.id = 'toast-container';
-    toastContainer.className = 'fixed top-24 right-4 z-[9999] flex flex-col gap-2';
+    toastContainer.className = 'fixed top-24 right-4 z-[999999] flex flex-col gap-2';
     document.body.appendChild(toastContainer);
   }
   return toastContainer;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -154,6 +154,16 @@ export function useCheckoutState() {
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [addressVerified, setAddressVerified] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState(null);
+  const sessionTokenRef = useRef(null);
+
+  const getSessionToken = () => {
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : Math.random().toString(36).substring(2, 15);
+    }
+    return sessionTokenRef.current;
+  };
 
   useEffect(() => {
     if (isAuthenticated) refreshUser();
@@ -313,8 +323,7 @@ export function useCheckoutState() {
   const triggerGeocoding = async (addrStr) => {
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addrStr)}&limit=1`,
-        { headers: { 'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0' } }
+        `/api/location/geocode?address=${encodeURIComponent(addrStr)}`
       );
       const data = await res.json();
       if (data && data.length > 0) {
@@ -350,8 +359,7 @@ export function useCheckoutState() {
     const to = setTimeout(async () => {
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&addressdetails=1&limit=5`,
-          { headers: { 'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0' } }
+          `/api/location/autocomplete?q=${encodeURIComponent(val)}&sessionToken=${getSessionToken()}`
         );
         const data = await res.json();
         setSuggestions(data || []);
@@ -364,8 +372,37 @@ export function useCheckoutState() {
     setSearchTimeout(to);
   };
 
-  const handleSelectSuggestion = (suggestion) => {
-    const parts = suggestion.display_name.split(',').map((p) => p.trim());
+  const handleSelectSuggestion = async (suggestion) => {
+    // If it's a Google Place suggestion, it will have a place_id. We need to fetch details.
+    if (suggestion.place_id) {
+      try {
+        const res = await fetch(`/api/location/place?place_id=${suggestion.place_id}&sessionToken=${sessionTokenRef.current || ''}`);
+        const data = await res.json();
+        sessionTokenRef.current = null; // Reset session token
+        
+        if (data) {
+          setAddressLine1(data.address?.house_number ? `${data.address.house_number} ${data.address.road}`.trim() : data.address?.road || suggestion.main_text || '');
+          setCity(data.address?.city || '');
+          setState(data.address?.state || '');
+          setZipCode((data.address?.postcode || '').substring(0, 5));
+          
+          if (data.lat && data.lng) {
+            setAddressLat(parseFloat(data.lat));
+            setAddressLng(parseFloat(data.lng));
+            setAddressVerified(true);
+            setQuoteError(null);
+            setQuoteTrigger((prev) => prev + 1);
+          }
+          setSuggestions([]);
+        }
+      } catch (err) {
+        console.error('Place details error:', err);
+      }
+      return;
+    }
+
+    // Fallback for nominatim if any old code is using it
+    const parts = (suggestion.display_name || '').split(',').map((p) => p.trim());
     const addr = suggestion.address || {};
     const road = addr.road || '';
     const houseNumber = addr.house_number || '';
@@ -466,8 +503,7 @@ export function useCheckoutState() {
       async (pos) => {
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&zoom=18&addressdetails=1`,
-            { headers: { 'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0' } }
+            `/api/location/reverse-geocode?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`
           );
           const data = await res.json();
           if (data) {
@@ -689,6 +725,8 @@ export function useCheckoutState() {
       if (paymentMethod && paymentMethod.startsWith('saved_card_')) {
         savedCardId = paymentMethod.replace('saved_card_', '');
         finalPaymentMethod = 'credit_card';
+      } else if (paymentMethod === 'stripe_online') {
+        finalPaymentMethod = 'credit_card';
       }
 
       const orderData = {
@@ -702,6 +740,7 @@ export function useCheckoutState() {
 
       const data = await orderAPI.create(orderData);
       clearCart();
+      
       showToast('Order placed successfully!', 'success');
       router.push(`/orders/${data.data._id}`);
     } catch (err) {

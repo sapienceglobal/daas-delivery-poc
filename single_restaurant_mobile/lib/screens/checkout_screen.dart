@@ -320,30 +320,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
           child: Column(
             children: [
-          // Apple Pay
-          if (Platform.isIOS)
-            _buildPaymentOption(
-              customIcon: Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Apple_Pay_logo.svg/320px-Apple_Pay_logo.svg.png', width: 32, height: 20, fit: BoxFit.contain, errorBuilder: (_,__,___) => Icon(Icons.apple, color: Colors.grey.shade600)),
-              title: 'Apple Pay',
-              value: 'apple_pay',
-              groupValue: checkout.paymentMethod,
-              onChanged: (val) => checkout.setPaymentMethod(val!),
-              isFirst: true,
-            ),
-          if (Platform.isIOS) const Divider(height: 1, indent: 48),
-
-          // Google Pay
-          if (Platform.isAndroid)
-            _buildPaymentOption(
-              customIcon: Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Google_Pay_Logo.svg/320px-Google_Pay_Logo.svg.png', width: 32, height: 20, fit: BoxFit.contain, errorBuilder: (_,__,___) => Icon(Icons.g_mobiledata, color: Colors.grey.shade600)),
-              title: 'Google Pay',
-              value: 'google_pay',
-              groupValue: checkout.paymentMethod,
-              onChanged: (val) => checkout.setPaymentMethod(val!),
-              isFirst: !Platform.isIOS,
-            ),
-          if (Platform.isAndroid) const Divider(height: 1, indent: 48),
-
           // Saved Cards
           if (auth.user?.savedCards != null && auth.user!.savedCards!.isNotEmpty)
             ...auth.user!.savedCards!.map((card) {
@@ -356,23 +332,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     value: card['cardId'] ?? card['id'] ?? card['_id'] ?? '',
                     groupValue: checkout.paymentMethod,
                     onChanged: (val) => checkout.setPaymentMethod(val!),
+                    isFirst: card == auth.user!.savedCards!.first,
                   ),
-                  if (Platform.isAndroid || card != auth.user!.savedCards!.last)
-                    const Divider(height: 1, indent: 48),
+                  const Divider(height: 1, indent: 48),
                 ],
               );
             }),
           
           if (auth.user?.savedCards == null || auth.user!.savedCards!.isEmpty)
-            const Divider(height: 1, indent: 48),
+            const SizedBox(height: 0), // No divider needed if first
 
-          // Add New Card
+          // Pay with Card / Mobile Wallets (Secure Stripe Checkout)
           _buildPaymentOption(
-            icon: Icons.add_card,
-            title: 'Add New Card',
+            icon: Icons.lock_outline,
+            title: 'Pay with Card / Mobile Wallets',
+            subtitle: '100% Secure via Stripe',
             value: 'credit_card',
             groupValue: checkout.paymentMethod,
             onChanged: (val) => checkout.setPaymentMethod(val!),
+            isFirst: auth.user?.savedCards == null || auth.user!.savedCards!.isEmpty,
             isLast: true,
           ),
         ],
@@ -445,7 +423,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             Expanded(
               child: Row(
                 children: [
-                  Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, fontSize: 14)),
+                  Flexible(
+                    child: Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, fontSize: 14)),
+                  ),
                   if (subtitle != null) ...[
                     const SizedBox(width: 8),
                     Container(

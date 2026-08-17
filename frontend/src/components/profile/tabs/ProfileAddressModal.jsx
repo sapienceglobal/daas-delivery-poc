@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { authAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
@@ -32,6 +32,16 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState(null);
+  const sessionTokenRef = useRef(null);
+
+  const getSessionToken = () => {
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : Math.random().toString(36).substring(2, 15);
+    }
+    return sessionTokenRef.current;
+  };
 
   useEffect(() => {
     if (addressToEdit) {
@@ -102,10 +112,7 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
     setSuggestionsLoading(true);
     const to = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&addressdetails=1&limit=5`,
-          { headers: { 'User-Agent': 'SapienceGlobalPoCDeliveryApp/1.0' } }
-        );
+        const res = await fetch(`/api/location/autocomplete?q=${encodeURIComponent(val)}&sessionToken=${getSessionToken()}`);
         const data = await res.json();
         setSuggestions(data || []);
       } catch (err) {
@@ -117,23 +124,45 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
     setSearchTimeout(to);
   };
 
-  const handleSelectSuggestion = (suggestion) => {
-    const parts = suggestion.display_name.split(',').map((p) => p.trim());
-    const addr = suggestion.address || {};
-    const road = addr.road || '';
-    const houseNumber = addr.house_number || '';
-    const line1 = `${houseNumber} ${road}`.trim() || parts.slice(0, 2).join(', ');
+  const handleSelectSuggestion = async (suggestion) => {
+    if (suggestion.place_id) {
+      try {
+        const res = await fetch(`/api/location/place?place_id=${suggestion.place_id}&sessionToken=${sessionTokenRef.current || ''}`);
+        const data = await res.json();
+        sessionTokenRef.current = null; // Clear token after place details is fetched
+        
+        if (data) {
+          setAddressLine1(data.address?.house_number ? `${data.address.house_number} ${data.address.road}`.trim() : data.address?.road || suggestion.main_text || '');
+          setCity(data.address?.city || '');
+          setState(data.address?.state || '');
+          setZipCode((data.address?.postcode || '').substring(0, 5));
+          
+          if (data.lat && data.lng) {
+            setLat(parseFloat(data.lat) || 0);
+            setLng(parseFloat(data.lng) || 0);
+          }
+        }
+      } catch (err) {
+        console.error('Place details error:', err);
+      }
+    } else {
+      const parts = suggestion.display_name.split(',').map((p) => p.trim());
+      const addr = suggestion.address || {};
+      const road = addr.road || '';
+      const houseNumber = addr.house_number || '';
+      const line1 = `${houseNumber} ${road}`.trim() || parts.slice(0, 2).join(', ');
 
-    const cityVal = addr.city || addr.town || addr.village || addr.suburb || '';
-    const stateVal = (addr.state || '').substring(0, 2).toUpperCase() || 'NY';
-    const postcodeVal = addr.postcode || '';
+      const cityVal = addr.city || addr.town || addr.village || addr.suburb || '';
+      const stateVal = (addr.state || '').substring(0, 2).toUpperCase() || 'NY';
+      const postcodeVal = addr.postcode || '';
 
-    setAddressLine1(line1);
-    setCity(cityVal);
-    setState(stateVal);
-    setZipCode(postcodeVal.substring(0, 5));
-    setLat(parseFloat(suggestion.lat) || 0);
-    setLng(parseFloat(suggestion.lon) || 0);
+      setAddressLine1(line1);
+      setCity(cityVal);
+      setState(stateVal);
+      setZipCode(postcodeVal.substring(0, 5));
+      setLat(parseFloat(suggestion.lat) || 0);
+      setLng(parseFloat(suggestion.lon) || 0);
+    }
     setSuggestions([]);
   };
 

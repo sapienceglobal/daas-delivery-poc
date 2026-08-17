@@ -8,6 +8,7 @@ import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
 import 'package:single_restaurant_mobile/screens/map_location_picker_screen.dart';
+import 'package:single_restaurant_mobile/services/location_service.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 
 class SavedAddressesScreen extends StatefulWidget {
@@ -411,6 +412,8 @@ class _AddressFormBottomSheetState extends State<_AddressFormBottomSheet> {
     'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
     'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
   ];
+  
+  final LocationService _locationService = LocationService();
 
   @override
   void initState() {
@@ -467,11 +470,25 @@ class _AddressFormBottomSheetState extends State<_AddressFormBottomSheet> {
     }
   }
 
-  void _handleAutocomplete(Map<String, dynamic> data) {
-    if (data['address'] != null) {
-      final addr = data['address'];
+  Future<void> _handleAutocomplete(Map<String, dynamic> data) async {
+    Map<String, dynamic>? details = data;
+    
+    if (data['place_id'] != null) {
+      setState(() => _isLoading = true);
+      final placeDetails = await _locationService.geocodeAddress(data['place_id'], isPlaceId: true);
+      setState(() => _isLoading = false);
+      if (placeDetails != null) {
+        details = placeDetails;
+      }
+    }
+
+    if (details != null && details['address'] != null) {
+      final addr = details['address'];
       setState(() {
-        _streetController.text = addr['road'] ?? addr['suburb'] ?? data['name'] ?? '';
+        _streetController.text = addr['house_number'] != null && addr['road'] != null 
+          ? '${addr['house_number']} ${addr['road']}'.trim() 
+          : addr['road'] ?? addr['suburb'] ?? details?['name'] ?? data['main_text'] ?? '';
+          
         _cityController.text = addr['city'] ?? addr['town'] ?? addr['village'] ?? '';
         _state = (addr['state'] ?? 'NY').toString().substring(0, 2).toUpperCase();
         
@@ -479,8 +496,8 @@ class _AddressFormBottomSheetState extends State<_AddressFormBottomSheet> {
         if (zip.length > 5) zip = zip.substring(0, 5);
         _zipController.text = zip;
         
-        _lat = double.tryParse(data['lat'].toString());
-        _lng = double.tryParse(data['lon'].toString());
+        _lat = double.tryParse(details?['lat']?.toString() ?? '');
+        _lng = double.tryParse(details?['lng']?.toString() ?? details?['lon']?.toString() ?? '');
       });
     }
   }
