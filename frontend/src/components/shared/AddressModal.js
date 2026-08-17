@@ -25,6 +25,7 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
   const [isLocating, setIsLocating] = useState(false);
   const searchTimeout = useRef(null);
   const sessionTokenRef = useRef(null);
+  const requestCount = useRef(0);
 
   const getSessionToken = () => {
     if (!sessionTokenRef.current) {
@@ -87,20 +88,27 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
     if (val.trim().length < 3) {
+      requestCount.current += 1;
       setSuggestions([]);
+      setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     searchTimeout.current = setTimeout(async () => {
+      const currentReq = ++requestCount.current;
       try {
         const res = await fetch(`/api/location/autocomplete?q=${encodeURIComponent(val)}&sessionToken=${getSessionToken()}`);
         const data = await res.json();
-        setSuggestions(data || []);
+        if (currentReq === requestCount.current) {
+          setSuggestions(data || []);
+        }
       } catch (err) {
         console.error('Nominatim search error:', err);
       } finally {
-        setIsLoading(false);
+        if (currentReq === requestCount.current) {
+          setIsLoading(false);
+        }
       }
     }, 500);
   };
@@ -206,7 +214,7 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-2 bg-white">
+            <div className="flex-1 overflow-y-auto p-2 bg-white ll-soft-scroll">
               
               {/* Suggestions */}
               {suggestions.length > 0 && (

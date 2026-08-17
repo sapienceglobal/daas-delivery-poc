@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class ReferralScreen extends StatelessWidget {
   const ReferralScreen({super.key});
@@ -112,13 +113,7 @@ class ReferralScreen extends StatelessWidget {
                             InkWell(
                               onTap: () {
                                 Clipboard.setData(ClipboardData(text: referralCode));
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Referral code copied to clipboard!'),
-                                    backgroundColor: Colors.green,
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
+                                ToastUtils.showSuccess(context, 'Referral code copied to clipboard!');
                               },
                               borderRadius: const BorderRadius.horizontal(right: Radius.circular(14)),
                               child: Container(

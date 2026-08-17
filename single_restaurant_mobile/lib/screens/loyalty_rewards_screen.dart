@@ -9,6 +9,7 @@ import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/screens/orders_screen.dart';
 import 'package:single_restaurant_mobile/screens/referral_screen.dart';
 import 'dart:math' as math;
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class LoyaltyRewardsScreen extends StatefulWidget {
   const LoyaltyRewardsScreen({super.key});
@@ -128,7 +129,7 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
                           GestureDetector(
                             onTap: () {
                               Clipboard.setData(ClipboardData(text: couponCode));
-                              messenger.showSnackBar(const SnackBar(content: Text('Coupon code copied!'), duration: Duration(seconds: 2)));
+                              ToastUtils.showSuccess(context, 'Coupon code copied!');
                             },
                             child: const Icon(Icons.copy, color: AppColors.primary, size: 20),
                           ),
@@ -224,13 +225,9 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
                 onPressed: () async {
                   final success = await loyalty.joinProgram();
                   if (success) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Welcome to the club! You earned 50 bonus points!'), backgroundColor: Colors.green),
-                    );
+                    ToastUtils.showSuccess(context, 'Welcome to the club! You earned 50 bonus points!');
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(loyalty.error ?? 'Failed to join'), backgroundColor: Colors.red),
-                    );
+                    ToastUtils.showError(context, loyalty.error ?? 'Failed to join');
                   }
                 },
                 child: loyalty.isLoading 
@@ -472,9 +469,7 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
                             final couponCode = res['couponCode'] as String?;
                             _showRedeemSuccessDialog(context, couponCode ?? '', reward['off'] as int);
                           } else if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(res['message'] ?? 'Failed'), backgroundColor: Colors.red),
-                            );
+                            ToastUtils.showError(context, res['message'] ?? 'Failed');
                           }
                         } : null,
                         style: ElevatedButton.styleFrom(
@@ -688,30 +683,18 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
                                       final cart = context.read<CartProvider>();
                                       // If already applied → nothing to do
                                       if (isApplied) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text('$code is already applied to your cart!'),
-                                            backgroundColor: Colors.green.shade700,
-                                          ),
-                                        );
+                                        ToastUtils.showSuccess(context, '$code is already applied to your cart!');
                                         return;
                                       }
                                       checkout.setCouponCode(code);
                                       if (cart.items.isEmpty) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Add items to cart first!'), backgroundColor: Colors.orange),
-                                        );
+                                        ToastUtils.showInfo(context, 'Add items to cart first!');
                                         return;
                                       }
                                       try {
                                         await checkout.handleApplyCoupon(cart);
                                         if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text(checkout.couponApplied ? '$code applied to cart! ✓' : 'Could not apply coupon'),
-                                              backgroundColor: checkout.couponApplied ? Colors.green : Colors.orange,
-                                            ),
-                                          );
+                                          ToastUtils.showSuccess(context, checkout.couponApplied ? '$code applied to cart! ✓' : 'Could not apply coupon');
                                         }
                                       } catch (e) {
                                         if (context.mounted) {
@@ -794,12 +777,7 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
                 : () async {
                     final res = await loyalty.earnPoints('login');
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(res['message'] ?? ''),
-                          backgroundColor: res['success'] == true ? Colors.green : Colors.red,
-                        ),
-                      );
+                      ToastUtils.showError(context, res['message'] ?? '');
                     }
                   },
             isClaimed: loyalty.hasClaimedDaily,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/widgets/customization_bottom_sheet.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class AddToCartHelper {
   static void handleAddToCart(
@@ -20,6 +21,7 @@ class AddToCartHelper {
       final newItem = Map<String, dynamic>.from(item);
       newItem['quantity'] = quantity;
       cartProvider.addItem(newItem, restaurantData: restaurantProvider.restaurant);
+      ToastUtils.showSuccess(context, 'Item added to cart!');
       return;
     }
 
@@ -55,6 +57,7 @@ class AddToCartHelper {
                 final repeatItem = Map<String, dynamic>.from(lastItem);
                 repeatItem['quantity'] = 1;
                 cartProvider.addItem(repeatItem, restaurantData: restaurantProvider.restaurant);
+                ToastUtils.showSuccess(context, 'Item added to cart!');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red.shade900,

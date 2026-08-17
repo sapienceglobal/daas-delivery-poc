@@ -6,6 +6,7 @@ import 'package:single_restaurant_mobile/services/reservation_service.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/screens/login_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class BookTableScreen extends StatefulWidget {
   const BookTableScreen({super.key});
@@ -112,9 +113,7 @@ class _BookTableScreenState extends State<BookTableScreen> {
   Future<void> _submitReservation() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (!authProvider.isAuthenticated) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please login to book a table')),
-      );
+      ToastUtils.showError(context, 'Please login to book a table');
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -127,9 +126,7 @@ class _BookTableScreenState extends State<BookTableScreen> {
     if (restaurantId == null) return;
 
     if (_selectedDate == null || _selectedTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select date and time')),
-      );
+      ToastUtils.showError(context, 'Please select date and time');
       return;
     }
 
@@ -159,16 +156,12 @@ class _BookTableScreenState extends State<BookTableScreen> {
 
     if (result['success'] == true) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reservation submitted successfully!')),
-        );
+        ToastUtils.showSuccess(context, 'Reservation submitted successfully!');
         Navigator.pop(context);
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] ?? 'Failed to create reservation')),
-        );
+        ToastUtils.showError(context, result['message'] ?? 'Failed to create reservation');
       }
     }
   }
@@ -232,9 +225,9 @@ class _BookTableScreenState extends State<BookTableScreen> {
               ),
             ),
           ),
-          _buildBottomFooter(),
         ],
       ),
+      bottomNavigationBar: _buildBottomFooter(),
     );
   }
 
@@ -593,7 +586,12 @@ class _BookTableScreenState extends State<BookTableScreen> {
 
   Widget _buildBottomFooter() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: 20 + MediaQuery.of(context).padding.bottom
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [

@@ -24,6 +24,7 @@ import 'package:single_restaurant_mobile/widgets/shimmer_loading.dart';
 import 'package:single_restaurant_mobile/widgets/empty_state_widget.dart';
 import 'package:single_restaurant_mobile/services/coupon_service.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -345,10 +346,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             }
                             _showLocationBottomSheet(context, addressProvider);
                           } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Please login to select address')),
-                            );
+                            ToastUtils.showError(context, 'Please login to select address');
                           }
                         },
                         child: Container(
@@ -450,22 +448,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         height: MediaQuery.of(context).size.height * 0.7,
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           children: [
+            const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(16),
+              width: 48,
+              height: 5,
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Select a location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                  const Text('Select a location', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.close, size: 20, color: Colors.grey.shade800),
+                    ),
                   ),
                 ],
               ),
@@ -487,38 +501,74 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       final addr = addrProv.addresses[index];
                       final isDefault = addr['isDefault'] == true;
                       
-                      return ListTile(
-                        leading: Icon(
-                          addr['label']?.toString().toLowerCase() == 'home' ? Icons.home : Icons.location_on,
-                          color: isDefault ? Colors.red : Colors.grey,
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isDefault ? Colors.red.shade50 : Colors.white,
+                          border: Border.all(color: isDefault ? Colors.red.shade200 : Colors.grey.shade200),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        title: Text(addr['label'] ?? 'Address', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(addr['address'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
-                        trailing: isDefault ? const Icon(Icons.check_circle, color: Colors.red) : null,
-                        onTap: () {
-                          addrProv.setDefaultAddress(addr['_id']);
-                          Navigator.pop(context);
-                        },
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          leading: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: isDefault ? Colors.red.shade100 : Colors.grey.shade100,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              addr['label']?.toString().toLowerCase() == 'home' ? Icons.home_rounded : Icons.location_on_rounded,
+                              color: isDefault ? Colors.red.shade700 : Colors.grey.shade600,
+                              size: 24,
+                            ),
+                          ),
+                          title: Text(
+                            addr['label'] ?? 'Address', 
+                            style: TextStyle(fontWeight: FontWeight.w700, color: Colors.grey.shade900)
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Text(
+                              addr['address'] ?? '', 
+                              maxLines: 2, 
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.3),
+                            ),
+                          ),
+                          trailing: isDefault ? Icon(Icons.check_circle_rounded, color: Colors.red.shade700) : null,
+                          onTap: () {
+                            addrProv.setDefaultAddress(addr['_id']);
+                            Navigator.pop(context);
+                          },
+                        ),
                       );
                     },
                   );
                 },
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
+            Container(
+              padding: EdgeInsets.only(
+                left: 16.0, 
+                right: 16.0, 
+                top: 16.0, 
+                bottom: 16.0 + MediaQuery.of(context).padding.bottom
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+              ),
               child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.pop(context);
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const SavedAddressesScreen(selectingMode: false)));
                 },
-                icon: const Icon(Icons.add, color: Colors.white),
-                label: const Text('Add New Address', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                icon: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
+                label: const Text('ADD NEW ADDRESS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  elevation: 0,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: Colors.red.shade900,
+                  minimumSize: const Size(double.infinity, 54),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
               ),
             ),
@@ -527,15 +577,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
     );
   }
-
-
-
-
-
-
-
-
-
 
   Widget _buildHeroBanner(BuildContext context, dynamic restaurant) {
     final bannerUrl = restaurant?['banner'];
@@ -852,10 +893,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 if (authProvider.isAuthenticated) {
                                   await authProvider.toggleFavoriteItem(dishId);
                                 } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text(
-                                              'Please login to add favorites')));
+                                  ToastUtils.showError(context, 'Please login to add favorites');
                                 }
                               },
                               child: Container(

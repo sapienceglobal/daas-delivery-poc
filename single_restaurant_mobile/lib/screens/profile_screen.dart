@@ -24,6 +24,7 @@ import 'package:single_restaurant_mobile/screens/book_table_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -49,7 +50,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickAndUploadImage(AuthProvider authProvider) async {
     if (authProvider.user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please login to edit profile')));
+      ToastUtils.showError(context, 'Please login to edit profile');
       return;
     }
     
@@ -58,9 +59,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final success = await authProvider.updateProfile(imagePath: pickedFile.path);
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile picture updated successfully!'), backgroundColor: Colors.green));
+          ToastUtils.showSuccess(context, 'Profile picture updated successfully!');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(authProvider.error ?? 'Failed to update profile picture'), backgroundColor: Colors.red));
+          ToastUtils.showError(context, authProvider.error ?? 'Failed to update profile picture');
         }
       }
     }
@@ -197,7 +198,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   if (user != null) {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfileScreen()));
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please login to edit profile')));
+                    ToastUtils.showError(context, 'Please login to edit profile');
                   }
                 },
                 child: Column(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class CustomizationBottomSheet extends StatefulWidget {
   final Map<String, dynamic> item;
@@ -204,7 +205,7 @@ class _CustomizationBottomSheetState extends State<CustomizationBottomSheet> {
                         widget.cartProvider.addItem(newItem, restaurantData: widget.restaurantProvider.restaurant);
                         
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item added to cart')));
+                        ToastUtils.showSuccess(context, 'Item added to cart');
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red.shade900,

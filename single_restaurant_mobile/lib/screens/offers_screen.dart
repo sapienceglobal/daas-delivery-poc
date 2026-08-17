@@ -8,6 +8,7 @@ import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/screens/cart_screen.dart';
 import 'package:single_restaurant_mobile/screens/loyalty_rewards_screen.dart';
 import 'package:single_restaurant_mobile/screens/referral_screen.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class OffersScreen extends StatefulWidget {
   const OffersScreen({super.key});
@@ -146,9 +147,7 @@ class _OffersScreenState extends State<OffersScreen> {
                           final cart = Provider.of<CartProvider>(context, listen: false);
                           
                           if (cart.items.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: const Text('Add items to cart first'), backgroundColor: Colors.red.shade800),
-                            );
+                            ToastUtils.showError(context, 'Add items to cart first');
                             return;
                           }
                           
@@ -158,9 +157,7 @@ class _OffersScreenState extends State<OffersScreen> {
                           try {
                             await checkout.handleApplyCoupon(cart);
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Coupon applied successfully!'), backgroundColor: Colors.green),
-                              );
+                              ToastUtils.showSuccess(context, 'Coupon applied successfully!');
                               // Pop all the way back to main screen or push cart
                               if (Navigator.canPop(context)) Navigator.pop(context);
                               // For simplicity, just pop the offers screen, so they see cart if they came from cart, or menu if they came from profile

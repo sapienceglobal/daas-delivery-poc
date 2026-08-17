@@ -10,6 +10,7 @@ import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
 import 'package:single_restaurant_mobile/screens/map_location_picker_screen.dart';
 import 'package:single_restaurant_mobile/services/location_service.dart';
 import 'package:latlong2/latlong.dart' hide Path;
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class SavedAddressesScreen extends StatefulWidget {
   final bool selectingMode;
@@ -504,7 +505,7 @@ class _AddressFormBottomSheetState extends State<_AddressFormBottomSheet> {
 
   Future<void> _saveAddress() async {
     if (_streetController.text.isEmpty || _cityController.text.isEmpty || _zipController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all address fields')));
+      ToastUtils.showError(context, 'Please fill all address fields');
       return;
     }
 
@@ -538,9 +539,9 @@ class _AddressFormBottomSheetState extends State<_AddressFormBottomSheet> {
       setState(() => _isLoading = false);
       if (success) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.existingAddress != null ? 'Address updated' : 'Address added')));
+        ToastUtils.showSuccess(context, widget.existingAddress != null ? 'Address updated' : 'Address added');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.provider.error ?? 'Failed to save address')));
+        ToastUtils.showError(context, widget.provider.error ?? 'Failed to save address');
       }
     }
   }

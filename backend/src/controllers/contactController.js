@@ -43,9 +43,9 @@ export const submitContactMessage = asyncHandler(async (req, res, next) => {
 // @access  Private (Merchant/Admin)
 export const getMerchantMessages = asyncHandler(async (req, res, next) => {
   const restaurantId = req.user.restaurantId || req.query.restaurantId;
-  
+
   if (!restaurantId && req.user.role !== 'admin') {
-     return next(new AppError('Not authorized to access messages without a restaurant', 403));
+    return next(new AppError('Not authorized to access messages without a restaurant', 403));
   }
 
   const query = restaurantId ? { restaurant: restaurantId } : {};

@@ -10,6 +10,7 @@ import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String email;
@@ -131,9 +132,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     if (errorMsg == null) {
       _clearOtpFields();
       _startResendTimer();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A new code has been sent to your email.')),
-      );
+      ToastUtils.showInfo(context, 'A new code has been sent to your email.');
     } else {
       setState(() => _errorMessage = errorMsg);
     }

@@ -4,6 +4,7 @@ import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class MenuItemCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -77,7 +78,7 @@ class MenuItemCard extends StatelessWidget {
                           if (authProvider.isAuthenticated) {
                             await authProvider.toggleFavoriteItem(itemId);
                           } else {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please login to add favorites')));
+                            ToastUtils.showError(context, 'Please login to add favorites');
                           }
                         },
                         child: Container(

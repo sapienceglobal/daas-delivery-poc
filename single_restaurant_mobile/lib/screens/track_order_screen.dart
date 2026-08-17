@@ -10,6 +10,7 @@ import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'dart:async';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class TrackOrderScreen extends StatefulWidget {
   final String orderId;
@@ -172,11 +173,11 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                                 try {
                                   await provider.cancelOrder(_order!['_id']);
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order cancelled successfully')));
+                                    ToastUtils.showSuccess(context, 'Order cancelled successfully');
                                   }
                                 } catch (e) {
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                                    ToastUtils.showError(context, e.toString());
                                   }
                                 }
                               }

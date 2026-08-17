@@ -9,6 +9,7 @@ import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
 import 'package:single_restaurant_mobile/widgets/empty_state_widget.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class OrdersScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -237,11 +238,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             try {
                               await provider.cancelOrder(displayOrders[index]['_id']);
                               if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order cancelled successfully')));
+                                ToastUtils.showSuccess(context, 'Order cancelled successfully');
                               }
                             } catch (e) {
                               if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
+                                ToastUtils.showError(context, e.toString());
                               }
                             }
                           }

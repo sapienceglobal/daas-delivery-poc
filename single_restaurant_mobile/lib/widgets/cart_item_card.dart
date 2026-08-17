@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
+import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
 
 class CartItemCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -25,6 +26,18 @@ class CartItemCard extends StatelessWidget {
     
     // Addons logic
     final addOns = item['addOns'] as List?;
+    final isVeg = item['isVeg'] ?? true;
+    final isSpicy = item['isSpicy'] ?? false;
+    final spiceText = isSpicy ? 'Medium' : 'Mild';
+    
+    final goToDetail = () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ItemDetailScreen(item: item),
+        ),
+      );
+    };
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -37,12 +50,15 @@ class CartItemCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: SizedBox(
-              width: 75,
-              height: 75,
-              child: ImageHelper.buildDishImage(item, fit: BoxFit.cover),
+          GestureDetector(
+            onTap: goToDetail,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 75,
+                height: 75,
+                child: ImageHelper.buildDishImage(item, fit: BoxFit.cover),
+              ),
             ),
           ),
           const SizedBox(width: 14),
@@ -57,8 +73,11 @@ class CartItemCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Row(
-                        children: [
+                      child: GestureDetector(
+                        onTap: goToDetail,
+                        behavior: HitTestBehavior.opaque,
+                        child: Row(
+                          children: [
                           Flexible(
                             child: Text(
                               name,
@@ -68,27 +87,31 @@ class CartItemCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          // Veg/Non-veg icon (mocked as non-veg red dot in square for this example)
+                          // Veg/Non-veg icon
                           Container(
                             width: 14,
                             height: 14,
                             decoration: BoxDecoration(
-                              border: Border.all(color: const Color(0xFF7A0B10)),
+                              border: Border.all(color: isVeg ? Colors.green : const Color(0xFF7A0B10)),
                               borderRadius: BorderRadius.circular(3),
                             ),
                             alignment: Alignment.center,
                             child: Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF7A0B10),
+                              decoration: BoxDecoration(
+                                color: isVeg ? Colors.green : const Color(0xFF7A0B10),
                                 shape: BoxShape.circle,
                               ),
                             ),
-                          )
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(Icons.local_fire_department, size: 14, color: isSpicy ? Colors.red.shade900 : Colors.grey.shade400),
+                          const SizedBox(width: 2),
+                          Text(spiceText, style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
                         ],
                       ),
-                    ),
+                    )),
                     GestureDetector(
                       onTap: onDelete,
                       child: const Icon(Icons.delete_outline, color: Color(0xFF9CA3AF), size: 20),
@@ -98,21 +121,23 @@ class CartItemCard extends StatelessWidget {
                 
                 // Addons / Size
                 const SizedBox(height: 2),
-                if (addOns != null && addOns.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: addOns.map<Widget>((a) => Text(
-                      '+ ${a['name']}',
-                      style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    )).toList(),
-                  )
-                else
-                  const Text(
-                    'Regular',
-                    style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
-                  ),
+                GestureDetector(
+                  onTap: goToDetail,
+                  child: addOns != null && addOns.isNotEmpty
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: addOns.map<Widget>((a) => Text(
+                          '+ ${a['name']}',
+                          style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )).toList(),
+                      )
+                    : const Text(
+                        'Regular',
+                        style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+                      ),
+                ),
                 
                 const SizedBox(height: 12),
                 
@@ -121,12 +146,15 @@ class CartItemCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Unit Price
-                    Text(
-                      '\$${((item['price'] ?? 0.0) as num).toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        color: Color(0xFF7A0B10),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                    GestureDetector(
+                      onTap: goToDetail,
+                      child: Text(
+                        '\$${((item['price'] ?? 0.0) as num).toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: Color(0xFF7A0B10),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                     

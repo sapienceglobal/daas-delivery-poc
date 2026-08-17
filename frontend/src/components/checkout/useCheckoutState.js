@@ -153,8 +153,9 @@ export function useCheckoutState() {
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [addressVerified, setAddressVerified] = useState(false);
-  const [searchTimeout, setSearchTimeout] = useState(null);
+  const searchTimeoutRef = useRef(null);
   const sessionTokenRef = useRef(null);
+  const searchRequestCount = useRef(0);
 
   const getSessionToken = () => {
     if (!sessionTokenRef.current) {
@@ -348,28 +349,34 @@ export function useCheckoutState() {
     setDeliveryQuote(null);
     setQuoteError(null);
 
-    if (searchTimeout) clearTimeout(searchTimeout);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
 
     if (val.trim().length < 3) {
+      searchRequestCount.current += 1;
       setSuggestions([]);
+      setSuggestionsLoading(false);
       return;
     }
 
     setSuggestionsLoading(true);
-    const to = setTimeout(async () => {
+    searchTimeoutRef.current = setTimeout(async () => {
+      const currentReq = ++searchRequestCount.current;
       try {
         const res = await fetch(
           `/api/location/autocomplete?q=${encodeURIComponent(val)}&sessionToken=${getSessionToken()}`
         );
         const data = await res.json();
-        setSuggestions(data || []);
+        if (currentReq === searchRequestCount.current) {
+          setSuggestions(data || []);
+        }
       } catch (err) {
         console.error('Nominatim search error:', err);
       } finally {
-        setSuggestionsLoading(false);
+        if (currentReq === searchRequestCount.current) {
+          setSuggestionsLoading(false);
+        }
       }
     }, 500);
-    setSearchTimeout(to);
   };
 
   const handleSelectSuggestion = async (suggestion) => {

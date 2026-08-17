@@ -196,7 +196,7 @@ export default function DeliveryInfoSection({
                           />
                           {/* Suggestions dropdown */}
                           {(suggestionsLoading || (suggestions && suggestions.length > 0)) && (
-                            <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white rounded-xl border border-[#e5e7eb] shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+                            <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white rounded-xl border border-[#e5e7eb] shadow-lg overflow-hidden max-h-[220px] overflow-y-auto ll-pop ll-soft-scroll">
                               {suggestionsLoading ? (
                                 <div className="flex items-center gap-2 px-4 py-3 text-sm text-[#6b7280]">
                                   <Loader2 className="w-4 h-4 animate-spin" />

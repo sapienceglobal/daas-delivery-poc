@@ -117,51 +117,51 @@ export default function DishCard({ item }) {
       </div>
 
       <div className="p-3 flex flex-col flex-1 justify-between">
-  <div>
-    <h4 className="text-background-alt font-bold text-xs md:text-sm mb-1 line-clamp-1">{item.name}</h4>
-    <p className="text-background-alt opacity-70 text-[10px] leading-tight line-clamp-2">{item.description}</p>
-  </div>
+        <div>
+          <h4 className="text-background-alt font-bold text-xs md:text-sm mb-1 line-clamp-1">{item.name}</h4>
+          <p className="text-background-alt opacity-70 text-[10px] leading-tight line-clamp-2">{item.description}</p>
+        </div>
 
-  <div className="mt-3 flex items-center justify-between pt-1">
-    <span className="text-accent-400 font-bold text-xs md:text-sm">${displayPrice.toFixed(2)}</span>
+        <div className="mt-3 flex items-center justify-between pt-1">
+          <span className="text-accent-400 font-bold text-xs md:text-sm">${displayPrice.toFixed(2)}</span>
 
-    {cartQty > 0 ? (
-      <div className="flex items-center border border-primary-600/40 rounded-lg h-7 bg-white shadow-sm overflow-hidden select-none shrink-0">
-        <button
-          type="button"
-          onClick={handleDecrement}
-          aria-label={`Remove one ${item.name}`}
-          // Hover background effect hataya hai yahan se
-          className="w-6 h-full flex items-center justify-center text-primary-600 transition-colors font-bold hover:text-primary-700"
-        >
-          <Minus size={12} strokeWidth={3} />
-        </button>
-        <span className="px-1 text-xs font-black text-primary-600 text-center min-w-[18px]">
-          {cartQty}
-        </span>
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          aria-label={`Add one more ${item.name}`}
-          // Hover background effect hataya hai yahan se
-          className="w-6 h-full flex items-center justify-center text-primary-600 transition-colors font-bold hover:text-primary-700"
-        >
-          <Plus size={12} strokeWidth={3} />
-        </button>
+          {cartQty > 0 ? (
+            <div className="flex items-center border border-primary-600/40 rounded-lg h-7 bg-white shadow-sm overflow-hidden select-none shrink-0">
+              <button
+                type="button"
+                onClick={handleDecrement}
+                aria-label={`Remove one ${item.name}`}
+                // Hover background effect hataya hai yahan se
+                className="w-6 h-full flex items-center justify-center text-primary-600 transition-colors font-bold hover:text-primary-700"
+              >
+                <Minus size={12} strokeWidth={3} />
+              </button>
+              <span className="px-1 text-xs font-black text-primary-600 text-center min-w-[18px]">
+                {cartQty}
+              </span>
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                aria-label={`Add one more ${item.name}`}
+                // Hover background effect hataya hai yahan se
+                className="w-6 h-full flex items-center justify-center text-primary-600 transition-colors font-bold hover:text-primary-700"
+              >
+                <Plus size={12} strokeWidth={3} />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              aria-label={`Add ${item.name} to cart`}
+              // Hover background effect hataya hai yahan se
+              className="w-6 h-6 rounded-full border border-primary-600 flex items-center justify-center text-primary-600 transition-colors shadow-sm shrink-0 hover:border-primary-700 hover:text-primary-700"
+            >
+              <Plus size={13} strokeWidth={3} />
+            </button>
+          )}
+        </div>
       </div>
-    ) : (
-      <button
-        type="button"
-        onClick={handleAddToCart}
-        aria-label={`Add ${item.name} to cart`}
-        // Hover background effect hataya hai yahan se
-        className="w-6 h-6 rounded-full border border-primary-600 flex items-center justify-center text-primary-600 transition-colors shadow-sm shrink-0 hover:border-primary-700 hover:text-primary-700"
-      >
-        <Plus size={13} strokeWidth={3} />
-      </button>
-    )}
-  </div>
-</div>
       {isModalOpen && (
         <ItemDetailModal
           item={item}

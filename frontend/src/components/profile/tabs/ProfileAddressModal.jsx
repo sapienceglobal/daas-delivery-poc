@@ -31,7 +31,7 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
   // Auto-suggestion state
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-  const [searchTimeout, setSearchTimeout] = useState(null);
+  const searchTimeoutRef = useRef(null);
   const sessionTokenRef = useRef(null);
 
   const getSessionToken = () => {
@@ -102,15 +102,16 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
 
   const handleAddressLine1Change = (val) => {
     setAddressLine1(val);
-    if (searchTimeout) clearTimeout(searchTimeout);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
 
     if (val.trim().length < 3) {
       setSuggestions([]);
+      setSuggestionsLoading(false);
       return;
     }
 
     setSuggestionsLoading(true);
-    const to = setTimeout(async () => {
+    searchTimeoutRef.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/location/autocomplete?q=${encodeURIComponent(val)}&sessionToken=${getSessionToken()}`);
         const data = await res.json();
@@ -121,7 +122,6 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
         setSuggestionsLoading(false);
       }
     }, 500);
-    setSearchTimeout(to);
   };
 
   const handleSelectSuggestion = async (suggestion) => {

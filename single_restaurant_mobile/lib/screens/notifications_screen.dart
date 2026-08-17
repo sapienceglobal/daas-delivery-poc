@@ -1,3 +1,4 @@
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:provider/provider.dart';
@@ -127,13 +128,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             direction: DismissDirection.endToStart,
                             onDismissed: (direction) {
                               notificationProvider.deleteNotification(notification.id);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Notification deleted'),
-                                  behavior: SnackBarBehavior.floating,
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
+                              ToastUtils.showSuccess(context, 'Notification deleted');
                             },
                             background: Container(
                               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

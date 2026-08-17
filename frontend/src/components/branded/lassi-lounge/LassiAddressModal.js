@@ -52,6 +52,7 @@ export default function LassiAddressModal({ isOpen, onClose, onSelect }) {
 
     if (val.trim().length < 3) {
       setSuggestions([]);
+      setIsLoading(false);
       return;
     }
 

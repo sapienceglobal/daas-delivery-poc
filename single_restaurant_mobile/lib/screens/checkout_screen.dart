@@ -120,7 +120,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           );
         },
       ),
-      bottomSheet: _buildBottomAction(cart, checkout, auth, restaurant),
+      bottomNavigationBar: _buildBottomAction(cart, checkout, auth, restaurant),
     );
   }
 
@@ -662,7 +662,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final canProceed = !isCartEmpty && checkout.couponPaymentError == null;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.only(
+        left: 24, 
+        right: 24, 
+        top: 16, 
+        bottom: 16 + MediaQuery.of(context).padding.bottom
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -670,9 +675,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ],
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: SafeArea(
-        child: Row(
-          children: [
+      child: Row(
+        children: [
             Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -737,7 +741,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 }

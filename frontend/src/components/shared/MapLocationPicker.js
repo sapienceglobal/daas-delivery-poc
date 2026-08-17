@@ -170,6 +170,7 @@ export default function MapLocationPicker({
     
     if (val.trim().length < 3) {
       setSearchSuggestions([]);
+      setIsSearching(false);
       return;
     }
 
@@ -247,7 +248,7 @@ export default function MapLocationPicker({
               value={searchInput}
               onChange={handleSearchChange}
               placeholder="Search city, area, or street..."
-              className="w-full bg-transparent border-none focus:ring-0 text-[#1a1a1a] px-3 py-3 text-sm"
+              className="w-full bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-[#1a1a1a] px-3 py-3 text-sm"
             />
             {isSearching && (
               <div className="pr-4">
@@ -257,7 +258,7 @@ export default function MapLocationPicker({
             {searchInput && !isSearching && (
               <button 
                 type="button" 
-                onClick={() => { setSearchInput(''); setSearchSuggestions([]); }} 
+                onClick={() => { setSearchInput(''); setSearchSuggestions([]); setIsSearching(false); }} 
                 className="pr-4 text-gray-400 hover:text-gray-600"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -266,7 +267,7 @@ export default function MapLocationPicker({
           </div>
 
           {searchSuggestions.length > 0 && (
-            <ul className="mt-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden max-h-48 overflow-y-auto">
+            <ul className="mt-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden max-h-48 overflow-y-auto ll-pop ll-soft-scroll">
               {searchSuggestions.map((s, idx) => (
                 <li key={idx} className="border-b border-gray-50 last:border-0">
                   <button

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -63,9 +64,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         if (key == 'push') _push = !value;
         if (key == 'marketing') _marketing = !value;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update settings. Please try again.')),
-      );
+      ToastUtils.showError(context, 'Failed to update settings. Please try again.');
     }
   }
 

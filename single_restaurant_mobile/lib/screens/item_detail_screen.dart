@@ -8,6 +8,7 @@ import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
 import 'package:single_restaurant_mobile/screens/cart_screen.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   final Map<String, dynamic> item;
@@ -142,10 +143,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
+      body: CustomScrollView(
+        slivers: [
               SliverAppBar(
                 expandedHeight: 300,
                 pinned: true,
@@ -171,7 +170,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           if (authProvider.isAuthenticated) {
                             await authProvider.toggleFavoriteItem(itemId);
                           } else {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please login to add favorites')));
+                            ToastUtils.showError(context, 'Please login to add favorites');
                           }
                         },
                       ),
@@ -328,7 +327,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         return GestureDetector(
                           onTap: () {
                             if (inCart) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please adjust quantity for a new configuration or remove from cart to edit.')));
+                              ToastUtils.showError(context, 'Please adjust quantity for a new configuration or remove from cart to edit.');
                               return;
                             }
                             setState(() {
@@ -477,20 +476,19 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               ),
             ],
           ),
-          
-          // Bottom Bar
-          Positioned(
-            bottom: 0, left: 0, right: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
-              ),
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  children: [
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 16,
+          bottom: 16 + MediaQuery.of(context).padding.bottom
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+        ),
+        child: Row(
+          children: [
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -546,7 +544,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         newItem['qty'] = 1;
                         newItem['addOns'] = selectedAddonsList;
                         cartProvider.addItem(newItem, restaurantData: restaurantProvider.restaurant);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item added to cart!'), duration: Duration(seconds: 2)));
+                        ToastUtils.showSuccess(context, 'Item added to cart!');
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red.shade900,
@@ -559,10 +557,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     ),
                 ],
               ),
-              ),
-            ),
-          )
-        ],
       ),
     );
   }

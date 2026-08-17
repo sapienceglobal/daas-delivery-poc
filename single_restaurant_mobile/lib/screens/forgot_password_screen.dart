@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/widgets/app_logo.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -34,14 +35,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
       if (errorMsg == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reset link sent successfully to your email.')),
-        );
+        ToastUtils.showSuccess(context, 'Reset link sent successfully to your email.');
         Navigator.pop(context); // Go back to login screen
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMsg)),
-        );
+        ToastUtils.showError(context, errorMsg);
       }
     }
   }

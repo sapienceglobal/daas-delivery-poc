@@ -5,6 +5,7 @@ import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/services/payment_service.dart';
 import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class SavedCardsScreen extends StatefulWidget {
   const SavedCardsScreen({super.key});
@@ -85,7 +86,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
         );
         
         if (success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Card added successfully!')));
+          ToastUtils.showSuccess(context, 'Card added successfully!');
         }
       } else {
         throw Exception('Failed to retrieve payment method ID');
@@ -99,7 +100,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
         }
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error adding card: ${e.toString()}')));
+        ToastUtils.showError(context, 'Error adding card: ${e.toString()}');
       }
     }
   }
@@ -117,7 +118,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
               Navigator.pop(ctx);
               final success = await Provider.of<AuthProvider>(context, listen: false).removeCard(cardId);
               if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Card deleted')));
+                ToastUtils.showInfo(context, 'Card deleted');
               }
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
@@ -295,7 +296,7 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
                     onTap: () async {
                       final success = await authProvider.setDefaultCard(card['_id']);
                       if (success && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Default card updated')));
+                        ToastUtils.showSuccess(context, 'Default card updated');
                       }
                     },
                     child: const Padding(

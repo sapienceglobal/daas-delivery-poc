@@ -1,3 +1,4 @@
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -209,10 +210,7 @@ class _CartScreenState extends State<CartScreen> {
                                     await checkoutProvider.handleApplyCoupon(cartProvider);
                                   } catch (e) {
                                     if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                        content: Text('Coupon removed: ${e.toString().replaceAll('Exception: ', '')}'),
-                                        backgroundColor: Colors.orange,
-                                      ));
+                                      ToastUtils.showInfo(context, 'Coupon removed: ${e.toString().replaceAll('Exception: ', '')}');
                                     }
                                   }
                                 }
@@ -224,10 +222,7 @@ class _CartScreenState extends State<CartScreen> {
                                     await checkoutProvider.handleApplyCoupon(cartProvider);
                                   } catch (e) {
                                     if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                        content: Text('Coupon removed: ${e.toString().replaceAll('Exception: ', '')}'),
-                                        backgroundColor: Colors.orange,
-                                      ));
+                                      ToastUtils.showInfo(context, 'Coupon removed: ${e.toString().replaceAll('Exception: ', '')}');
                                     }
                                   }
                                 }
@@ -239,10 +234,7 @@ class _CartScreenState extends State<CartScreen> {
                                     await checkoutProvider.handleApplyCoupon(cartProvider);
                                   } catch (e) {
                                     if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                        content: Text('Coupon removed: ${e.toString().replaceAll('Exception: ', '')}'),
-                                        backgroundColor: Colors.orange,
-                                      ));
+                                      ToastUtils.showInfo(context, 'Coupon removed: ${e.toString().replaceAll('Exception: ', '')}');
                                     }
                                   }
                                 }
@@ -795,12 +787,7 @@ class _CartScreenState extends State<CartScreen> {
                   } catch (e) {
                     if (mounted) {
                       Navigator.pop(context); // Close dialog first
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(e.toString().replaceAll('Exception: ', '')),
-                          backgroundColor: Colors.red.shade800,
-                        ),
-                      );
+                      ToastUtils.showError(context, e.toString().replaceAll('Exception: ', ''));
                     }
                   }
                 }
