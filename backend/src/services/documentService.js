@@ -12,9 +12,9 @@
  */
 
 const BRAND_NAME   = process.env.FROM_NAME      || 'Lassi Lounge';
-const BRAND_ADDR   = process.env.BRAND_ADDRESS  || '123 Restaurant Ave, New York, NY 10001';
-const BRAND_PHONE  = process.env.BRAND_PHONE    || '+1 (555) 000-0000';
-const BRAND_EMAIL  = process.env.FROM_EMAIL     || 'hello@lassilounge.com';
+const BRAND_ADDR   = process.env.BRAND_ADDRESS  || '9408 118th St, South Richmond Hill, NY 11419';
+const BRAND_PHONE  = process.env.BRAND_PHONE    || '+1 347-233-3733';
+const BRAND_EMAIL  = process.env.FROM_EMAIL     || 'lassiloungeny@gmail.com';
 const BRAND_COLOR  = '#7a0b10';   // maroon — matches app theme
 const BRAND_GOLD   = '#E8B93D';
 

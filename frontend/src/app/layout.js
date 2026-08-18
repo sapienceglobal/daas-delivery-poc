@@ -4,14 +4,78 @@ import SiteChrome from '@/components/shared/SiteChrome';
 import ScrollToTop from '@/components/shared/ScrollToTop';
 
 const isLassiLounge = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
-
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
 export const metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://195.35.20.207:3001'),
-  title: isLassiLounge ? 'Lassi Lounge' : 'Restaurant Commerce Platform',
+  metadataBase: new URL(siteUrl),
+  
+  // 1. Title Template: Har page ka title automatically set hoga (e.g., "Menu | Lassi Lounge NY")
+  title: {
+    default: isLassiLounge 
+      ? 'Lassi Lounge NY | Authentic Indian Restaurant & Delivery' 
+      : 'Restaurant Commerce Platform',
+    template: isLassiLounge 
+      ? '%s | Lassi Lounge NY' 
+      : '%s | Restaurant Platform',
+  },
+  
+  // 2. SEO Description: Location aur intent (order/reserve) clear hona chahiye
   description: isLassiLounge
-    ? 'Authentic Indian restaurant — order online, reserve a table, or get delivery.'
+    ? 'Experience the best authentic Indian cuisine at Lassi Lounge in New York. Order online for fast delivery, easy pickup, or reserve a table for dine-in.'
     : 'Order food from your favorite local restaurants — delivery, pickup, or dine-in.',
-  keywords: 'food delivery, restaurant, ordering, DoorDash, pickup, dine-in',
+  
+  // 3. Keywords: Next.js mein keywords array mein dena better hota hai
+  keywords: isLassiLounge
+    ? ['Indian restaurant NY', 'Lassi Lounge New York', 'Authentic Indian food', 'Indian food delivery NY', 'best lassi in NY', 'dine-in Indian restaurant', 'curry', 'biryani', 'lassiloungeny']
+    : ['food delivery', 'restaurant', 'ordering', 'pickup', 'dine-in'],
+  
+  // 4. Canonical URL: Duplicate content penalty se bachne ke liye
+  alternates: {
+    canonical: '/',
+  },
+  
+  // 5. Robots: Google bot ko clearly batana ki index karna hai
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  
+  // 6. OpenGraph: WhatsApp, Facebook, Instagram pe link share karne par kaisa dikhega
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: siteUrl,
+    siteName: isLassiLounge ? 'Lassi Lounge NY' : 'Restaurant Commerce Platform',
+    title: isLassiLounge ? 'Lassi Lounge NY | Authentic Indian Cuisine' : 'Restaurant Commerce Platform',
+    description: isLassiLounge
+      ? 'Experience authentic Indian cuisine at Lassi Lounge in New York. Order online for delivery or pickup.'
+      : 'Order food from your favorite local restaurants.',
+    images: [
+      {
+        url: '/assets/images/branded/lassi-lounge/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: isLassiLounge ? 'Lassi Lounge NY - Authentic Indian Food' : 'Restaurant Cover Image',
+      },
+    ],
+  },
+  
+  // 7. Twitter Card: Twitter (X) link previews ke liye
+  twitter: {
+    card: 'summary_large_image',
+    title: isLassiLounge ? 'Lassi Lounge NY | Authentic Indian Cuisine' : 'Restaurant Commerce Platform',
+    description: isLassiLounge
+      ? 'Order the best Indian food in New York from Lassi Lounge. Delivery, pickup, and reservations available.'
+      : 'Order food from your favorite local restaurants.',
+    images: ['/assets/images/branded/lassi-lounge/og-image.png'],
+  },
+  
   icons: {
     icon: [
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
@@ -19,13 +83,6 @@ export const metadata = {
     ],
     shortcut: '/favicon.ico',
     apple: '/apple-touch-icon.png',
-  },
-  openGraph: {
-    title: isLassiLounge ? 'Lassi Lounge' : 'Restaurant Commerce Platform',
-    description: isLassiLounge
-      ? 'Authentic Indian restaurant — order online, reserve a table, or get delivery.'
-      : 'Order food from your favorite local restaurants — delivery, pickup, or dine-in.',
-    images: ['/assets/images/branded/lassi-lounge/og-image.png'],
   },
 };
 
