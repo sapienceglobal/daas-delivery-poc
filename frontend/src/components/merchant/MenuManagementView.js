@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Search, Download, Plus, Edit3, Trash2, Flame, Leaf, Hexagon,
-  CheckCircle2, XCircle, Info, ChevronDown, Loader2
+  CheckCircle2, XCircle, Info, ChevronDown, Loader2, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 export default function MenuManagementView({ 
@@ -25,7 +25,52 @@ export default function MenuManagementView({
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [isProcessingBulk, setIsProcessingBulk] = useState(false);
 
+  // SCROLLING LOGIC STATES & REFS
+  const scrollContainerRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
   useEffect(() => setMounted(true), []);
+
+  // Handle Mouse Wheel for Horizontal Scrolling
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e) => {
+      // Agar user up/down wheel ghuma raha hai (aur trackpad se horizontal scroll nahi kar raha)
+      if (e.deltaY !== 0 && e.deltaX === 0) {
+        e.preventDefault();
+        container.scrollBy({ left: e.deltaY, behavior: 'auto' });
+      }
+    };
+
+    // 'passive: false' zaroori hai taaki hum preventDefault() call kar sakein
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [mounted, menu]);
+
+  // Check Scroll Position to Show/Hide Left-Right Buttons
+  const checkForScrollPosition = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(Math.ceil(scrollLeft) < scrollWidth - clientWidth);
+    }
+  };
+
+  useEffect(() => {
+    checkForScrollPosition();
+    window.addEventListener('resize', checkForScrollPosition);
+    return () => window.removeEventListener('resize', checkForScrollPosition);
+  }, [menu]);
+
+  // Button Scroll Function
+  const scrollByAmount = (amount) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+  };
 
   // Flatten items for easy filtering
   const allItems = useMemo(() => {
@@ -37,33 +82,23 @@ export default function MenuManagementView({
 
   const filteredItems = useMemo(() => {
     let items = allItems;
-    
-    // Category filter
     if (activeCategory !== 'all') {
       items = items.filter(it => it.categoryId === activeCategory || it.categoryName === activeCategory);
     }
-    
-    // Search filter
     if (searchQuery) {
       items = items.filter(it => it.name?.toLowerCase().includes(searchQuery.toLowerCase()));
     }
-    
-    // Status filter
     if (statusFilter !== 'all') {
       const isActive = statusFilter === 'active';
       items = items.filter(it => (it.isAvailable !== false) === isActive);
     }
-    
-    // Type filter
     if (typeFilter !== 'all') {
       const isVeg = typeFilter === 'veg';
       items = items.filter(it => (it.isVeg === true) === isVeg);
     }
-    
     return items;
   }, [allItems, activeCategory, searchQuery, statusFilter, typeFilter]);
 
-  // Handle Select All
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       const newSelected = new Set(filteredItems.map(item => item._id));
@@ -76,15 +111,11 @@ export default function MenuManagementView({
   const handleSelectItem = (e, id) => {
     e.stopPropagation();
     const newSelected = new Set(selectedItems);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
+    if (newSelected.has(id)) newSelected.delete(id);
+    else newSelected.add(id);
     setSelectedItems(newSelected);
   };
 
-  // Clear selections when filters change
   useEffect(() => {
     setSelectedItems(new Set());
   }, [activeCategory, searchQuery, statusFilter, typeFilter]);
@@ -113,27 +144,60 @@ export default function MenuManagementView({
         </div>
       </div>
 
-      {/* Category Tabs */}
-      <div className="flex overflow-x-auto gap-4 pb-2 mb-4 custom-scrollbar shrink-0">
-        <button 
-          onClick={() => setActiveCategory('all')}
-          className={`flex flex-col items-center justify-center min-w-[120px] py-4 rounded-2xl border-2 transition-all duration-200 ${activeCategory === 'all' ? 'border-[#fecaca] bg-[#fef2f2] text-[#8B0000] shadow-sm' : 'border-transparent bg-white text-[#4b5563] hover:border-[#e5e7eb] hover:bg-[#f9fafb] shadow-sm'}`}
+      {/* 🚀 ENHANCED CATEGORY TABS WITH SCROLL BUTTONS 🚀 */}
+      <div className="relative mb-4 shrink-0 group">
+        
+        {/* Left Gradient & Button */}
+        {canScrollLeft && (
+          <div className="absolute left-0 top-0 bottom-2 w-20 bg-gradient-to-r from-[#F8FAFC] to-transparent z-10 flex items-center">
+            <button 
+              onClick={() => scrollByAmount(-300)} 
+              className="w-8 h-8 ml-1 flex items-center justify-center bg-white border border-[#e5e7eb] rounded-full shadow-md text-[#4b5563] hover:text-[#8B0000] hover:border-[#8B0000] transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5 -ml-0.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Scrollable Container */}
+        <div 
+          ref={scrollContainerRef}
+          onScroll={checkForScrollPosition}
+          className="flex overflow-x-auto gap-4 pb-2 hide-scrollbar scroll-smooth"
         >
-          <Hexagon className={`w-6 h-6 mb-2 ${activeCategory === 'all' ? 'text-[#8B0000]' : 'text-[#9ca3af]'}`} />
-          <span className="text-sm font-bold">All Items</span>
-          <span className="text-xs mt-1 font-semibold opacity-70">{allItems.length}</span>
-        </button>
-        {menu.map(cat => (
           <button 
-            key={cat._id}
-            onClick={() => setActiveCategory(cat._id)}
-            className={`flex flex-col items-center justify-center min-w-[120px] py-4 rounded-2xl border-2 transition-all duration-200 ${activeCategory === cat._id ? 'border-[#fecaca] bg-[#fef2f2] text-[#8B0000] shadow-sm' : 'border-transparent bg-white text-[#4b5563] hover:border-[#e5e7eb] hover:bg-[#f9fafb] shadow-sm'}`}
+            onClick={() => setActiveCategory('all')}
+            className={`flex flex-col items-center justify-center min-w-[120px] py-4 rounded-2xl border-2 transition-all duration-200 shrink-0 ${activeCategory === 'all' ? 'border-[#fecaca] bg-[#fef2f2] text-[#8B0000] shadow-sm' : 'border-transparent bg-white text-[#4b5563] hover:border-[#e5e7eb] hover:bg-[#f9fafb] shadow-sm'}`}
           >
-            <Hexagon className={`w-6 h-6 mb-2 ${activeCategory === cat._id ? 'text-[#8B0000]' : 'text-[#f87171]'}`} />
-            <span className="text-sm font-bold">{cat.name}</span>
-            <span className="text-xs mt-1 font-semibold opacity-70">{cat.items?.length || 0}</span>
+            <Hexagon className={`w-6 h-6 mb-2 ${activeCategory === 'all' ? 'text-[#8B0000]' : 'text-[#9ca3af]'}`} />
+            <span className="text-sm font-bold">All Items</span>
+            <span className="text-xs mt-1 font-semibold opacity-70">{allItems.length}</span>
           </button>
-        ))}
+          
+          {menu.map(cat => (
+            <button 
+              key={cat._id}
+              onClick={() => setActiveCategory(cat._id)}
+              className={`flex flex-col items-center justify-center min-w-[120px] py-4 rounded-2xl border-2 transition-all duration-200 shrink-0 ${activeCategory === cat._id ? 'border-[#fecaca] bg-[#fef2f2] text-[#8B0000] shadow-sm' : 'border-transparent bg-white text-[#4b5563] hover:border-[#e5e7eb] hover:bg-[#f9fafb] shadow-sm'}`}
+            >
+              <Hexagon className={`w-6 h-6 mb-2 ${activeCategory === cat._id ? 'text-[#8B0000]' : 'text-[#f87171]'}`} />
+              <span className="text-sm font-bold">{cat.name}</span>
+              <span className="text-xs mt-1 font-semibold opacity-70">{cat.items?.length || 0}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Right Gradient & Button */}
+        {canScrollRight && (
+          <div className="absolute right-0 top-0 bottom-2 w-20 bg-gradient-to-l from-[#F8FAFC] to-transparent z-10 flex items-center justify-end">
+            <button 
+              onClick={() => scrollByAmount(300)} 
+              className="w-8 h-8 mr-1 flex items-center justify-center bg-white border border-[#e5e7eb] rounded-full shadow-md text-[#4b5563] hover:text-[#8B0000] hover:border-[#8B0000] transition-colors"
+            >
+              <ChevronRight className="w-5 h-5 ml-0.5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Filters Row */}

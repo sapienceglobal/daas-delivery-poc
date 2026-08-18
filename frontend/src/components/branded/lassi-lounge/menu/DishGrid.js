@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Star, Heart, Minus, Plus, Flame, Leaf, SearchX, LayoutGrid, List, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Star, Heart, Minus, Plus, Flame, Leaf, SearchX, LayoutGrid, List, ChevronDown, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 
 const getDishImage = (itemName) => {
   const name = itemName.toLowerCase();
@@ -43,36 +43,65 @@ export default function DishGrid({
   const router = useRouter();
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('popular');
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  
   const SINGLE_MODE = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
-  const visibleItems = useMemo(() => {
-    const items = [...filteredItems];
-    if (sortBy === 'price-low') return items.sort((a, b) => (a.price || 0) - (b.price || 0));
-    if (sortBy === 'price-high') return items.sort((a, b) => (b.price || 0) - (a.price || 0));
-    return items.sort((a, b) => Number(b.isBestseller || false) - Number(a.isBestseller || false));
+  const ITEMS_PER_LOAD = 12;
+  
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_LOAD);
+  const isFirstMount = useRef(true); 
+
+  const sortedItems = useMemo(() => {
+    const sorted = [...filteredItems];
+    if (sortBy === 'price-low') return sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
+    if (sortBy === 'price-high') return sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
+    return sorted.sort((a, b) => Number(b.isBestseller || false) - Number(a.isBestseller || false));
   }, [filteredItems, sortBy]);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-  const totalPages = Math.ceil(visibleItems.length / itemsPerPage);
-
   useEffect(() => {
-    setCurrentPage(1);
-  }, [currentCategory, searchQuery]);
+    setVisibleCount(ITEMS_PER_LOAD);
+  }, [sortBy]);
 
-  const paginatedItems = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return visibleItems.slice(start, start + itemsPerPage);
-  }, [visibleItems, currentPage]);
+  // 🔥 YAHAN FIX KIYA GAYA HAI 🔥
+  useEffect(() => {
+    setVisibleCount(ITEMS_PER_LOAD);
 
-  const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+
     setTimeout(() => {
       const element = document.getElementById('dish-grid-top');
       if (element) {
         const rect = element.getBoundingClientRect();
-        window.scrollTo({ top: window.scrollY + rect.top - 120, behavior: 'smooth' });
+        
+        // Agar rect.top 100px se kam hai, iska matlab user ne grid ko scroll karke upar bhej diya hai
+        // Sirf tabhi hum wapas scroll karenge. Agar user wahi baitha hai, toh page bilkul nahi hilega!
+        if (rect.top < 100) {
+          const elementPosition = rect.top + window.scrollY;
+          window.scrollTo({
+            top: elementPosition - 120, // 120px offset for sticky header
+            behavior: 'smooth'
+          });
+        }
       }
-    }, 50);
+    }, 100);
+
+  }, [currentCategory, searchQuery]);
+
+  const displayedItems = useMemo(() => {
+    return sortedItems.slice(0, visibleCount);
+  }, [sortedItems, visibleCount]);
+
+  const hasMoreItems = visibleCount < sortedItems.length;
+
+  const handleLoadMore = () => {
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount(prev => prev + ITEMS_PER_LOAD);
+      setIsLoadingMore(false);
+    }, 400);
   };
 
   return (
@@ -80,8 +109,6 @@ export default function DishGrid({
 
       {/* ─── 1. HEADER CONTROLS ─── */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end justify-between bg-transparent pb-4 border-b border-[#e5e7eb]/80">
-
-        {/* Left Side: Title & Item Count */}
         <div className="flex flex-col flex-1 min-w-0 w-full pr-4">
           <div className="flex items-center gap-2 min-w-0 w-full">
             <div className="shrink-0 text-[#e8a020] mt-1.5 flex items-center justify-center">
@@ -98,21 +125,15 @@ export default function DishGrid({
               <svg width="20" height="6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="12" x2="15" y2="12" /><circle cx="20" cy="12" r="2" fill="currentColor" /></svg>
             </div>
             <span className="text-[12px] text-[#6b7280] font-medium leading-none">
-              {visibleItems.length} Items
+              {sortedItems.length} Items Total
             </span>
           </div>
         </div>
 
-        {/* Right Side: Sort & View Toggles (FIXED UI) */}
         <div className="flex items-center gap-4 shrink-0">
-
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[13px] font-medium text-[#1a1a1a] whitespace-nowrap">Sort By:</span>
-
-
             <div className="relative w-[130px] h-[36px]">
-
-
               <select
                 value={sortBy}
                 onChange={(event) => setSortBy(event.target.value)}
@@ -123,16 +144,12 @@ export default function DishGrid({
                 <option value="price-low">Price: Low to High</option>
                 <option value="price-high">Price: High to Low</option>
               </select>
-
-
               <div className="absolute right-1 top-1 bottom-1 w-7 bg-[#ffffff] flex items-center justify-center pointer-events-none rounded-r-md">
                 <ChevronDown className="w-4 h-4 text-[#1a1a1a] text-[#7a0b10]" strokeWidth={2} />
               </div>
-
             </div>
           </div>
 
-          {/* Functional Grid/List View Toggles - PERFECT SIZING */}
           <div className="hidden sm:flex gap-2 ml-1">
             <button
               onClick={() => setViewMode('grid')}
@@ -156,7 +173,7 @@ export default function DishGrid({
 
       {/* ─── 2. ITEMS GRID / LIST ─── */}
       <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 ll-stagger" : "flex flex-col gap-4 ll-stagger"}>
-        {paginatedItems.map((item) => {
+        {displayedItems.map((item, index) => {
           const isFavorite = user?.favoriteItems?.some(f => (f._id || f) === item._id);
           const isAvailable = item.isAvailable !== false;
 
@@ -174,10 +191,6 @@ export default function DishGrid({
             (item.sizeVariations && item.sizeVariations.length > 0) ||
             (item.addOns && item.addOns.length > 0);
 
-          // Customizable items open the customize/repeat modal (onCustomize)
-          // instead of adding straight to the cart with no options — that
-          // wiring had gone missing, which is what made every item look
-          // like a plain one-tap add regardless of its options.
           const handlePrimaryAction = (e) => {
             e.stopPropagation();
             if (hasCustomizations && onCustomize) {
@@ -190,6 +203,8 @@ export default function DishGrid({
           return (
             <div
               key={item._id}
+              style={{ animationFillMode: 'both', animationDelay: `${(index % ITEMS_PER_LOAD) * 40}ms` }}
+              className={`animate-in fade-in slide-in-from-bottom-8 duration-500 ease-out bg-[#fcfaf5] rounded-xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_34px_rgba(122,11,16,0.12)] flex overflow-hidden relative group ll-interactive cursor-pointer ${!isAvailable ? 'opacity-50 pointer-events-none' : ''} ${viewMode === 'grid' ? 'flex-col' : 'flex-col sm:flex-row sm:min-h-[210px] h-auto'}`}
               onClick={() => {
                 if (SINGLE_MODE) {
                   router.push(`/item/${item._id}`);
@@ -198,7 +213,6 @@ export default function DishGrid({
                   router.push(`/restaurant/${rid}/item/${item._id}`);
                 }
               }}
-              className={`bg-[#fcfaf5] rounded-xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_34px_rgba(122,11,16,0.12)] flex overflow-hidden relative group ll-interactive cursor-pointer ${!isAvailable ? 'opacity-50 pointer-events-none' : ''} ${viewMode === 'grid' ? 'flex-col' : 'flex-col sm:flex-row sm:min-h-[210px] h-auto'}`}
             >
               {/* Image header */}
               <div className={`relative bg-[#f3f4f6] overflow-hidden shrink-0 ${viewMode === 'grid' ? 'h-[200px] w-full' : 'h-[180px] sm:h-auto w-full sm:w-[240px]'}`}>
@@ -308,34 +322,34 @@ export default function DishGrid({
         })}
       </div>
 
-      {/* ─── 3. PAGINATION ─── */}
-      {visibleItems.length > 0 && (
-        <div className="flex justify-center items-center mt-10 py-4 text-[12px] font-bold uppercase tracking-wider text-[#6b7280] gap-4">
+      {/* ─── 3. LOAD MORE BUTTON ─── */}
+      {sortedItems.length > 0 && hasMoreItems && (
+        <div className="flex justify-center mt-12 mb-8 h-[52px]">
           <button
-            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-            className="p-2 disabled:opacity-30 hover:text-[#7a0b10] transition-colors ll-focus-ring"
-            aria-label="Previous page"
+            onClick={handleLoadMore}
+            disabled={isLoadingMore}
+            className="flex items-center justify-center gap-2 w-[240px] h-full bg-white border-2 border-[#7a0b10] text-[#7a0b10] rounded-xl font-bold text-[14px] uppercase tracking-wide hover:bg-[#7a0b10] hover:text-white transition-all duration-300 shadow-sm ll-focus-ring"
           >
-            <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
-          </button>
-
-          <span className="min-w-[200px] text-center">
-            Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, visibleItems.length)} of {visibleItems.length} dishes from {currentCategory?.name || 'this category'}
-          </span>
-
-          <button
-            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-            className="p-2 disabled:opacity-30 hover:text-[#7a0b10] transition-colors ll-focus-ring"
-            aria-label="Next page"
-          >
-            <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
+            {isLoadingMore ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /> Loading...</>
+            ) : (
+              'Load More Dishes'
+            )}
           </button>
         </div>
       )}
 
-      {visibleItems.length === 0 && (
+      {/* "All Caught Up" Message */}
+      {sortedItems.length > ITEMS_PER_LOAD && !hasMoreItems && (
+        <div className="text-center mt-12 mb-4 text-[#6b7280] text-[13px] font-semibold uppercase tracking-widest flex items-center justify-center gap-4">
+          <div className="h-px w-12 bg-[#e5e7eb]"></div>
+          You've seen all dishes
+          <div className="h-px w-12 bg-[#e5e7eb]"></div>
+        </div>
+      )}
+
+      {/* No Items Message */}
+      {sortedItems.length === 0 && (
         <div className="text-center py-20 bg-[#ffffff] border border-[#e5e7eb] rounded-xl shadow-sm ll-pop">
           <SearchX className="h-10 w-10 mx-auto text-[#e8a020] mb-4" strokeWidth={1.6} />
           <p className="text-[#1a1a1a] text-[15px] font-black">No dishes found</p>

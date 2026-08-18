@@ -23,8 +23,15 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
   const [currentMonth, setCurrentMonth] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  // ─── LOAD MORE STATE ───
+  const ITEMS_PER_LOAD = 10;
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_LOAD);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Filter change hone par Load More reset karein
+  useEffect(() => {
+    setVisibleCount(ITEMS_PER_LOAD);
+  }, [searchQuery, statusFilter, seatingFilter, occasionFilter, selectedDate]);
 
   // Calendar Logic
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
@@ -89,12 +96,20 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
     }).sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [reservations, searchQuery, statusFilter, seatingFilter, occasionFilter, selectedDate]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredReservations.length / itemsPerPage) || 1;
-  const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredReservations.slice(start, start + itemsPerPage);
-  }, [filteredReservations, currentPage]);
+  // Handle Load More Logic
+  const displayedReservations = useMemo(() => {
+    return filteredReservations.slice(0, visibleCount);
+  }, [filteredReservations, visibleCount]);
+
+  const hasMoreItems = visibleCount < filteredReservations.length;
+
+  const handleLoadMore = () => {
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount(prev => prev + ITEMS_PER_LOAD);
+      setIsLoadingMore(false);
+    }, 400); // 400ms premium delay
+  };
 
   const getStatusBadge = (status) => {
     switch (status?.toLowerCase()) {
@@ -109,7 +124,7 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
 
   // Bulk Handlers
   const handleSelectAll = (e) => {
-    const pageIds = paginatedData.map(r => r._id);
+    const pageIds = displayedReservations.map(r => r._id);
     if (e.target.checked) {
       const newItems = [...selectedItems];
       pageIds.forEach(id => {
@@ -142,52 +157,24 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
 
   return (
     <div className="flex flex-col h-full bg-[#F8FAFC]">
-      <div className="flex flex-1 gap-6 overflow-hidden">
+      
+      {/* ─── RESPONSIVE SPLIT (xl:flex-row handles iPad/Mobile layouts) ─── */}
+      <div className="flex flex-col xl:flex-row flex-1 gap-6 overflow-hidden">
         
-        {/* Left Column */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar pb-24">
+        {/* Left Column (Table & Main Content) */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar pb-24 pr-2">
           
-          <div className="mb-6 shrink-0">
+          <div className="mb-6 shrink-0 pt-2 px-1">
             <h1 className="text-2xl font-bold text-[#111827]">Reservations</h1>
             <p className="text-sm text-[#6b7280] mt-1">Manage table reservations and seating arrangements.</p>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6 shrink-0">
-            <StatCard 
-              title="Today's Res." 
-              value={stats.todayTotal} 
-              icon={Calendar} 
-              iconColor="text-[#F59E0B]" 
-              iconBg="bg-[#fef3c7]" 
-            />
-            <StatCard 
-              title="Confirmed" 
-              value={stats.confirmed} 
-              icon={CheckCircle2} 
-              iconColor="text-[#10B981]" 
-              iconBg="bg-[#dcfce7]" 
-            />
-            <StatCard 
-              title="Pending" 
-              value={stats.pending} 
-              icon={Clock} 
-              iconColor="text-[#F59E0B]" 
-              iconBg="bg-[#fef3c7]" 
-            />
-            <StatCard 
-              title="Cancelled" 
-              value={stats.cancelled} 
-              icon={XCircle} 
-              iconColor="text-[#DC2626]" 
-              iconBg="bg-[#fef2f2]" 
-            />
-            <StatCard 
-              title="Guests Today" 
-              value={stats.totalGuests} 
-              icon={Users} 
-              iconColor="text-[#10B981]" 
-              iconBg="bg-[#dcfce7]" 
-            />
+            <StatCard title="Today's Res." value={stats.todayTotal} icon={Calendar} iconColor="text-[#F59E0B]" iconBg="bg-[#fef3c7]" />
+            <StatCard title="Confirmed" value={stats.confirmed} icon={CheckCircle2} iconColor="text-[#10B981]" iconBg="bg-[#dcfce7]" />
+            <StatCard title="Pending" value={stats.pending} icon={Clock} iconColor="text-[#F59E0B]" iconBg="bg-[#fef3c7]" />
+            <StatCard title="Cancelled" value={stats.cancelled} icon={XCircle} iconColor="text-[#DC2626]" iconBg="bg-[#fef2f2]" />
+            <StatCard title="Guests Today" value={stats.totalGuests} icon={Users} iconColor="text-[#10B981]" iconBg="bg-[#dcfce7]" />
           </div>
 
           <div className="bg-white rounded-[20px] shadow-sm border border-[#e5e7eb] overflow-hidden flex flex-col flex-1 relative">
@@ -198,15 +185,15 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
                   type="text" 
                   placeholder="Search by name, phone or email..." 
                   value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full !pl-10 py-2 rounded-lg border border-[#e5e7eb] text-sm text-[#111827] bg-[#f9fafb] outline-none focus:border-[#8b0000] transition-colors"
                 />
               </div>
               
               <div className="flex items-center gap-3 flex-wrap">
                 <select 
-                  value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-medium outline-none hover:bg-gray-50 transition-colors"
+                  value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                  className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-medium outline-none hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   <option>All Status</option>
                   <option>Confirmed</option>
@@ -216,8 +203,8 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
                 </select>
 
                 <select 
-                  value={seatingFilter} onChange={(e) => { setSeatingFilter(e.target.value); setCurrentPage(1); }}
-                  className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-medium outline-none hover:bg-gray-50 transition-colors"
+                  value={seatingFilter} onChange={(e) => setSeatingFilter(e.target.value)}
+                  className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-medium outline-none hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   <option>All Seating Areas</option>
                   <option>Indoor</option>
@@ -229,13 +216,13 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
                   <Calendar className="w-4 h-4 text-[#6b7280]" />
                   {selectedDate ? selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'All Dates'}
                   {selectedDate && (
-                    <button onClick={() => setSelectedDate(null)} className="ml-2 text-[#9ca3af] hover:text-[#374151]">
+                    <button onClick={() => setSelectedDate(null)} className="ml-2 text-[#9ca3af] hover:text-[#374151] transition-colors">
                       <XCircle className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
 
-                <button onClick={() => onEdit && onEdit(null)} className="bg-[#8B0000] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 hover:bg-red-900 transition-colors">
+                <button onClick={() => onEdit && onEdit(null)} className="bg-[#8B0000] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 hover:bg-red-900 transition-all shadow-sm hover:shadow">
                   + New Reservation
                 </button>
               </div>
@@ -245,12 +232,12 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
               <table className="w-full text-left border-collapse min-w-[900px]">
                 <thead className="bg-white sticky top-0 z-10 border-b border-[#f3f4f6]">
                   <tr className="text-xs font-bold text-[#6b7280] uppercase tracking-wider">
-                    <th className="px-4 py-4 w-12">
+                    <th className="px-4 py-4 w-12 text-center">
                       <input 
                         type="checkbox" 
-                        className="rounded !bg-white border-[#d1d5db] text-[#8B0000] focus:ring-[#8B0000]"
+                        className="rounded !bg-white border-[#d1d5db] text-[#8B0000] focus:ring-[#8B0000] cursor-pointer"
                         style={{ backgroundColor: 'white' }}
-                        checked={paginatedData.length > 0 && paginatedData.every(r => selectedItems.includes(r._id))}
+                        checked={displayedReservations.length > 0 && displayedReservations.every(r => selectedItems.includes(r._id))}
                         onChange={handleSelectAll}
                       />
                     </th>
@@ -264,14 +251,14 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#f9fafb]">
-                  {paginatedData.map((res) => {
+                  {displayedReservations.map((res) => {
                     const isSelected = selectedItems.includes(res._id);
                     return (
                       <tr key={res._id} className={`transition-colors group ${isSelected ? 'bg-red-50' : 'hover:bg-[#f9fafb]'}`}>
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 text-center">
                           <input 
                             type="checkbox" 
-                            className="rounded !bg-white border-[#d1d5db] text-[#8B0000] focus:ring-[#8B0000]"
+                            className="rounded !bg-white border-[#d1d5db] text-[#8B0000] focus:ring-[#8B0000] cursor-pointer"
                             style={{ backgroundColor: 'white' }}
                             checked={isSelected}
                             onChange={() => handleSelectItem(res._id)}
@@ -302,16 +289,16 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
                         </td>
                         <td className="px-4 py-4">
                           <div className={`flex items-center justify-center gap-1 transition-opacity ${openMenuId === res._id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                            <button onClick={() => onEdit && onEdit(res)} className="p-1.5 text-[#9ca3af] hover:text-[#374151] hover:bg-white rounded border border-transparent hover:border-[#e5e7eb]"><Edit3 className="w-4 h-4" /></button>
+                            <button onClick={() => onEdit && onEdit(res)} className="p-1.5 text-[#9ca3af] hover:text-[#374151] hover:bg-white rounded border border-transparent hover:border-[#e5e7eb] transition-all"><Edit3 className="w-4 h-4" /></button>
                             <div className="relative">
-                              <button onClick={() => setOpenMenuId(openMenuId === res._id ? null : res._id)} className="p-1.5 text-[#9ca3af] hover:text-[#374151] hover:bg-white rounded border border-transparent hover:border-[#e5e7eb]"><MoreVertical className="w-4 h-4" /></button>
+                              <button onClick={() => setOpenMenuId(openMenuId === res._id ? null : res._id)} className="p-1.5 text-[#9ca3af] hover:text-[#374151] hover:bg-white rounded border border-transparent hover:border-[#e5e7eb] transition-all"><MoreVertical className="w-4 h-4" /></button>
                               {openMenuId === res._id && (
                                 <>
                                   <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)}></div>
-                                  <div className="absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg border border-[#e5e7eb] z-50">
-                                    <button onClick={() => { setOpenMenuId(null); onUpdateReservationStatus && onUpdateReservationStatus(res._id, 'confirmed'); }} className="w-full text-left px-4 py-2 text-xs font-bold text-[#10B981] hover:bg-[#f9fafb]">Confirm</button>
-                                    <button onClick={() => { setOpenMenuId(null); onUpdateReservationStatus && onUpdateReservationStatus(res._id, 'seated'); }} className="w-full text-left px-4 py-2 text-xs font-bold text-[#3B82F6] hover:bg-[#f9fafb]">Mark Seated</button>
-                                    <button onClick={() => { setOpenMenuId(null); onUpdateReservationStatus && onUpdateReservationStatus(res._id, 'cancelled'); }} className="w-full text-left px-4 py-2 text-xs font-bold text-[#DC2626] hover:bg-[#fef2f2] border-t border-[#f3f4f6]">Cancel</button>
+                                  <div className="absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg border border-[#e5e7eb] z-50 overflow-hidden">
+                                    <button onClick={() => { setOpenMenuId(null); onUpdateReservationStatus && onUpdateReservationStatus(res._id, 'confirmed'); }} className="w-full text-left px-4 py-2.5 text-xs font-bold text-[#10B981] hover:bg-[#f9fafb] transition-colors">Confirm</button>
+                                    <button onClick={() => { setOpenMenuId(null); onUpdateReservationStatus && onUpdateReservationStatus(res._id, 'seated'); }} className="w-full text-left px-4 py-2.5 text-xs font-bold text-[#3B82F6] hover:bg-[#f9fafb] transition-colors">Mark Seated</button>
+                                    <button onClick={() => { setOpenMenuId(null); onUpdateReservationStatus && onUpdateReservationStatus(res._id, 'cancelled'); }} className="w-full text-left px-4 py-2.5 text-xs font-bold text-[#DC2626] hover:bg-[#fef2f2] border-t border-[#f3f4f6] transition-colors">Cancel</button>
                                   </div>
                                 </>
                               )}
@@ -321,7 +308,9 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
                       </tr>
                     );
                   })}
-                  {paginatedData.length === 0 && (
+                  
+                  {/* Empty State */}
+                  {displayedReservations.length === 0 && (
                     <tr>
                       <td colSpan="8" className="p-8">
                         <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-[#e5e7eb] rounded-xl bg-[#f9fafb]">
@@ -336,16 +325,21 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
               </table>
             </div>
 
-            <div className="p-4 border-t border-[#f3f4f6] flex items-center justify-between bg-white text-xs text-[#6b7280]">
-              <span>Showing {filteredReservations.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} to {Math.min(currentPage * itemsPerPage, filteredReservations.length)} of {filteredReservations.length} reservations</span>
-              <div className="flex gap-2">
-                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1.5 border border-[#e5e7eb] rounded hover:bg-[#f9fafb] disabled:opacity-50"><ChevronLeft className="w-4 h-4" /></button>
-                <div className="flex gap-1">
-                  <button className="w-7 h-7 bg-[#8B0000] text-white rounded font-bold">{currentPage}</button>
-                  {currentPage < totalPages && <button className="w-7 h-7 text-[#374151] hover:bg-[#f9fafb] rounded font-bold" onClick={() => setCurrentPage(currentPage + 1)}>{currentPage + 1}</button>}
-                </div>
-                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-1.5 border border-[#e5e7eb] rounded hover:bg-[#f9fafb] disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
-              </div>
+            {/* ─── LOAD MORE BUTTON ─── */}
+            <div className="p-4 border-t border-[#f3f4f6] flex items-center justify-between bg-white">
+              <span className="text-xs font-semibold text-[#6b7280]">
+                Showing <strong className="text-[#374151]">{displayedReservations.length}</strong> of <strong className="text-[#374151]">{filteredReservations.length}</strong> reservations
+              </span>
+              
+              {hasMoreItems && (
+                <button
+                  onClick={handleLoadMore}
+                  disabled={isLoadingMore}
+                  className="flex items-center justify-center gap-2 w-[160px] h-[36px] bg-white border border-[#e5e7eb] text-[#374151] rounded-lg text-[13px] font-bold hover:bg-[#f9fafb] hover:text-[#8B0000] hover:border-[#8B0000] transition-all shadow-sm"
+                >
+                  {isLoadingMore ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading...</> : 'Load More'}
+                </button>
+              )}
             </div>
             
             {/* Floating Bulk Action Bar */}
@@ -360,24 +354,21 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
                     onClick={() => handleBulkAction('confirmed')}
                     className="text-xs font-bold text-white bg-[#10B981] hover:bg-[#059669] px-3 py-1.5 rounded disabled:opacity-50 flex items-center gap-1 transition-colors"
                   >
-                    {isProcessingBulk ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
-                    Confirm
+                    {isProcessingBulk ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />} Confirm
                   </button>
                   <button 
                     disabled={isProcessingBulk}
                     onClick={() => handleBulkAction('seated')}
                     className="text-xs font-bold text-white bg-[#3B82F6] hover:bg-[#2563EB] px-3 py-1.5 rounded disabled:opacity-50 flex items-center gap-1 transition-colors"
                   >
-                    {isProcessingBulk ? <Loader2 className="w-3 h-3 animate-spin" /> : <Users className="w-3 h-3" />}
-                    Mark Seated
+                    {isProcessingBulk ? <Loader2 className="w-3 h-3 animate-spin" /> : <Users className="w-3 h-3" />} Mark Seated
                   </button>
                   <button 
                     disabled={isProcessingBulk}
                     onClick={() => handleBulkAction('cancelled')}
                     className="text-xs font-bold text-white bg-[#DC2626] hover:bg-[#B91C1C] px-3 py-1.5 rounded disabled:opacity-50 flex items-center gap-1 transition-colors"
                   >
-                    {isProcessingBulk ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
-                    Cancel
+                    {isProcessingBulk ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />} Cancel
                   </button>
                 </div>
               </div>
@@ -385,8 +376,8 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
           </div>
         </div>
 
-        {/* Right Sidebar */}
-        <div className="w-[320px] shrink-0 overflow-y-auto custom-scrollbar space-y-6 pb-6">
+        {/* Right Sidebar (Calendar & Occupancy) */}
+        <div className="w-full xl:w-[320px] shrink-0 overflow-y-auto custom-scrollbar space-y-6 pb-6 pr-2">
           
           <div className="bg-white rounded-xl shadow-sm border border-[#e5e7eb] p-5">
             <h3 className="text-sm font-bold text-[#111827] mb-4">Reservation Calendar</h3>
@@ -394,7 +385,7 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
               <button onClick={prevMonth} className="p-1 border border-[#e5e7eb] rounded hover:bg-[#f9fafb] transition-colors"><ChevronLeft className="w-4 h-4 text-[#6b7280]"/></button>
               <span className="text-xs font-bold text-[#111827]">{currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
               <button onClick={nextMonth} className="p-1 border border-[#e5e7eb] rounded hover:bg-[#f9fafb] transition-colors"><ChevronRight className="w-4 h-4 text-[#6b7280]"/></button>
-              <button onClick={() => { setSelectedDate(new Date()); setCurrentMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1)); }} className="text-xs font-bold border border-[#e5e7eb] rounded px-2 py-1 ml-2 hover:bg-[#f9fafb] text-[#374151] transition-colors">Today</button>
+              <button onClick={() => { setSelectedDate(new Date()); setCurrentMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1)); }} className="text-xs font-bold border border-[#e5e7eb] rounded px-3 py-1 ml-2 hover:bg-[#f9fafb] text-[#374151] transition-colors shadow-sm">Today</button>
             </div>
             
             <div className="grid grid-cols-7 gap-1 text-center mb-2">

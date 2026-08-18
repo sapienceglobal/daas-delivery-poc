@@ -30,7 +30,7 @@ function NavContent() {
       id: 'order',
       label: 'Order',
       icon: ShoppingBag,
-      href: '/menu?mode=delivery',
+      href: '/order-online',
     },
     {
       id: 'reserve',

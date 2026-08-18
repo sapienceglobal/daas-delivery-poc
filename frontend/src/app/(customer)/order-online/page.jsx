@@ -9,9 +9,10 @@ import { showToast, ItemDetailModal, PortalModal } from '@/components/ui';
 import Loading from '@/app/loading';
 import { Home, Search, X, ShieldCheck, ChefHat, Award, Leaf } from 'lucide-react';
 
-import MenuHero from '@/components/branded/lassi-lounge/menu/MenuHero';
+import OrderOnlineHero from '@/components/branded/lassi-lounge/menu/OrderOnlineHero';
 import CategorySidebar from '@/components/branded/lassi-lounge/menu/CategorySidebar';
 import DishGrid from '@/components/branded/lassi-lounge/menu/DishGrid';
+import CartSidebar from '@/components/branded/lassi-lounge/menu/CartSidebar';
 
 const BRANDED_ID = process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'lassi-lounge';
 
@@ -27,12 +28,12 @@ const getDishImage = (n) => {
   return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
 };
 
-function MenuContent() {
+function OrderOnlineContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const categoryName = searchParams.get('categoryName');
 
-  const { addItem, switchRestaurant, restaurant: cartRestaurant, items, updateQuantity, removeItem } = useCart();
+  const { addItem, switchRestaurant, restaurant: cartRestaurant, items, subtotal, itemCount, updateQuantity, removeItem, specialInstructions, setSpecialInstructions } = useCart();
   const { user, isAuthenticated, updateUser } = useAuth();
 
   const [restaurant, setRestaurant] = useState(null);
@@ -150,10 +151,14 @@ function MenuContent() {
   const categories = menu || [];
   const currentCategory = activeCategory === 'all' ? { _id: 'all', name: 'All Items' } : (categories.find(c => c._id === activeCategory) || categories[0]);
   const filteredItems = searchQuery.trim() ? (searchResults || []) : (activeCategory === 'all' ? categories.flatMap(c => c.items || []) : (currentCategory?.items || []));
+  
+  const deliveryFee = restaurant?.deliveryFee ?? 2.99;
+  const taxes = subtotal * 0.0875;
+  const totalAmount = subtotal > 0 ? (subtotal + deliveryFee + taxes) : 0;
 
   return (
     <div className="min-h-screen bg-[#fdfbf7] flex flex-col font-sans">
-      <MenuHero />
+      <OrderOnlineHero />
 
       <div ref={menuTopRef} className="bg-white border-b border-[#e5e7eb] py-4 sticky lg:relative top-[56px] lg:top-auto z-[60] lg:z-10 shadow-[0_8px_24px_rgba(122,11,16,0.05)]">
         <div className="mx-auto max-w-[1550px] px-4 md:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -162,7 +167,7 @@ function MenuContent() {
               <Home className="w-4 h-4 text-[#7a0b10]" /> <span>Home</span>
             </button>
             <span className="text-[#7a0b10]">&gt;</span>
-            <span className="text-[#1a1a1a] font-bold">Menu</span>
+            <span className="text-[#1a1a1a] font-bold">Order Online</span>
           </div>
           <div className="relative w-full md:w-[420px] flex items-center gap-2">
             <div className="relative w-full">
@@ -230,6 +235,28 @@ function MenuContent() {
                 onCustomize={handleCustomize}
               />
             )}
+          </div>
+
+          {/* Right Sidebar: Cart */}
+          <div className="w-full lg:w-[320px] shrink-0">
+            <div className="lg:sticky lg:top-[72px]">
+              <CartSidebar
+                items={items}
+                itemCount={itemCount}
+                subtotal={subtotal}
+                deliveryFee={deliveryFee}
+                taxes={taxes}
+                discount={0}
+                totalAmount={totalAmount}
+                couponApplied={couponApplied}
+                setCouponApplied={setCouponApplied}
+                updateQuantity={updateQuantity}
+                router={router}
+                specialInstructions={specialInstructions}
+                setSpecialInstructions={setSpecialInstructions}
+                restaurant={restaurant}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -335,10 +362,10 @@ function RepeatCustomizationModal({ isOpen, onClose, lastCartItem, onRepeat, onC
 }
 
 // Suspense Wrapper for build safety
-export default function MenuPage() {
+export default function OrderOnlinePage() {
   return (
     <Suspense fallback={<Loading />}>
-      <MenuContent />
+      <OrderOnlineContent />
     </Suspense>
   );
 }

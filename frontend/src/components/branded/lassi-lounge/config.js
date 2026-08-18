@@ -194,9 +194,10 @@ export const testimonialsContent = {
   ],
 };
 
+// Yahan href update kiya gaya hai
 export const navLinks = [
   { label: 'Home', href: '/' },
-  { label: 'Order Online', href: '/menu?mode=delivery' },
+  { label: 'Order Online', href: '/order-online' }, // Updated
   { label: 'Menu', href: '/menu' },
   { label: 'Book a Table', href: '/book-a-table' },
   { label: 'Catering', href: '/catering' },
@@ -246,7 +247,7 @@ export const heroContent = {
   ribbonText: 'INDIAN RESTAURANT',
   description:
     'Experience the rich and authentic flavors of India. From traditional favorites to modern delights, every dish is made with love.',
-  primaryCta: { label: 'Order Online', href: '/menu' },
+  primaryCta: { label: 'Order Online', href: '/order-online' },
   secondaryCta: { label: 'View Menu', href: '/menu' },
   heroImage: {
     src: '/images/branded/lassi-lounge/hero-spread.jpg',
