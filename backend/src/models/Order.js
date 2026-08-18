@@ -32,6 +32,42 @@ const StatusUpdateSchema = new mongoose.Schema({
   description: { type: String, default: '' }
 }, { _id: false });
 
+/**
+ * Structured payment lifecycle event log.
+ * Every meaningful payment or order-creation event is appended here.
+ * Possible event values:
+ *   payment_initiated       — user triggered payment
+ *   payment_confirmed       — Stripe verified payment as succeeded
+ *   payment_failed          — Stripe payment failed
+ *   order_saved             — order document written to DB successfully
+ *   order_creation_failed   — post-payment DB/logic step failed
+ *   auto_refund_triggered   — auto-refund attempt started
+ *   auto_refund_succeeded   — Stripe refund confirmed
+ *   auto_refund_failed      — Stripe refund call threw error
+ *   manual_refund           — merchant-initiated refund
+ *   loyalty_rollback        — loyalty points reversed
+ */
+const PaymentEventSchema = new mongoose.Schema({
+  event: {
+    type: String,
+    required: true,
+    enum: [
+      'payment_initiated', 'payment_confirmed', 'payment_failed',
+      'order_saved', 'order_creation_failed',
+      'auto_refund_triggered', 'auto_refund_succeeded', 'auto_refund_failed',
+      'manual_refund', 'loyalty_rollback'
+    ]
+  },
+  timestamp: { type: Date, default: Date.now },
+  amount: { type: Number, default: null },
+  stripeRefundId: { type: String, default: null },
+  stripePaymentIntentId: { type: String, default: null },
+  error: { type: String, default: null },
+  reason: { type: String, default: null },
+  triggeredBy: { type: String, enum: ['system', 'merchant', 'customer'], default: 'system' },
+  meta: { type: mongoose.Schema.Types.Mixed, default: null }
+}, { _id: true });
+
 const OrderSchema = new mongoose.Schema({
   // ── Identifiers ───────────────────────────────────────────────────────
   orderNumber: {
@@ -185,6 +221,11 @@ const OrderSchema = new mongoose.Schema({
   refunded: { type: Boolean, default: false },
   refundAmount: { type: Number, default: 0 },
   refundReason: { type: String, default: null },
+
+  // ── Payment Audit Log ─────────────────────────────────────────────────
+  // Structured event log of every payment + order lifecycle event.
+  // Use pushPaymentEvent() helper to append safely.
+  paymentEvents: { type: [PaymentEventSchema], default: [] },
 
   // ── Legacy field kept for DoorDash API compatibility ──────────────────
   productName: { type: String, default: null },

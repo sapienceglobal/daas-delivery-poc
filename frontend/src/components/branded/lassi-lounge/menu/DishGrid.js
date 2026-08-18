@@ -19,11 +19,11 @@ const getDishImage = (itemName) => {
   if (name.includes('tandoori chiken') || name.includes('tandoori chicken')) return '/images/branded/lassi-lounge/dishes/tandoori-chiken.png';
   if (name.includes('paneer tikka')) return '/images/branded/lassi-lounge/dishes/paneer-tikka.jpg';
   if (name.includes('tandoori roti')) return '/images/branded/lassi-lounge/dishes/tandoori-roti.png';
-  
+
   if (name.includes('biryani')) return '/images/branded/lassi-lounge/dishes/chicken-biryani.jpg';
   if (name.includes('dal makhani')) return '/images/branded/lassi-lounge/dishes/dal-makhani.jpg';
   if (name.includes('roll') || name.includes('spring')) return '/images/branded/lassi-lounge/dishes/veg-spring-rolls.png';
-  
+
   return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
 };
 
@@ -36,12 +36,14 @@ export default function DishGrid({
   handleCartAdd,
   handleCartDecrement,
   toggleFavorite,
-  searchQuery = ''
+  searchQuery = '',
+  restaurantId = '',
+  onCustomize
 }) {
   const router = useRouter();
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('popular');
-
+  const SINGLE_MODE = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
   const visibleItems = useMemo(() => {
     const items = [...filteredItems];
     if (sortBy === 'price-low') return items.sort((a, b) => (a.price || 0) - (b.price || 0));
@@ -88,7 +90,7 @@ export default function DishGrid({
             <h2 className="text-[28px] md:text-[32px] font-serif font-black text-[#1a1a1a] leading-none truncate w-full">
               {searchQuery.trim()
                 ? `Search Results for "${searchQuery.length > 25 ? searchQuery.substring(0, 25) + '...' : searchQuery}"`
-                : (currentCategory?.name || 'Appetizers')}
+                : (currentCategory?.name && currentCategory.name !== 'All Items' ? currentCategory.name : (currentCategory?.name || 'All Items'))}
             </h2>
           </div>
           <div className="flex items-center gap-2 ml-1.5 mt-1.5">
@@ -172,11 +174,29 @@ export default function DishGrid({
             (item.sizeVariations && item.sizeVariations.length > 0) ||
             (item.addOns && item.addOns.length > 0);
 
+          // Customizable items open the customize/repeat modal (onCustomize)
+          // instead of adding straight to the cart with no options — that
+          // wiring had gone missing, which is what made every item look
+          // like a plain one-tap add regardless of its options.
+          const handlePrimaryAction = (e) => {
+            e.stopPropagation();
+            if (hasCustomizations && onCustomize) {
+              onCustomize(item);
+            } else {
+              handleCartAdd(item);
+            }
+          };
+
           return (
             <div
               key={item._id}
               onClick={() => {
-                router.push(`/restaurant/${item.restaurantId}/item/${item._id}`);
+                if (SINGLE_MODE) {
+                  router.push(`/item/${item._id}`);
+                } else {
+                  const rid = restaurantId || item.restaurantId;
+                  router.push(`/restaurant/${rid}/item/${item._id}`);
+                }
               }}
               className={`bg-[#fcfaf5] rounded-xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_34px_rgba(122,11,16,0.12)] flex overflow-hidden relative group ll-interactive cursor-pointer ${!isAvailable ? 'opacity-50 pointer-events-none' : ''} ${viewMode === 'grid' ? 'flex-col' : 'flex-col sm:flex-row sm:min-h-[210px] h-auto'}`}
             >
@@ -260,7 +280,7 @@ export default function DishGrid({
                           {cartQty}
                         </span>
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleCartAdd(item); }}
+                          onClick={handlePrimaryAction}
                           className="w-10 text-[#7a0b10] hover:bg-[#7a0b10]/5 h-full flex items-center justify-center transition-colors font-bold ll-focus-ring"
                           aria-label={`Add one more ${item.name}`}
                         >
@@ -269,7 +289,7 @@ export default function DishGrid({
                       </div>
                     ) : (
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleCartAdd(item); }}
+                        onClick={handlePrimaryAction}
                         className="bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff] text-[12px] font-black h-[38px] px-6 rounded-lg shadow-sm flex items-center justify-center gap-1.5 uppercase tracking-wider min-w-[110px] transition-colors ll-interactive ll-focus-ring"
                       >
                         ADD <Plus className="h-[14px] w-[14px]" strokeWidth={3} />
@@ -291,24 +311,24 @@ export default function DishGrid({
       {/* ─── 3. PAGINATION ─── */}
       {visibleItems.length > 0 && (
         <div className="flex justify-center items-center mt-10 py-4 text-[12px] font-bold uppercase tracking-wider text-[#6b7280] gap-4">
-          <button 
-             onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-             disabled={currentPage === 1}
-             className="p-2 disabled:opacity-30 hover:text-[#7a0b10] transition-colors ll-focus-ring"
-             aria-label="Previous page"
+          <button
+            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className="p-2 disabled:opacity-30 hover:text-[#7a0b10] transition-colors ll-focus-ring"
+            aria-label="Previous page"
           >
             <ChevronLeft className="w-5 h-5" strokeWidth={2.5} />
           </button>
-          
+
           <span className="min-w-[200px] text-center">
             Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, visibleItems.length)} of {visibleItems.length} dishes from {currentCategory?.name || 'this category'}
           </span>
-          
-          <button 
-             onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-             disabled={currentPage === totalPages}
-             className="p-2 disabled:opacity-30 hover:text-[#7a0b10] transition-colors ll-focus-ring"
-             aria-label="Next page"
+
+          <button
+            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+            className="p-2 disabled:opacity-30 hover:text-[#7a0b10] transition-colors ll-focus-ring"
+            aria-label="Next page"
           >
             <ChevronRight className="w-5 h-5" strokeWidth={2.5} />
           </button>

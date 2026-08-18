@@ -41,7 +41,7 @@ export default function AboutStorySection({ onReserveClick }) {
               </button>
             ) : (
               <Link
-                href="/restaurant/lassi-lounge?tab=reserve"
+                href="/book-a-table"
                 className="bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff] font-bold text-[12px] uppercase tracking-wider px-6 py-3 rounded-lg shadow-sm inline-flex items-center justify-center gap-2 transition-colors duration-200 shrink-0"
               >
                 Reserve A Table <ChevronRight className="w-4 h-4" strokeWidth={2.5} />

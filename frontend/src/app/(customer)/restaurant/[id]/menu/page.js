@@ -292,7 +292,7 @@ export default function RestaurantPage() {
             {/* Right: Search Bar */}
             <div className="relative w-full md:w-[420px] flex items-center gap-2">
               <div className="relative w-full">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9ca3af] ml-2" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9ca3af] pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search dishes..."
@@ -348,6 +348,7 @@ export default function RestaurantPage() {
                 searchQuery={searchQuery}
                 currentCategory={currentCategory}
                 isAuthenticated={isAuthenticated}
+                restaurantId={id}
                 user={user}
                 items={items}
                 handleCartAdd={handleCartAdd}

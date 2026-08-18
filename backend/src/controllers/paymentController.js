@@ -57,6 +57,10 @@ export const createIntent = asyncHandler(async (req, res) => {
 
   if (req.user?._id) metadata.userId = req.user._id.toString();
   if (req.tenantDb?.name) metadata.tenantDbName = req.tenantDb.name;
+  // Safety fallback: always ensure tenantDbName is set so Stripe webhooks write to the correct DB.
+  if (!metadata.tenantDbName) {
+    metadata.tenantDbName = process.env.FORCE_TENANT_DB_NAME || 'daas_poc_lassi_lounge';
+  }
 
   if (restaurantId && items?.length) {
     const prePricing = await calculateOrderPricing({

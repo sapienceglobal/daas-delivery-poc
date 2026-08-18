@@ -14,7 +14,7 @@ export default function Breadcrumbs({ restaurant, category, itemName, isSingleRe
       <ChevronRight className="w-3.5 h-3.5 text-[#9ca3af]" />
       
       {isSingleRestaurant ? (
-        <Link href="/restaurant/lassi-lounge" className="hover:text-[#1a1a1a] transition-colors">
+        <Link href="/menu" className="hover:text-[#1a1a1a] transition-colors">
           Menu
         </Link>
       ) : (

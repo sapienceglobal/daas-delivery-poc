@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Bike, Utensils, ChevronRight, ChevronLeft, ArrowRight, ArrowLeft } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { menuCategoryContent, deliveryPartnersContent, heroContent } from '../config';
-
+import { restaurantAPI } from '@/lib/api';
 import { useBrand } from '@/context/BrandContext';
 
 export default function HomeTopSection() {
@@ -14,6 +14,35 @@ export default function HomeTopSection() {
   const partnersScrollRef = useRef(null);
   const categoriesScrollRef = useRef(null);
   const { brand } = useBrand();
+
+  // Real DB categories — fetched using brand._id from BrandContext
+  const [dbCategories, setDbCategories] = useState([]);
+
+  useEffect(() => {
+    if (!brand?._id) return;
+    restaurantAPI.getById(brand._id)
+      .then(res => {
+        const cats = res.data?.menu || [];
+        // Only include categories that have at least one available item
+        const withItems = cats.filter(c => (c.items || []).length > 0);
+        if (withItems.length > 0) setDbCategories(withItems);
+      })
+      .catch(() => {}); // silently fall back to config categories
+  }, [brand?._id]);
+
+  // Build display categories: prefer DB, fall back to config
+  const { categories: configCategories, viewFullMenuCta } = menuCategoryContent;
+  const displayCategories = dbCategories.length > 0
+    ? dbCategories.map(cat => ({
+        id: cat._id,
+        label: cat.name,
+        // Use the category image from DB if set, else use the first item's image, else fallback
+        icon: cat.image
+          || (cat.items && cat.items[0]?.image)
+          || configCategories.find(c => c.label.toLowerCase().includes(cat.name.toLowerCase().split(' ')[0]))?.icon
+          || configCategories[0]?.icon
+      }))
+    : configCategories;
 
   const isPausedRef = useRef(false);
   const pauseTimeoutRef = useRef(null);
@@ -97,7 +126,6 @@ export default function HomeTopSection() {
     }
   };
 
-  const { categories, viewFullMenuCta } = menuCategoryContent;
   const { eyebrow, heading, headingScript, description, partners } = deliveryPartnersContent;
 
   const brandNameParts = brand?.name ? brand.name.split(' ') : ['LASSI', 'LOUNGE'];
@@ -220,7 +248,7 @@ export default function HomeTopSection() {
 
               <div className="relative w-full flex items-center min-w-0">
                 <div ref={categoriesScrollRef} className="flex flex-nowrap overflow-x-auto no-scrollbar pb-4 md:pb-0 justify-start gap-6 md:gap-8 flex-1 w-full px-2 md:px-8 ll-cat-scroll-fade">
-                  {categories.map((category) => (
+                  {displayCategories.map((category) => (
                     <div key={category.id} onClick={() => router.push(`${viewFullMenuCta.href}?categoryName=${encodeURIComponent(category.label)}`)} className="group flex flex-col items-center gap-2 cursor-pointer shrink-0">
                       <div className="relative w-[85px] h-[85px] md:w-[100px] md:h-[100px] rounded-full p-[2px] border border-[#e8a020] bg-transparent transition-transform duration-300 group-hover:-translate-y-1">
                         <div className="w-full h-full rounded-full border-[3px] border-[#fcfaf5] bg-white overflow-hidden shadow-sm">

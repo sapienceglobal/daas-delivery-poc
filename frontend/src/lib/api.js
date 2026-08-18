@@ -179,6 +179,12 @@ export const orderAPI = {
   addNote: (id, text) => api.post(`/api/orders/${id}/note`, { text }),
   remake: (id) => api.post(`/api/orders/${id}/remake`),
   sendInvoice: (id) => api.post(`/api/orders/${id}/send-invoice`),
+  // Payment Audit Trail
+  getPaymentEvents: (id) => api.get(`/api/orders/${id}/payment-events`),
+  // Document Generation — returns URL string; caller uses window.open(url, '_blank')
+  // Auth is handled via session cookie which browser sends automatically.
+  getInvoiceUrl: (id) => `${API_BASE_URL}/api/orders/${id}/invoice`,
+  getKotUrl: (id) => `${API_BASE_URL}/api/orders/${id}/kot`,
   // Admin
   getAll: (params = '') => api.get(`/api/orders${params ? '?' + params : ''}`),
   refund: (id, data) => api.post(`/api/orders/${id}/refund`, data),

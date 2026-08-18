@@ -203,15 +203,26 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
       case 'picked_up':
       case 'completed': return <span className="text-[#16a34a] font-bold text-xs border border-[#bbf7d0] bg-[#f0fdf4] px-2 py-1 rounded">Completed</span>;
       case 'cancelled': return <span className="text-[#6b7280] font-bold text-xs border border-[#e5e7eb] bg-[#f9fafb] px-2 py-1 rounded">Cancelled</span>;
+      case 'failed': return <span className="text-[#b91c1c] font-bold text-xs border border-[#fecaca] bg-[#fef2f2] px-2 py-1 rounded">Failed</span>;
       default: return <span className="text-[#6b7280] font-bold text-xs border border-[#e5e7eb] bg-[#f3f4f6] px-2 py-1 rounded capitalize">{status}</span>;
     }
   };
 
-  const getPaymentBadge = (method, pStatus) => {
-    const isOnline = ['credit_card', 'debit_card', 'apple_pay', 'google_pay'].includes(method?.toLowerCase());
-    if (pStatus?.toLowerCase() === 'paid') return <span className="text-[#16a34a] font-bold text-xs bg-[#dcfce7] px-2 py-0.5 rounded">Paid</span>;
+  const getPaymentBadge = (method, pStatus, order) => {
+    const ps = (pStatus || '').toLowerCase();
+    const isAutoRefund = order?.refunded && ps === 'refunded';
+    if (ps === 'refunded') return (
+      <div className="flex flex-col gap-0.5">
+        <span className="text-[#dc2626] font-bold text-xs bg-[#fef2f2] px-2 py-0.5 rounded">Refunded</span>
+        {isAutoRefund && <span className="text-[#d97706] font-bold text-[9px] bg-[#fffbeb] px-1.5 py-0.5 rounded">⚡ Auto</span>}
+      </div>
+    );
+    if (ps === 'partially_refunded') return <span className="text-[#d97706] font-bold text-xs bg-[#fffbeb] px-2 py-0.5 rounded">Partial Refund</span>;
+    if (ps === 'failed') return <span className="text-[#dc2626] font-bold text-xs bg-[#fee2e2] px-2 py-0.5 rounded">⚠️ Failed</span>;
+    const isOnline = ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(method?.toLowerCase());
+    if (ps === 'paid') return <span className="text-[#16a34a] font-bold text-xs bg-[#dcfce7] px-2 py-0.5 rounded">Paid</span>;
     if (isOnline) return <span className="text-[#2563eb] font-bold text-xs bg-[#dbeafe] px-2 py-0.5 rounded">Online</span>;
-    if (method?.toLowerCase() === 'cash' || pStatus?.toLowerCase() === 'pending') return <span className="text-[#ea580c] font-bold text-xs bg-[#ffedd5] px-2 py-0.5 rounded">COD</span>;
+    if (method?.toLowerCase() === 'cash' || ps === 'pending') return <span className="text-[#ea580c] font-bold text-xs bg-[#ffedd5] px-2 py-0.5 rounded">COD</span>;
     return <span className="text-[#6b7280] font-bold text-xs bg-[#f3f4f6] px-2 py-0.5 rounded capitalize">{pStatus || 'Unknown'}</span>;
   };
 
@@ -320,6 +331,7 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
                 <option>Out for Delivery</option>
                 <option>Completed</option>
                 <option>Cancelled</option>
+                <option>Failed</option>
               </select>
             </div>
 
@@ -433,7 +445,11 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
                   return (
                     <tr 
                       key={order._id || idx} 
-                      className="hover:bg-gray-50/50 transition-colors"
+                      className={`hover:bg-gray-50/50 transition-colors ${
+                        order.status === 'failed' ? 'bg-[#fff5f5]'
+                        : order.refunded ? 'bg-[#fffdf0]'
+                        : ''
+                      }`}
                     >
                       <td className="px-4 py-4 text-center">
                         <input 
@@ -475,7 +491,7 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
                         <div className="text-sm font-black text-[#111827]">${order.total?.toFixed(2) || '0.00'}</div>
                       </td>
                       <td className="px-4 py-4">
-                        {getPaymentBadge(order.paymentMethod, order.paymentStatus)}
+                        {getPaymentBadge(order.paymentMethod, order.paymentStatus, order)}
                       </td>
                       <td className="px-4 py-4">
                         {(order.orderType || order.type) === 'delivery' ? (

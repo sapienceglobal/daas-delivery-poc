@@ -297,7 +297,11 @@ export default function OrderDetailPage() {
         </div>
 
         {/* Dynamic Carousel: You May Also Like */}
-        <RecommendationsCarousel restaurantId={order.restaurantId} orderedItemIds={orderedItemIds} />
+        {/* order.restaurantId can be a populated object or a plain string ID — extract _id safely */}
+        <RecommendationsCarousel
+          restaurantId={order.restaurantId?._id || order.restaurantId}
+          orderedItemIds={orderedItemIds}
+        />
 
         {/* Trust features badges footer */}
         <ValuePropsBar />

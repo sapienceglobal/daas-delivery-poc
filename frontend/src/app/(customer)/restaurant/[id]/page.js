@@ -1,7 +1,28 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useRef } from 'react';
+import { useParams } from 'next/navigation';
+
+// ── Single Restaurant Mode Redirect ─────────────────────────────────────────
+// In single-restaurant mode, the canonical URL is /menu (SEO-friendly, no slug).
+// This wrapper immediately redirects old /restaurant/[id] URLs to /menu so that:
+//  • Existing bookmarks still work
+//  • SEO crawlers follow the canonical route
+//  • No user ever sees /restaurant/lassi-lounge in the address bar
+
+const SINGLE_MODE = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
+
+function RestaurantRedirect() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const catName = searchParams.get('categoryName');
+    router.replace(catName ? `/menu?categoryName=${encodeURIComponent(catName)}` : '/menu');
+  }, []);
+  return null;
+}
 import {
   Star, Clock, MapPin, Phone, Globe, ChevronLeft,
   Plus, Minus, Flame, Leaf, ShoppingBag, Heart,
@@ -37,6 +58,10 @@ const getDishImage = (itemName) => {
 };
 
 export default function RestaurantPage() {
+  // In single-restaurant mode, /restaurant/[id] is a legacy URL.
+  // Redirect immediately to the canonical /menu page.
+  if (SINGLE_MODE) return <RestaurantRedirect />;
+
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();

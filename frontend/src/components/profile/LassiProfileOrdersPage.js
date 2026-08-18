@@ -233,7 +233,7 @@ export default function LassiProfileOrdersPage({ user, logout, updateUser }) {
             user={user}
             activeNav={activeNav}
             onNavClick={handleNavClick}
-            onOrderNow={() => router.push('/restaurant/lassi-lounge')}
+            onOrderNow={() => router.push('/menu')}
           />
 
           {/* Right Main Section depending on selected sidebar tab */}

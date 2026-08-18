@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { User, ShoppingCart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -20,6 +20,8 @@ export default function LassiLoungeHeader() {
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const { brand, loading } = useBrand();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const mode = searchParams.get('mode');
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -53,10 +55,21 @@ export default function LassiLoungeHeader() {
         {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-6">
           {navLinks.map((link) => {
-            const isActive = pathname === link.href;
+            let isActive = false;
+            if (link.href.includes('?mode=')) {
+              const [base, query] = link.href.split('?mode=');
+              isActive = pathname === base && mode === query;
+            } else {
+              // Special case: If we are on /menu but mode=delivery, the plain /menu link should NOT be active
+              if (pathname === '/menu' && link.href === '/menu' && mode === 'delivery') {
+                isActive = false;
+              } else {
+                isActive = pathname === link.href;
+              }
+            }
             return (
               <Link
-                key={link.href}
+                key={link.label}
                 href={link.href}
                 className={`text-xs font-semibold uppercase tracking-wide pb-1 border-b-2 transition-colors duration-base ${
                   isActive

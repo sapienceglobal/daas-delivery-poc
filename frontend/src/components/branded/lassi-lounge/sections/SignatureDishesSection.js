@@ -13,7 +13,7 @@ export default function SignatureDishesSection() {
   const eyebrow = signatureDishesContent?.eyebrow || 'Our Signature Dishes';
   const viewFullMenuCta = signatureDishesContent?.viewFullMenuCta || {
     label: 'View Full Menu',
-    href: '/restaurant/lassi-lounge/menu'
+    href: '/menu'
   };
   const fallbackDishes = signatureDishesContent?.dishes || [];
 

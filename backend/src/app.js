@@ -88,6 +88,39 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
+// ── Auth-Specific Strict Rate Limiters ───────────────────────────────────────
+// These are applied BEFORE the general API limiter to enforce tighter limits
+// on authentication endpoints — critical for preventing brute-force attacks
+// on the merchant/admin login portal at lassiloungeny.com.
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,       // 15-minute sliding window
+  max: 10,                          // Only 10 login attempts per IP per window
+  message: { success: false, message: 'Too many login attempts. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,     // Only failed attempts count toward the limit
+});
+app.use('/api/auth/login', loginLimiter);
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,        // 1-hour window
+  max: 5,                           // Max 5 accounts created per IP per hour
+  message: { success: false, message: 'Too many accounts created from this IP. Please try again in an hour.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/auth/register', registerLimiter);
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,        // 1-hour window
+  max: 5,                           // Max 5 reset requests per IP per hour
+  message: { success: false, message: 'Too many password reset requests. Please try again in an hour.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/auth/forgot-password', forgotPasswordLimiter);
+
 app.use(cookieParser());
 app.use(tenantDb);
 

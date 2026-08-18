@@ -52,7 +52,7 @@ export default function LassiProfilePage({ user, logout, updateUser }) {
             user={user}
             activeNav={activeNav}
             onNavClick={handleNavClick}
-            onOrderNow={() => router.push('/restaurant/lassi-lounge')}
+            onOrderNow={() => router.push('/menu')}
           />
 
           {/* Right Side Content with Smooth Fade-In Transition */}

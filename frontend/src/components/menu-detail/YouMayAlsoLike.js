@@ -16,8 +16,11 @@ export default function YouMayAlsoLike({
   const { items, updateQuantity, removeItem } = useCart(); // Cart methods nikale
 
   const handleCardClick = (recId) => {
-    const restId = isSingleRestaurant ? 'lassi-lounge' : restaurantId;
-    router.push(`/restaurant/${restId}/item/${recId}`);
+    if (isSingleRestaurant) {
+      router.push(`/item/${recId}`);
+    } else {
+      router.push(`/restaurant/${restaurantId}/item/${recId}`);
+    }
   };
 
   const recommendations = menuItems
@@ -41,7 +44,6 @@ export default function YouMayAlsoLike({
     if (name.includes('biryani')) return '/images/branded/lassi-lounge/dishes/chicken-biryani.jpg';
     if (name.includes('dal makhani')) return '/images/branded/lassi-lounge/dishes/dal-makhani.jpg';
     if (name.includes('lassi')) return '/images/branded/lassi-lounge/dishes/mango-lassi.jpg';
-    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
     return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
   };
 
@@ -81,9 +83,9 @@ export default function YouMayAlsoLike({
     const handleMouseEnter = () => { isPausedRef.current = true; };
     const handleMouseLeave = () => { isPausedRef.current = false; };
     const handleTouchStart = () => { isPausedRef.current = true; };
-    const handleTouchEnd = () => { 
+    const handleTouchEnd = () => {
       if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
-      pauseTimeoutRef.current = setTimeout(() => { isPausedRef.current = false; }, 1000); 
+      pauseTimeoutRef.current = setTimeout(() => { isPausedRef.current = false; }, 1000);
     };
 
     container.addEventListener('mouseenter', handleMouseEnter);
@@ -134,7 +136,7 @@ export default function YouMayAlsoLike({
       {/* Cards Grid / Slider */}
       <div className="relative flex items-center group/slider">
         {/* Left Scroll Button */}
-        <button 
+        <button
           onClick={scrollLeft}
           className="absolute -left-4 md:-left-5 z-10 w-10 h-10 rounded-full border border-[#e5e7eb] bg-[#ffffff] hover:bg-[#f9fafb] flex items-center justify-center text-[#4b5563] shadow-md opacity-0 group-hover/slider:opacity-100 transition-opacity duration-300"
           aria-label="Scroll left"
@@ -143,7 +145,7 @@ export default function YouMayAlsoLike({
         </button>
 
         {/* Scrollable Container */}
-        <div 
+        <div
           ref={scrollContainerRef}
           className="flex overflow-x-auto gap-4 md:gap-5 w-full pb-4 pt-2 px-1 hide-scrollbar"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -172,7 +174,7 @@ export default function YouMayAlsoLike({
             };
 
             return (
-              <div 
+              <div
                 key={rec._id || rec.id}
                 onClick={() => handleCardClick(rec._id || rec.id)}
                 className="shrink-0 w-[160px] md:w-[220px] lg:w-[240px] bg-[#ffffff] rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(122,11,16,0.12)] border border-[#e5e7eb] overflow-hidden cursor-pointer group transition-all duration-300 flex flex-col"
@@ -201,13 +203,13 @@ export default function YouMayAlsoLike({
                   </div>
 
                   {/* Bottom line: Price & Cart/Quantity Controls */}
-               <div className="flex items-center justify-between mt-1 w-full h-[34px]">
+                  <div className="flex items-center justify-between mt-1 w-full h-[34px]">
                     <span className="text-[16px] font-bold text-[#1a1a1a] leading-none">${rec.price.toFixed(2)}</span>
-                    
+
                     {cartQty > 0 ? (
                       <div className="flex items-center border border-[#7a0b10]/20 rounded-lg h-[34px] bg-[#ffffff] shadow-sm shrink-0 w-[90px] overflow-hidden">
-                        <button 
-                          onClick={handleDecrement} 
+                        <button
+                          onClick={handleDecrement}
                           className="w-8 text-[#7a0b10] hover:bg-[#7a0b10]/5 h-full flex items-center justify-center transition-colors font-bold"
                           aria-label={`Remove ${rec.name}`}
                         >
@@ -216,8 +218,8 @@ export default function YouMayAlsoLike({
                         <span className="flex-1 text-[13px] font-black text-[#7a0b10] text-center">
                           {cartQty}
                         </span>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); onQuickAdd(rec); }} 
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onQuickAdd(rec); }}
                           className="w-8 text-[#7a0b10] hover:bg-[#7a0b10]/5 h-full flex items-center justify-center transition-colors font-bold"
                           aria-label={`Add one more ${rec.name}`}
                         >
@@ -245,7 +247,7 @@ export default function YouMayAlsoLike({
         </div>
 
         {/* Right Scroll Button */}
-        <button 
+        <button
           onClick={scrollRight}
           className="absolute -right-4 md:-right-5 z-10 w-10 h-10 rounded-full border border-[#e5e7eb] bg-[#ffffff] hover:bg-[#f9fafb] flex items-center justify-center text-[#4b5563] shadow-md opacity-0 group-hover/slider:opacity-100 transition-opacity duration-300"
           aria-label="Scroll right"

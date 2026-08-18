@@ -15,11 +15,35 @@ import { buildOrderSocketPayload, syncDeliveryTracking } from '../services/deliv
 import { retrievePaymentIntent, refundPayment as refundStripePayment, chargeSavedCard } from '../services/stripeService.js';
 import { calculateOrderPricing, roundMoney } from '../services/orderPricing.js';
 import { sendOrderConfirmationEmail, sendInvoiceEmail } from '../services/emailService.js';
+import { generateInvoiceHTML, generateKOTHTML } from '../services/documentService.js';
 import { createNotification } from './notificationController.js';
 import logger from '../utils/logger.js';
 
 const CUSTOMER_PAYMENT_METHODS = ['credit_card', 'apple_pay', 'google_pay', 'stripe_online'];
 const STRIPE_REFUND_PAYMENT_METHODS = ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'];
+
+/**
+ * pushPaymentEvent — safely appends a structured event to order.paymentEvents.
+ * Does NOT call order.save() — caller is responsible for persistence.
+ *
+ * @param {Object} order  - Mongoose order document
+ * @param {string} event  - event name from PaymentEventSchema enum
+ * @param {Object} extras - optional { amount, stripeRefundId, stripePaymentIntentId, error, reason, triggeredBy, meta }
+ */
+const pushPaymentEvent = (order, event, extras = {}) => {
+  if (!order || !order.paymentEvents) return;
+  order.paymentEvents.push({
+    event,
+    timestamp: new Date(),
+    amount: extras.amount ?? null,
+    stripeRefundId: extras.stripeRefundId ?? null,
+    stripePaymentIntentId: extras.stripePaymentIntentId ?? null,
+    error: extras.error ?? null,
+    reason: extras.reason ?? null,
+    triggeredBy: extras.triggeredBy ?? 'system',
+    meta: extras.meta ?? null
+  });
+};
 
 const canManageRestaurant = (user, restaurantId) => {
   if (user.role === 'admin') return true;
@@ -205,6 +229,14 @@ export const processAutoRefund = async (order, reason, io, getModel) => {
     return { processed: false, error: 'missing_stripe_payment_intent' };
   }
 
+  // Log: auto_refund_triggered
+  pushPaymentEvent(order, 'auto_refund_triggered', {
+    amount: remainingAmount,
+    stripePaymentIntentId: order.stripePaymentIntentId,
+    reason,
+    triggeredBy: 'system'
+  });
+
   try {
     const refund = await issueStripeRefund(
       order.stripePaymentIntentId,
@@ -227,6 +259,16 @@ export const processAutoRefund = async (order, reason, io, getModel) => {
       status: order.status,
       description: `Auto-refunded $${remainingAmount.toFixed(2)}: ${reason}`
     });
+
+    // Log: auto_refund_succeeded
+    pushPaymentEvent(order, 'auto_refund_succeeded', {
+      amount: remainingAmount,
+      stripeRefundId: refund.id,
+      stripePaymentIntentId: order.stripePaymentIntentId,
+      reason,
+      triggeredBy: 'system'
+    });
+
     await order.save();
     logger.info('Auto-refunded order', { orderId: order._id, refundAmount: remainingAmount, stripeRefundId: refund.id });
 
@@ -250,6 +292,17 @@ export const processAutoRefund = async (order, reason, io, getModel) => {
 
     return { processed: true, amount: remainingAmount, stripeRefundId: refund.id };
   } catch (stripeError) {
+    // Log: auto_refund_failed
+    pushPaymentEvent(order, 'auto_refund_failed', {
+      amount: remainingAmount,
+      stripePaymentIntentId: order.stripePaymentIntentId,
+      error: stripeError.message,
+      reason,
+      triggeredBy: 'system'
+    });
+    await order.save().catch(saveErr =>
+      logger.error('Failed to save auto_refund_failed event', { orderId: order._id, error: saveErr.message })
+    );
     logger.error('Failed to auto-refund order', { orderId: order._id, error: stripeError.message });
     return { processed: false, error: stripeError.message };
   }
@@ -481,6 +534,10 @@ export const createOrder = asyncHandler(async (req, response) => {
     userId: req.user._id
   });
 
+  // Track whether the order document has been persisted to DB.
+  // Used in the catch block to decide between orphan-cleanup vs. simple refund.
+  let savedOrder = null;
+
   try {
     const order = new Order({
     userId: req.user._id,
@@ -525,6 +582,21 @@ export const createOrder = asyncHandler(async (req, response) => {
   });
 
   await order.save();
+  savedOrder = order; // Mark as persisted — catch block will use this to clean up properly
+
+  // Log: order_saved + payment_confirmed
+  pushPaymentEvent(order, 'order_saved', {
+    stripePaymentIntentId: finalStripePaymentIntentId,
+    meta: { orderNumber: order.orderNumber }
+  });
+  if (finalStripePaymentIntentId && paymentStatus === 'paid') {
+    pushPaymentEvent(order, 'payment_confirmed', {
+      amount: pricing.total,
+      stripePaymentIntentId: finalStripePaymentIntentId,
+      triggeredBy: 'customer'
+    });
+  }
+  await order.save(); // persist events
 
   if (order.orderType === 'dine_in' && order.tableNumber) {
     const table = await Table.findOneAndUpdate(
@@ -607,10 +679,94 @@ export const createOrder = asyncHandler(async (req, response) => {
   } catch (error) {
     if (finalStripePaymentIntentId) {
       try {
-        await refundStripePayment(finalStripePaymentIntentId, pricing.total, 'order_creation_failed');
-        logger.info(`Auto-refunded failed order payment: ${finalStripePaymentIntentId}`);
+        if (savedOrder) {
+          // Order already persisted — mark it as 'failed' so it is visible in merchant
+          // All Orders view and audit trails rather than becoming an invisible orphan.
+          savedOrder.status = 'failed';
+          savedOrder.statusUpdates.push({
+            status: 'failed',
+            description: `Order creation failed after payment: ${error.message}`
+          });
+          savedOrder.paymentStatus = 'refunded';
+          savedOrder.refunded = true;
+          savedOrder.refundAmount = pricing.total;
+          savedOrder.refundReason = 'order_creation_failed';
+
+          // Log: order_creation_failed
+          pushPaymentEvent(savedOrder, 'order_creation_failed', {
+            amount: pricing.total,
+            stripePaymentIntentId: finalStripePaymentIntentId,
+            error: error.message,
+            triggeredBy: 'system'
+          });
+          // Log: auto_refund_triggered
+          pushPaymentEvent(savedOrder, 'auto_refund_triggered', {
+            amount: pricing.total,
+            stripePaymentIntentId: finalStripePaymentIntentId,
+            reason: 'order_creation_failed',
+            triggeredBy: 'system'
+          });
+
+          await savedOrder.save().catch(saveErr =>
+            logger.error('Failed to mark orphaned order as failed', { orderId: savedOrder._id, error: saveErr.message })
+          );
+          logger.warn('Order saved but post-save step failed — marked as failed in DB', {
+            orderId: savedOrder._id,
+            error: error.message
+          });
+        }
+
+        // Issue Stripe refund with correct signature
+        const refund = await refundStripePayment(
+          finalStripePaymentIntentId,
+          pricing.total,
+          { idempotencyKey: `order-creation-failed-${finalStripePaymentIntentId}` }
+        );
+        logger.info(`Auto-refunded failed order payment: ${finalStripePaymentIntentId}`, { stripeRefundId: refund.id });
+
+        if (savedOrder) {
+          // Log: auto_refund_succeeded
+          pushPaymentEvent(savedOrder, 'auto_refund_succeeded', {
+            amount: pricing.total,
+            stripeRefundId: refund.id,
+            stripePaymentIntentId: finalStripePaymentIntentId,
+            reason: 'order_creation_failed',
+            triggeredBy: 'system'
+          });
+          await savedOrder.save().catch(saveErr =>
+            logger.error('Failed to save auto_refund_succeeded event on failed order', { orderId: savedOrder._id, error: saveErr.message })
+          );
+
+          // Also record the refund in the Payment collection if it was created
+          try {
+            await recordPaymentRefund({
+              order: savedOrder,
+              amount: pricing.total,
+              reason: 'order_creation_failed',
+              stripeRefundId: refund.id,
+              getModel: req.getModel
+            });
+          } catch (paymentRecordErr) {
+            logger.warn('Could not record refund in Payment collection for failed order', {
+              orderId: savedOrder._id,
+              error: paymentRecordErr.message
+            });
+          }
+        }
       } catch (refundError) {
-        logger.error(`Failed to auto-refund after order creation error: ${refundError.message}`);
+        logger.error(`Failed to auto-refund after order creation error: ${refundError.message}`, {
+          paymentIntentId: finalStripePaymentIntentId
+        });
+        if (savedOrder) {
+          pushPaymentEvent(savedOrder, 'auto_refund_failed', {
+            amount: pricing.total,
+            stripePaymentIntentId: finalStripePaymentIntentId,
+            error: refundError.message,
+            reason: 'order_creation_failed',
+            triggeredBy: 'system'
+          });
+          await savedOrder.save().catch(() => {});
+        }
       }
     }
     throw error;
@@ -1316,3 +1472,93 @@ export const sendInvoice = asyncHandler(async (req, response) => {
   res.success(response, { data: null, message: 'Invoice sent successfully' });
 });
 
+// ── Payment Events Audit Trail ───────────────────────────────────────────────
+
+/**
+ * @desc    Get payment event audit log for an order
+ * @route   GET /api/orders/:id/payment-events
+ * @access  Private (merchant, admin)
+ */
+export const getPaymentEvents = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id).select('paymentEvents statusUpdates orderNumber paymentStatus refunded refundAmount refundReason stripePaymentIntentId').lean();
+  if (!order) throw new AppError('Order not found', 404);
+
+  // Merge paymentEvents + statusUpdates into a unified chronological audit log
+  const paymentEvts = (order.paymentEvents || []).map(ev => ({
+    type: 'payment_event',
+    event: ev.event,
+    timestamp: ev.timestamp,
+    amount: ev.amount,
+    stripeRefundId: ev.stripeRefundId,
+    stripePaymentIntentId: ev.stripePaymentIntentId,
+    error: ev.error,
+    reason: ev.reason,
+    triggeredBy: ev.triggeredBy,
+    meta: ev.meta
+  }));
+
+  const statusEvts = (order.statusUpdates || []).map(su => ({
+    type: 'status_update',
+    event: 'status_change',
+    timestamp: su.timestamp,
+    status: su.status,
+    description: su.description
+  }));
+
+  const unified = [...paymentEvts, ...statusEvts].sort(
+    (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+  );
+
+  res.success(response, {
+    data: {
+      orderId: req.params.id,
+      orderNumber: order.orderNumber,
+      paymentStatus: order.paymentStatus,
+      refunded: order.refunded,
+      refundAmount: order.refundAmount,
+      refundReason: order.refundReason,
+      stripePaymentIntentId: order.stripePaymentIntentId,
+      events: unified
+    }
+  });
+});
+
+// ── Document Generation (Invoice & KOT) ────────────────────────────────────
+
+/**
+ * @desc    Generate and serve standalone Invoice HTML
+ * @route   GET /api/orders/:id/invoice
+ * @access  Private (merchant, admin)
+ */
+export const getInvoiceDocument = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const Payment = req.getModel('Payment');
+
+  const order = await Order.findById(req.params.id).lean();
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+
+  const payment = await Payment.findOne({ orderId: order._id }).lean();
+
+  const html = generateInvoiceHTML(order, payment);
+  response.setHeader('Content-Type', 'text/html; charset=utf-8');
+  response.send(html);
+});
+
+/**
+ * @desc    Generate and serve standalone KOT (Kitchen Order Ticket) HTML
+ * @route   GET /api/orders/:id/kot
+ * @access  Private (merchant, admin)
+ */
+export const getKOTDocument = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+
+  const order = await Order.findById(req.params.id).lean();
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+
+  const html = generateKOTHTML(order);
+  response.setHeader('Content-Type', 'text/html; charset=utf-8');
+  response.send(html);
+});

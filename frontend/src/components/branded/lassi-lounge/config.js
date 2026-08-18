@@ -27,7 +27,7 @@ export const lassiLoungeConfig = {
 
 export const menuCategoryContent = {
   eyebrow: 'Explore Our Menu',
-  viewFullMenuCta: { label: 'View Full Menu', href: '/restaurant/lassi-lounge/menu' },
+  viewFullMenuCta: { label: 'View Full Menu', href: '/menu' },
   categories: [
     { id: 'appetizers', label: 'Appetizers', icon: '/images/branded/lassi-lounge/categories/appetizers.jpg' },
     { id: 'mains', label: 'Curries & Mains', icon: '/images/branded/lassi-lounge/categories/main-course.jpg' },
@@ -56,7 +56,7 @@ export const deliveryPartnersContent = {
 
 export const signatureDishesContent = {
   eyebrow: 'Our Signature Dishes',
-  viewFullMenuCta: { label: 'View Full Menu', href: '/restaurant/lassi-lounge/menu' },
+  viewFullMenuCta: { label: 'View Full Menu', href: '/menu' },
   dishes: [
     {
       id: 'butter-chicken',
@@ -123,7 +123,7 @@ export const footerContent = {
     { day: 'Saturday', time: '12:00 PM - 11:30 PM' },
     { day: 'Sunday', time: '12:00 PM - 10:00 PM' },
   ],
-  viewAllHoursCta: { label: 'View All Hours', href: '/restaurant/lassi-lounge?tab=hours' },
+  viewAllHoursCta: { label: 'View All Hours', href: '/contact-us' },
   findUs: {
     address: 'Lassi Lounge, 9408 118th St, South Richmond Hill, NY 11419',
     mapImage: '/images/branded/lassi-lounge/footer/map-thumbnail.jpg',
@@ -196,10 +196,10 @@ export const testimonialsContent = {
 
 export const navLinks = [
   { label: 'Home', href: '/' },
-  { label: 'Order Online', href: '/restaurant/lassi-lounge?mode=delivery' },
-  { label: 'Menu', href: '/restaurant/lassi-lounge/menu' },
-  { label: 'Book a Table', href: '/restaurant/lassi-lounge/book-a-table' },
-  { label: 'Catering', href: '/restaurant/lassi-lounge/catering' },
+  { label: 'Order Online', href: '/menu?mode=delivery' },
+  { label: 'Menu', href: '/menu' },
+  { label: 'Book a Table', href: '/book-a-table' },
+  { label: 'Catering', href: '/catering' },
   { label: 'About Us', href: '/about-us' },
   { label: 'Contact Us', href: '/contact-us' },
 ];
@@ -227,7 +227,7 @@ export const cateringContent = {
   heading: 'CATERING & PRIVATE EVENTS',
   description:
     'From small gatherings to grand celebrations, we cater to all your needs with our delicious food and excellent service.',
-  cta: { label: 'Book Catering', href: '/restaurant/lassi-lounge/catering' },
+  cta: { label: 'Book Catering', href: '/catering' },
   services: [
     { id: 'weddings', label: 'Weddings' },
     { id: 'corporate-events', label: 'Corporate Events' },
@@ -246,8 +246,8 @@ export const heroContent = {
   ribbonText: 'INDIAN RESTAURANT',
   description:
     'Experience the rich and authentic flavors of India. From traditional favorites to modern delights, every dish is made with love.',
-  primaryCta: { label: 'Order Online', href: '/restaurant/lassi-lounge?mode=delivery' },
-  secondaryCta: { label: 'View Menu', href: '/restaurant/lassi-lounge/menu' },
+  primaryCta: { label: 'Order Online', href: '/menu' },
+  secondaryCta: { label: 'View Menu', href: '/menu' },
   heroImage: {
     src: '/images/branded/lassi-lounge/hero-spread.jpg',
     alt: 'Butter chicken, biryani, naan basket and mango lassi spread at Lassi Lounge',

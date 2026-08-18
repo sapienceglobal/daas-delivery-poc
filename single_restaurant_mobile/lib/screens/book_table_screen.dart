@@ -328,7 +328,6 @@ class _BookTableScreenState extends State<BookTableScreen> {
                 '$_guests Guests', 
                 Icons.person_outline, 
                 () {
-                  // Show bottom sheet to select guests
                   showModalBottomSheet(
                     context: context,
                     builder: (c) => ListView.builder(
@@ -392,7 +391,7 @@ class _BookTableScreenState extends State<BookTableScreen> {
             style: const TextStyle(fontSize: 14),
           ),
         ),
-        Align(
+      Align(
           alignment: Alignment.centerRight,
           child: Padding(
             padding: const EdgeInsets.only(top: 4, right: 8),
@@ -493,7 +492,6 @@ class _BookTableScreenState extends State<BookTableScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Mock table graphic
                         Container(
                           width: 60,
                           height: 60,
@@ -585,74 +583,77 @@ class _BookTableScreenState extends State<BookTableScreen> {
   }
 
   Widget _buildBottomFooter() {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: 20 + MediaQuery.of(context).padding.bottom
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            offset: const Offset(0, -4),
-            blurRadius: 10,
-          )
-        ],
-      ),
-      child: Column(
-        children: [
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _isSubmitting ? null : _submitReservation,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade900,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    // FIX 1: Jab keyboard open ho, tab is footer ko chupaa do taaki screen upar compress na ho
+    final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    if (isKeyboardOpen) return const SizedBox.shrink();
+
+    // FIX 2: SafeArea ka use (isse UI automatically system nav buttons ke upar draw hota hai)
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.all(20), // Manual padding calculations removed
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              offset: const Offset(0, -4),
+              blurRadius: 10,
+            )
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : _submitReservation,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade900,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: _isSubmitting 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.calendar_month, color: Colors.white, size: 20),
+                          SizedBox(width: 8),
+                          Text('Confirm Reservation', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                        ],
+                      ),
               ),
-              child: _isSubmitting 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.calendar_month, color: Colors.white, size: 20),
-                        SizedBox(width: 8),
-                        Text('Confirm Reservation', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                      ],
-                    ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.verified_user_outlined, color: Colors.red.shade900, size: 14),
-              const SizedBox(width: 6),
-              Text('Your information is safe and secure with us.', style: TextStyle(color: Colors.red.shade900, fontSize: 11)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
+            const SizedBox(height: 12),
+            Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.support_agent_outlined, color: Colors.red.shade900, size: 16),
-                const SizedBox(width: 8),
-                Text('Need help? Call us at ', style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
-                Text('+1 (929) 123-4567', style: TextStyle(color: Colors.red.shade900, fontSize: 13, fontWeight: FontWeight.bold)),
+                Icon(Icons.verified_user_outlined, color: Colors.red.shade900, size: 14),
+                const SizedBox(width: 6),
+                Text('Your information is safe and secure with us.', style: TextStyle(color: Colors.red.shade900, fontSize: 11)),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.support_agent_outlined, color: Colors.red.shade900, size: 16),
+                  const SizedBox(width: 8),
+                  Text('Need help? Call us at ', style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
+                  Text('+1 (929) 123-4567', style: TextStyle(color: Colors.red.shade900, fontSize: 13, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

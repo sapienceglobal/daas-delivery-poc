@@ -71,7 +71,7 @@ export default function CateringHero({ onGetQuote }) {
               GET A QUOTE <ArrowRight className="h-4 w-4" />
             </button>
             <button 
-              onClick={() => router.push('/restaurant/lassi-lounge/menu')}
+              onClick={() => router.push('/menu')}
               className="px-8 h-[52px] rounded-lg border-2 border-[#eadfdb] bg-white text-[#7a0b10] text-[13px] font-black uppercase tracking-wider hover:border-[#b47b80] transition-colors flex items-center gap-2 shadow-sm"
             >
               <BookOpen className="h-4 w-4" /> VIEW MENU

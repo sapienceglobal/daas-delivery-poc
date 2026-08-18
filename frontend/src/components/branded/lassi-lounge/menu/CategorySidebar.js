@@ -153,7 +153,7 @@ export default function CategorySidebar({
               onClick={() => {
                 localStorage.setItem('pendingCouponCode', activeCoupon.code);
                 if (isViewOnly) {
-                  router.push('/restaurant/lassi-lounge?tab=order');
+                  router.push('/menu');
                 } else {
                   setCouponApplied(true);
                   showToast('Coupon applied! Checkout to see discount.', 'success');
