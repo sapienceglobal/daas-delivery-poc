@@ -10,17 +10,6 @@ import { AppError } from '../middleware/errorHandler.js';
 
 const roundMoney = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
-const getDiscountedPrice = (item) => {
-  let price = Number(item.price) || 0;
-  if (item.discount?.type === 'flat') {
-    price = Math.max(0, price - (Number(item.discount.value) || 0));
-  }
-  if (item.discount?.type === 'percentage') {
-    price = Math.max(0, price * (1 - (Number(item.discount.value) || 0) / 100));
-  }
-  return roundMoney(price);
-};
-
 const findSelectedSize = (menuItem, requestedSize) => {
   if (!requestedSize?.name) return null;
   const selected = menuItem.sizeVariations?.find((size) => size.name === requestedSize.name);
@@ -157,7 +146,7 @@ export const calculateOrderPricing = async ({
     const quantity = Math.max(1, Math.min(99, parseInt(requested.quantity, 10) || 1));
     const selectedSize = findSelectedSize(menuItem, requested.selectedSize);
     const addOns = findSelectedAddOns(menuItem, requested.addOns);
-    const basePrice = selectedSize?.price ?? getDiscountedPrice(menuItem);
+    const basePrice = selectedSize?.price ?? menuItem.effectivePrice;
     const addOnTotal = addOns.reduce((sum, addOn) => sum + addOn.price, 0);
     const lineTotal = roundMoney((basePrice + addOnTotal) * quantity);
     subtotal = roundMoney(subtotal + lineTotal);
@@ -165,7 +154,7 @@ export const calculateOrderPricing = async ({
     return {
       menuItemId: menuItem._id,
       name: menuItem.name,
-      price: getDiscountedPrice(menuItem),
+      price: menuItem.effectivePrice,
       quantity,
       selectedSize,
       addOns,

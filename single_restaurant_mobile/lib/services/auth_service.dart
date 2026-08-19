@@ -404,4 +404,21 @@ class AuthService {
       return 'Unable to connect to the server. Please check your internet connection.';
     }
   }
+
+  // Save FCM Token
+  Future<bool> saveFcmToken(String fcmToken) async {
+    try {
+      final response = await ApiService.post('/api/auth/me/fcm-token', {
+        'fcmToken': fcmToken,
+      });
+
+      if (response.statusCode == 200) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error saving FCM token: $e');
+      return false;
+    }
+  }
 }

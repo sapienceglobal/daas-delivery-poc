@@ -31,6 +31,11 @@ const createUser = async (userData, password) => {
 };
 
 const seedDatabase = async () => {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[FATAL] seed.js cannot be run in production. Exiting to prevent credential leak.');
+    process.exit(1);
+  }
+
   await connectDB();
 
   console.log('Clearing database...');

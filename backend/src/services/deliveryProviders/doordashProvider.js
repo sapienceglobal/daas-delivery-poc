@@ -15,20 +15,38 @@ const DRIVE_BASE_URL = 'https://openapi.doordash.com/drive/v2';
 
 const doordashRequest = async ({ method, path, data }) => {
   const token = generateJWT();
-  return axios({
-    method,
-    url: `${DRIVE_BASE_URL}${path}`,
-    data,
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
+  const maxRetries = 2;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await axios({
+        method,
+        url: `${DRIVE_BASE_URL}${path}`,
+        data,
+        timeout: 8000,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+    } catch (error) {
+      const is5xx = error.response && error.response.status >= 500 && error.response.status < 600;
+      const isTimeout = error.code === 'ECONNABORTED' || error.message.includes('timeout');
+      if ((is5xx || isTimeout) && attempt < maxRetries) {
+        logger.warn(`DoorDash request failed (${error.message}). Retrying... attempt ${attempt + 1}`);
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); // simple backoff
+        continue;
+      }
+      throw error;
     }
-  });
+  }
 };
 
-const formatPhoneForDoorDash = (phone, defaultPhone = '+16505550100') => {
-  if (!phone) return defaultPhone;
+const formatPhoneForDoorDash = (phone, entityName = 'Entity') => {
+  if (!phone) {
+    throw new Error(`Valid phone number is strictly required for ${entityName} but was missing.`);
+  }
   const cleaned = phone.toString().replace(/\D/g, '');
   if (cleaned.length === 10) {
     return `+1${cleaned}`;
@@ -39,17 +57,17 @@ const formatPhoneForDoorDash = (phone, defaultPhone = '+16505550100') => {
   if (phone.toString().trim().startsWith('+') && cleaned.length >= 10) {
     return `+${cleaned}`;
   }
-  return defaultPhone;
+  throw new Error(`Valid phone number is strictly required for ${entityName} but format was invalid: ${phone}`);
 };
 
 const buildDeliveryPayload = (order) => ({
   external_delivery_id: order.externalDeliveryId,
   pickup_address: order.restaurantAddress,
-  pickup_phone_number: formatPhoneForDoorDash(order.restaurantPhone, '+16505550100'),
+  pickup_phone_number: formatPhoneForDoorDash(order.restaurantPhone, 'Restaurant Pickup'),
   pickup_business_name: order.restaurantName,
   pickup_reference_tag: order.orderNumber,
   dropoff_address: order.address,
-  dropoff_phone_number: formatPhoneForDoorDash(order.customerPhone, '+16505550100'),
+  dropoff_phone_number: formatPhoneForDoorDash(order.customerPhone, 'Customer Dropoff'),
   dropoff_name: order.customerName,
   dropoff_contact_given_name: order.customerName?.split(' ')?.[0] || order.customerName,
   dropoff_contact_family_name: order.customerName?.split(' ')?.slice(1).join(' ') || undefined,

@@ -49,4 +49,10 @@ router.delete('/me/cart', protect, authorize('customer', 'merchant', 'admin'), a
 router.post('/me/favorites/restaurants/:restaurantId', protect, authorize('customer', 'merchant', 'admin'), authController.toggleFavoriteRestaurant);
 router.post('/me/favorites/items/:itemId', protect, authorize('customer', 'merchant', 'admin'), authController.toggleFavoriteItem);
 
+// ── Two-Factor Authentication ────────────────────────────────────────────────
+router.post('/2fa/verify', authController.verify2FA);
+router.get('/2fa/generate', protect, authorize('merchant', 'admin'), authController.generate2FA);
+router.post('/2fa/enable', protect, authorize('merchant', 'admin'), authController.enable2FA);
+router.post('/2fa/disable', protect, authorize('merchant', 'admin'), authController.disable2FA);
+
 export default router;

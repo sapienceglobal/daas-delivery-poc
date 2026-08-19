@@ -11,6 +11,7 @@ import { startDeliveryPolling } from './src/services/deliverySyncService.js';
 import { initCronJobs } from './src/services/cronService.js';
 import logger from './src/utils/logger.js';
 import { getTenantModel, resolveTenantId } from './src/utils/tenant.js';
+import { initFirebase } from './src/config/firebase.js';
 
 const PORT = Number(process.env.PORT || 5000);
 const isProduction = process.env.NODE_ENV === 'production';
@@ -104,7 +105,7 @@ io.use(async (socket, next) => {
 
   const token = getSocketToken(socket);
   if (!token) {
-    console.log('[SOCKET] No token found in connection handshake. Cookies:', socket.handshake.headers.cookie);
+    logger.debug('[SOCKET] No token found in connection handshake. Cookies:', socket.handshake.headers.cookie);
     try {
       socket.data.user = null;
       socket.data.tenantId = resolveTenantId(socket.handshake.headers['x-tenant-id'] || 'marketplace');
@@ -116,7 +117,7 @@ io.use(async (socket, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET');
-    console.log('[SOCKET] Token verified for user ID:', decoded.id);
+    logger.debug('[SOCKET] Token verified for user ID:', decoded.id);
     const tenantId = resolveTenantId(decoded.tenantId || 'marketplace');
     const User = getTenantModel(tenantId, 'User');
     const user = await User.findById(decoded.id).select('_id role restaurantId isActive').lean();
@@ -138,19 +139,19 @@ io.on('connection', (socket) => {
 
   if (socket.data.user && socket.data.user._id) {
     socket.join(socket.data.user._id.toString());
-    console.log(`[SOCKET] User ${socket.data.user._id} joined their user room`);
+    logger.debug(`[SOCKET] User ${socket.data.user._id} joined their user room`);
   }
 
   socket.on('join_restaurant', (restaurantId) => {
-    console.log(`[SOCKET] join_restaurant request for ${restaurantId} from user:`, socket.data.user?._id);
+    logger.debug(`[SOCKET] join_restaurant request for ${restaurantId} from user:`, socket.data.user?._id);
     if (!canManageRestaurant(socket.data.user, restaurantId)) {
-      console.log(`[SOCKET] Unauthorized join_restaurant. Role: ${socket.data.user?.role}`);
+      logger.debug(`[SOCKET] Unauthorized join_restaurant. Role: ${socket.data.user?.role}`);
       socket.emit('room_error', { room: 'restaurant', message: 'Not authorized for this restaurant room' });
       return;
     }
 
     socket.join(restaurantId.toString());
-    console.log(`[SOCKET] Socket ${socket.id} successfully joined restaurant room: ${restaurantId}`);
+    logger.debug(`[SOCKET] Socket ${socket.id} successfully joined restaurant room: ${restaurantId}`);
     logger.debug(`Socket ${socket.id} joined restaurant room: ${restaurantId}`);
   });
 
@@ -211,7 +212,10 @@ const startServer = async () => {
   initCronJobs(io, (model) => getTenantModel('lassi-lounge', model));
 
   server.listen(PORT, '0.0.0.0', () => {
-    logger.info(`Restaurant Commerce Platform running on port ${PORT}`);
+      // 9. Init Firebase Admin
+      initFirebase();
+
+      logger.info(`Restaurant Commerce Platform running on port ${PORT}`);
     logger.info('Database connected — APIs ready');
   });
 };

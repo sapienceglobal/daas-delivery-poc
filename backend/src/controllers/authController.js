@@ -7,6 +7,8 @@ import * as res from '../utils/responseFormatter.js';
 import { sendPasswordResetEmail, sendWelcomeEmail, sendOtpEmail } from '../services/emailService.js';
 import logger from '../utils/logger.js';
 import { OAuth2Client } from 'google-auth-library';
+import { generateSecret, generateURI, verify } from 'otplib';
+import QRCode from 'qrcode';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -29,10 +31,10 @@ export const ensureCanManageRestaurant = (reqOrUser, restaurantId) => {
 // Role is embedded in JWT so Next.js Edge middleware can verify it without DB access.
 // The backend ALWAYS re-fetches the user from DB (auth.js protect middleware) —
 // the JWT role is only used for routing decisions, never trusted for data access.
-const generateToken = (id, role, tenantId = 'marketplace') => jwt.sign({ id, role, tenantId }, JWT_SECRET, { expiresIn: '7d' });
+const generateToken = (id, role, tenantId = 'marketplace', tokenVersion = 0) => jwt.sign({ id, role, tenantId, tokenVersion }, JWT_SECRET, { expiresIn: '7d' });
 
 const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace', rememberMe = true) => {
-  const token = generateToken(user._id, user.role, tenantId);
+  const token = generateToken(user._id, user.role, tenantId, user.tokenVersion);
   const secureCookie = process.env.COOKIE_SECURE === 'true' ||
     (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
   const body = {
@@ -45,7 +47,7 @@ const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace', r
   if (
     process.env.RETURN_AUTH_TOKEN === 'true' ||
     process.env.NODE_ENV !== 'production' ||
-    (response.req && response.req.headers['x-app-secret'])
+    (response.req && response.req.headers['x-app-secret'] && response.req.headers['x-app-secret'] === process.env.APP_SECRET)
   ) {
     body.token = token;
   }
@@ -126,7 +128,8 @@ export const register = asyncHandler(async (req, response) => {
   // account access, so it should come from a cryptographically secure
   // source, not Math.random() (which is predictable).
   const otp = crypto.randomInt(100000, 1000000).toString();
-  user.emailOtp = otp;
+  const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+  user.emailOtp = hashedOtp;
   user.emailOtpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
   // (Combined into a single save — the old code saved twice: once
@@ -195,15 +198,26 @@ export const login = asyncHandler(async (req, response) => {
   }
 
   if (!user.validatePassword(password)) {
-    // Increment failed attempts and lock if threshold reached
-    const failedAttempts = (user.failedLoginAttempts || 0) + 1;
-    const updateData = { failedLoginAttempts: failedAttempts };
-    if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
-      updateData.loginLockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
-      updateData.failedLoginAttempts = 0; // Reset counter after locking
+    // Increment failed attempts atomically
+    const updatedUser = await UserModel.findOneAndUpdate(
+      { _id: user._id },
+      { $inc: { failedLoginAttempts: 1 } },
+      { new: true }
+    );
+
+    // Lock if threshold reached
+    if (updatedUser && updatedUser.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+      await UserModel.updateOne(
+        { _id: user._id },
+        { 
+          $set: { 
+            loginLockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS),
+            failedLoginAttempts: 0 
+          } 
+        }
+      );
       logger.warn('Account locked due to too many failed login attempts', { email });
     }
-    await UserModel.updateOne({ _id: user._id }, { $set: updateData });
     throw new AppError('Invalid email or password.', 401);
   }
 
@@ -244,6 +258,16 @@ export const login = asyncHandler(async (req, response) => {
   user.lastLogin = new Date();
   await user.save();
 
+  if (user.isTwoFactorEnabled) {
+    const tempToken = jwt.sign({ id: user._id, requires2fa: true, tenantId }, JWT_SECRET, { expiresIn: '5m' });
+    return response.status(200).json({
+      status: 'success',
+      requires2fa: true,
+      tempToken,
+      message: '2FA verification required'
+    });
+  }
+
   sendTokenCookie(user, 200, response, tenantId, rememberMe);
 });
 
@@ -269,7 +293,10 @@ export const socialLogin = asyncHandler(async (req, response) => {
     // Google Token Verification
     const ticket = await googleClient.verifyIdToken({
       idToken: jwtToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: [
+        process.env.GOOGLE_CLIENT_ID,
+        '960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com'
+      ],
     });
 
     const payload = ticket.getPayload();
@@ -278,19 +305,11 @@ export const socialLogin = asyncHandler(async (req, response) => {
     socialId = payload.sub;
     picture = payload.picture;
   } else if (provider === 'apple') {
-    // Apple Token Verification (using jwt.decode for basic extraction, 
-    // in production apple-signin-auth is recommended for signature verification)
-    const jwt = await import('jsonwebtoken');
-    const decoded = jwt.decode(jwtToken);
-    if (!decoded || !decoded.email) {
-       throw new AppError('Invalid Apple token or email missing', 400);
-    }
-    email = decoded.email;
-    socialId = decoded.sub;
-    // Apple only sends name on the FIRST ever login in a separate field, 
-    // so we use the email prefix as fallback if name isn't provided in req.body
-    name = req.body.name || email.split('@')[0];
-    picture = null; 
+    // CRITICAL SECURITY FIX: Disabling Apple login because it was accepting 
+    // forged tokens (jwt.decode does not verify signatures). 
+    // To re-enable, install `apple-signin-auth` and verify the JWT signature 
+    // against Apple's public JWKS, ensuring the audience matches your Apple Client ID.
+    throw new AppError('Apple login is not currently supported or configured.', 501);
   } else {
     throw new AppError(`Unsupported provider: ${provider}`, 400);
   }
@@ -443,6 +462,7 @@ export const changePassword = asyncHandler(async (req, response) => {
   }
 
   user.setPassword(newPassword);
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
   await user.save();
 
   res.success(response, { message: 'Password changed successfully' });
@@ -486,6 +506,7 @@ export const resetPassword = asyncHandler(async (req, response) => {
   user.setPassword(password);
   user.resetPasswordToken = null;
   user.resetPasswordExpires = null;
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
   await user.save();
 
   const tenantId = req.tenantId || 'marketplace';
@@ -753,7 +774,8 @@ export const verifyOtp = asyncHandler(async (req, response) => {
     throw new AppError('Too many incorrect attempts. Please request a new code.', 429);
   }
 
-  if (user.emailOtp !== otp.toString()) {
+  const hashedInputOtp = crypto.createHash('sha256').update(otp.toString()).digest('hex');
+  if (user.emailOtp !== hashedInputOtp) {
     await UserModel.updateOne({ _id: user._id }, { $inc: { otpAttempts: 1 } });
     throw new AppError('Invalid OTP. Please check and try again.', 400);
   }
@@ -805,7 +827,8 @@ export const resendOtp = asyncHandler(async (req, response) => {
   }
 
   const otp = crypto.randomInt(100000, 1000000).toString();
-  user.emailOtp = otp;
+  const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+  user.emailOtp = hashedOtp;
   user.emailOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
   await user.save();
 
@@ -820,3 +843,95 @@ export const resendOtp = asyncHandler(async (req, response) => {
   res.success(response, { message: 'OTP sent successfully.' });
 });
 
+
+// ── Two-Factor Authentication ────────────────────────────────────────────────
+
+export const generate2FA = asyncHandler(async (req, response) => {
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findById(req.user._id);
+  if (!user) throw new AppError('User not found', 404);
+
+  const secret = generateSecret();
+  const otpauthUrl = generateURI({
+    secret,
+    issuer: 'DaaS Delivery Admin',
+    label: user.email,
+  });
+  const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
+
+  res.success(response, {
+    data: {
+      secret,
+      qrCodeUrl
+    }
+  });
+});
+
+export const enable2FA = asyncHandler(async (req, response) => {
+  const { secret, token } = req.body;
+  if (!secret || !token) throw new AppError('Secret and token are required', 400);
+
+  const { valid } = await verify({ token, secret });
+  if (!valid) {
+    throw new AppError('Invalid 2FA code', 400);
+  }
+
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findById(req.user._id);
+  user.twoFactorSecret = secret;
+  user.isTwoFactorEnabled = true;
+  await user.save();
+
+  res.success(response, { message: '2FA enabled successfully' });
+});
+
+export const disable2FA = asyncHandler(async (req, response) => {
+  const { token } = req.body;
+  if (!token) throw new AppError('Token is required', 400);
+
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findById(req.user._id);
+
+  const { valid } = await verify({ token, secret: user.twoFactorSecret });
+  if (!valid) {
+    throw new AppError('Invalid 2FA code', 400);
+  }
+
+  user.twoFactorSecret = null;
+  user.isTwoFactorEnabled = false;
+  await user.save();
+
+  res.success(response, { message: '2FA disabled successfully' });
+});
+
+export const verify2FA = asyncHandler(async (req, response) => {
+  const { tempToken, token, rememberMe = true } = req.body;
+  if (!tempToken || !token) throw new AppError('Temporary token and 2FA code are required', 400);
+
+  let decoded;
+  try {
+    decoded = jwt.verify(tempToken, JWT_SECRET);
+  } catch (err) {
+    throw new AppError('Session expired or invalid token', 401);
+  }
+
+  if (!decoded.requires2fa) {
+    throw new AppError('Invalid token usage', 400);
+  }
+
+  // Get the default DB model, since login happens on the primary tenant usually
+  // Or we can rely on decoded.tenantId
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findById(decoded.id);
+
+  if (!user || !user.isTwoFactorEnabled) {
+    throw new AppError('2FA is not enabled or user not found', 400);
+  }
+
+  const { valid } = await verify({ token, secret: user.twoFactorSecret });
+  if (!valid) {
+    throw new AppError('Invalid 2FA code', 400);
+  }
+
+  sendTokenCookie(user, 200, response, decoded.tenantId || 'marketplace', rememberMe);
+});

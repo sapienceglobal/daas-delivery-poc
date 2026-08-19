@@ -5,7 +5,6 @@ import { showToast } from '@/components/ui';
 export default function PaymentMethodSection({
   step, setStep,
   paymentMethod, setPaymentMethod,
-  cardNo, setCardNo, cardExpiry, setCardExpiry, cardCvv, setCardCvv, cardName, setCardName,
   onBack, onContinue,
   orderType, quoteError, user,
   appliedCouponData, isPaymentMethodLockedByCoupon
@@ -113,13 +112,7 @@ export default function PaymentMethodSection({
             <button
               type="button"
               onClick={() => {
-                let finalPaymentMethod = paymentMethod;
-                let savedCardId = undefined;
-                if (paymentMethod.startsWith('saved_card_')) {
-                  savedCardId = paymentMethod.replace('saved_card_', '');
-                  finalPaymentMethod = 'saved_card';
-                }
-                onContinue({ paymentMethod: finalPaymentMethod, savedCardId });
+                onContinue();
               }}
               disabled={(orderType === 'delivery' && quoteError) || isPaymentMethodLockedByCoupon}
               className={`w-full sm:w-auto font-bold text-[14px] text-[#ffffff] py-2 px-6 rounded-lg flex items-center justify-center gap-2 shadow-sm ${

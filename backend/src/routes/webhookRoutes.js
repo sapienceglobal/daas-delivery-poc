@@ -6,6 +6,16 @@ import logger from '../utils/logger.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { applyDeliveryUpdate, buildOrderSocketPayload } from '../services/deliverySyncService.js';
 
+const DD_SECRET = process.env.DOORDASH_WEBHOOK_SECRET;
+if (!DD_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[FATAL] DOORDASH_WEBHOOK_SECRET is not set. Refusing to start with insecure webhooks.');
+    process.exit(1);
+  } else {
+    console.warn('[WARNING] DOORDASH_WEBHOOK_SECRET is not set. Webhooks will fail in dev unless mocked properly.');
+  }
+}
+
 const router = Router();
 
 /**
@@ -13,23 +23,21 @@ const router = Router();
  * Receives DoorDash Drive API webhook events for delivery status updates.
  */
 router.post('/', asyncHandler(async (req, response) => {
-  if (process.env.DOORDASH_WEBHOOK_SECRET) {
-    const signature = req.headers['x-doordash-signature'] || req.headers['x-dd-signature'];
-    if (!signature || !req.rawBody) {
-      throw new AppError('Missing DoorDash webhook signature', 401);
-    }
+  const signature = req.headers['x-doordash-signature'] || req.headers['x-dd-signature'];
+  if (!signature || !req.rawBody) {
+    throw new AppError('Missing DoorDash webhook signature', 401);
+  }
 
-    const expected = crypto
-      .createHmac('sha256', process.env.DOORDASH_WEBHOOK_SECRET)
-      .update(req.rawBody)
-      .digest('hex');
-    const normalized = String(signature).replace(/^sha256=/, '');
+  const expected = crypto
+    .createHmac('sha256', DD_SECRET || 'DEV_MOCK_SECRET')
+    .update(req.rawBody)
+    .digest('hex');
+  const normalized = String(signature).replace(/^sha256=/, '');
 
-    const expectedBuffer = Buffer.from(expected, 'hex');
-    const actualBuffer = Buffer.from(normalized, 'hex');
-    if (expectedBuffer.length !== actualBuffer.length || !crypto.timingSafeEqual(expectedBuffer, actualBuffer)) {
-      throw new AppError('Invalid DoorDash webhook signature', 401);
-    }
+  const expectedBuffer = Buffer.from(expected, 'hex');
+  const actualBuffer = Buffer.from(normalized, 'hex');
+  if (expectedBuffer.length !== actualBuffer.length || !crypto.timingSafeEqual(expectedBuffer, actualBuffer)) {
+    throw new AppError('Invalid DoorDash webhook signature', 401);
   }
 
   const event = req.body;
@@ -60,7 +68,11 @@ router.post('/', asyncHandler(async (req, response) => {
   applyDeliveryUpdate(order, event);
   order.lastDeliverySyncAt = new Date();
 
-  await order.save();
+  try {
+    await order.save();
+  } catch (err) {
+    logger.error('Failed to save order in webhook', { orderId: order._id, error: err.message });
+  }
 
   // Emit real-time update via Socket.io
   const io = req.app.get('io');

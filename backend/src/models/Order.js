@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import crypto from 'crypto';
 import { ORDER_STATUS_VALUES, ORDER_TYPE_VALUES, PAYMENT_METHOD_VALUES, PAYMENT_STATUS_VALUES } from '../config/constants.js';
 
 /**
@@ -243,13 +244,14 @@ OrderSchema.index({ status: 1 });
 OrderSchema.pre('save', function (next) {
   if (!this.orderNumber) {
     const ts = Date.now().toString(36).toUpperCase();
-    const rand = Math.floor(1000 + Math.random() * 9000);
+    const rand = crypto.randomBytes(3).toString('hex').toUpperCase();
     this.orderNumber = `ORD-${ts}-${rand}`;
   }
 
   if (!this.externalDeliveryId) {
     const dbName = this.constructor.db ? this.constructor.db.name : 'daas_poc';
-    this.externalDeliveryId = `DD-${dbName}-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const uuid = crypto.randomUUID();
+    this.externalDeliveryId = `DD-${dbName}-${Date.now()}-${uuid.split('-')[0]}`;
   }
 
   // Map cart items to DoorDash product fields

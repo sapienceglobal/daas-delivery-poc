@@ -9,7 +9,8 @@ const PaymentSchema = new mongoose.Schema({
   orderId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Order',
-    required: [true, 'Order ID is required']
+    required: [true, 'Order ID is required'],
+    unique: true
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,

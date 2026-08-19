@@ -3,8 +3,7 @@
 export default function Loading() {
   return (
     <div
-      className="w-full h-full min-h-[60vh] flex flex-col items-center justify-center bg-transparent"
-      style={{ colorScheme: 'light', color: '#1a1a1a' }}
+      className="w-full h-full min-h-[60vh] flex flex-col items-center justify-center bg-transparent text-brand-text"
     >
       {/* Animated Rings */}
       <div className="relative flex items-center justify-center w-20 h-20 mb-6">
@@ -26,7 +25,6 @@ export default function Loading() {
       <div className="space-y-3 text-center">
         <h3
           className="text-[20px] font-serif font-bold tracking-wide animate-pulse"
-          style={{ color: '#1a1a1a' }}
         >
           Curating Your Experience
         </h3>

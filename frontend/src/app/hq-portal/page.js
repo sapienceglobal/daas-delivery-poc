@@ -160,7 +160,7 @@ function ForgotPasswordModal({ isOpen, onClose, defaultEmail = '' }) {
 export default function AdminLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, logout } = useAuth();
+  const { login, logout, verify2FA } = useAuth();
   const { brand } = useBrand();
 
   const [email, setEmail] = useState('');
@@ -171,6 +171,11 @@ export default function AdminLoginPage() {
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [isForgotOpen, setIsForgotOpen] = useState(false);
+
+  // 2FA state
+  const [requires2fa, setRequires2fa] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
 
   const validate = () => {
     try {
@@ -196,8 +201,16 @@ export default function AdminLoginPage() {
     setLoading(true);
     setFormError('');
     try {
-      const user = await login(email, password, rememberMe);
-      if (user.role === 'admin' || user.role === 'merchant') {
+      const result = await login(email, password, rememberMe);
+
+      if (result.requires2fa) {
+        setRequires2fa(true);
+        setTempToken(result.tempToken);
+        setLoading(false);
+        return;
+      }
+
+      if (result.role === 'admin' || result.role === 'merchant') {
         const redirectUrl = searchParams.get('redirect') || '/merchant';
         router.push(redirectUrl);
       } else {
@@ -206,6 +219,31 @@ export default function AdminLoginPage() {
       }
     } catch (error) {
       setFormError(error.message || 'Login failed. Please check your credentials.');
+    } finally {
+      if (!requires2fa) setLoading(false);
+    }
+  };
+
+  const handle2FASubmit = async (e) => {
+    e.preventDefault();
+    if (!twoFactorCode) {
+      setFormError('Please enter the 6-digit code');
+      return;
+    }
+
+    setLoading(true);
+    setFormError('');
+    try {
+      const user = await verify2FA(tempToken, twoFactorCode, rememberMe);
+      if (user.role === 'admin' || user.role === 'merchant') {
+        const redirectUrl = searchParams.get('redirect') || '/merchant';
+        router.push(redirectUrl);
+      } else {
+        await logout();
+        setFormError('Access Denied: This portal is for restaurant partners only.');
+      }
+    } catch (error) {
+      setFormError(error.message || 'Invalid 2FA code.');
     } finally {
       setLoading(false);
     }
@@ -309,13 +347,17 @@ export default function AdminLoginPage() {
             </div>
 
             <div className="text-center mb-6">
-              <h2 className="text-[32px] font-serif text-[#4a090b] mb-3">Admin Portal</h2>
+              <h2 className="text-[32px] font-serif text-[#4a090b] mb-3">
+                {requires2fa ? 'Two-Factor Authentication' : 'Admin Portal'}
+              </h2>
               <div className="flex items-center justify-center mb-4 w-full">
                 <div className="w-10 h-[1px] bg-[#c99742]"></div>
                 <div className="w-1.5 h-1.5 rotate-45 bg-[#c99742] mx-2"></div>
                 <div className="w-10 h-[1px] bg-[#c99742]"></div>
               </div>
-              <p className="text-[#6b7280] text-[15px]">Sign in to your Lassi Lounge Admin Account</p>
+              <p className="text-[#6b7280] text-[15px]">
+                {requires2fa ? 'Enter the 6-digit code from your authenticator app.' : 'Sign in to your Lassi Lounge Admin Account'}
+              </p>
             </div>
 
             <div className="bg-white rounded-3xl shadow-[0_12px_40px_rgb(0,0,0,0.06)] px-8 pt-8 pb-5 sm:px-10 sm:pt-10 sm:pb-6 border border-[#f9fafb] relative overflow-hidden">
@@ -327,6 +369,42 @@ export default function AdminLoginPage() {
                 </div>
               )}
 
+              {requires2fa ? (
+                <form onSubmit={handle2FASubmit} noValidate className="space-y-6">
+                  <div className="space-y-2.5">
+                    <label className="text-[13px] font-bold text-[#1f2937] block">Authenticator Code</label>
+                    <div className="relative flex items-center bg-white border border-[#e5e7eb] rounded-xl overflow-hidden focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20 transition-all">
+                      <input
+                        type="text"
+                        value={twoFactorCode}
+                        onChange={(e) => setTwoFactorCode(e.target.value)}
+                        placeholder="000000"
+                        className="w-full px-4 py-4 text-center text-3xl tracking-[0.5em] font-bold text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0 bg-transparent border-none"
+                        maxLength={6}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-2 bg-[#550c0e] hover:bg-[#3a080a] text-white py-[14px] rounded-xl text-[15px] font-bold transition-all shadow-[0_6px_16px_rgba(85,12,14,0.2)] disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Verify Code'}
+                  </button>
+
+                  <div className="text-center mt-4 pb-2">
+                    <button 
+                      type="button" 
+                      onClick={() => { setRequires2fa(false); setTempToken(''); setTwoFactorCode(''); }}
+                      className="text-[13px] font-bold text-[#6b7280] hover:text-[#1f2937] transition-colors"
+                    >
+                      Back to login
+                    </button>
+                  </div>
+                </form>
+              ) : (
               <form onSubmit={handleSubmit} noValidate className="space-y-6">
 
                 {/* Email Field */}
@@ -414,7 +492,8 @@ export default function AdminLoginPage() {
                     </>
                   )}
                 </button>
-              </form>
+                </form>
+              )}
             </div>
 
             {/* Footer Links */}

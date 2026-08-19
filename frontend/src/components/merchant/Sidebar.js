@@ -6,7 +6,7 @@ import {
   Briefcase, Clock, Store, CalendarCheck, Calendar,
   ClipboardList, ShoppingBag, ChefHat, Truck,
   CheckCircle, XCircle, Wallet, Users, Ticket, Gift, MessageSquare, BarChart, Settings, Activity, Shield, PhoneCall,
-  Grid, Utensils, PlusCircle, Sliders, Link as LinkIcon, Eye, Headphones
+  Grid, Utensils, PlusCircle, Sliders, Link as LinkIcon, Eye, Headphones, Megaphone
 } from 'lucide-react';
 
 const SIDEBAR_STRUCTURE = [
@@ -36,6 +36,7 @@ const SIDEBAR_STRUCTURE = [
     items: [
       { id: 'crm', label: 'Customers & CRM', icon: Users },
       { id: 'messages', label: 'Support Messages', icon: MessageSquare },
+      { id: 'marketing', label: 'Push Marketing', icon: Megaphone },
       { id: 'promotions', label: 'Promotions & Coupons', icon: Ticket },
       { id: 'loyalty', label: 'Loyalty Rewards', icon: Gift },
     ]

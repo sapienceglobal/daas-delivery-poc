@@ -18,15 +18,25 @@ const UserSchema = new mongoose.Schema({
     match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address']
   },
   password: {
-    type: String
+    type: String,
+    required: true
   },
   salt: {
-    type: String
+    type: String,
+    required: true
   },
   passwordAlgorithm: {
     type: String,
-    enum: ['scrypt'],
+    enum: ['scrypt', 'scrypt_tuned'],
     default: undefined
+  },
+  twoFactorSecret: {
+    type: String,
+    default: null
+  },
+  isTwoFactorEnabled: {
+    type: Boolean,
+    default: false
   },
   phone: {
     type: String,
@@ -161,7 +171,7 @@ const UserSchema = new mongoose.Schema({
     default: null
   },
 
-  // ── Login Lockout ─────────────────────────────────────────────────────
+  // ── Login Lockout & Sessions ──────────────────────────────────────────
   failedLoginAttempts: {
     type: Number,
     default: 0
@@ -169,6 +179,10 @@ const UserSchema = new mongoose.Schema({
   loginLockedUntil: {
     type: Date,
     default: null
+  },
+  tokenVersion: {
+    type: Number,
+    default: 0
   },
 
   // ── Stripe Customer & Payments ─────────────────────────────────────────
@@ -214,24 +228,28 @@ UserSchema.index({ role: 1 });
 UserSchema.index({ 'socialLogin.googleId': 1 }, { sparse: true });
 
 // ── Password hashing (scrypt) ───────────────────────────────────────────────
+const SCRYPT_OPTIONS = { N: 32768, r: 8, p: 1, maxmem: 128 * 1024 * 1024 };
+
 UserSchema.methods.setPassword = function (password) {
   this.salt = crypto.randomBytes(16).toString('hex');
-  this.password = crypto.scryptSync(password, this.salt, 64).toString('hex');
-  this.passwordAlgorithm = 'scrypt';
+  this.password = crypto.scryptSync(password, this.salt, 64, SCRYPT_OPTIONS).toString('hex');
+  this.passwordAlgorithm = 'scrypt_tuned';
 };
 
 UserSchema.methods.validatePassword = function (password) {
   const storedHash = Buffer.from(this.password, 'hex');
-  const candidateHash = this.passwordAlgorithm === 'scrypt'
-    ? crypto.scryptSync(password, this.salt, 64)
-    : crypto.pbkdf2Sync(password, this.salt, 1000, 64, 'sha512');
+  const candidateHash = this.passwordAlgorithm === 'scrypt_tuned'
+    ? crypto.scryptSync(password, this.salt, 64, SCRYPT_OPTIONS)
+    : this.passwordAlgorithm === 'scrypt'
+      ? crypto.scryptSync(password, this.salt, 64)
+      : crypto.pbkdf2Sync(password, this.salt, 1000, 64, 'sha512');
 
   return storedHash.length === candidateHash.length &&
     crypto.timingSafeEqual(storedHash, candidateHash);
 };
 
 UserSchema.methods.needsPasswordRehash = function () {
-  return this.passwordAlgorithm !== 'scrypt';
+  return this.passwordAlgorithm !== 'scrypt_tuned';
 };
 
 // ── Password Reset Token ────────────────────────────────────────────────────
@@ -248,6 +266,7 @@ UserSchema.methods.toSafeJSON = function () {
   delete obj.password;
   delete obj.salt;
   delete obj.passwordAlgorithm;
+  delete obj.twoFactorSecret;
   delete obj.resetPasswordToken;
   delete obj.resetPasswordExpires;
   delete obj.failedLoginAttempts;

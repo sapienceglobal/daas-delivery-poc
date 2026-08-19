@@ -14,23 +14,36 @@ let transporter = null;
 const initTransporter = () => {
   if (transporter) return transporter;
 
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
   const appPassword = process.env.EMAIL_APP_PASSWORD;
   const fromEmail = process.env.FROM_EMAIL;
 
-  if (!appPassword || !fromEmail) {
-    logger.warn('EMAIL_APP_PASSWORD or FROM_EMAIL not set — emails will be logged to console');
+  if (!sendgridApiKey && (!appPassword || !fromEmail)) {
+    logger.warn('Email credentials not set — emails will be logged to console');
     return null;
   }
 
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: fromEmail,
-      pass: appPassword
-    }
-  });
+  if (sendgridApiKey) {
+    transporter = nodemailer.createTransport({
+      host: 'smtp.sendgrid.net',
+      port: 587,
+      auth: {
+        user: 'apikey', // SendGrid requires the exact string 'apikey'
+        pass: sendgridApiKey
+      }
+    });
+    logger.info('Nodemailer SendGrid transporter initialized');
+  } else {
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: fromEmail,
+        pass: appPassword
+      }
+    });
+    logger.info('Nodemailer Gmail transporter initialized');
+  }
 
-  logger.info('Nodemailer Gmail transporter initialized');
   return transporter;
 };
 

@@ -102,6 +102,12 @@ export const authAPI = {
   verifyOtp: (email, otp) => api.post('/api/auth/verify-otp', { email, otp }),
   resendOtp: (email) => api.post('/api/auth/resend-otp', { email }),
 
+  // Two-Factor Authentication
+  generate2FA: () => api.get('/api/auth/2fa/generate'),
+  enable2FA: (data) => api.post('/api/auth/2fa/enable', data),
+  disable2FA: (data) => api.post('/api/auth/2fa/disable', data),
+  verify2FA: (data) => api.post('/api/auth/2fa/verify', data),
+
   // Addresses
   addAddress: (data) => api.post('/api/auth/me/addresses', data),
   editAddress: (id, data) => api.put(`/api/auth/me/addresses/${id}`, data),
@@ -401,4 +407,7 @@ export const kdsAPI = {
 //   updateStatus: (id, status) => api.put(`/api/catering/${id}/status`, { status }),
 // };
 
-
+export const marketingAPI = {
+  getCampaigns: (params = '') => api.get(`/api/marketing${params ? '?' + params : ''}`),
+  broadcastCampaign: (data) => api.post('/api/marketing', data)
+};

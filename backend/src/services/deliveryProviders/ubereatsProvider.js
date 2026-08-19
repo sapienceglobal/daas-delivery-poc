@@ -8,31 +8,42 @@ const UBER_API_BASE = 'https://api.uber.com/v1';
 
 let cachedToken = null;
 let tokenExpiry = null;
+let tokenPromise = null;
 
 const getUberToken = async () => {
   if (cachedToken && tokenExpiry && Date.now() < tokenExpiry) {
     return cachedToken;
   }
 
-  try {
-    const params = new URLSearchParams();
-    params.append('client_id', UBEREATS_CLIENT_ID);
-    params.append('client_secret', UBEREATS_CLIENT_SECRET);
-    params.append('grant_type', 'client_credentials');
-    params.append('scope', 'eats.deliveries');
-
-    const response = await axios.post('https://login.uber.com/oauth/v2/token', params.toString(), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-
-    cachedToken = response.data.access_token;
-    // Cache until 5 minutes before expiry
-    tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
-    return cachedToken;
-  } catch (err) {
-    logger.error(`UberEats OAuth Error: ${err.response?.data?.error || err.message}`);
-    throw new Error('Failed to authenticate with UberEats API');
+  if (tokenPromise) {
+    return tokenPromise;
   }
+
+  tokenPromise = (async () => {
+    try {
+      const params = new URLSearchParams();
+      params.append('client_id', UBEREATS_CLIENT_ID);
+      params.append('client_secret', UBEREATS_CLIENT_SECRET);
+      params.append('grant_type', 'client_credentials');
+      params.append('scope', 'eats.deliveries');
+
+      const response = await axios.post('https://login.uber.com/oauth/v2/token', params.toString(), {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+
+      cachedToken = response.data.access_token;
+      // Cache until 5 minutes before expiry
+      tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
+      return cachedToken;
+    } catch (err) {
+      logger.error(`UberEats OAuth Error: ${err.response?.data?.error || err.message}`);
+      throw new Error('Failed to authenticate with UberEats API');
+    } finally {
+      tokenPromise = null;
+    }
+  })();
+
+  return tokenPromise;
 };
 
 const makeUberRequest = async (method, path, data = null) => {
@@ -41,21 +52,32 @@ const makeUberRequest = async (method, path, data = null) => {
   }
 
   const token = await getUberToken();
-  try {
-    const response = await axios({
-      method,
-      url: `${UBER_API_BASE}${path}`,
-      data,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+  const maxRetries = 2;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await axios({
+        method,
+        url: `${UBER_API_BASE}${path}`,
+        data,
+        timeout: 8000,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      const is5xx = error.response && error.response.status >= 500 && error.response.status < 600;
+      const isTimeout = error.code === 'ECONNABORTED' || error.message.includes('timeout');
+      if ((is5xx || isTimeout) && attempt < maxRetries) {
+        logger.warn(`UberEats request failed (${error.message}). Retrying... attempt ${attempt + 1}`);
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); // simple backoff
+        continue;
       }
-    });
-    return response.data;
-  } catch (err) {
-    const errMessage = err.response?.data?.message || err.response?.data?.code || err.message;
-    logger.error(`UberEats API Error [${method} ${path}]: ${errMessage}`);
-    throw err;
+      logger.error(`UberEats API Error (${method} ${path}): ${error.response?.data?.message || error.message}`);
+      throw new Error(error.response?.data?.message || 'UberEats API request failed');
+    }
   }
 };
 
@@ -77,13 +99,17 @@ export const getDeliveryQuoteAPI = async (pickupAddress, dropoffAddress, subtota
 export const triggerDeliveryAPI = async (order) => {
   logger.info(`Triggering UberEats delivery for order ${order.orderNumber}`);
 
+  if (!order.restaurantPhone || !order.customerPhone) {
+    throw new Error('Valid phone number is strictly required for Restaurant and Customer but was missing.');
+  }
+
   const payload = {
     pickup_name: order.restaurantName,
     pickup_address: order.restaurantAddress,
-    pickup_phone_number: order.restaurantPhone || '+10000000000',
+    pickup_phone_number: order.restaurantPhone,
     dropoff_name: order.customerName,
     dropoff_address: order.address,
-    dropoff_phone_number: order.customerPhone || '+10000000000',
+    dropoff_phone_number: order.customerPhone,
     dropoff_notes: order.specialInstructions || order.courierNotes || '',
     manifest_items: order.items.map(item => ({
       name: item.name,

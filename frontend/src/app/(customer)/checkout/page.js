@@ -80,10 +80,10 @@ export default function CheckoutPage() {
             <PaymentMethodSection
               step={c.step} setStep={c.setStep} t={t}
               paymentMethod={c.paymentMethod} setPaymentMethod={c.setPaymentMethod}
-              cardNo={c.cardNo} setCardNo={c.setCardNo}
-              cardExpiry={c.cardExpiry} setCardExpiry={c.setCardExpiry}
-              cardCvv={c.cardCvv} setCardCvv={c.setCardCvv}
-              cardName={c.cardName} setCardName={c.setCardName}
+              
+              
+              
+              
               onBack={() => c.router.push(c.isSingleRestaurantMode ? '/menu' : '/')}
               onContinue={c.handleContinueToReview}
               orderType={c.orderType}

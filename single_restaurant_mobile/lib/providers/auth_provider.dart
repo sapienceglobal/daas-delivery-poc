@@ -229,4 +229,13 @@ class AuthProvider with ChangeNotifier {
     }
     return success;
   }
+
+  Future<void> saveFcmToken(String token) async {
+    if (_user == null) return;
+    try {
+      await _authService.saveFcmToken(token);
+    } catch (e) {
+      debugPrint('Failed to save FCM token: $e');
+    }
+  }
 }

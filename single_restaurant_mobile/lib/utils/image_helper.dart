@@ -57,10 +57,18 @@ class ImageHelper {
   }
 
   static String getCategoryImageUrl(Map<String, dynamic> category) {
-    if (category['image'] != null && category['image'].toString().startsWith('http')) {
+    if (category['image'] != null && category['image'].toString().isNotEmpty && category['image'].toString().startsWith('http')) {
       return category['image'];
     }
     
+    // Check if category has items, and use the first item's image if available
+    if (category['items'] != null && category['items'] is List && category['items'].isNotEmpty) {
+      final firstItem = category['items'][0];
+      if (firstItem != null) {
+        return getDishImageUrl(firstItem);
+      }
+    }
+
     final name = (category['name'] ?? '').toLowerCase();
     
     if (name.contains('appetizer')) return 'https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=400&q=80';

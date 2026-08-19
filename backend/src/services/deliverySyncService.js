@@ -2,6 +2,7 @@ import { getDeliveryTracking } from './deliveryAggregatorService.js';
 import Order from '../models/Order.js';
 import logger from '../utils/logger.js';
 import { awardLoyaltyPoints } from '../controllers/orderController.js';
+import { withOptimisticRetry } from '../utils/optimisticRetry.js';
 
 const ACTIVE_STATUSES = new Set(['pending', 'accepted', 'preparing', 'ready', 'picked_up']);
 
@@ -121,16 +122,29 @@ export const syncDeliveryTracking = async (order, options = {}) => {
 
   try {
     const payload = await getDeliveryTracking(order);
-    const result = applyDeliveryUpdate(order, payload);
-    order.lastDeliverySyncAt = new Date();
-    await order.save();
-    if (order.status === 'delivered' || order.status === 'picked_up') {
-      await awardLoyaltyPoints(order);
+
+    const { doc: finalOrder, result } = await withOptimisticRetry(order, (doc) => {
+      return applyDeliveryUpdate(doc, payload);
+    });
+    
+    finalOrder.lastDeliverySyncAt = new Date();
+    try {
+      await finalOrder.save();
+    } catch (saveErr) {
+      logger.error('Failed to save order during delivery sync', { orderId: finalOrder._id, error: saveErr.message });
     }
-    return { updated: true, order, payload, result };
+    
+    if (finalOrder.status === 'delivered' || finalOrder.status === 'picked_up') {
+      await awardLoyaltyPoints(finalOrder);
+    }
+    return { updated: true, order: finalOrder, payload, result };
   } catch (error) {
     order.lastDeliverySyncAt = new Date();
-    await order.save();
+    try {
+      await order.save();
+    } catch (saveErr) {
+      logger.error('Failed to update lastDeliverySyncAt', { orderId: order._id, error: saveErr.message });
+    }
     logger.warn('DoorDash delivery polling failed', {
       orderId: order._id,
       externalDeliveryId: order.externalDeliveryId,

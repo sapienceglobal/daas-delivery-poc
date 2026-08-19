@@ -25,6 +25,7 @@ export const ORDER_TYPE_VALUES = Object.values(ORDER_TYPES);
 export const ORDER_STATUS = {
   PENDING: 'pending',
   ACCEPTED: 'accepted',
+  DRIVER_ASSIGNED: 'driver_assigned',
   PREPARING: 'preparing',
   READY: 'ready',
   PICKED_UP: 'picked_up',

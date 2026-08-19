@@ -35,6 +35,7 @@ import kdsRoutes from './routes/kdsRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import locationRoutes from './routes/locationRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
+import marketingRoutes from './routes/marketingRoutes.js';
 
 // ── Environment ─────────────────────────────────────────────────────────────
 const isProduction = process.env.NODE_ENV === 'production';
@@ -86,6 +87,7 @@ const apiLimiter = rateLimit({
   message: { success: false, message: 'Too many requests from this IP, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path.includes('/delivery-webhook')
 });
 app.use('/api/', apiLimiter);
 
@@ -218,6 +220,7 @@ app.use('/api/kds', tenantDb, kdsRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/audit-logs', tenantDb, auditRoutes);
+app.use('/api/marketing', marketingRoutes);
 app.use('/api', contactRoutes);
 
 // ── Root Info Page ──────────────────────────────────────────────────────────

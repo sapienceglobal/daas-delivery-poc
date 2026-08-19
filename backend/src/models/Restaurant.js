@@ -181,7 +181,7 @@ const RestaurantSchema = new mongoose.Schema({
   acceptsPickup: { type: Boolean, default: true },
   autoAcceptOrders: { type: Boolean, default: false },
   preparationTime: { type: Number, default: 20 },  // default prep minutes
-  minimumOrder: { type: Number, default: 15.00 },
+  
 
   // ── Stripe ────────────────────────────────────────────────────────────
   stripeAccountId: { type: String, default: null }

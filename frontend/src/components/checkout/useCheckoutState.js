@@ -130,10 +130,10 @@ export function useCheckoutState() {
   const [orderType, setOrderType] = useState('delivery');
   const [paymentMethod, setPaymentMethod] = useState('stripe_online');
 
-  const [cardNo, setCardNo] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
-  const [cardName, setCardName] = useState('');
+  
+  
+  
+  
 
   const [tip, setTip] = useState(0);
   const [couponCode, setCouponCode] = useState('');
@@ -452,23 +452,18 @@ export function useCheckoutState() {
         let lat = addressLat;
         let lng = addressLng;
 
-        console.log('DEBUG CHECKOUT: State coordinates captured:', { lat, lng });
+        
 
         if (lat === null || lng === null) {
           const coords = await triggerGeocoding(compiledAddress);
           if (coords) {
             lat = coords.lat;
             lng = coords.lng;
-            console.log('DEBUG CHECKOUT: Geocoding resolved coordinates:', { lat, lng });
+            
           }
         }
 
-        console.log('DEBUG CHECKOUT: Requesting quote with body:', {
-          restaurantId: restaurant?._id,
-          address: compiledAddress,
-          addressLat: lat,
-          addressLng: lng,
-        });
+
 
         const data = await orderAPI.getDeliveryQuote({
           restaurantId: restaurant?._id,
@@ -664,7 +659,7 @@ export function useCheckoutState() {
     }
   };
 
-  const handleContinueToReview = async ({ paymentMethod, cardNo, cardExpiry, cardCvv, cardName }) => {
+  const handleContinueToReview = async () => {
     // 1. Validate Delivery Info if orderType is delivery
     if (!fullName.trim() || !phone.trim() || !email.trim() || (orderType === 'delivery' && (!addressLine1.trim() || !city.trim() || !zipCode.trim()))) {
       showToast('Please fill out all required fields marked with *', 'warning');
@@ -716,11 +711,6 @@ export function useCheckoutState() {
     }
 
     // 2. Validate Payment Method
-    if (paymentMethod === 'credit_card' && (!cardNo.trim() || !cardExpiry.trim() || !cardCvv.trim() || !cardName.trim())) {
-      showToast('Please fill out all card fields completely', 'warning');
-      return;
-    }
-
     setStep(3);
   };
 
@@ -798,7 +788,7 @@ export function useCheckoutState() {
     city, setCity, state, setState, zipCode, setZipCode,
     deliveryInstructions, setDeliveryInstructions,
     orderType, setOrderType, paymentMethod, setPaymentMethod,
-    cardNo, setCardNo, cardExpiry, setCardExpiry, cardCvv, setCardCvv, cardName, setCardName,
+    
     couponCode, setCouponCode, couponDiscount, couponApplied, couponLoading,
     useLoyaltyPoints, setUseLoyaltyPoints,
     showPaymentModal, setShowPaymentModal,

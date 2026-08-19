@@ -65,8 +65,8 @@ export const triggerDelivery = async (order) => {
 /**
  * Cancels a delivery on the active provider.
  */
-export const cancelDelivery = async (order) => {
-  if (!order.deliveryId) return true;
+export const cancelDelivery = async (order, reason) => {
+  if (!order.deliveryId && !order.externalDeliveryId) return true;
   
   const providerKey = order.deliveryProvider || 'doordash';
   const provider = providers[providerKey];
@@ -76,7 +76,7 @@ export const cancelDelivery = async (order) => {
     return false;
   }
   
-  return await provider.cancelDeliveryAPI(order.deliveryId);
+  return await provider.cancelDeliveryAPI(order.externalDeliveryId || order.deliveryId, reason);
 };
 
 /**
@@ -88,15 +88,15 @@ export const getDeliveryTracking = async (order) => {
   const providerKey = order.deliveryProvider || 'doordash';
   const provider = providers[providerKey];
   
-  // Note: For UberEats and Grubhub simulation, we will just return mock status
-  if (providerKey !== 'doordash' || typeof provider.getDeliveryAPI !== 'function') {
-    return {
-      status: order.status, // keep existing status
-      tracking_url: order.trackingUrl
-    };
+  // Real API call for supported providers (DoorDash, UberEats)
+  if (provider && typeof provider.getDeliveryAPI === 'function') {
+    return await provider.getDeliveryAPI(order.externalDeliveryId || order.deliveryId);
   }
   
-  // Real API call for DoorDash
-  return await provider.getDeliveryAPI(order.externalDeliveryId || order.deliveryId);
+  // Note: For Grubhub simulation, we will just return mock status
+  return {
+    status: order.status, // keep existing status
+    tracking_url: order.trackingUrl
+  };
 };
 

@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { getFirebaseAdmin } from '../config/firebase.js';
 
 /**
  * @desc    Get all notifications for the logged-in user
@@ -99,8 +100,34 @@ export const createNotification = async (userId, title, body, type = 'system', a
       io.to(userId.toString()).emit('new_notification', notification);
     }
     
-    // In a real app, this is where you would send an FCM push notification using user.fcmTokens
-    // if (user.notificationPreferences?.push !== false && user.fcmTokens?.length > 0) { ... }
+    // Dispatch FCM push notification
+    if (user && user.fcmTokens && user.fcmTokens.length > 0) {
+      const firebaseApp = getFirebaseAdmin();
+      if (firebaseApp) {
+        const message = {
+          notification: {
+            title,
+            body
+          },
+          data: {
+            type,
+            actionUrl: actionUrl || ''
+          },
+          tokens: user.fcmTokens
+        };
+        
+        firebaseApp.messaging().sendMulticast(message)
+          .then(response => {
+            if (response.failureCount > 0) {
+              logger.warn(`FCM partial failure: ${response.failureCount} failed out of ${user.fcmTokens.length} tokens.`);
+              // In production, we should remove unregistered tokens from user.fcmTokens here.
+            } else {
+              logger.info(`Successfully sent FCM push to user ${userId}`);
+            }
+          })
+          .catch(error => logger.error('Error sending FCM push:', error));
+      }
+    }
 
     return notification;
   } catch (err) {

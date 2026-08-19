@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Settings, MapPin, Clock, ShoppingCart, Percent, Image as ImageIcon
+  Settings, MapPin, Clock, ShoppingCart, Percent, Image as ImageIcon, Shield
 } from 'lucide-react';
-import { restaurantAPI, uploadAPI } from '@/lib/api';
+import { restaurantAPI, uploadAPI, authAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
+import { useAuth } from '@/context/AuthContext';
 
 /**
  * Shared, accessible toggle switch.
@@ -56,6 +57,8 @@ const fieldBase =
   'bg-[#f9fafb]/50 text-[#1f2937] border border-[#e5e7eb] rounded-lg transition-colors focus:outline-none focus:border-[#8b0000] focus:bg-[#ffffff]';
 
 export default function SettingsView({ restaurant, onRefresh }) {
+  const { user, refreshUser } = useAuth();
+  
   const [formData, setFormData] = useState({
     name: '', cuisine: '', currency: 'USD ($) - US Dollar', timezone: '(UTC-05:00) Eastern Time (ET)',
     dateFormat: 'MM/DD/YYYY', timeFormat: '12 Hour (AM/PM)', language: 'English',
@@ -67,6 +70,15 @@ export default function SettingsView({ restaurant, onRefresh }) {
   const [operatingHours, setOperatingHours] = useState({});
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
+
+  // 2FA state
+  const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [twoFactorSecret, setTwoFactorSecret] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [loading2FA, setLoading2FA] = useState(false);
+  const [showDisable2FAForm, setShowDisable2FAForm] = useState(false);
+  const [disableCode, setDisableCode] = useState('');
 
   useEffect(() => {
     if (restaurant) {
@@ -177,12 +189,19 @@ export default function SettingsView({ restaurant, onRefresh }) {
     }
   };
 
+  useEffect(() => {
+    if (user) {
+      setIsTwoFactorEnabled(user.isTwoFactorEnabled);
+    }
+  }, [user]);
+
   const tabs = [
     { id: 'general', label: 'General Settings', icon: Settings },
     { id: 'business', label: 'Business Information', icon: MapPin },
     { id: 'hours', label: 'Operating Hours', icon: Clock },
     { id: 'order', label: 'Order Settings', icon: ShoppingCart },
     { id: 'taxes', label: 'Taxes & Charges', icon: Percent },
+    { id: 'security', label: 'Security & 2FA', icon: Shield },
   ];
 
   if (!restaurant) return null;
@@ -539,6 +558,173 @@ export default function SettingsView({ restaurant, onRefresh }) {
                     label="Round off total amount"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Security & 2FA */}
+            <div className={`bg-[#ffffff] rounded-xl border border-[#e5e7eb] shadow-sm overflow-hidden ${activeTab !== 'security' && activeTab !== 'all' ? 'hidden' : ''}`}>
+              <div className="border-b border-[#f3f4f6] p-5 bg-[#ffffff] flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#fff1f2]">
+                  <Shield className="w-4.5 h-4.5 text-[#8b0000]" />
+                </span>
+                <h2 className="text-base font-bold text-[#111827]">Security & Two-Factor Auth</h2>
+              </div>
+              <div className="p-6 space-y-6">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-[#111827]">Two-Factor Authentication (2FA)</p>
+                    <p className="text-sm text-[#6b7280] mt-1 max-w-2xl">
+                      Add an extra layer of security to your account. When enabled, you'll need to enter a 6-digit code from your authenticator app (like Google Authenticator) every time you sign in to the HQ Portal.
+                    </p>
+                  </div>
+                  {isTwoFactorEnabled ? (
+                    showDisable2FAForm ? (
+                      <div className="flex flex-col gap-3 p-5 bg-[#f9fafb] border border-[#e5e7eb] rounded-xl w-full sm:w-auto shadow-sm">
+                        <p className="text-sm font-bold text-[#111827]">Disable Two-Factor Authentication</p>
+                        <p className="text-sm text-[#6b7280]">Enter your current 6-digit code to confirm.</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <input
+                            type="text"
+                            maxLength={6}
+                            placeholder="000000"
+                            value={disableCode}
+                            onChange={(e) => setDisableCode(e.target.value)}
+                            className={`w-32 px-3 py-2 text-center tracking-[0.25em] font-mono text-lg border border-[#e5e7eb] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#dc2626] focus:border-[#dc2626] ${fieldBase}`}
+                          />
+                          <button
+                            onClick={async () => {
+                              if (!disableCode || disableCode.length !== 6) {
+                                showToast('Please enter a valid 6-digit code.', 'error');
+                                return;
+                              }
+                              try {
+                                setLoading2FA(true);
+                                await authAPI.disable2FA({ token: disableCode });
+                                await refreshUser();
+                                setIsTwoFactorEnabled(false);
+                                setShowDisable2FAForm(false);
+                                setDisableCode('');
+                                showToast('Two-factor authentication disabled.', 'success');
+                              } catch (err) {
+                                showToast(err.message || 'Failed to disable 2FA.', 'error');
+                              } finally {
+                                setLoading2FA(false);
+                              }
+                            }}
+                            disabled={loading2FA || !disableCode}
+                            className="px-5 py-2.5 bg-[#dc2626] text-white hover:bg-[#b91c1c] rounded-lg text-sm font-bold transition-colors disabled:opacity-50 shadow-sm"
+                          >
+                            {loading2FA ? 'Disabling...' : 'Confirm'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDisableCode('');
+                              setShowDisable2FAForm(false);
+                            }}
+                            className="px-4 py-2.5 text-[#6b7280] hover:text-[#111827] text-sm font-bold transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowDisable2FAForm(true)}
+                        disabled={loading2FA}
+                        className="px-5 py-2.5 bg-white border border-[#fecaca] text-[#dc2626] hover:bg-[#fef2f2] hover:border-[#fca5a5] rounded-lg text-sm font-bold transition-all disabled:opacity-50 shadow-sm"
+                      >
+                        Disable 2FA
+                      </button>
+                    )
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        try {
+                          setLoading2FA(true);
+                          const res = await authAPI.generate2FA();
+                          setQrCodeUrl(res.data.qrCodeUrl);
+                          setTwoFactorSecret(res.data.secret);
+                        } catch (err) {
+                          showToast(err.message || 'Failed to generate 2FA setup.', 'error');
+                        } finally {
+                          setLoading2FA(false);
+                        }
+                      }}
+                      disabled={loading2FA || !!qrCodeUrl}
+                      className="px-4 py-2 bg-[#8b0000] text-white hover:bg-[#7f0000] rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                    >
+                      {loading2FA ? 'Loading...' : 'Setup 2FA'}
+                    </button>
+                  )}
+                </div>
+
+                {qrCodeUrl && !isTwoFactorEnabled && (
+                  <div className="mt-6 p-6 border border-[#e5e7eb] rounded-xl bg-[#f9fafb] flex flex-col sm:flex-row gap-8 items-center sm:items-start">
+                    <div className="shrink-0 bg-white p-2 rounded-lg border border-[#e5e7eb] shadow-sm">
+                      <img src={qrCodeUrl} alt="2FA QR Code" className="w-40 h-40" />
+                    </div>
+                    <div className="flex-1 space-y-4 w-full">
+                      <div>
+                        <h3 className="text-sm font-bold text-[#111827]">1. Scan the QR Code</h3>
+                        <p className="text-sm text-[#6b7280] mt-1">
+                          Open your authenticator app (e.g. Google Authenticator, Authy) and scan the QR code to the left.
+                        </p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-[#111827]">2. Enter the Verification Code</h3>
+                        <p className="text-sm text-[#6b7280] mt-1 mb-3">
+                          Enter the 6-digit code generated by your app to verify and enable 2FA.
+                        </p>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="text"
+                            maxLength={6}
+                            placeholder="000000"
+                            value={twoFactorCode}
+                            onChange={(e) => setTwoFactorCode(e.target.value)}
+                            className={`w-32 px-3 py-2 text-center tracking-[0.25em] font-mono text-lg border border-[#e5e7eb] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#8b0000] focus:border-[#8b0000] ${fieldBase}`}
+                          />
+                          <button
+                            onClick={async () => {
+                              if (!twoFactorCode || twoFactorCode.length !== 6) {
+                                showToast('Please enter a valid 6-digit code.', 'error');
+                                return;
+                              }
+                              try {
+                                setLoading2FA(true);
+                                await authAPI.enable2FA({ secret: twoFactorSecret, token: twoFactorCode });
+                                await refreshUser();
+                                setIsTwoFactorEnabled(true);
+                                setQrCodeUrl('');
+                                setTwoFactorSecret('');
+                                setTwoFactorCode('');
+                                showToast('Two-factor authentication enabled successfully!', 'success');
+                              } catch (err) {
+                                showToast(err.message || 'Invalid code. Please try again.', 'error');
+                              } finally {
+                                setLoading2FA(false);
+                              }
+                            }}
+                            disabled={loading2FA || !twoFactorCode}
+                            className="px-5 py-2.5 bg-[#111827] hover:bg-black text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                          >
+                            {loading2FA ? 'Verifying...' : 'Verify & Enable'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setQrCodeUrl('');
+                              setTwoFactorSecret('');
+                              setTwoFactorCode('');
+                            }}
+                            className="px-4 py-2.5 text-[#6b7280] hover:text-[#111827] text-sm font-bold transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

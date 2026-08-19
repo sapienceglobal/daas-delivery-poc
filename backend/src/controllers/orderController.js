@@ -4,12 +4,14 @@ import Restaurant from '../models/Restaurant.js';
 import Table from '../models/Table.js';
 import Payment from '../models/Payment.js';
 import LoyaltyTransaction from '../models/LoyaltyTransaction.js';
+import IdempotencyLock from '../models/IdempotencyLock.js';
 import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
 import { getTenantModel } from '../utils/tenant.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
+import { withOptimisticRetry } from '../utils/optimisticRetry.js';
 import { triggerDelivery, getBestDeliveryQuote, cancelDelivery } from '../services/deliveryAggregatorService.js';
 import { validateDeliveryDistance } from '../utils/distance.js';
 import { buildOrderSocketPayload, syncDeliveryTracking } from '../services/deliverySyncService.js';
@@ -138,6 +140,21 @@ export const awardLoyaltyPoints = async (order) => {
 
   try {
     const tenantId = order.constructor.db.name;
+    const OrderModel = getTenantModel(tenantId, 'Order');
+    
+    // Atomic guard: Only one thread will successfully set loyaltyPointsAwarded from false to true
+    const updatedOrder = await OrderModel.findOneAndUpdate(
+      { _id: order._id, loyaltyPointsAwarded: false },
+      { $set: { loyaltyPointsAwarded: true } }
+    );
+
+    if (!updatedOrder) {
+      // Points were already awarded concurrently
+      return;
+    }
+    // Update local instance so the caller sees the new state
+    order.loyaltyPointsAwarded = true;
+
     const UserModel = getTenantModel(tenantId, 'User');
     const LoyaltyTransactionModel = getTenantModel(tenantId, 'LoyaltyTransaction');
 
@@ -157,7 +174,6 @@ export const awardLoyaltyPoints = async (order) => {
         description: `Earned from Order #${order.orderNumber || order._id}`
       });
 
-      order.loyaltyPointsAwarded = true;
       await order.save();
       logger.info('Loyalty points awarded on delivery', { orderId: order._id, userId: order.userId, points: order.loyaltyPointsEarned });
     }
@@ -272,25 +288,6 @@ export const processAutoRefund = async (order, reason, io, getModel) => {
 
     await order.save();
     logger.info('Auto-refunded order', { orderId: order._id, refundAmount: remainingAmount, stripeRefundId: refund.id });
-
-    if (io) {
-      const payload = buildOrderSocketPayload(order);
-      io.to(order.restaurantId.toString()).emit('order_updated', payload);
-      io.to(`order_${order._id}`).emit('order_status_changed', payload);
-    }
-
-    if (order.userId && io && getModel) {
-      await createNotification(
-        order.userId,
-        'Refund Processed',
-        `Your refund of $${remainingAmount.toFixed(2)} has been processed.`,
-        'order_update',
-        `/orders/${order._id}`,
-        io,
-        getModel
-      );
-    }
-
     return { processed: true, amount: remainingAmount, stripeRefundId: refund.id };
   } catch (stripeError) {
     // Log: auto_refund_failed
@@ -407,17 +404,17 @@ export const createOrder = asyncHandler(async (req, response) => {
     throw new AppError('restaurantId and items are required', 400);
   }
 
-  // Prevent double-submit / accidental duplicate orders (15 seconds debounce)
-  const fifteenSecondsAgo = new Date(Date.now() - 15 * 1000);
-  const recentDuplicate = await Order.findOne({
-    userId: req.user._id,
-    restaurantId,
-    createdAt: { $gte: fifteenSecondsAgo }
-  });
-  
-  if (recentDuplicate) {
-    throw new AppError('You just placed an order. Please wait a moment before placing another one.', 429);
+  // Prevent double-submit / accidental duplicate orders (15 seconds debounce) - ATOMIC LOCK
+  try {
+    await IdempotencyLock.create({ userId: req.user._id, restaurantId });
+  } catch (error) {
+    if (error.code === 11000) {
+      throw new AppError('You just placed an order. Please wait a moment before placing another one.', 429);
+    }
+    // If it's a different error, just log and allow the order to proceed rather than blocking checkout
+    logger.warn('Failed to create idempotency lock', { error: error.message });
   }
+
   // M6: Limit maximum items per order to prevent abuse
   if (items.length > 50) {
     throw new AppError('Maximum 50 items per order', 400);
@@ -538,6 +535,8 @@ export const createOrder = asyncHandler(async (req, response) => {
   // Track whether the order document has been persisted to DB.
   // Used in the catch block to decide between orphan-cleanup vs. simple refund.
   let savedOrder = null;
+  const session = await Order.startSession();
+  session.startTransaction();
 
   try {
     const order = new Order({
@@ -582,7 +581,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     ]
   });
 
-  await order.save();
+  await order.save({ session });
   savedOrder = order; // Mark as persisted — catch block will use this to clean up properly
 
   // Log: order_saved + payment_confirmed
@@ -597,7 +596,7 @@ export const createOrder = asyncHandler(async (req, response) => {
       triggeredBy: 'customer'
     });
   }
-  await order.save(); // persist events
+  await order.save({ session }); // persist events
 
   if (order.orderType === 'dine_in' && order.tableNumber) {
     const table = await Table.findOneAndUpdate(
@@ -607,7 +606,7 @@ export const createOrder = asyncHandler(async (req, response) => {
         currentOrderId: order._id,
         occupiedAt: new Date()
       },
-      { new: true }
+      { new: true, session }
     ).populate('currentOrderId', 'orderNumber status subtotal items');
 
     if (table) {
@@ -616,7 +615,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     }
   }
 
-  await Payment.create({
+  await Payment.create([{
     orderId: order._id,
     userId: req.user._id,
     restaurantId: restaurant._id,
@@ -633,33 +632,52 @@ export const createOrder = asyncHandler(async (req, response) => {
       discount: order.discount,
       loyaltyDiscount: order.loyaltyDiscount
     }
-  });
+  }], { session });
 
-  // Mark coupon usage
+  // Mark coupon usage atomically
   if (pricing.coupon) {
-    pricing.coupon.usedCount += 1;
-    pricing.coupon.usedBy.push({ userId: req.user._id });
-    await pricing.coupon.save();
+    const CouponModel = req.getModel('Coupon');
+    const updateQuery = { _id: pricing.coupon._id };
+    if (pricing.coupon.maxUses) {
+      updateQuery.usedCount = { $lt: pricing.coupon.maxUses };
+    }
+    
+    const updatedCoupon = await CouponModel.findOneAndUpdate(
+      updateQuery,
+      {
+        $inc: { usedCount: 1 },
+        $push: { usedBy: { userId: req.user._id } }
+      },
+      { new: true, session }
+    );
+
+    if (!updatedCoupon) {
+      throw new AppError('Sorry, this coupon just reached its usage limit.', 400);
+    }
   }
 
   // Handle loyalty points: deduct used, add earned
   if (pricing.pointsUsed > 0) {
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user._id,
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: req.user._id, loyaltyPoints: { $gte: pricing.pointsUsed } },
       { $inc: { loyaltyPoints: -pricing.pointsUsed } },
-      { new: true }
+      { new: true, session }
     );
-    await LoyaltyTransaction.create({
+    if (!updatedUser) {
+      throw new AppError('Insufficient loyalty points to complete this order.', 400);
+    }
+    await LoyaltyTransaction.create([{
       userId: req.user._id,
       orderId: order._id,
       type: 'redeemed',
       points: -pricing.pointsUsed,
       balanceAfter: updatedUser.loyaltyPoints,
       description: `Redeemed on Order #${order.orderNumber}`
-    });
+    }], { session });
   }
 
-
+  await session.commitTransaction();
+  session.endSession();
 
   // Emit socket event
   const io = req.app.get('io');
@@ -678,6 +696,8 @@ export const createOrder = asyncHandler(async (req, response) => {
 
     res.created(response, { data: order });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     if (finalStripePaymentIntentId) {
       try {
         if (savedOrder) {
@@ -890,7 +910,7 @@ export const cancelOrder = asyncHandler(async (req, response) => {
   }
 
   if (order.deliveryId) {
-    cancelDelivery(order.externalDeliveryId, 'Cancelled by customer').catch(err => {
+    cancelDelivery(order, 'Cancelled by customer').catch(err => {
       logger.warn('DoorDash cancellation failed during customer cancel', {
         orderId: order._id,
         error: err.response?.data || err.message
@@ -1035,40 +1055,48 @@ export const getMerchantOrders = asyncHandler(async (req, response) => {
 export const updateOrderStatus = asyncHandler(async (req, response) => {
   const Order = req.getModel('Order');
   let { status } = req.body;
-  const order = await Order.findById(req.params.id);
+  let order = await Order.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
   ensureCanManageRestaurant(req.user, order.restaurantId);
 
-  // Determine next status if not provided in the request body (for KDS/mobile app compat)
-  if (!status) {
-    if (order.status === 'pending') status = 'accepted';
-    else if (order.status === 'accepted') status = 'preparing';
-    else if (order.status === 'preparing') status = 'ready';
-    else if (order.status === 'ready') status = 'picked_up';
-    else if (order.status === 'picked_up') status = 'delivered';
-  }
-
   const allowedTransitions = {
     pending: ['accepted', 'cancelled'],
-    accepted: ['preparing', 'cancelled'],
-    preparing: ['ready', 'cancelled'],
-    ready: ['picked_up', 'cancelled'],
+    accepted: ['driver_assigned', 'preparing', 'cancelled'],
+    driver_assigned: ['preparing', 'ready', 'picked_up', 'cancelled'],
+    preparing: ['driver_assigned', 'ready', 'cancelled'],
+    ready: ['driver_assigned', 'picked_up', 'cancelled'],
     picked_up: ['delivered'],
     delivered: [],
     cancelled: [],
     failed: []
   };
 
-  if (!allowedTransitions[order.status]?.includes(status)) {
-    throw new AppError(`Cannot change order from ${order.status} to ${status}`, 400);
-  }
-  if (status === 'accepted' && ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(order.paymentMethod) && order.paymentStatus !== 'paid') {
-    throw new AppError('Card orders must be paid before acceptance', 400);
-  }
+  let finalStatus = status;
+  const { doc: finalOrder } = await withOptimisticRetry(order, async (doc) => {
+    if (!status) {
+      if (doc.status === 'pending') finalStatus = 'accepted';
+      else if (doc.status === 'accepted') finalStatus = 'preparing';
+      else if (doc.status === 'preparing') finalStatus = 'ready';
+      else if (doc.status === 'ready') finalStatus = 'picked_up';
+      else if (doc.status === 'picked_up') finalStatus = 'delivered';
+      else finalStatus = doc.status;
+    } else {
+      finalStatus = status;
+    }
 
-  order.status = status;
-  order.statusUpdates.push({ status, description: `Status updated to ${status}` });
-  await order.save();
+    if (!allowedTransitions[doc.status]?.includes(finalStatus)) {
+      throw new AppError(`Cannot change order from ${doc.status} to ${finalStatus}`, 400);
+    }
+    if (finalStatus === 'accepted' && ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(doc.paymentMethod) && doc.paymentStatus !== 'paid') {
+      throw new AppError('Card orders must be paid before acceptance', 400);
+    }
+
+    doc.status = finalStatus;
+    doc.statusUpdates.push({ status: finalStatus, description: `Status updated to ${finalStatus}` });
+  });
+
+  status = finalStatus;
+  order = finalOrder;
   if (status === 'accepted') {
     createDoorDashDeliveryForOrder(order).catch(err => logger.error('DoorDash background error', err));
   } else if (status === 'cancelled') {
@@ -1076,7 +1104,7 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
     const io = req.app.get('io');
     processAutoRefund(order, 'Cancelled by restaurant', io, req.getModel).catch(err => logger.error('Auto refund error', err));
     if (order.deliveryId) {
-      cancelDelivery(order.externalDeliveryId, 'Cancelled via status update').catch(err => logger.error('DoorDash cancel error', err));
+      cancelDelivery(order, 'Cancelled via status update').catch(err => logger.error('DoorDash cancel error', err));
     }
   } else if (status === 'delivered' || status === 'picked_up') {
     awardLoyaltyPoints(order).catch(err => logger.error('Award points error', err));
@@ -1155,10 +1183,10 @@ export const rejectOrder = asyncHandler(async (req, response) => {
   }
 
   order.status = 'cancelled';
-  order.statusUpdates.push({ status: 'cancelled', description: req.body.reason || 'Rejected by restaurant' });
+  order.statusUpdates.push({ status: 'cancelled', description: xss(String(req.body.reason || '')) || 'Rejected by restaurant' });
   if (order.deliveryId) {
     try {
-      await cancelDelivery(order.externalDeliveryId, req.body.reason || 'Rejected by restaurant');
+      await cancelDelivery(order, xss(String(req.body.reason || '')) || 'Rejected by restaurant');
     } catch (err) {
       logger.warn('DoorDash cancellation failed during restaurant reject', {
         orderId: order._id,
@@ -1169,7 +1197,7 @@ export const rejectOrder = asyncHandler(async (req, response) => {
   await order.save();
 
   const io = req.app.get('io');
-  await processAutoRefund(order, req.body.reason || 'Rejected by restaurant', io, req.getModel);
+  await processAutoRefund(order, xss(String(req.body.reason || '')) || 'Rejected by restaurant', io, req.getModel);
 
   await rollbackLoyaltyPoints(order, 'restaurant_reject');
 
@@ -1221,7 +1249,8 @@ export const refundOrder = asyncHandler(async (req, response) => {
     ensureCanManageRestaurant(req.user, order.restaurantId);
   }
 
-  const { amount, reason } = req.body;
+  const { amount } = req.body;
+  const reason = req.body.reason ? xss(String(req.body.reason)) : undefined;
   const refundAmount = roundMoney(amount || order.total);
   const nextRefundedTotal = roundMoney((order.refundAmount || 0) + refundAmount);
   if (refundAmount <= 0 || nextRefundedTotal > roundMoney(order.total)) {
@@ -1235,7 +1264,9 @@ export const refundOrder = asyncHandler(async (req, response) => {
   }
 
   if (order.stripePaymentIntentId && ['paid', 'partially_refunded'].includes(order.paymentStatus)) {
-    const refund = await issueStripeRefund(order.stripePaymentIntentId, refundAmount);
+    // Prevent double-click accidental double-refunds via state-based idempotency key
+    const idempotencyKey = req.body.idempotencyKey || `manual-refund-${order._id}-${Math.round((order.refundAmount || 0) * 100)}-${Math.round(refundAmount * 100)}`;
+    const refund = await issueStripeRefund(order.stripePaymentIntentId, refundAmount, idempotencyKey);
     stripeRefundId = refund.id;
   }
 
@@ -1345,7 +1376,7 @@ export const replyToReview = asyncHandler(async (req, response) => {
   const order = await Order.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
 
-  ensureCanManageRestaurant(req, order.restaurantId);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
 
   if (!order.rating) {
     throw new AppError('Order has not been rated yet', 400);
@@ -1447,7 +1478,7 @@ export const driverDeliverOrder = asyncHandler(async (req, response) => {
 
 export const addAdminNote = asyncHandler(async (req, response) => {
   const Order = req.getModel('Order');
-  const { text } = req.body;
+  const text = req.body.text ? xss(String(req.body.text)) : null;
   if (!text) throw new AppError('Note text is required', 400);
 
   const order = await Order.findById(req.params.id);
@@ -1478,6 +1509,7 @@ export const addAdminNote = asyncHandler(async (req, response) => {
 export const remakeOrder = asyncHandler(async (req, response) => {
   const tenantId = req.user.tenantId || req.user.restaurantId?.toString(); // fallback if tenantId missing
   const OrderModel = getTenantModel(tenantId, 'Order');
+  const PaymentModel = getTenantModel(tenantId, 'Payment');
   const order = await OrderModel.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
   ensureCanManageRestaurant(req.user, order.restaurantId);
@@ -1500,6 +1532,27 @@ export const remakeOrder = asyncHandler(async (req, response) => {
     adminNotes: [{ text: 'Remake of order ' + order._id, author: 'Merchant', timestamp: new Date() }]
   });
   await remake.save();
+
+  await PaymentModel.create([{
+    orderId: remake._id,
+    userId: remake.userId || req.user._id,
+    restaurantId: remake.restaurantId,
+    method: remake.paymentMethod || 'cash',
+    status: 'completed',
+    amount: 0,
+    tip: 0,
+    metadata: {
+      orderNumber: remake.orderNumber,
+      remakeOf: order._id
+    }
+  }]);
+
+  const io = req.app.get('io');
+  if (io) {
+    const payload = buildOrderSocketPayload(remake);
+    io.to(remake.restaurantId.toString()).emit('new_order', payload);
+  }
+
   res.success(response, { data: remake, message: 'Remake order created' });
 });
 

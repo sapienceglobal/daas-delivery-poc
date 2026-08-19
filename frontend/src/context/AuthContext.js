@@ -81,6 +81,26 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password, rememberMe = true) => {
     const data = await authAPI.login({ email, password, rememberMe });
+    
+    if (data.requires2fa) {
+      return data;
+    }
+
+    const { user: userData } = data;
+
+    localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
+    localStorage.removeItem('marketplace_token');
+
+    const cookieAge = rememberMe ? 'max-age=2592000;' : '';
+    document.cookie = `user_role=${userData.role}; path=/; ${cookieAge} SameSite=Lax`;
+
+    setUser(userData);
+    setBackendVerified(true);
+    return userData;
+  }, []);
+
+  const verify2FA = useCallback(async (tempToken, token, rememberMe = true) => {
+    const data = await authAPI.verify2FA({ tempToken, token, rememberMe });
     const { user: userData } = data;
 
     localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
@@ -184,6 +204,7 @@ export function AuthProvider({ children }) {
     isAdmin: user?.role === 'admin' && backendVerified,
     isDriver: user?.role === 'driver' && backendVerified,
     login,
+    verify2FA,
     socialLogin,
     register,
     logout,

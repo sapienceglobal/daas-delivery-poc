@@ -11,6 +11,7 @@ import 'package:single_restaurant_mobile/providers/address_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/services/ota_update_service.dart';
+import 'package:single_restaurant_mobile/services/push_notification_service.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialIndex;
@@ -42,6 +43,9 @@ class _MainScreenState extends State<MainScreen> {
         // Fetch notifications on startup so the bell dot shows immediately
         context.read<NotificationProvider>().fetchNotifications();
       }
+
+      // Initialize Push Notifications
+      PushNotificationService().initialize(context);
     });
   }
 

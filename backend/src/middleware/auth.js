@@ -40,7 +40,9 @@ export const protect = async (req, _res, next) => {
     const decoded = jwt.verify(token, resolvedJwtSecret);
 
     // Protected routes always trust the signed JWT tenant, never the browser header.
-    bindTenantContext(req, decoded.tenantId || 'marketplace');
+    // However, if FORCE_TENANT_ID is set (single-tenant setup), it takes precedence over even the JWT.
+    const forcedTenant = process.env.FORCE_TENANT_ID;
+    bindTenantContext(req, forcedTenant || decoded.tenantId || 'marketplace');
 
     const user = await req.getModel('User').findById(decoded.id).select('-password -salt');
 
@@ -53,10 +55,19 @@ export const protect = async (req, _res, next) => {
       return next(new AppError('Your account has been deactivated. Contact support.', 403));
     }
 
+    // Invalidate old sessions if password was changed
+    if ((decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
+      return next(new AppError('Session expired. Please log in again.', 401));
+    }
+
     req.user = user;
     return next();
   } catch (error) {
-    return next(new AppError('Not authorized, token failed', 401));
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return next(new AppError('Not authorized, token failed', 401));
+    }
+    // If it's a DB error or something else, pass it down so it's logged properly
+    return next(error);
   }
 };
 
