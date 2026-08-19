@@ -79,7 +79,6 @@ const PaymentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // ── Indexes ────────────────────────────────────────────────────────────
-PaymentSchema.index({ orderId: 1 });
 PaymentSchema.index({ userId: 1, createdAt: -1 });
 PaymentSchema.index({ restaurantId: 1, createdAt: -1 });
 PaymentSchema.index({ stripePaymentIntentId: 1 }, { sparse: true });
