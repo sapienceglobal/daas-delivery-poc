@@ -5,7 +5,7 @@ import {
   XCircle, Smartphone, Globe, ShoppingBag, ArrowRight, BarChart, Trash2
 } from 'lucide-react';
 import { couponAPI } from '@/lib/api';
-import { showToast, PageLoader } from '@/components/ui';
+import { showToast, PageLoader, ConfirmModal } from '@/components/ui';
 import PromotionModal from './PromotionModal';
 import StatCard from './StatCard';
 
@@ -22,6 +22,7 @@ export default function PromotionsView() {
   const [selectedPromo, setSelectedPromo] = useState(null);
   const [defaultPromoType, setDefaultPromoType] = useState('Coupon');
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -81,14 +82,20 @@ export default function PromotionsView() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this promotion?')) return;
-    try {
-      await couponAPI.delete(id);
-      showToast('Promotion deleted successfully', 'success');
-      fetchData();
-    } catch (err) {
-      showToast('Failed to delete promotion', 'error');
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Delete Promotion',
+      message: 'Are you sure you want to delete this promotion? It will no longer be available to customers.',
+      onConfirm: async () => {
+        try {
+          await couponAPI.delete(id);
+          showToast('Promotion deleted successfully', 'success');
+          fetchData();
+        } catch (err) {
+          showToast('Failed to delete promotion', 'error');
+        }
+      }
+    });
   };
 
   const filteredPromotions = promotions.filter(promo => {
@@ -510,6 +517,11 @@ export default function PromotionsView() {
         onSuccess={fetchData} 
         editPromo={selectedPromo}
         defaultPromoType={defaultPromoType}
+      />
+
+      <ConfirmModal
+        {...confirmConfig}
+        onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
       />
     </div>
   );

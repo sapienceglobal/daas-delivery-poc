@@ -9,6 +9,9 @@ import { Loader2, X, ChevronDown } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { showToast } from './showToast';
 import ItemDetailModal, { PortalModal } from './ItemDetailModal';
+import ConfirmModal from './ConfirmModal';
+
+export { showToast, ItemDetailModal, PortalModal, ConfirmModal };
 
 // ── Button ──────────────────────────────────────────────────────────────────
 
@@ -147,7 +150,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
 
 // ── Toast Notification ──────────────────────────────────────────────────────
 
-export { showToast };
+
 
 // ── Loading Skeleton ────────────────────────────────────────────────────────
 
@@ -339,7 +342,7 @@ export function ConfirmDialog({ isOpen, onClose, onCancel, onConfirm, title, mes
   );
 }
 
-export { PortalModal, ItemDetailModal };
+
 
 export const PageLoader = ({ text = "Loading..." }) => (
   <div className="flex flex-col items-center justify-center w-full h-[80vh] animate-in fade-in duration-300">

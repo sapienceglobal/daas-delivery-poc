@@ -1,11 +1,31 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, ChevronLeft, ChevronRight, Calendar, 
-  MoreVertical, Edit3, Eye, Clock, CheckCircle2, XCircle, Users, Phone, CheckSquare, Square, Trash2, Loader2
+  MoreVertical, Edit3, Eye, Clock, CheckCircle2, XCircle, Users, Phone, CheckSquare, Square, Trash2, Loader2,
+  Download, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
+import { showToast } from '@/components/ui';
 import StatCard from './StatCard';
 
-export default function ReservationsView({ reservations = [], onUpdateReservationStatus, onBulkUpdateReservationStatus, onEdit }) {
+const SortHeader = ({ label, sortKey, currentSort, onSort, className = "" }) => (
+  <th 
+    className={`px-4 py-4 cursor-pointer hover:bg-gray-50 group transition-colors ${className}`}
+    onClick={() => onSort(sortKey)}
+  >
+    <div className="flex items-center gap-1.5">
+      {label}
+      <span className="text-gray-400 group-hover:text-gray-600">
+        {currentSort.key === sortKey ? (
+          currentSort.direction === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[#8B0000]" /> : <ArrowDown className="w-3.5 h-3.5 text-[#8B0000]" />
+        ) : (
+          <ArrowUpDown className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        )}
+      </span>
+    </div>
+  </th>
+);
+
+export default function ReservationsView({ reservations = [], isLoading = false, onUpdateReservationStatus, onBulkUpdateReservationStatus, onEdit }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -13,6 +33,20 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [seatingFilter, setSeatingFilter] = useState('All Seating Areas');
   const [occasionFilter, setOccasionFilter] = useState('All Occasions');
+  
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
+
+  const handleSort = (key) => {
+    let direction = 'desc';
+    if (sortConfig.key === key && sortConfig.direction === 'desc') {
+      direction = 'asc';
+    } else if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      key = null;
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
   
   // Bulk selection state
   const [selectedItems, setSelectedItems] = useState([]);
@@ -93,8 +127,53 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
       const matchesDate = !selectedDate || new Date(r.date).toDateString() === selectedDate.toDateString();
 
       return matchesSearch && matchesStatus && matchesSeating && matchesOccasion && matchesDate;
-    }).sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [reservations, searchQuery, statusFilter, seatingFilter, occasionFilter, selectedDate]);
+    }).sort((a, b) => {
+      if (sortConfig.key) {
+        let valA = a[sortConfig.key] || '';
+        let valB = b[sortConfig.key] || '';
+        
+        if (sortConfig.key === 'date' || sortConfig.key === 'time') {
+          valA = new Date(a.date).getTime();
+          valB = new Date(b.date).getTime();
+        } else if (sortConfig.key === 'partySize') {
+          valA = Number(a.partySize || a.guests || 0);
+          valB = Number(b.partySize || b.guests || 0);
+        } else if (typeof valA === 'string') {
+          valA = valA.toLowerCase();
+          valB = valB.toLowerCase();
+        }
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      }
+      return new Date(b.date) - new Date(a.date);
+    });
+  }, [reservations, searchQuery, statusFilter, seatingFilter, occasionFilter, selectedDate, sortConfig]);
+
+  const exportToCSV = () => {
+    if (!filteredReservations || filteredReservations.length === 0) {
+      showToast('No data to export', 'error');
+      return;
+    }
+    const headers = ['Time', 'Date', 'Customer Name', 'Customer Phone', 'Customer Email', 'Guests', 'Seating Area', 'Occasion', 'Status'];
+    const rows = filteredReservations.map(r => [
+      r.time,
+      new Date(r.date).toLocaleDateString(),
+      r.customerName,
+      r.customerPhone,
+      r.customerEmail || '',
+      r.partySize || r.guests,
+      r.location || r.seatingArea || 'Main Dining',
+      r.occasion || 'Dinner',
+      r.status
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.map(f => `"${String(f).replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `reservations_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
 
   // Handle Load More Logic
   const displayedReservations = useMemo(() => {
@@ -102,6 +181,44 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
   }, [filteredReservations, visibleCount]);
 
   const hasMoreItems = visibleCount < filteredReservations.length;
+
+  const tableHeaderRef = React.useRef(null);
+  const tableBodyRef = React.useRef(null);
+  const [showLeftButton, setShowLeftButton] = useState(false);
+  const [showRightButton, setShowRightButton] = useState(false);
+
+  const handleScroll = () => {
+    if (tableBodyRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tableBodyRef.current;
+      if (tableHeaderRef.current) {
+        tableHeaderRef.current.scrollLeft = scrollLeft;
+      }
+      setShowLeftButton(scrollLeft > 0);
+      setShowRightButton(scrollLeft < scrollWidth - clientWidth - 5 && scrollWidth > clientWidth);
+    }
+  };
+
+  useEffect(() => {
+    handleScroll();
+    window.addEventListener('resize', handleScroll);
+    return () => window.removeEventListener('resize', handleScroll);
+  }, [displayedReservations]);
+
+  const scrollLeft = () => tableBodyRef.current?.scrollBy({ left: -300, behavior: 'smooth' });
+  const scrollRight = () => tableBodyRef.current?.scrollBy({ left: 300, behavior: 'smooth' });
+
+  const TableColGroup = () => (
+    <colgroup>
+      <col style={{ width: '60px' }} />
+      <col style={{ width: '120px' }} />
+      <col style={{ width: '200px' }} />
+      <col style={{ width: '200px' }} />
+      <col style={{ width: '100px' }} />
+      <col style={{ width: '140px' }} />
+      <col style={{ width: '120px' }} />
+      <col style={{ width: '80px' }} />
+    </colgroup>
+  );
 
   const handleLoadMore = () => {
     setIsLoadingMore(true);
@@ -177,8 +294,11 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
             <StatCard title="Guests Today" value={stats.totalGuests} icon={Users} iconColor="text-[#10B981]" iconBg="bg-[#dcfce7]" />
           </div>
 
-          <div className="bg-white rounded-[20px] shadow-sm border border-[#e5e7eb] overflow-hidden flex flex-col flex-1 relative">
-            <div className="p-4 border-b border-[#f3f4f6] flex flex-wrap gap-4 items-center justify-between">
+          <div className="bg-white rounded-[20px] shadow-sm border border-[#e5e7eb] flex flex-col flex-1 relative group">
+            
+            {/* STICKY TOP SECTION */}
+            <div className="sticky top-[72px] z-40 bg-white rounded-t-[20px] flex flex-col shadow-sm">
+              <div className="p-4 border-b border-[#f3f4f6] flex flex-wrap gap-4 items-center justify-between">
               <div className="relative flex-1 min-w-[200px] max-w-sm">
                 <Search className="w-4 h-4 text-[#9ca3af] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input 
@@ -222,36 +342,91 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
                   )}
                 </div>
 
+                <button onClick={exportToCSV} className="bg-white border border-[#e5e7eb] text-[#374151] rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition-all shadow-sm hover:shadow">
+                  <Download className="w-4 h-4" /> Export
+                </button>
                 <button onClick={() => onEdit && onEdit(null)} className="bg-[#8B0000] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 hover:bg-red-900 transition-all shadow-sm hover:shadow">
                   + New Reservation
                 </button>
               </div>
+              </div>
+
+              {/* Table Header (Synced horizontal scroll) */}
+              <div className="border-b border-[#f3f4f6] overflow-hidden" ref={tableHeaderRef}>
+                <table className="w-full text-left border-collapse min-w-[1020px] table-fixed">
+                  <TableColGroup />
+                  <thead className="bg-white">
+                    <tr className="text-xs font-bold text-[#6b7280] uppercase tracking-wider">
+                      <th className="px-4 py-4 text-center">
+                        <input 
+                          type="checkbox" 
+                          className="rounded !bg-white border-[#d1d5db] text-[#8B0000] focus:ring-[#8B0000] cursor-pointer"
+                          style={{ backgroundColor: 'white' }}
+                          checked={displayedReservations.length > 0 && displayedReservations.every(r => selectedItems.includes(r._id))}
+                          onChange={handleSelectAll}
+                        />
+                      </th>
+                      <SortHeader label="Time" sortKey="time" currentSort={sortConfig} onSort={handleSort} />
+                      <SortHeader label="Customer" sortKey="customerName" currentSort={sortConfig} onSort={handleSort} />
+                      <th className="px-4 py-4">Contact</th>
+                      <SortHeader label="Guests" sortKey="partySize" currentSort={sortConfig} onSort={handleSort} />
+                      <SortHeader label="Seating Area" sortKey="location" currentSort={sortConfig} onSort={handleSort} />
+                      <SortHeader label="Status" sortKey="status" currentSort={sortConfig} onSort={handleSort} />
+                      <th className="px-4 py-4 text-center">Action</th>
+                    </tr>
+                  </thead>
+                </table>
+              </div>
             </div>
 
-            <div className="overflow-x-auto flex-1 custom-scrollbar">
-              <table className="w-full text-left border-collapse min-w-[900px]">
-                <thead className="bg-white sticky top-0 z-10 border-b border-[#f3f4f6]">
-                  <tr className="text-xs font-bold text-[#6b7280] uppercase tracking-wider">
-                    <th className="px-4 py-4 w-12 text-center">
-                      <input 
-                        type="checkbox" 
-                        className="rounded !bg-white border-[#d1d5db] text-[#8B0000] focus:ring-[#8B0000] cursor-pointer"
-                        style={{ backgroundColor: 'white' }}
-                        checked={displayedReservations.length > 0 && displayedReservations.every(r => selectedItems.includes(r._id))}
-                        onChange={handleSelectAll}
-                      />
-                    </th>
-                    <th className="px-4 py-4">Time</th>
-                    <th className="px-4 py-4">Customer</th>
-                    <th className="px-4 py-4">Contact</th>
-                    <th className="px-4 py-4">Guests</th>
-                    <th className="px-4 py-4">Seating Area</th>
-                    <th className="px-4 py-4">Status</th>
-                    <th className="px-4 py-4 text-center">Action</th>
-                  </tr>
-                </thead>
+            {/* STICKY VERTICAL BUTTONS */}
+            <div className="sticky top-[50vh] h-0 z-30 w-full pointer-events-none flex justify-between px-2">
+              {showLeftButton && (
+                <button onClick={scrollLeft} className="pointer-events-auto w-9 h-9 bg-white shadow-md border border-[#e5e7eb] rounded-full flex items-center justify-center text-[#374151] hover:text-[#8B0000] hover:bg-gray-50 transition-all absolute left-2 -translate-y-1/2">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              )}
+              {showRightButton && (
+                <button onClick={scrollRight} className="pointer-events-auto w-9 h-9 bg-white shadow-md border border-[#e5e7eb] rounded-full flex items-center justify-center text-[#374151] hover:text-[#8B0000] hover:bg-gray-50 transition-all absolute right-2 -translate-y-1/2">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+
+            {/* TABLE BODY */}
+            <div className="overflow-x-auto flex-1 custom-scrollbar w-full" ref={tableBodyRef} onScroll={handleScroll}>
+              <table className="w-full text-left border-collapse min-w-[1020px] table-fixed">
+                <TableColGroup />
                 <tbody className="divide-y divide-[#f9fafb]">
-                  {displayedReservations.map((res) => {
+                  {isLoading ? (
+                    [...Array(5)].map((_, idx) => (
+                      <tr key={`skeleton-${idx}`} className="animate-pulse bg-white border-b border-[#f3f4f6]">
+                        <td className="px-4 py-4 text-center"><div className="w-4 h-4 bg-gray-200 rounded mx-auto"></div></td>
+                        <td className="px-4 py-4 space-y-2">
+                          <div className="w-16 h-4 bg-gray-200 rounded"></div>
+                          <div className="w-20 h-3 bg-gray-200 rounded"></div>
+                        </td>
+                        <td className="px-4 py-4 space-y-2">
+                          <div className="w-24 h-4 bg-gray-200 rounded"></div>
+                          <div className="w-16 h-3 bg-gray-200 rounded"></div>
+                        </td>
+                        <td className="px-4 py-4 space-y-2">
+                          <div className="w-20 h-3 bg-gray-200 rounded"></div>
+                          <div className="w-24 h-3 bg-gray-200 rounded"></div>
+                        </td>
+                        <td className="px-4 py-4 space-y-2">
+                          <div className="w-10 h-4 bg-gray-200 rounded"></div>
+                          <div className="w-12 h-3 bg-gray-200 rounded"></div>
+                        </td>
+                        <td className="px-4 py-4 space-y-2">
+                          <div className="w-20 h-4 bg-gray-200 rounded"></div>
+                          <div className="w-16 h-3 bg-gray-200 rounded"></div>
+                        </td>
+                        <td className="px-4 py-4"><div className="w-20 h-6 bg-gray-200 rounded"></div></td>
+                        <td className="px-4 py-4"><div className="w-6 h-6 bg-gray-200 rounded mx-auto"></div></td>
+                      </tr>
+                    ))
+                  ) : displayedReservations.map((res) => {
                     const isSelected = selectedItems.includes(res._id);
                     return (
                       <tr key={res._id} className={`transition-colors group ${isSelected ? 'bg-red-50' : 'hover:bg-[#f9fafb]'}`}>
@@ -326,7 +501,7 @@ export default function ReservationsView({ reservations = [], onUpdateReservatio
             </div>
 
             {/* ─── LOAD MORE BUTTON ─── */}
-            <div className="p-4 border-t border-[#f3f4f6] flex items-center justify-between bg-white">
+            <div className="p-4 border-t border-[#f3f4f6] flex items-center justify-between bg-white rounded-b-[20px]">
               <span className="text-xs font-semibold text-[#6b7280]">
                 Showing <strong className="text-[#374151]">{displayedReservations.length}</strong> of <strong className="text-[#374151]">{filteredReservations.length}</strong> reservations
               </span>

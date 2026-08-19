@@ -7,6 +7,13 @@ export default function CustomerProfileModal({ customer, restaurantId, onClose }
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
   const [error, setError] = useState(null);
+  const [isClosing, setIsClosing] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMounted(true), 10);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (customer?._id && restaurantId) {
@@ -29,10 +36,21 @@ export default function CustomerProfileModal({ customer, restaurantId, onClose }
 
   if (!customer) return null;
 
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  };
+
   return (
-    <div className="fixed inset-0 z-[100] flex justify-end bg-[#111827]/40 backdrop-blur-sm animate-in fade-in duration-200">
+    <div 
+      className={`fixed inset-0 z-[9999] flex justify-end bg-[#111827]/40 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${isMounted && !isClosing ? 'opacity-100' : 'opacity-0'}`}
+      onClick={handleClose}
+    >
       <div 
-        className="w-full max-w-[600px] h-full bg-[#f8fafc] shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-[#e5e7eb]"
+        className={`w-full max-w-[600px] h-full bg-[#f8fafc] shadow-2xl flex flex-col border-l border-[#e5e7eb] transform transition-transform duration-300 ease-in-out ${isMounted && !isClosing ? 'translate-x-0' : 'translate-x-full'}`}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header Section */}
         <div className="bg-white border-b border-[#e5e7eb] shrink-0 pt-6">
@@ -61,7 +79,7 @@ export default function CustomerProfileModal({ customer, restaurantId, onClose }
               </div>
             </div>
             <button 
-              onClick={onClose} 
+              onClick={handleClose} 
               className="p-2 rounded-full bg-[#f3f4f6] border border-transparent hover:border-[#e5e7eb] hover:bg-white text-[#4b5563] transition-all shadow-sm"
             >
               <X className="w-5 h-5" />

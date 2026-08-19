@@ -34,6 +34,7 @@ import aiRoutes from './routes/aiRoutes.js';
 import kdsRoutes from './routes/kdsRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import locationRoutes from './routes/locationRoutes.js';
+import auditRoutes from './routes/auditRoutes.js';
 
 // ── Environment ─────────────────────────────────────────────────────────────
 const isProduction = process.env.NODE_ENV === 'production';
@@ -213,8 +214,10 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/crm', crmRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/ai', aiRoutes);
-app.use('/api/kds', kdsRoutes);
-app.use('/api/location', locationRoutes);
+app.use('/api/kds', tenantDb, kdsRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/locations', locationRoutes);
+app.use('/api/audit-logs', tenantDb, auditRoutes);
 app.use('/api', contactRoutes);
 
 // ── Root Info Page ──────────────────────────────────────────────────────────

@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Calendar, Search, Filter, MoreVertical, Edit3, Eye, 
   RefreshCcw, Plus, Package, FileText, ArrowRight, TrendingUp, TrendingDown,
-  Clock, CheckCircle, XCircle, Mail
+  Clock, CheckCircle, XCircle, Mail, ChevronLeft, ChevronRight, Loader2,
+  Download, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { useRouter } from 'next/navigation';
@@ -10,15 +11,92 @@ import { showToast, Badge, Button, GlassCard } from '@/components/ui';
 import CateringInquiryModal from '@/components/catering/CateringInquiryModal';
 import StatCard from './StatCard';
 
-export default function CateringEnquiriesView({ inquiries = [], onUpdateStatus, restaurantId, refreshData }) {
+const SortHeader = ({ label, sortKey, currentSort, onSort, className = "" }) => (
+  <th 
+    className={`px-4 py-4 cursor-pointer hover:bg-gray-50 group transition-colors ${className}`}
+    onClick={() => onSort(sortKey)}
+  >
+    <div className="flex items-center gap-1.5">
+      {label}
+      <span className="text-gray-400 group-hover:text-gray-600">
+        {currentSort.key === sortKey ? (
+          currentSort.direction === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-[#8B0000]" /> : <ArrowDown className="w-3.5 h-3.5 text-[#8B0000]" />
+        ) : (
+          <ArrowUpDown className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        )}
+      </span>
+    </div>
+  </th>
+);
+
+export default function CateringEnquiriesView({ inquiries = [], isLoading = false, onUpdateStatus, restaurantId, refreshData }) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [eventTypeFilter, setEventTypeFilter] = useState('All Event Types');
   const [chartTimeframe, setChartTimeframe] = useState('This Month');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
   
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
+
+  const handleSort = (key) => {
+    let direction = 'desc';
+    if (sortConfig.key === key && sortConfig.direction === 'desc') {
+      direction = 'asc';
+    } else if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      key = null;
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+  
+  // ─── LOAD MORE STATE ───
+  const ITEMS_PER_LOAD = 8;
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_LOAD);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // ─── SCROLLING LOGIC STATES & REFS ───
+  const scrollContainerRef = useRef(null);
+  const tableHeaderRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  // Filter change hone par items reset karein
+  useEffect(() => {
+    setVisibleCount(ITEMS_PER_LOAD);
+  }, [searchTerm, statusFilter, eventTypeFilter]);
+
+  // Check Scroll Position
+  const checkForScrollPosition = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      if (tableHeaderRef.current) {
+        tableHeaderRef.current.scrollLeft = scrollLeft;
+      }
+      setCanScrollLeft(scrollLeft > 1);
+      setCanScrollRight(Math.ceil(scrollLeft) < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => checkForScrollPosition(), 150);
+    return () => clearTimeout(timer);
+  }, [inquiries, visibleCount]);
+
+  useEffect(() => {
+    window.addEventListener('resize', checkForScrollPosition);
+    return () => window.removeEventListener('resize', checkForScrollPosition);
+  }, []);
+
+  const scrollByAmount = (amount) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+  };
+
   const [selectedItems, setSelectedItems] = useState([]);
   const [isProcessingBulk, setIsProcessingBulk] = useState(false);
   const [isNewInquiryModalOpen, setIsNewInquiryModalOpen] = useState(false);
@@ -96,11 +174,66 @@ export default function CateringEnquiriesView({ inquiries = [], onUpdateStatus, 
       const matchesEvent = eventTypeFilter === 'All Event Types' || i.eventType === eventTypeFilter;
 
       return matchesSearch && matchesStatus && matchesEvent;
-    }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [inquiries, searchTerm, statusFilter, eventTypeFilter]);
+    }).sort((a, b) => {
+      if (sortConfig.key) {
+        let valA = a[sortConfig.key] || '';
+        let valB = b[sortConfig.key] || '';
+        
+        if (sortConfig.key === 'createdAt' || sortConfig.key === 'eventDate') {
+          valA = new Date(valA).getTime();
+          valB = new Date(valB).getTime();
+        } else if (sortConfig.key === 'guests') {
+          valA = Number(valA);
+          valB = Number(valB);
+        } else if (typeof valA === 'string') {
+          valA = valA.toLowerCase();
+          valB = valB.toLowerCase();
+        }
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      }
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  }, [inquiries, searchTerm, statusFilter, eventTypeFilter, sortConfig]);
 
-  const totalPages = Math.ceil(filteredInquiries.length / itemsPerPage);
-  const currentData = filteredInquiries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const exportToCSV = () => {
+    if (!filteredInquiries || filteredInquiries.length === 0) {
+      showToast('No data to export', 'error');
+      return;
+    }
+    const headers = ['Created At', 'Event Date', 'Customer Name', 'Customer Email', 'Customer Phone', 'Event Type', 'Guests', 'Status'];
+    const rows = filteredInquiries.map(i => [
+      new Date(i.createdAt).toLocaleDateString(),
+      i.eventDate ? new Date(i.eventDate).toLocaleDateString() : 'N/A',
+      i.customerName,
+      i.customerEmail || '',
+      i.customerPhone || '',
+      i.eventType || 'N/A',
+      i.guests || '0',
+      i.status
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.map(f => `"${String(f).replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `catering_enquiries_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  const displayedInquiries = useMemo(() => {
+    return filteredInquiries.slice(0, visibleCount);
+  }, [filteredInquiries, visibleCount]);
+
+  const hasMoreItems = visibleCount < filteredInquiries.length;
+
+  const handleLoadMore = () => {
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount(prev => prev + ITEMS_PER_LOAD);
+      setIsLoadingMore(false);
+    }, 400); // 400ms premium delay
+  };
 
   const chartData = useMemo(() => {
     const now = new Date();
@@ -110,7 +243,6 @@ export default function CateringEnquiriesView({ inquiries = [], onUpdateStatus, 
     const counts = { new: 0, in_discussion: 0, quotation_sent: 0, confirmed: 0, closed: 0 };
     
     inquiries.forEach(i => {
-      // Apply timeframe filter
       if (chartTimeframe === 'This Month') {
         const d = new Date(i.createdAt);
         if (d.getMonth() !== currentMonth || d.getFullYear() !== currentYear) return;
@@ -145,12 +277,6 @@ export default function CateringEnquiriesView({ inquiries = [], onUpdateStatus, 
 
   const uniqueEventTypes = [...new Set(inquiries.map(i => i.eventType))];
 
-  const renderTrend = (trend) => {
-    if (trend > 0) return <span className="text-xs font-semibold flex items-center gap-1 text-[#10B981]"><TrendingUp size={14} /> +{trend}% vs last month</span>;
-    if (trend < 0) return <span className="text-xs font-semibold flex items-center gap-1 text-[#DC2626]"><TrendingDown size={14} /> {trend}% vs last month</span>;
-    return <span className="text-xs font-semibold flex items-center gap-1 text-[#6b7280]">— 0% vs last month</span>;
-  };
-
   const getStatusLabel = (status) => {
     const s = (status || '').toLowerCase();
     if (['new', 'pending'].includes(s)) return 'New';
@@ -172,7 +298,7 @@ export default function CateringEnquiriesView({ inquiries = [], onUpdateStatus, 
   };
 
   const handleSelectAll = (e) => {
-    const pageIds = currentData.map(r => r._id);
+    const pageIds = displayedInquiries.map(r => r._id);
     if (e.target.checked) {
       const newItems = [...selectedItems];
       pageIds.forEach(id => {
@@ -192,7 +318,6 @@ export default function CateringEnquiriesView({ inquiries = [], onUpdateStatus, 
     if (!selectedItems.length) return;
     setIsProcessingBulk(true);
     try {
-      // Execute the bulk update in parallel using the existing onUpdateStatus
       await Promise.all(selectedItems.map(id => onUpdateStatus(id, status)));
       setSelectedItems([]);
       if (refreshData) refreshData();
@@ -229,6 +354,8 @@ export default function CateringEnquiriesView({ inquiries = [], onUpdateStatus, 
     link.click();
     showToast('Report downloaded successfully!', 'success');
   };
+
+  if (!mounted) return null;
 
   return (
     <div className="flex flex-col h-full bg-[#F8FAFC]">
@@ -282,68 +409,156 @@ export default function CateringEnquiriesView({ inquiries = [], onUpdateStatus, 
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 flex-1 min-w-0">
-            <div className="xl:col-span-3 flex flex-col min-h-0 min-w-0">
-              <div className="bg-white rounded-[20px] shadow-sm border border-[#e5e7eb] overflow-hidden flex flex-col flex-1 min-w-0">
+            <div className="xl:col-span-3 flex flex-col min-h-0 min-w-0 relative group">
+              <div className="bg-white rounded-[20px] shadow-sm border border-[#e5e7eb] flex flex-col flex-1 min-w-0 relative">
                 
-                <div className="p-4 border-b border-[#f3f4f6] flex flex-wrap gap-4 items-center justify-between">
-                  <div className="relative flex-1 min-w-[200px] max-w-sm">
-                    <Search className="w-4 h-4 text-[#9ca3af] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <input 
-                      type="text" 
-                      placeholder="Search by name, phone or email..." 
-                      className="w-full !pl-10 py-2 rounded-lg border border-[#e5e7eb] text-sm text-[#111827] bg-[#f9fafb] outline-none focus:border-[#8b0000]"
-                      value={searchTerm}
-                      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                    />
+                {/* STICKY TOP SECTION */}
+                <div className="sticky top-[72px] z-40 bg-white rounded-t-[20px] flex flex-col shadow-sm">
+                  <div className="p-4 border-b border-[#f3f4f6] flex flex-wrap gap-4 items-center justify-between">
+                    <div className="relative flex-1 min-w-[200px] max-w-sm">
+                      <Search className="w-4 h-4 text-[#9ca3af] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input 
+                        type="text" 
+                        placeholder="Search by name, phone or email..." 
+                        className="w-full !pl-10 py-2 rounded-lg border border-[#e5e7eb] text-sm text-[#111827] bg-[#f9fafb] outline-none focus:border-[#8b0000]"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <select className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-medium outline-none cursor-pointer" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                        <option>All Status</option>
+                        <option>New</option>
+                        <option>In Discussion</option>
+                        <option>Quotation Sent</option>
+                        <option>Confirmed</option>
+                        <option>Closed</option>
+                      </select>
+                      <select className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-medium outline-none cursor-pointer" value={eventTypeFilter} onChange={(e) => setEventTypeFilter(e.target.value)}>
+                        <option>All Event Types</option>
+                        {uniqueEventTypes.map(t => <option key={t}>{t}</option>)}
+                      </select>
+                      <button 
+                        className="bg-white border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-bold flex items-center gap-2 hover:bg-[#f9fafb]"
+                        onClick={() => { setSearchTerm(''); setStatusFilter('All Status'); setEventTypeFilter('All Event Types'); }}
+                      >
+                        <RefreshCcw className="w-4 h-4" /> Reset
+                      </button>
+                      <button onClick={exportToCSV} className="bg-white border border-[#e5e7eb] text-[#374151] rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 hover:bg-gray-50 transition-all shadow-sm hover:shadow">
+                        <Download className="w-4 h-4" /> Export
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <select className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-medium outline-none" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
-                      <option>All Status</option>
-                      <option>New</option>
-                      <option>In Discussion</option>
-                      <option>Quotation Sent</option>
-                      <option>Confirmed</option>
-                      <option>Closed</option>
-                    </select>
-                    <select className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-medium outline-none" value={eventTypeFilter} onChange={(e) => { setEventTypeFilter(e.target.value); setCurrentPage(1); }}>
-                      <option>All Event Types</option>
-                      {uniqueEventTypes.map(t => <option key={t}>{t}</option>)}
-                    </select>
-                    <button 
-                      className="bg-white border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-bold flex items-center gap-2 hover:bg-[#f9fafb]"
-                      onClick={() => { setSearchTerm(''); setStatusFilter('All Status'); setEventTypeFilter('All Event Types'); setCurrentPage(1); }}
-                    >
-                      <RefreshCcw className="w-4 h-4" /> Reset
-                    </button>
+
+                  {/* Table Header (Synced horizontal scroll) */}
+                  <div className="border-b border-[#e5e7eb] overflow-hidden" ref={tableHeaderRef}>
+                    <table className="w-full text-left border-collapse min-w-[1250px] table-fixed">
+                      <colgroup>
+                        <col style={{ width: '60px' }} />
+                        <col style={{ width: '120px' }} />
+                        <col style={{ width: '200px' }} />
+                        <col style={{ width: '180px' }} />
+                        <col style={{ width: '150px' }} />
+                        <col style={{ width: '100px' }} />
+                        <col style={{ width: '120px' }} />
+                        <col style={{ width: '120px' }} />
+                        <col style={{ width: '100px' }} />
+                        <col style={{ width: '100px' }} />
+                      </colgroup>
+                      <thead className="bg-[#f9fafb]">
+                        <tr className="text-xs font-bold text-[#6b7280] uppercase tracking-wider">
+                          <th className="px-4 py-4 w-12 text-center">
+                            <input 
+                              type="checkbox" 
+                              className="rounded !bg-white border-[#d1d5db] text-[#8B0000] focus:ring-[#8B0000] cursor-pointer"
+                              style={{ backgroundColor: 'white' }}
+                              checked={displayedInquiries.length > 0 && displayedInquiries.every(r => selectedItems.includes(r._id))}
+                              onChange={handleSelectAll}
+                            />
+                          </th>
+                          <th className="px-4 py-4">Enquiry ID</th>
+                          <SortHeader label="Customer" sortKey="customerName" currentSort={sortConfig} onSort={handleSort} />
+                          <SortHeader label="Event Details" sortKey="eventType" currentSort={sortConfig} onSort={handleSort} />
+                          <SortHeader label="Date & Time" sortKey="eventDate" currentSort={sortConfig} onSort={handleSort} />
+                          <SortHeader label="Guests" sortKey="guestCount" currentSort={sortConfig} onSort={handleSort} />
+                          <SortHeader label="Budget" sortKey="budgetRange" currentSort={sortConfig} onSort={handleSort} />
+                          <SortHeader label="Status" sortKey="status" currentSort={sortConfig} onSort={handleSort} />
+                          <SortHeader label="Added On" sortKey="createdAt" currentSort={sortConfig} onSort={handleSort} />
+                          <th className="px-4 py-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                    </table>
                   </div>
                 </div>
 
-                <div className="overflow-x-auto flex-1 custom-scrollbar">
-                  <table className="w-full text-left border-collapse min-w-[900px]">
-                    <thead className="bg-white sticky top-0 z-10 border-b border-[#f3f4f6]">
-                      <tr className="text-xs font-bold text-[#6b7280] uppercase tracking-wider">
-                        <th className="px-4 py-3 w-12">
-                          <input 
-                            type="checkbox" 
-                            className="rounded !bg-white border-[#d1d5db] text-[#8B0000] focus:ring-[#8B0000]"
-                            style={{ backgroundColor: 'white' }}
-                            checked={currentData.length > 0 && currentData.every(r => selectedItems.includes(r._id))}
-                            onChange={handleSelectAll}
-                          />
-                        </th>
-                        <th className="px-4 py-3">Enquiry ID</th>
-                        <th className="px-4 py-3">Customer</th>
-                        <th className="px-4 py-3">Event Details</th>
-                        <th className="px-4 py-3">Date & Time</th>
-                        <th className="px-4 py-3">Guests</th>
-                        <th className="px-4 py-3">Budget</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Added On</th>
-                        <th className="px-4 py-3 text-right">Actions</th>
-                      </tr>
-                    </thead>
+                {/* STICKY VERTICAL BUTTONS */}
+                <div className="sticky top-[50vh] h-0 z-30 w-full pointer-events-none flex justify-between px-2">
+                  {canScrollLeft && (
+                    <button 
+                      onClick={() => scrollByAmount(-300)} 
+                      className="pointer-events-auto w-9 h-9 bg-white shadow-md border border-[#e5e7eb] rounded-full flex items-center justify-center text-[#374151] hover:text-[#8B0000] hover:bg-gray-50 transition-all absolute left-2 -translate-y-1/2"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                  )}
+                  {canScrollRight && (
+                    <button 
+                      onClick={() => scrollByAmount(300)} 
+                      className="pointer-events-auto w-9 h-9 bg-white shadow-md border border-[#e5e7eb] rounded-full flex items-center justify-center text-[#374151] hover:text-[#8B0000] hover:bg-gray-50 transition-all absolute right-2 -translate-y-1/2"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* TABLE BODY */}
+                <div 
+                  ref={scrollContainerRef}
+                  onScroll={checkForScrollPosition}
+                  className="overflow-x-auto flex-1 custom-scrollbar scroll-smooth w-full"
+                >
+                  <table className="w-full text-left border-collapse min-w-[1250px] table-fixed">
+                    <colgroup>
+                      <col style={{ width: '60px' }} />
+                      <col style={{ width: '120px' }} />
+                      <col style={{ width: '200px' }} />
+                      <col style={{ width: '180px' }} />
+                      <col style={{ width: '150px' }} />
+                      <col style={{ width: '100px' }} />
+                      <col style={{ width: '120px' }} />
+                      <col style={{ width: '120px' }} />
+                      <col style={{ width: '100px' }} />
+                      <col style={{ width: '100px' }} />
+                    </colgroup>
                     <tbody className="divide-y divide-[#f9fafb]">
-                      {currentData.length === 0 ? (
+                      {isLoading ? (
+                        [...Array(5)].map((_, idx) => (
+                          <tr key={`skeleton-${idx}`} className="animate-pulse bg-white border-b border-[#f3f4f6]">
+                            <td className="px-4 py-4 text-center"><div className="w-4 h-4 bg-gray-200 rounded mx-auto"></div></td>
+                            <td className="px-4 py-4"><div className="w-16 h-4 bg-gray-200 rounded"></div></td>
+                            <td className="px-4 py-4 space-y-2">
+                              <div className="w-24 h-4 bg-gray-200 rounded"></div>
+                              <div className="w-20 h-3 bg-gray-200 rounded"></div>
+                            </td>
+                            <td className="px-4 py-4 space-y-2">
+                              <div className="w-24 h-4 bg-gray-200 rounded"></div>
+                              <div className="w-16 h-3 bg-gray-200 rounded"></div>
+                            </td>
+                            <td className="px-4 py-4 space-y-2">
+                              <div className="w-20 h-4 bg-gray-200 rounded"></div>
+                              <div className="w-16 h-3 bg-gray-200 rounded"></div>
+                            </td>
+                            <td className="px-4 py-4 space-y-2">
+                              <div className="w-10 h-4 bg-gray-200 rounded"></div>
+                              <div className="w-12 h-3 bg-gray-200 rounded"></div>
+                            </td>
+                            <td className="px-4 py-4"><div className="w-16 h-4 bg-gray-200 rounded"></div></td>
+                            <td className="px-4 py-4"><div className="w-20 h-6 bg-gray-200 rounded"></div></td>
+                            <td className="px-4 py-4"><div className="w-16 h-4 bg-gray-200 rounded"></div></td>
+                            <td className="px-4 py-4"><div className="w-20 h-6 bg-gray-200 rounded ml-auto"></div></td>
+                          </tr>
+                        ))
+                      ) : displayedInquiries.length === 0 ? (
                         <tr>
                           <td colSpan="10" className="p-8">
                             <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-[#e5e7eb] rounded-xl bg-[#f9fafb]">
@@ -353,14 +568,14 @@ export default function CateringEnquiriesView({ inquiries = [], onUpdateStatus, 
                             </div>
                           </td>
                         </tr>
-                      ) : currentData.map(inq => {
+                      ) : displayedInquiries.map(inq => {
                         const isSelected = selectedItems.includes(inq._id);
                         return (
                         <tr key={inq._id} className={`transition-colors group ${isSelected ? 'bg-red-50' : 'hover:bg-[#f9fafb]'}`}>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 text-center">
                             <input 
                               type="checkbox" 
-                              className="rounded !bg-white border-[#d1d5db] text-[#8B0000] focus:ring-[#8B0000]"
+                              className="rounded !bg-white border-[#d1d5db] text-[#8B0000] focus:ring-[#8B0000] cursor-pointer"
                               style={{ backgroundColor: 'white' }}
                               checked={isSelected}
                               onChange={() => handleSelectItem(inq._id)}
@@ -398,7 +613,7 @@ export default function CateringEnquiriesView({ inquiries = [], onUpdateStatus, 
                             <p className="text-xs text-[#6b7280] whitespace-nowrap">{new Date(inq.createdAt).toLocaleDateString()}</p>
                           </td>
                           <td className="px-4 py-3 align-middle">
-                            <div className="flex flex-wrap items-center gap-1.5 w-[200px]">
+                            <div className="flex flex-wrap items-center justify-end gap-1.5 w-[200px] ml-auto">
                               {['new', 'pending'].includes((inq.status || '').toLowerCase()) && (
                                 <button onClick={() => onUpdateStatus && onUpdateStatus(inq._id, 'reviewed')} className="px-2.5 py-1.5 text-xs font-bold text-white bg-[#F59E0B] hover:bg-[#D97706] rounded shadow-sm transition-colors whitespace-nowrap">
                                   Mark Reviewed
@@ -427,15 +642,23 @@ export default function CateringEnquiriesView({ inquiries = [], onUpdateStatus, 
                   </table>
                 </div>
 
-                <div className="p-4 border-t border-[#f3f4f6] flex items-center justify-between bg-white text-xs text-[#6b7280]">
-                  <span>Showing {filteredInquiries.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} to {Math.min(currentPage * itemsPerPage, filteredInquiries.length)} of {filteredInquiries.length} enquiries</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1.5 border border-[#e5e7eb] rounded hover:bg-[#f9fafb] disabled:opacity-50 text-[#374151]">Prev</button>
-                    <div className="flex gap-1">
-                      <button className="w-7 h-7 bg-[#8B0000] text-white rounded font-bold">{currentPage}</button>
-                    </div>
-                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages} className="p-1.5 border border-[#e5e7eb] rounded hover:bg-[#f9fafb] disabled:opacity-50 text-[#374151]">Next</button>
-                  </div>
+
+
+                {/* ─── LOAD MORE BUTTON ─── */}
+                <div className="p-4 border-t border-[#f3f4f6] flex items-center justify-between bg-white">
+                  <span className="text-xs font-semibold text-[#6b7280]">
+                    Showing <strong className="text-[#374151]">{displayedInquiries.length}</strong> of <strong className="text-[#374151]">{filteredInquiries.length}</strong> enquiries
+                  </span>
+                  
+                  {hasMoreItems && (
+                    <button
+                      onClick={handleLoadMore}
+                      disabled={isLoadingMore}
+                      className="flex items-center justify-center gap-2 w-[160px] h-[36px] bg-white border border-[#e5e7eb] text-[#374151] rounded-lg text-[13px] font-bold hover:bg-[#f9fafb] hover:text-[#8B0000] hover:border-[#8B0000] transition-all shadow-sm"
+                    >
+                      {isLoadingMore ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading...</> : 'Load More'}
+                    </button>
+                  )}
                 </div>
               </div>
 

@@ -254,6 +254,16 @@ export const stripeWebhook = asyncHandler(async (req, res) => {
     res.status(200).json({ received: true });
   } catch (err) {
     logger.error(`Webhook error: ${err.message}`);
+    
+    // Log to global system audit
+    const AuditLog = (await import('../models/AuditLog.js')).default;
+    await AuditLog.create({
+      event: 'webhook_error',
+      severity: 'warning',
+      message: `Stripe webhook failed: ${err.message}`,
+      metadata: { error: err.message, stack: err.stack }
+    }).catch(e => logger.error('Failed to write AuditLog for webhook error', e));
+
     res.status(400).send(`Webhook Error: ${err.message}`);
   }
 });

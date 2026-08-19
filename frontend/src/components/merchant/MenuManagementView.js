@@ -3,6 +3,7 @@ import {
   Search, Download, Plus, Edit3, Trash2, Flame, Leaf, Hexagon,
   CheckCircle2, XCircle, Info, ChevronDown, Loader2, ChevronLeft, ChevronRight
 } from 'lucide-react';
+import { ConfirmModal } from '@/components/ui';
 
 export default function MenuManagementView({ 
   menu = [], 
@@ -13,7 +14,11 @@ export default function MenuManagementView({
   onAddItem,
   onBulkImport,
   onBulkDelete,
-  onBulkUpdate
+  onBulkUpdate,
+  onAddCategory,
+  onEditCategory,
+  onDeleteCategory,
+  onMoveItem
 }) {
   const [mounted, setMounted] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -29,6 +34,8 @@ export default function MenuManagementView({
   const scrollContainerRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {} });
 
   useEffect(() => setMounted(true), []);
 
@@ -55,7 +62,7 @@ export default function MenuManagementView({
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
       setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(Math.ceil(scrollLeft) < scrollWidth - clientWidth);
+      setCanScrollRight(Math.ceil(scrollLeft) < scrollWidth - clientWidth - 2);
     }
   };
 
@@ -145,20 +152,8 @@ export default function MenuManagementView({
       </div>
 
       {/* 🚀 ENHANCED CATEGORY TABS WITH SCROLL BUTTONS 🚀 */}
-      <div className="relative mb-4 shrink-0 group">
+      <div className="relative mb-4 shrink-0 group sticky top-[72px] z-[40] bg-[#F8FAFC] pt-4 pb-2 -mt-4 shadow-sm border-b border-transparent transition-all data-[stuck=true]:border-[#e5e7eb]">
         
-        {/* Left Gradient & Button */}
-        {canScrollLeft && (
-          <div className="absolute left-0 top-0 bottom-2 w-20 bg-gradient-to-r from-[#F8FAFC] to-transparent z-10 flex items-center">
-            <button 
-              onClick={() => scrollByAmount(-300)} 
-              className="w-8 h-8 ml-1 flex items-center justify-center bg-white border border-[#e5e7eb] rounded-full shadow-md text-[#4b5563] hover:text-[#8B0000] hover:border-[#8B0000] transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5 -ml-0.5" />
-            </button>
-          </div>
-        )}
-
         {/* Scrollable Container */}
         <div 
           ref={scrollContainerRef}
@@ -175,24 +170,75 @@ export default function MenuManagementView({
           </button>
           
           {menu.map(cat => (
-            <button 
+            <div
               key={cat._id}
-              onClick={() => setActiveCategory(cat._id)}
-              className={`flex flex-col items-center justify-center min-w-[120px] py-4 rounded-2xl border-2 transition-all duration-200 shrink-0 ${activeCategory === cat._id ? 'border-[#fecaca] bg-[#fef2f2] text-[#8B0000] shadow-sm' : 'border-transparent bg-white text-[#4b5563] hover:border-[#e5e7eb] hover:bg-[#f9fafb] shadow-sm'}`}
+              className="relative shrink-0 group/cat rounded-2xl transition-all"
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('ring-2', 'ring-[#8B0000]', 'ring-offset-2'); }}
+              onDragLeave={(e) => { e.currentTarget.classList.remove('ring-2', 'ring-[#8B0000]', 'ring-offset-2'); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove('ring-2', 'ring-[#8B0000]', 'ring-offset-2');
+                const itemId = e.dataTransfer.getData('text/plain');
+                if (itemId && onMoveItem) {
+                  onMoveItem(itemId, cat._id);
+                }
+              }}
             >
-              <Hexagon className={`w-6 h-6 mb-2 ${activeCategory === cat._id ? 'text-[#8B0000]' : 'text-[#f87171]'}`} />
-              <span className="text-sm font-bold">{cat.name}</span>
-              <span className="text-xs mt-1 font-semibold opacity-70">{cat.items?.length || 0}</span>
-            </button>
+              <button 
+                onClick={() => setActiveCategory(cat._id)}
+                className={`flex flex-col items-center justify-center w-full min-w-[120px] py-4 rounded-2xl border-2 transition-all duration-200 ${activeCategory === cat._id ? 'border-[#fecaca] bg-[#fef2f2] text-[#8B0000] shadow-sm' : 'border-transparent bg-white text-[#4b5563] hover:border-[#e5e7eb] hover:bg-[#f9fafb] shadow-sm'}`}
+              >
+                <Hexagon className={`w-6 h-6 mb-2 ${activeCategory === cat._id ? 'text-[#8B0000]' : 'text-[#f87171]'}`} />
+                <span className="text-sm font-bold">{cat.name}</span>
+                <span className="text-xs mt-1 font-semibold opacity-70">{cat.items?.length || 0}</span>
+              </button>
+              
+              <div className="absolute top-2 right-2 opacity-0 group-hover/cat:opacity-100 transition-opacity flex gap-1">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onEditCategory && onEditCategory(cat); }}
+                  className="p-1.5 bg-white rounded-md shadow-sm border border-[#e5e7eb] text-[#6b7280] hover:text-[#8B0000] transition-colors"
+                  title="Edit Category"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onDeleteCategory && onDeleteCategory(cat._id); }}
+                  className="p-1.5 bg-white rounded-md shadow-sm border border-[#fecaca] text-[#dc2626] hover:bg-[#fef2f2] transition-colors"
+                  title="Delete Category"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           ))}
+
+          <button 
+            onClick={() => onAddCategory && onAddCategory()}
+            className="flex flex-col items-center justify-center min-w-[120px] py-4 rounded-2xl border-2 border-dashed border-[#d1d5db] bg-white text-[#6b7280] hover:text-[#8B0000] hover:border-[#8B0000] hover:bg-[#fef2f2] transition-all duration-200 shrink-0"
+          >
+            <Plus className="w-6 h-6 mb-2" />
+            <span className="text-sm font-bold">New Category</span>
+          </button>
         </div>
+
+        {/* Left Gradient & Button */}
+        {canScrollLeft && (
+          <div className="absolute left-0 top-0 bottom-2 w-20 bg-gradient-to-r from-[#F8FAFC] to-transparent z-20 flex items-center pointer-events-none">
+            <button 
+              onClick={() => scrollByAmount(-300)} 
+              className="pointer-events-auto w-8 h-8 ml-1 flex items-center justify-center bg-white border border-[#e5e7eb] rounded-full shadow-md text-[#4b5563] hover:text-[#8B0000] hover:border-[#8B0000] transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5 -ml-0.5" />
+            </button>
+          </div>
+        )}
 
         {/* Right Gradient & Button */}
         {canScrollRight && (
-          <div className="absolute right-0 top-0 bottom-2 w-20 bg-gradient-to-l from-[#F8FAFC] to-transparent z-10 flex items-center justify-end">
+          <div className="absolute right-0 top-0 bottom-2 w-20 bg-gradient-to-l from-[#F8FAFC] to-transparent z-20 flex items-center justify-end pointer-events-none">
             <button 
               onClick={() => scrollByAmount(300)} 
-              className="w-8 h-8 mr-1 flex items-center justify-center bg-white border border-[#e5e7eb] rounded-full shadow-md text-[#4b5563] hover:text-[#8B0000] hover:border-[#8B0000] transition-colors"
+              className="pointer-events-auto w-8 h-8 mr-1 flex items-center justify-center bg-white border border-[#e5e7eb] rounded-full shadow-md text-[#4b5563] hover:text-[#8B0000] hover:border-[#8B0000] transition-colors"
             >
               <ChevronRight className="w-5 h-5 ml-0.5" />
             </button>
@@ -200,7 +246,12 @@ export default function MenuManagementView({
         )}
       </div>
 
-      {/* Filters Row */}
+      <div className="flex items-center gap-2 mb-4 px-2 py-3 bg-[#e0f2fe]/50 border border-[#bae6fd] rounded-xl">
+        <Info className="w-5 h-5 text-[#0284c7]" />
+        <span className="text-sm font-bold text-[#0369a1]">💡 Tip: You can drag and drop items below directly onto any category tab above to move them between categories!</span>
+      </div>
+
+      {/* Action Bar & Search */}
       <div className="flex gap-4 mb-6 shrink-0 bg-white p-2 rounded-2xl shadow-sm border border-[#e5e7eb]">
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-[#9ca3af] pointer-events-none" />
@@ -272,7 +323,11 @@ export default function MenuManagementView({
                 return (
                   <tr 
                     key={item._id} 
-                    className={`transition-colors hover:bg-[#f9fafb] group ${isSelected ? 'bg-[#fef2f2]/50' : ''}`}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', item._id);
+                    }}
+                    className={`transition-colors hover:bg-[#f9fafb] group cursor-grab active:cursor-grabbing ${isSelected ? 'bg-[#fef2f2]/50' : ''}`}
                   >
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center">
@@ -406,12 +461,17 @@ export default function MenuManagementView({
             <button 
               disabled={isProcessingBulk}
               onClick={async () => {
-                if (window.confirm(`Are you sure you want to delete ${selectedItems.size} items?`)) {
-                  setIsProcessingBulk(true);
-                  if (onBulkDelete) await onBulkDelete(Array.from(selectedItems));
-                  setSelectedItems(new Set());
-                  setIsProcessingBulk(false);
-                }
+                setConfirmConfig({
+                  isOpen: true,
+                  title: 'Bulk Delete',
+                  message: `Are you sure you want to delete ${selectedItems.size} items? This action cannot be undone.`,
+                  onConfirm: async () => {
+                    setIsProcessingBulk(true);
+                    if (onBulkDelete) await onBulkDelete(Array.from(selectedItems));
+                    setSelectedItems(new Set());
+                    setIsProcessingBulk(false);
+                  }
+                });
               }}
               className={`flex items-center gap-2 text-sm font-bold text-[#fee2e2] px-3 py-1.5 rounded-lg transition-colors ml-2 ${isProcessingBulk ? 'opacity-50 cursor-not-allowed' : 'hover:text-white hover:bg-[#991b1b]'}`}
             >
@@ -420,6 +480,11 @@ export default function MenuManagementView({
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        {...confirmConfig}
+        onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+      />
     </div>
   );
 }

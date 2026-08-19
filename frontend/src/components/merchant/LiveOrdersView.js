@@ -264,17 +264,6 @@ export default function LiveOrdersView({
         {/* Kanban Board Container */}
         <div className="relative flex-1 overflow-hidden flex flex-col min-w-0">
           
-          {/* Left Gradient & Scroll Button */}
-          {canScrollLeft && (
-            <div className="absolute left-0 top-0 bottom-4 w-12 bg-gradient-to-r from-[#F8FAFC] to-transparent z-10 flex items-center">
-              <button 
-                onClick={() => scrollByAmount(-300)} 
-                className="w-8 h-8 ml-1 flex items-center justify-center bg-white border border-[#e5e7eb] rounded-full shadow-md text-[#4b5563] hover:text-[#8B0000] hover:border-[#8B0000] transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 -ml-0.5" />
-              </button>
-            </div>
-          )}
 
           {/* Kanban Columns (Scrollable X) */}
           <div 
@@ -342,12 +331,24 @@ export default function LiveOrdersView({
             </div>
           </div>
 
+          {/* Left Gradient & Scroll Button */}
+          {canScrollLeft && (
+            <div className="absolute left-0 top-0 bottom-4 w-12 bg-gradient-to-r from-[#F8FAFC] to-transparent z-50 flex items-center pointer-events-none">
+              <button 
+                onClick={() => scrollByAmount(-300)} 
+                className="pointer-events-auto w-8 h-8 ml-1 flex items-center justify-center bg-white border border-[#e5e7eb] rounded-full shadow-md text-[#4b5563] hover:text-[#8B0000] hover:border-[#8B0000] transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 -ml-0.5" />
+              </button>
+            </div>
+          )}
+
           {/* Right Gradient & Scroll Button */}
           {canScrollRight && (
-            <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-[#F8FAFC] to-transparent z-10 flex items-center justify-end">
+            <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-[#F8FAFC] to-transparent z-50 flex items-center justify-end pointer-events-none">
               <button 
                 onClick={() => scrollByAmount(300)} 
-                className="w-8 h-8 mr-1 flex items-center justify-center bg-white border border-[#e5e7eb] rounded-full shadow-md text-[#4b5563] hover:text-[#8B0000] hover:border-[#8B0000] transition-colors"
+                className="pointer-events-auto w-8 h-8 mr-1 flex items-center justify-center bg-white border border-[#e5e7eb] rounded-full shadow-md text-[#4b5563] hover:text-[#8B0000] hover:border-[#8B0000] transition-colors"
               >
                 <ChevronRight className="w-5 h-5 ml-0.5" />
               </button>

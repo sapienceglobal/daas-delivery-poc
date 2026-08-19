@@ -5,6 +5,7 @@ import Table from '../models/Table.js';
 import Payment from '../models/Payment.js';
 import LoyaltyTransaction from '../models/LoyaltyTransaction.js';
 import User from '../models/User.js';
+import AuditLog from '../models/AuditLog.js';
 import { getTenantModel } from '../utils/tenant.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -717,58 +718,108 @@ export const createOrder = asyncHandler(async (req, response) => {
         }
 
         // Issue Stripe refund with correct signature
-        const refund = await refundStripePayment(
-          finalStripePaymentIntentId,
-          pricing.total,
-          { idempotencyKey: `order-creation-failed-${finalStripePaymentIntentId}` }
-        );
-        logger.info(`Auto-refunded failed order payment: ${finalStripePaymentIntentId}`, { stripeRefundId: refund.id });
-
-        if (savedOrder) {
-          // Log: auto_refund_succeeded
-          pushPaymentEvent(savedOrder, 'auto_refund_succeeded', {
-            amount: pricing.total,
-            stripeRefundId: refund.id,
-            stripePaymentIntentId: finalStripePaymentIntentId,
-            reason: 'order_creation_failed',
-            triggeredBy: 'system'
-          });
-          await savedOrder.save().catch(saveErr =>
-            logger.error('Failed to save auto_refund_succeeded event on failed order', { orderId: savedOrder._id, error: saveErr.message })
+        try {
+          const refund = await refundStripePayment(
+            finalStripePaymentIntentId,
+            pricing.total,
+            { idempotencyKey: `order-creation-failed-${finalStripePaymentIntentId}` }
           );
+          logger.info(`Auto-refunded failed order payment: ${finalStripePaymentIntentId}`, { stripeRefundId: refund.id });
 
-          // Also record the refund in the Payment collection if it was created
-          try {
-            await recordPaymentRefund({
-              order: savedOrder,
+          if (savedOrder) {
+            pushPaymentEvent(savedOrder, 'auto_refund_succeeded', {
               amount: pricing.total,
-              reason: 'order_creation_failed',
               stripeRefundId: refund.id,
-              getModel: req.getModel
+              stripePaymentIntentId: finalStripePaymentIntentId,
+              reason: 'order_creation_failed',
+              triggeredBy: 'system'
             });
-          } catch (paymentRecordErr) {
-            logger.warn('Could not record refund in Payment collection for failed order', {
-              orderId: savedOrder._id,
-              error: paymentRecordErr.message
+            await savedOrder.save().catch(saveErr =>
+              logger.error('Failed to save auto_refund_succeeded event on failed order', { orderId: savedOrder._id, error: saveErr.message })
+            );
+
+            // Also record the refund in the Payment collection if it was created
+            try {
+              await recordPaymentRefund({
+                order: savedOrder,
+                amount: pricing.total,
+                reason: 'order_creation_failed',
+                stripeRefundId: refund.id,
+                getModel: req.getModel
+              });
+            } catch (paymentRecordErr) {
+              logger.warn('Could not record refund in Payment collection for failed order', {
+                orderId: savedOrder._id,
+                error: paymentRecordErr.message
+              });
+            }
+          } else {
+            // No savedOrder, log orphaned auto-refund success to global audit log
+            await AuditLog.create({
+              restaurantId: restaurant._id,
+              userId: req.user._id,
+              event: 'auto_refund_succeeded',
+              severity: 'info',
+              message: `Order DB creation failed. Successfully auto-refunded orphaned payment. Error that caused checkout failure: ${error.message}`,
+              metadata: {
+                paymentIntentId: finalStripePaymentIntentId,
+                amount: pricing.total,
+                refundId: refund.id,
+                error: error.message
+              }
+            });
+          }
+        } catch (refundError) {
+          logger.error(`Failed to auto-refund after order creation error: ${refundError.message}`, {
+            paymentIntentId: finalStripePaymentIntentId
+          });
+          if (savedOrder) {
+            pushPaymentEvent(savedOrder, 'auto_refund_failed', {
+              amount: pricing.total,
+              stripePaymentIntentId: finalStripePaymentIntentId,
+              error: refundError.message,
+              reason: 'order_creation_failed',
+              triggeredBy: 'system'
+            });
+            await savedOrder.save().catch(() => {});
+          } else {
+            // No savedOrder, log orphaned auto-refund failure to global audit log
+            await AuditLog.create({
+              restaurantId: restaurant._id,
+              userId: req.user._id,
+              event: 'auto_refund_failed',
+              severity: 'critical',
+              message: `Failed to auto-refund orphaned payment after order creation error. Manual intervention required. Refund error: ${refundError.message}`,
+              metadata: {
+                paymentIntentId: finalStripePaymentIntentId,
+                amount: pricing.total,
+                checkoutError: error.message,
+                refundError: refundError.message
+              }
             });
           }
         }
-      } catch (refundError) {
-        logger.error(`Failed to auto-refund after order creation error: ${refundError.message}`, {
-          paymentIntentId: finalStripePaymentIntentId
-        });
-        if (savedOrder) {
-          pushPaymentEvent(savedOrder, 'auto_refund_failed', {
-            amount: pricing.total,
-            stripePaymentIntentId: finalStripePaymentIntentId,
-            error: refundError.message,
-            reason: 'order_creation_failed',
-            triggeredBy: 'system'
-          });
-          await savedOrder.save().catch(() => {});
-        }
+      } catch (err) {
+        logger.error('Error during automatic refund chain', { error: err.message });
       }
     }
+
+    if (!savedOrder && finalStripePaymentIntentId) {
+      // Log the initial checkout failure that caused the whole rollback chain
+      await AuditLog.create({
+        restaurantId: restaurant._id,
+        userId: req.user._id,
+        event: 'checkout_failed',
+        severity: 'critical',
+        message: `Order DB creation failed after successful Stripe charge. Rollback initiated. Error: ${error.message}`,
+        metadata: {
+          paymentIntentId: finalStripePaymentIntentId,
+          error: error.message,
+          items: pricing.orderItems
+        }
+      });
+    }
+
     throw error;
   }
 });

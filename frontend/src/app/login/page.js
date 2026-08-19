@@ -841,12 +841,6 @@ function LoginPageContent() {
 
         </div>
 
-        {/* Discreet Admin Link */}
-        <div className="mt-6 text-center border-t border-brand-border/50 pt-4">
-          <Link href="/admin/login" className="text-[10px] text-brand-muted/70 hover:text-brand-cyan transition-colors uppercase tracking-widest">
-            Restaurant Partner Login
-          </Link>
-        </div>
       </GlassCard>
       <ForgotPasswordModal isOpen={isForgotModalOpen} onClose={() => setIsForgotModalOpen(false)} defaultEmail={form.email} />
     </div>

@@ -29,7 +29,7 @@ export function MerchantProvider({ children }) {
   useEffect(() => {
     if (authLoading) return;
     if (!backendVerified) return;
-    if (!isAuthenticated) { router.push('/admin/login'); return; }
+    if (!isAuthenticated) { router.push('/hq-portal'); return; }
     if (!isMerchant && !isAdmin) { router.push('/'); return; }
     
     initMerchantData();

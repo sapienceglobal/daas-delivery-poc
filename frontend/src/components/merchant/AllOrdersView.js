@@ -3,7 +3,7 @@ import {
   Search, Filter, ChevronLeft, ChevronRight, 
   MoreVertical, ShoppingCart, Calendar, CalendarCheck, 
   ClipboardList, ShoppingBag, Bike, CheckCircle, 
-  MapPin, Bell, ChevronDown, Download, Eye, Truck, UtensilsCrossed, X, Printer, PackageX, RefreshCcw
+  MapPin, Bell, ChevronDown, Download, Eye, Truck, UtensilsCrossed, X, Printer, PackageX, RefreshCcw, Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { showToast } from '@/components/ui';
@@ -22,10 +22,19 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
   const [paymentFilter, setPaymentFilter] = useState('All Payment Status');
   const [activeTab, setActiveTab] = useState('All');
   
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // ─── LOAD MORE STATE ───
+  const ITEMS_PER_LOAD = 15; // Ek baar mein 15 orders dikhayenge
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_LOAD);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Filter change hone par list automatically top se (15 items) reset hogi
+  useEffect(() => {
+    setVisibleCount(ITEMS_PER_LOAD);
+    setSelectedOrders([]); // Filter change hone par selection clear karna best practice hai
+  }, [searchQuery, dateRange, statusFilter, orderTypeFilter, paymentFilter, activeTab]);
 
   // ---------------------------------------------------------
   // 1. STATS CALCULATIONS (Strictly real data)
@@ -105,13 +114,21 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
   }, [orders, searchQuery, statusFilter, orderTypeFilter, paymentFilter, activeTab, dateRange]);
 
   // ---------------------------------------------------------
-  // 3. PAGINATION
+  // 3. LOAD MORE LOGIC
   // ---------------------------------------------------------
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage) || 1;
-  const paginatedOrders = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredOrders.slice(start, start + itemsPerPage);
-  }, [filteredOrders, currentPage, itemsPerPage]);
+  const displayedOrders = useMemo(() => {
+    return filteredOrders.slice(0, visibleCount);
+  }, [filteredOrders, visibleCount]);
+
+  const hasMoreItems = visibleCount < filteredOrders.length;
+
+  const handleLoadMore = () => {
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount(prev => prev + ITEMS_PER_LOAD);
+      setIsLoadingMore(false);
+    }, 400); // Smooth premium delay
+  };
 
   const handleExportCSV = () => {
     const ordersToExport = selectedOrders.length > 0 
@@ -139,7 +156,7 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedOrders(paginatedOrders.map(o => o._id));
+      setSelectedOrders(displayedOrders.map(o => o._id));
     } else {
       setSelectedOrders([]);
     }
@@ -210,26 +227,27 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
 
   const getPaymentBadge = (method, pStatus, order) => {
     const ps = (pStatus || '').toLowerCase();
-    const isAutoRefund = order?.refunded && ps === 'refunded';
+    const isManualRefund = order?.refundReason && ['merchant', 'bulk refund', 'refund processed'].some(r => order.refundReason.toLowerCase().includes(r));
+    const isAutoRefund = order?.refunded && ps === 'refunded' && !isManualRefund;
     if (ps === 'refunded') return (
       <div className="flex flex-col gap-0.5">
-        <span className="text-[#dc2626] font-bold text-xs bg-[#fef2f2] px-2 py-0.5 rounded">Refunded</span>
-        {isAutoRefund && <span className="text-[#d97706] font-bold text-[9px] bg-[#fffbeb] px-1.5 py-0.5 rounded">⚡ Auto</span>}
+        <span className="text-[#dc2626] font-bold text-xs bg-[#fef2f2] px-2 py-0.5 rounded border border-[#fecaca]">Refunded</span>
+        {isAutoRefund && <span className="text-[#d97706] font-bold text-[9px] bg-[#fffbeb] px-1.5 py-0.5 rounded inline-block w-max">⚡ Auto</span>}
       </div>
     );
-    if (ps === 'partially_refunded') return <span className="text-[#d97706] font-bold text-xs bg-[#fffbeb] px-2 py-0.5 rounded">Partial Refund</span>;
-    if (ps === 'failed') return <span className="text-[#dc2626] font-bold text-xs bg-[#fee2e2] px-2 py-0.5 rounded">⚠️ Failed</span>;
+    if (ps === 'partially_refunded') return <span className="text-[#d97706] font-bold text-xs bg-[#fffbeb] px-2 py-0.5 rounded border border-[#fde68a]">Partial Refund</span>;
+    if (ps === 'failed') return <span className="text-[#dc2626] font-bold text-xs bg-[#fee2e2] px-2 py-0.5 rounded border border-[#fecaca]">⚠️ Failed</span>;
     const isOnline = ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(method?.toLowerCase());
-    if (ps === 'paid') return <span className="text-[#16a34a] font-bold text-xs bg-[#dcfce7] px-2 py-0.5 rounded">Paid</span>;
-    if (isOnline) return <span className="text-[#2563eb] font-bold text-xs bg-[#dbeafe] px-2 py-0.5 rounded">Online</span>;
-    if (method?.toLowerCase() === 'cash' || ps === 'pending') return <span className="text-[#ea580c] font-bold text-xs bg-[#ffedd5] px-2 py-0.5 rounded">COD</span>;
-    return <span className="text-[#6b7280] font-bold text-xs bg-[#f3f4f6] px-2 py-0.5 rounded capitalize">{pStatus || 'Unknown'}</span>;
+    if (ps === 'paid') return <span className="text-[#16a34a] font-bold text-xs bg-[#dcfce7] px-2 py-0.5 rounded border border-[#bbf7d0]">Paid</span>;
+    if (isOnline) return <span className="text-[#2563eb] font-bold text-xs bg-[#dbeafe] px-2 py-0.5 rounded border border-[#bfdbfe]">Online</span>;
+    if (method?.toLowerCase() === 'cash' || ps === 'pending') return <span className="text-[#ea580c] font-bold text-xs bg-[#ffedd5] px-2 py-0.5 rounded border border-[#fed7aa]">COD</span>;
+    return <span className="text-[#6b7280] font-bold text-xs bg-[#f3f4f6] px-2 py-0.5 rounded capitalize border border-[#e5e7eb]">{pStatus || 'Unknown'}</span>;
   };
 
   if (!mounted) return null;
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-6 pb-20">
       
       {/* Header aligned exactly to image */}
       <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
@@ -238,7 +256,7 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
           <p className="text-sm text-[#6b7280] mt-1">Manage and track all restaurant orders in one place.</p>
         </div>
         <div className="flex flex-col items-end gap-3">
-          <button onClick={() => router.push('/merchant/pos')} className="flex items-center gap-1.5 bg-[#8b0000] text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-[#7f0000] transition-colors shadow-sm">
+          <button onClick={() => router.push('/merchant/pos')} className="flex items-center gap-1.5 bg-[#8b0000] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#7f0000] transition-colors shadow-sm">
             <span className="text-[14px] leading-none">+</span> New Order
           </button>
         </div>
@@ -271,7 +289,7 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
       </div>
 
       {/* Main Table Card */}
-      <div className="bg-white rounded-[20px] shadow-sm border border-[#e5e7eb] overflow-hidden">
+      <div className="bg-white rounded-[20px] shadow-sm border border-[#e5e7eb] overflow-hidden flex flex-col">
         
         {/* Filters Row */}
         <div className="p-5 border-b border-[#f3f4f6] flex flex-wrap gap-4 items-center justify-between">
@@ -281,23 +299,23 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
               type="text" 
               placeholder="Search by Order ID, Customer, Phone..." 
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="w-full !pl-10 py-2 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] text-xs font-medium text-[#111827] outline-none focus:border-[#991b1b]"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full !pl-10 py-2 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] text-xs font-medium text-[#111827] outline-none focus:border-[#991b1b] transition-colors"
             />
           </div>
           
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex flex-col relative">
               <label className="text-xs font-bold text-[#6b7280] mb-1">Date Range</label>
-              <div className="flex items-center gap-2 border border-[#e5e7eb] bg-[#f9fafb] rounded-lg px-3 py-2 cursor-pointer relative">
+              <div className="flex items-center gap-2 border border-[#e5e7eb] bg-[#f9fafb] rounded-lg px-3 py-2 cursor-pointer relative hover:bg-white transition-colors">
                 <input 
                   type="date" 
                   value={dateRange}
-                  onChange={(e) => { setDateRange(e.target.value); setCurrentPage(1); }}
+                  onChange={(e) => setDateRange(e.target.value)}
                   className="bg-transparent text-xs font-bold text-[#111827] outline-none cursor-pointer pr-4"
                 />
                 {dateRange && (
-                  <button onClick={() => { setDateRange(''); setCurrentPage(1); }} className="absolute right-2 text-[#9ca3af] hover:text-[#ef4444] bg-[#f9fafb]">
+                  <button onClick={() => setDateRange('')} className="absolute right-2 text-[#9ca3af] hover:text-[#ef4444] bg-[#f9fafb]">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 )}
@@ -307,8 +325,8 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
             <div className="flex flex-col">
               <label className="text-xs font-bold text-[#6b7280] mb-1">Order Type</label>
               <select 
-                value={orderTypeFilter} onChange={(e) => { setOrderTypeFilter(e.target.value); setCurrentPage(1); }}
-                className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-xs font-bold text-[#111827] outline-none pr-6"
+                value={orderTypeFilter} onChange={(e) => setOrderTypeFilter(e.target.value)}
+                className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-xs font-bold text-[#111827] outline-none pr-6 cursor-pointer hover:bg-white transition-colors"
               >
                 <option>All Types</option>
                 <option>Delivery</option>
@@ -320,8 +338,8 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
             <div className="flex flex-col">
               <label className="text-xs font-bold text-[#6b7280] mb-1">Order Status</label>
               <select 
-                value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-xs font-bold text-[#111827] outline-none pr-6"
+                value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-xs font-bold text-[#111827] outline-none pr-6 cursor-pointer hover:bg-white transition-colors"
               >
                 <option>All Status</option>
                 <option>New</option>
@@ -338,8 +356,8 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
             <div className="flex flex-col">
               <label className="text-xs font-bold text-[#6b7280] mb-1">Payment Status</label>
               <select 
-                value={paymentFilter} onChange={(e) => { setPaymentFilter(e.target.value); setCurrentPage(1); }}
-                className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-xs font-bold text-[#111827] outline-none pr-6"
+                value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)}
+                className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-xs font-bold text-[#111827] outline-none pr-6 cursor-pointer hover:bg-white transition-colors"
               >
                 <option>All Payment Status</option>
                 <option>Paid</option>
@@ -356,15 +374,14 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
                   setOrderTypeFilter('All Types');
                   setPaymentFilter('All Payment Status');
                   setActiveTab('All');
-                  setCurrentPage(1);
                 }}
-                className="bg-white border border-[#e5e7eb] rounded-lg px-4 py-2 text-xs font-bold text-[#374151] flex items-center gap-2 hover:bg-gray-50"
+                className="bg-white border border-[#e5e7eb] rounded-lg px-4 py-2 text-xs font-bold text-[#374151] flex items-center gap-2 hover:bg-gray-50 transition-colors"
               >
                 <RefreshCcw className="w-3.5 h-3.5" /> Clear Filters
               </button>
             </div>
             <div className="flex items-end h-[50px]">
-              <button onClick={handleExportCSV} className="bg-white border border-[#e5e7eb] rounded-lg px-4 py-2 text-xs font-bold text-[#374151] flex items-center gap-2 hover:bg-gray-50">
+              <button onClick={handleExportCSV} className="bg-white border border-[#e5e7eb] rounded-lg px-4 py-2 text-xs font-bold text-[#374151] flex items-center gap-2 hover:bg-gray-50 transition-colors">
                 <Download className="w-3.5 h-3.5" /> Export
               </button>
             </div>
@@ -372,8 +389,8 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
         </div>
 
         {/* Tabs Row */}
-        <div className="px-5 border-b border-[#f3f4f6] flex items-center justify-between">
-          <div className="flex items-center gap-8">
+        <div className="px-5 border-b border-[#f3f4f6] flex items-center justify-between overflow-x-auto hide-scrollbar">
+          <div className="flex items-center gap-8 min-w-max">
             {[
               { id: 'All', label: `All Orders (${tabCounts.all})` },
               { id: 'Dine-in', label: `Dine-in (${tabCounts.dineIn})` },
@@ -382,57 +399,45 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
             ].map(tab => (
               <button 
                 key={tab.id}
-                onClick={() => { setActiveTab(tab.id); setCurrentPage(1); }}
-                className={`py-4 text-xs font-extrabold transition-colors border-b-2 ${activeTab === tab.id ? 'border-[#991b1b] text-[#991b1b]' : 'border-transparent text-[#6b7280] hover:text-[#374151]'}`}
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-4 text-xs font-extrabold transition-colors border-b-2 whitespace-nowrap ${activeTab === tab.id ? 'border-[#991b1b] text-[#991b1b]' : 'border-transparent text-[#6b7280] hover:text-[#374151]'}`}
               >
                 {tab.label}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2 text-xs font-bold text-[#6b7280]">
-            Show 
-            <select 
-              value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-              className="bg-[#f9fafb] border border-[#e5e7eb] rounded px-2 py-1 outline-none text-[#111827]"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-            entries
-          </div>
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[1000px]">
-            <thead>
-              <tr className="border-b border-[#f3f4f6]">
+        <div className="overflow-x-auto custom-scrollbar relative">
+          <table className="w-full text-left border-collapse min-w-[1100px]">
+            <thead className="bg-[#f9fafb] sticky top-0 z-10 border-b border-[#e5e7eb]">
+              <tr>
                 <th className="px-4 py-4 w-12 text-center">
                   <input 
                     type="checkbox" 
-                    checked={selectedOrders.length === paginatedOrders.length && paginatedOrders.length > 0}
+                    checked={selectedOrders.length === displayedOrders.length && displayedOrders.length > 0}
                     onChange={handleSelectAll}
                     style={{ backgroundColor: 'white' }}
-                    className="w-3.5 h-3.5 rounded !bg-white border-[#d1d5db] text-[#991b1b] focus:ring-[#991b1b]" 
+                    className="w-3.5 h-3.5 rounded !bg-white border-[#d1d5db] text-[#991b1b] focus:ring-[#991b1b] cursor-pointer" 
                   />
                 </th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#111827] uppercase tracking-wider">Order ID</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#111827] uppercase tracking-wider">Customer</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#111827] uppercase tracking-wider">Type</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#111827] uppercase tracking-wider">Status</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#111827] uppercase tracking-wider">Order Time</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#111827] uppercase tracking-wider">Items</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#111827] uppercase tracking-wider">Amount</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#111827] uppercase tracking-wider">Payment</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#111827] uppercase tracking-wider">Delivery / Table</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#111827] uppercase tracking-wider text-center">Actions</th>
+                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Order ID</th>
+                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Customer</th>
+                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Type</th>
+                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Status</th>
+                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Order Time</th>
+                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Items</th>
+                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Amount</th>
+                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Payment</th>
+                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Delivery / Table</th>
+                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#f9fafb]">
-              {paginatedOrders.length === 0 ? (
+            <tbody className="divide-y divide-[#f3f4f6]">
+              {displayedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="11" className="px-6 py-10">
+                  <td colSpan="11" className="px-6 py-12">
                     <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-[#e5e7eb] rounded-xl bg-[#f9fafb]">
                       <PackageX className="w-12 h-12 text-[#d1d5db] mb-3" />
                       <p className="text-sm font-bold text-[#9ca3af]">No orders found</p>
@@ -441,11 +446,12 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
                   </td>
                 </tr>
               ) : (
-                paginatedOrders.map((order, idx) => {
+                displayedOrders.map((order, idx) => {
+                  const isSelected = selectedOrders.includes(order._id);
                   return (
                     <tr 
                       key={order._id || idx} 
-                      className={`hover:bg-gray-50/50 transition-colors ${
+                      className={`transition-colors ${isSelected ? 'bg-red-50' : 'hover:bg-gray-50/50'} ${
                         order.status === 'failed' ? 'bg-[#fff5f5]'
                         : order.refunded ? 'bg-[#fffdf0]'
                         : ''
@@ -454,10 +460,10 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
                       <td className="px-4 py-4 text-center">
                         <input 
                           type="checkbox" 
-                          checked={selectedOrders.includes(order._id)}
+                          checked={isSelected}
                           onChange={() => handleSelectOrder(order._id)}
                           style={{ backgroundColor: 'white' }}
-                          className="w-3.5 h-3.5 rounded !bg-white border-[#d1d5db] text-[#991b1b] focus:ring-[#991b1b]" 
+                          className="w-3.5 h-3.5 rounded !bg-white border-[#d1d5db] text-[#991b1b] focus:ring-[#991b1b] cursor-pointer" 
                         />
                       </td>
                       <td className="px-4 py-4">
@@ -510,7 +516,7 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
                       </td>
                       <td className="px-4 py-4 text-center">
                         <div className="flex items-center justify-center">
-                          <button onClick={() => onRowClick && onRowClick(order._id)} className="w-8 h-8 rounded-md border border-[#e5e7eb] flex items-center justify-center text-[#6b7280] hover:text-[#991b1b] hover:border-[#991b1b] hover:bg-red-50 transition-colors shadow-sm">
+                          <button onClick={() => onRowClick && onRowClick(order._id)} className="w-8 h-8 rounded-md border border-[#e5e7eb] bg-white flex items-center justify-center text-[#6b7280] hover:text-[#991b1b] hover:border-[#991b1b] hover:bg-red-50 transition-colors shadow-sm">
                             <Eye className="w-4 h-4" />
                           </button>
                         </div>
@@ -521,6 +527,23 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* ─── LOAD MORE BUTTON ─── */}
+        <div className="px-6 py-4 border-t border-[#f3f4f6] flex flex-col sm:flex-row items-center justify-between bg-white rounded-b-[20px] gap-4">
+          <span className="text-xs font-semibold text-[#6b7280]">
+            Showing <strong className="text-[#374151]">{displayedOrders.length}</strong> of <strong className="text-[#374151]">{filteredOrders.length}</strong> orders
+          </span>
+
+          {hasMoreItems && (
+            <button
+              onClick={handleLoadMore}
+              disabled={isLoadingMore}
+              className="flex items-center justify-center gap-2 w-full sm:w-[160px] h-[36px] bg-white border border-[#e5e7eb] text-[#374151] rounded-lg text-[13px] font-bold hover:bg-[#f9fafb] hover:text-[#8B0000] hover:border-[#8B0000] transition-all shadow-sm"
+            >
+              {isLoadingMore ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading...</> : 'Load More'}
+            </button>
+          )}
         </div>
 
         {/* Bulk Actions Bar */}
@@ -546,60 +569,6 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
               </button>
               <button onClick={() => setSelectedOrders([])} className="p-1.5 rounded-full hover:bg-[#374151] text-gray-400 hover:text-white transition-colors ml-2">
                 <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Pagination aligned to image */}
-        {filteredOrders.length > 0 && (
-          <div className="px-6 py-4 border-t border-[#f3f4f6] flex items-center justify-between bg-white rounded-b-[20px]">
-            <div className="text-xs font-bold text-[#6b7280]">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredOrders.length)} of {filteredOrders.length} entries
-            </div>
-            <div className="flex items-center gap-1">
-              <button 
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(p => p - 1)}
-                className="w-7 h-7 flex items-center justify-center rounded text-[#6b7280] hover:bg-gray-50 disabled:opacity-50"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              
-              {[...Array(Math.min(5, totalPages))].map((_, i) => (
-                <button 
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`w-7 h-7 flex items-center justify-center rounded text-xs font-bold transition-colors ${
-                    currentPage === i + 1 
-                      ? 'bg-[#991b1b] text-white' 
-                      : 'text-[#374151] hover:bg-gray-50'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              
-              {totalPages > 5 && <span className="text-[#9ca3af] text-xs font-bold px-1">...</span>}
-              {totalPages > 5 && (
-                <button 
-                  onClick={() => setCurrentPage(totalPages)}
-                  className={`w-7 h-7 flex items-center justify-center rounded text-xs font-bold transition-colors ${
-                    currentPage === totalPages 
-                      ? 'bg-[#991b1b] text-white' 
-                      : 'text-[#374151] hover:bg-gray-50'
-                  }`}
-                >
-                  {totalPages}
-                </button>
-              )}
-
-              <button 
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(p => p + 1)}
-                className="w-7 h-7 flex items-center justify-center rounded text-[#6b7280] hover:bg-gray-50 disabled:opacity-50"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

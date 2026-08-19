@@ -19,7 +19,7 @@ function MerchantLayoutContent({ children }) {
       <MerchantSidebar />
       <div className="flex-1 overflow-y-auto bg-[#F8FAFC] custom-scrollbar relative">
         <DashboardHeader user={user} />
-        <div className="max-w-7xl mx-auto space-y-8 p-6 relative z-0">
+        <div className="max-w-7xl mx-auto space-y-8 p-6 relative">
           {children}
         </div>
       </div>

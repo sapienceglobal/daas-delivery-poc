@@ -44,6 +44,7 @@ const SIDEBAR_STRUCTURE = [
     heading: 'REPORTS & FINANCE',
     items: [
       { id: 'analytics', label: 'Reports & Analytics', icon: BarChart },
+      { id: 'audit', label: 'System Logs', icon: Shield },
     ]
   },
   {

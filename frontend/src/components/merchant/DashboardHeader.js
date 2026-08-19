@@ -233,7 +233,7 @@ export default function DashboardHeader({ user }) {
 
   const handleLogout = async () => {
     await logout();
-    router.push('/admin/login');
+    router.push('/hq-portal');
   };
 
   const markNotificationRead = async (notification) => {
