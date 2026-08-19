@@ -34,13 +34,22 @@ export default function SignatureDishesSection() {
           // Flatten menu items from all categories in MongoDB
           const allItems = restaurantData.menu.reduce((acc, cat) => acc.concat(cat.items || []), []);
           
-          // Select signature / bestseller dishes or first 6 dishes
-          const bestsellers = allItems.filter(i => i.isBestseller || i.isAvailable !== false);
-          if (bestsellers.length > 0) {
-            setDishes(bestsellers.slice(0, 6));
-          } else if (allItems.length > 0) {
-            setDishes(allItems.slice(0, 6));
+          // Filter only available items
+          const availableItems = allItems.filter(i => i.isAvailable !== false);
+          
+          // 1. Try to get actual bestsellers
+          let bestsellers = availableItems.filter(i => i.isBestseller);
+          
+          // 2. If not enough bestsellers, pick the highest priced premium items
+          if (bestsellers.length < 6) {
+            const others = availableItems
+              .filter(i => !i.isBestseller && !i.name.toLowerCase().includes('water'))
+              .sort((a, b) => b.price - a.price); // Highest price first
+            bestsellers = [...bestsellers, ...others];
           }
+          
+          // Set top 6
+          setDishes(bestsellers.slice(0, 6));
         }
       } catch (err) {
         console.error('Using fallback signature dishes:', err);
