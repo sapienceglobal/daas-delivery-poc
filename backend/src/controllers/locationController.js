@@ -3,6 +3,10 @@ import logger from '../utils/logger.js';
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
+import https from 'https';
+
+const httpsAgent = new https.Agent({ family: 4 });
+
 // 1. Autocomplete Search
 export const getAutocompleteSuggestions = async (req, res) => {
   try {
@@ -22,6 +26,7 @@ export const getAutocompleteSuggestions = async (req, res) => {
     }
 
     const response = await axios.post('https://places.googleapis.com/v1/places:autocomplete', requestBody, {
+      httpsAgent,
       headers: {
         'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
         'Content-Type': 'application/json'
@@ -64,6 +69,7 @@ export const getPlaceDetails = async (req, res) => {
     }
 
     const response = await axios.get(url, {
+      httpsAgent,
       headers: {
         'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
         'X-Goog-FieldMask': 'id,location,addressComponents,formattedAddress'
@@ -106,6 +112,7 @@ export const reverseGeocode = async (req, res) => {
     if (!lat || !longitude) return res.status(400).json({ error: 'lat and lon/lng are required' });
 
     const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+      httpsAgent,
       params: {
         latlng: `${lat},${longitude}`,
         key: GOOGLE_MAPS_API_KEY
@@ -165,6 +172,7 @@ export const geocodeAddress = async (req, res) => {
     if (!address) return res.status(400).json({ error: 'address is required' });
 
     const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+      httpsAgent,
       params: {
         address,
         key: GOOGLE_MAPS_API_KEY
