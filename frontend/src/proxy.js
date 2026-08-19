@@ -86,18 +86,14 @@ export async function proxy(request) {
   // ── 4. Protect /admin routes ──────────────────────────────────────────────
   if (pathname.startsWith('/admin')) {
     if (!token || role !== 'admin') {
-      const loginUrl = new URL('/hq-portal', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(new URL('/', request.url));
     }
   }
 
   // ── 5. Protect /merchant routes ───────────────────────────────────────────
   if (pathname.startsWith('/merchant')) {
     if (!token || (role !== 'merchant' && role !== 'admin')) {
-      const loginUrl = new URL('/hq-portal', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(new URL('/', request.url));
     }
   }
 
