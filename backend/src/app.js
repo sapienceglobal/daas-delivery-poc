@@ -218,7 +218,7 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/kds', tenantDb, kdsRoutes);
 app.use('/api/contact', contactRoutes);
-app.use('/api/locations', locationRoutes);
+app.use('/api/location', locationRoutes);
 app.use('/api/audit-logs', tenantDb, auditRoutes);
 app.use('/api/marketing', marketingRoutes);
 app.use('/api', contactRoutes);

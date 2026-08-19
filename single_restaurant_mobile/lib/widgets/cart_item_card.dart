@@ -123,20 +123,22 @@ class CartItemCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 GestureDetector(
                   onTap: goToDetail,
-                  child: addOns != null && addOns.isNotEmpty
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: addOns.map<Widget>((a) => Text(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item['selectedSize'] != null ? item['selectedSize']['name'] ?? 'Regular' : 'Regular',
+                        style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
+                      ),
+                      if (addOns != null && addOns.isNotEmpty)
+                        ...addOns.map<Widget>((a) => Text(
                           '+ ${a['name']}',
                           style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                        )).toList(),
-                      )
-                    : const Text(
-                        'Regular',
-                        style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 12),
-                      ),
+                        )),
+                    ],
+                  ),
                 ),
                 
                 const SizedBox(height: 12),
