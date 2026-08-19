@@ -52,8 +52,11 @@ export const getAutocompleteSuggestions = async (req, res) => {
 
     res.json(suggestions);
   } catch (err) {
-    logger.error(`Autocomplete error: ${err.message}`);
-    res.status(500).json({ error: 'Failed to fetch suggestions' });
+    const errorMsg = err.response?.data?.error?.message || err.message;
+    logger.error(`Autocomplete error: ${errorMsg}`, { 
+      details: err.response?.data || null 
+    });
+    res.status(500).json({ error: 'Failed to fetch suggestions', details: errorMsg });
   }
 };
 
@@ -99,8 +102,11 @@ export const getPlaceDetails = async (req, res) => {
       address
     });
   } catch (err) {
-    logger.error(`Place details error: ${err.message}`);
-    res.status(500).json({ error: 'Failed to fetch place details' });
+    const errorMsg = err.response?.data?.error?.message || err.message;
+    logger.error(`Place details error: ${errorMsg}`, { 
+      details: err.response?.data || null 
+    });
+    res.status(500).json({ error: 'Failed to fetch place details', details: errorMsg });
   }
 };
 
@@ -160,8 +166,11 @@ export const reverseGeocode = async (req, res) => {
       }
     });
   } catch (err) {
-    logger.error(`Reverse geocode error: ${err.message}`);
-    res.status(500).json({ error: 'Failed to reverse geocode' });
+    const errorMsg = err.response?.data?.error_message || err.message;
+    logger.error(`Reverse geocode error: ${errorMsg}`, { 
+      details: err.response?.data || null 
+    });
+    res.status(500).json({ error: 'Failed to reverse geocode', details: errorMsg });
   }
 };
 
@@ -220,7 +229,10 @@ export const geocodeAddress = async (req, res) => {
       }
     }]);
   } catch (err) {
-    logger.error(`Geocode error: ${err.message}`);
-    res.status(500).json({ error: 'Failed to geocode address' });
+    const errorMsg = err.response?.data?.error_message || err.message;
+    logger.error(`Geocode error: ${errorMsg}`, { 
+      details: err.response?.data || null 
+    });
+    res.status(500).json({ error: 'Failed to geocode address', details: errorMsg });
   }
 };

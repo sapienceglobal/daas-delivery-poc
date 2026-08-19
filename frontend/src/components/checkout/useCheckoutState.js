@@ -327,13 +327,15 @@ export function useCheckoutState() {
         `/api/location/geocode?address=${encodeURIComponent(addrStr)}`
       );
       const data = await res.json();
-      if (data && data.length > 0) {
+      if (res.ok && data && data.length > 0) {
         const lat = parseFloat(data[0].lat);
         const lng = parseFloat(data[0].lon);
         setAddressLat(lat);
         setAddressLng(lng);
         setAddressVerified(true);
         return { lat, lng };
+      } else if (data.details) {
+        console.error('Geocoding API Error:', data.details);
       }
     } catch (err) {
       console.error('Silent geocoding error:', err);
@@ -366,11 +368,18 @@ export function useCheckoutState() {
           `/api/location/autocomplete?q=${encodeURIComponent(val)}&sessionToken=${getSessionToken()}`
         );
         const data = await res.json();
-        if (currentReq === searchRequestCount.current) {
-          setSuggestions(data || []);
+        if (res.ok && Array.isArray(data)) {
+          if (currentReq === searchRequestCount.current) {
+            setSuggestions(data);
+          }
+        } else {
+          if (currentReq === searchRequestCount.current) {
+            setSuggestions([]);
+          }
+          if (data.details) console.error('Autocomplete API Error:', data.details);
         }
       } catch (err) {
-        console.error('Nominatim search error:', err);
+        console.error('Failed to fetch address suggestions', err);
       } finally {
         if (currentReq === searchRequestCount.current) {
           setSuggestionsLoading(false);

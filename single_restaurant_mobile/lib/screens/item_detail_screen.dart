@@ -22,11 +22,16 @@ class ItemDetailScreen extends StatefulWidget {
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
   int _localQuantity = 1;
   final Set<int> _selectedAddOnIndices = {};
+  int? _selectedSizeIndex;
   int _currentImageIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    final sizeVariations = widget.item['sizeVariations'] as List<dynamic>? ?? [];
+    if (sizeVariations.isNotEmpty) {
+      _selectedSizeIndex = 0;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
       final itemId = widget.item['_id'] ?? widget.item['id'];
@@ -42,6 +47,13 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               _selectedAddOnIndices.add(i);
             }
           }
+          if (sizeVariations.isNotEmpty) {
+             final cartSize = cartItem['selectedSize'];
+             if (cartSize != null) {
+               final idx = sizeVariations.indexWhere((s) => s['name'] == cartSize['name']);
+               if (idx != -1) _selectedSizeIndex = idx;
+             }
+          }
         });
       }
     });
@@ -54,11 +66,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     if (widget.item['addOns'] != null && (widget.item['addOns'] as List).isNotEmpty) {
       return List<Map<String, dynamic>>.from(widget.item['addOns']);
     }
-    return [
-      {'name': 'Extra Cheese', 'price': 2.00, 'description': 'Adds extra cheese topping'},
-      {'name': 'Mint Chutney', 'price': 1.00, 'description': 'Refreshing mint chutney'},
-      {'name': 'Extra Paneer', 'price': 3.00, 'description': 'Adds 4 pieces of paneer'},
-    ];
+    return [];
   }
   
   List<Map<String, dynamic>> _getSelectedAddonsList() {
@@ -70,7 +78,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     return selectedAddonsList;
   }
   
-  bool _areAddonsEqual(List<dynamic>? cartAddons, List<Map<String, dynamic>> selectedAddons) {
+  bool _areAddonsEqual(List<dynamic>? cartAddons, List<Map<String, dynamic>> selectedAddons, dynamic cartSize, dynamic currentSize) {
+    if (cartSize?['name'] != currentSize?['name']) return false;
     final cAdd = cartAddons ?? [];
     if (cAdd.length != selectedAddons.length) return false;
     for (var sa in selectedAddons) {
@@ -80,7 +89,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   }
 
   double _calculateTotal(int qty) {
+    final sizes = widget.item['sizeVariations'] as List<dynamic>? ?? [];
     double base = (widget.item['price'] ?? 0.0).toDouble();
+    if (sizes.isNotEmpty && _selectedSizeIndex != null && _selectedSizeIndex! < sizes.length) {
+      base = (sizes[_selectedSizeIndex!]['price'] ?? 0.0).toDouble();
+    }
     double addonsTotal = 0.0;
     final addons = _getAddOns();
     for (int idx in _selectedAddOnIndices) {
@@ -105,7 +118,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       images = [ImageHelper.getDishImageUrl(widget.item)];
     }
     
-    final basePrice = (item['price'] ?? 0.0).toDouble();
+    final sizes = item['sizeVariations'] as List<dynamic>? ?? [];
+    double basePrice = (item['price'] ?? 0.0).toDouble();
+    if (sizes.isNotEmpty && _selectedSizeIndex != null && _selectedSizeIndex! < sizes.length) {
+      basePrice = (sizes[_selectedSizeIndex!]['price'] ?? 0.0).toDouble();
+    }
     final addons = _getAddOns();
     
     final prepTime = item['preparationTime'] ?? 20;
@@ -116,9 +133,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     
     // Check if in cart with matching configuration
     final selectedAddonsList = _getSelectedAddonsList();
+    final currentSize = (sizes.isNotEmpty && _selectedSizeIndex != null && _selectedSizeIndex! < sizes.length) ? sizes[_selectedSizeIndex!] : null;
     final cartIndex = cartProvider.items.indexWhere((cartItem) {
       final matchId = (cartItem['menuItemId'] == itemId || cartItem['_id'] == itemId);
-      return matchId && _areAddonsEqual(cartItem['addOns'], selectedAddonsList);
+      return matchId && _areAddonsEqual(cartItem['addOns'], selectedAddonsList, cartItem['selectedSize'], currentSize);
     });
     
     final inCart = cartIndex != -1;
@@ -311,73 +329,120 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         child: Divider(color: Colors.black12, thickness: 1),
                       ),
                       
-                      // Customize Your Order
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Customize Your Order', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          Text('Optional', style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      ...List.generate(addons.length, (index) {
-                        final addon = addons[index];
-                        final isSelected = _selectedAddOnIndices.contains(index);
-                        return GestureDetector(
-                          onTap: () {
-                            if (inCart) {
-                              ToastUtils.showError(context, 'Please adjust quantity for a new configuration or remove from cart to edit.');
-                              return;
-                            }
-                            setState(() {
-                              if (isSelected) {
-                                _selectedAddOnIndices.remove(index);
-                              } else {
-                                _selectedAddOnIndices.add(index);
+                      // Size Variations
+                      if (sizes.isNotEmpty) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Size', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            Text('Required', style: TextStyle(color: Colors.red.shade900, fontSize: 14)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        ...List.generate(sizes.length, (index) {
+                          final size = sizes[index];
+                          final isSelected = _selectedSizeIndex == index;
+                          return GestureDetector(
+                            onTap: () {
+                              if (inCart) {
+                                ToastUtils.showError(context, 'Please adjust quantity for a new configuration or remove from cart to edit.');
+                                return;
                               }
-                            });
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(color: Colors.grey.shade200),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade900,
-                                    borderRadius: BorderRadius.circular(8),
+                              setState(() {
+                                _selectedSizeIndex = index;
+                              });
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(color: isSelected ? Colors.red.shade900 : Colors.grey.shade200, width: isSelected ? 2 : 1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                                    color: isSelected ? Colors.red.shade900 : Colors.grey.shade400,
                                   ),
-                                  child: const Icon(Icons.extension, color: Colors.white, size: 20),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(addon['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                      if (addon['description'] != null)
-                                        Text(addon['description'], style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                                    ],
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(size['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                   ),
-                                ),
-                                Text('\$${(addon['price'] ?? 0).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                const SizedBox(width: 16),
-                                Icon(
-                                  isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                                  color: isSelected ? Colors.red.shade900 : Colors.grey.shade400,
-                                ),
-                              ],
+                                  Text('\$${((size['price'] as num?) ?? 0.0).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      }),
+                          );
+                        }),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16.0),
+                          child: Divider(color: Colors.black12, thickness: 1),
+                        ),
+                      ],
+                      
+                      // Customize Your Order
+                      if (addons.isNotEmpty) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Customize Your Order', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            Text('Optional', style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      
+                      if (addons.isNotEmpty)
+                        ...List.generate(addons.length, (index) {
+                          final addon = addons[index];
+                          final isSelected = _selectedAddOnIndices.contains(index);
+                          return GestureDetector(
+                            onTap: () {
+                              if (inCart) {
+                                ToastUtils.showError(context, 'Please adjust quantity for a new configuration or remove from cart to edit.');
+                                return;
+                              }
+                              setState(() {
+                                if (isSelected) {
+                                  _selectedAddOnIndices.remove(index);
+                                } else {
+                                  _selectedAddOnIndices.add(index);
+                                }
+                              });
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(color: isSelected ? Colors.red.shade900 : Colors.grey.shade200, width: isSelected ? 2 : 1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                                    color: isSelected ? Colors.red.shade900 : Colors.grey.shade400,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(addon['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                        if (addon['description'] != null)
+                                          Text(addon['description'], style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                  Text('\$${(addon['price'] ?? 0).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
                       
                       const SizedBox(height: 24),
                       // You May Also Like
@@ -543,6 +608,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         newItem['quantity'] = 1;
                         newItem['qty'] = 1;
                         newItem['addOns'] = selectedAddonsList;
+                        if (sizes.isNotEmpty && _selectedSizeIndex != null) {
+                          newItem['selectedSize'] = sizes[_selectedSizeIndex!];
+                          newItem['price'] = (sizes[_selectedSizeIndex!]['price'] as num?)?.toDouble() ?? 0.0;
+                        } else {
+                          newItem['price'] = basePrice;
+                        }
                         cartProvider.addItem(newItem, restaurantData: restaurantProvider.restaurant);
                         ToastUtils.showSuccess(context, 'Item added to cart!');
                       },

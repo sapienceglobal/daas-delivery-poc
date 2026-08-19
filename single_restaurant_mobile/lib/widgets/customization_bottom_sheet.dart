@@ -23,12 +23,27 @@ class CustomizationBottomSheet extends StatefulWidget {
 class _CustomizationBottomSheetState extends State<CustomizationBottomSheet> {
   final Set<int> _selectedAddOnIndices = {};
   int _quantity = 1;
+  int? _selectedSizeIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    final sizes = widget.item['sizeVariations'] as List<dynamic>? ?? [];
+    if (sizes.isNotEmpty) {
+      _selectedSizeIndex = 0;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
     final addons = item['addOns'] as List<dynamic>? ?? [];
-    final basePrice = (item['price'] as num?)?.toDouble() ?? 0.0;
+    final sizes = item['sizeVariations'] as List<dynamic>? ?? [];
+    
+    double basePrice = (item['price'] as num?)?.toDouble() ?? 0.0;
+    if (sizes.isNotEmpty && _selectedSizeIndex != null && _selectedSizeIndex! < sizes.length) {
+      basePrice = (sizes[_selectedSizeIndex!]['price'] as num?)?.toDouble() ?? 0.0;
+    }
     
     double addonsTotal = 0.0;
     for (var index in _selectedAddOnIndices) {
@@ -81,12 +96,61 @@ class _CustomizationBottomSheetState extends State<CustomizationBottomSheet> {
                     child: Divider(color: Colors.black12, thickness: 1),
                   ),
                   
-                  // Customize Your Order
+                  // Size Variations
+                  if (sizes.isNotEmpty) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Size', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text('Required', style: TextStyle(color: Colors.red.shade900, fontSize: 14)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    ...List.generate(sizes.length, (index) {
+                      final size = sizes[index];
+                      final isSelected = _selectedSizeIndex == index;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedSizeIndex = index;
+                          });
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: isSelected ? Colors.red.shade900 : Colors.grey.shade200, width: isSelected ? 2 : 1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                                color: isSelected ? Colors.red.shade900 : Colors.grey.shade400,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(size['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              ),
+                              Text('\$${((size['price'] as num?) ?? 0.0).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16.0),
+                      child: Divider(color: Colors.black12, thickness: 1),
+                    ),
+                  ],
+
+                  // Customize Your Order (AddOns)
                   if (addons.isNotEmpty) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Customize Your Order', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Text('Add-Ons', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         Text('Optional', style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
                       ],
                     ),
@@ -110,39 +174,33 @@ class _CustomizationBottomSheetState extends State<CustomizationBottomSheet> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            border: Border.all(color: Colors.grey.shade200),
+                            border: Border.all(color: isSelected ? Colors.red.shade900 : Colors.grey.shade200, width: isSelected ? 2 : 1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.shade900,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(Icons.extension, color: Colors.white, size: 20),
+                              Icon(
+                                isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                                color: isSelected ? Colors.red.shade900 : Colors.grey.shade400,
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(addon['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                    Text(addon['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                    if (addon['description'] != null && addon['description'].toString().isNotEmpty)
+                                      Text(addon['description'], style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
                                   ],
                                 ),
                               ),
-                              Text('\$${(addon['price'] ?? 0).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              const SizedBox(width: 16),
-                              Icon(
-                                isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                                color: isSelected ? Colors.red.shade900 : Colors.grey.shade400,
-                              ),
+                              Text('\$${((addon['price'] as num?) ?? 0.0).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                             ],
                           ),
                         ),
                       );
                     }),
+                    const SizedBox(height: 32),
                   ]
                 ],
               ),
@@ -201,6 +259,12 @@ class _CustomizationBottomSheetState extends State<CustomizationBottomSheet> {
                         final newItem = Map<String, dynamic>.from(item);
                         newItem['quantity'] = _quantity;
                         newItem['addOns'] = selectedAddOns;
+                        if (sizes.isNotEmpty && _selectedSizeIndex != null) {
+                          newItem['selectedSize'] = sizes[_selectedSizeIndex!];
+                          newItem['price'] = (sizes[_selectedSizeIndex!]['price'] as num?)?.toDouble() ?? 0.0;
+                        } else {
+                          newItem['price'] = basePrice;
+                        }
                         
                         widget.cartProvider.addItem(newItem, restaurantData: widget.restaurantProvider.restaurant);
                         
