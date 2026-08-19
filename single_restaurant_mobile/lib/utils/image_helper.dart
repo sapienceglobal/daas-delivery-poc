@@ -10,8 +10,11 @@ class ImageHelper {
     
     // Fallback based on name using Unsplash URLs so we don't increase APK size
     final name = (item['name'] ?? '').toLowerCase();
-    final frontendUrl = ApiService.baseUrl.replaceAll(RegExp(r':\d+$'), ':3000');
-    final String basePath = '$frontendUrl/images/branded/lassi-lounge/dishes';
+    
+    // Always use the production URL for static fallback images.
+    // This avoids issues where the local Next.js server on port 3000 is not 
+    // accessible from the mobile device due to localhost binding or firewalls.
+    final String basePath = 'https://lassiloungeny.com/images/branded/lassi-lounge/dishes';
     
     if (name.contains('butter chicken')) return '$basePath/butter-chicken.png';
     if (name.contains('cheese naan')) return '$basePath/cheese-naan.jpg';

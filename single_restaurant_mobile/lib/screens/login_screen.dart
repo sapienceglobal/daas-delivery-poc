@@ -68,19 +68,21 @@ class _LoginScreenState extends State<LoginScreen> {
         final loyaltyProv = context.read<LoyaltyProvider>();
         final notifProv = context.read<NotificationProvider>();
 
-        // Fire and forget
-        authProv.fetchUser();
+        // Await fetchUser to ensure the user is logged in before we navigate
+        await authProv.fetchUser();
+        
+        // Fire and forget the rest
         addressProv.fetchAddresses();
         cartProv.loadCart();
         loyaltyProv.fetchHistory();
-        notifProv.fetchNotifications(); 
+        notifProv.fetchNotifications();
 
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (context) => const MainScreen(initialIndex: 0),
-          ),
-          (route) => false,
-        );
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
+            (route) => false,
+          );
+        }
       } else {
         // 👈 2. SnackBar hata kar inline error state set ki
         setState(() => _errorMessage = errorMsg);
@@ -113,17 +115,21 @@ class _LoginScreenState extends State<LoginScreen> {
             final loyaltyProv = context.read<LoyaltyProvider>();
             final notifProv = context.read<NotificationProvider>();
 
-            // Fire and forget
-            authProv.fetchUser();
+            // Await fetchUser to ensure the user is logged in before we navigate
+            await authProv.fetchUser();
+            
+            // Fire and forget the rest
             addressProv.fetchAddresses();
             cartProv.loadCart();
             loyaltyProv.fetchHistory();
             notifProv.fetchNotifications();
 
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
-              (route) => false,
-            );
+            if (mounted) {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
+                (route) => false,
+              );
+            }
           } else if (mounted) {
             setState(() => _errorMessage = errorMsg);
           }

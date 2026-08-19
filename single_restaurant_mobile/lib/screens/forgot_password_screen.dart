@@ -3,6 +3,7 @@ import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/widgets/app_logo.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
+import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -57,7 +58,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         actions: [
           TextButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpSupportScreen()));
+            },
             icon: const Icon(Icons.headset_mic_outlined, color: AppColors.secondary, size: 20),
             label: const Text('Help', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
           ),
@@ -290,7 +293,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   const Text('Still need help?', style: TextStyle(color: Colors.black87, fontSize: 14)),
                   const SizedBox(height: 8),
                   GestureDetector(
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpSupportScreen()));
+                    },
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

@@ -10,6 +10,10 @@ import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/screens/search_screen.dart';
 import 'package:single_restaurant_mobile/screens/cart_screen.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
+import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
+import 'package:single_restaurant_mobile/screens/login_screen.dart';
+import 'package:single_restaurant_mobile/screens/loyalty_rewards_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   final String? initialCategoryId;
@@ -44,17 +48,28 @@ class _MenuScreenState extends State<MenuScreen> {
       return const Center(child: Text('No menu available.'));
     }
 
-    // Default to first category if none selected
+    // Default to 'all' if none selected
     if (_selectedCategoryId == null && categories.isNotEmpty) {
-      _selectedCategoryId = categories[0]['_id'];
+      _selectedCategoryId = 'all';
     }
 
-    final selectedCategory = categories.firstWhere(
-      (c) => c['_id'] == _selectedCategoryId, 
-      orElse: () => categories[0]
-    );
+    final displayCategories = [
+      {'_id': 'all', 'name': 'All'},
+      ...categories
+    ];
 
-    List<dynamic> items = List.from(selectedCategory['items'] ?? []);
+    List<dynamic> items = [];
+    if (_selectedCategoryId == 'all') {
+      for (var cat in categories) {
+        items.addAll(cat['items'] ?? []);
+      }
+    } else {
+      final selectedCategory = categories.firstWhere(
+        (c) => c['_id'] == _selectedCategoryId, 
+        orElse: () => categories[0]
+      );
+      items = List.from(selectedCategory['items'] ?? []);
+    }
 
     // Filter Logic
     if (_vegFilter == 'Veg') {
@@ -69,6 +84,11 @@ class _MenuScreenState extends State<MenuScreen> {
     } else if (_sortOrder == 'Price: High to Low') {
       items.sort((a, b) => (b['price'] ?? 0).compareTo(a['price'] ?? 0));
     }
+
+    final currentCategory = displayCategories.firstWhere(
+      (c) => c['_id'] == _selectedCategoryId, 
+      orElse: () => displayCategories[0]
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFFCF9F2),
@@ -102,20 +122,20 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: categories.length + 1, // +1 for "More"
+              itemCount: displayCategories.length + 1, // +1 for "More"
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemBuilder: (context, index) {
-                if (index == categories.length) {
+                if (index == displayCategories.length) {
                   return GestureDetector(
-                    onTap: () => _showCategoriesPopup(context, categories),
+                    onTap: () => _showCategoriesPopup(context, displayCategories),
                     child: _buildCategoryItem('More', Icons.grid_view, isSelected: false),
                   );
                 }
-                final cat = categories[index];
+                final cat = displayCategories[index];
                 final isSelected = cat['_id'] == _selectedCategoryId;
                 return GestureDetector(
                   onTap: () => setState(() => _selectedCategoryId = cat['_id']),
-                  child: _buildCategoryItem(cat['name'], null, category: cat, isSelected: isSelected),
+                  child: _buildCategoryItem(cat['name'], cat['_id'] == 'all' ? Icons.fastfood : null, category: cat['_id'] == 'all' ? null : cat, isSelected: isSelected),
                 );
               },
             ),
@@ -170,12 +190,12 @@ class _MenuScreenState extends State<MenuScreen> {
               children: [
                 // Category Title & Desc
                 Text(
-                  selectedCategory['name'],
+                  currentCategory['name'],
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red.shade900, fontFamily: 'Serif'),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  selectedCategory['description'] ?? 'Flavorful dishes made with rich spices and authentic ingredients.',
+                  currentCategory['description'] ?? 'Flavorful dishes made with rich spices and authentic ingredients.',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                 ),
                 const SizedBox(height: 20),
@@ -216,60 +236,63 @@ class _MenuScreenState extends State<MenuScreen> {
 
                 const SizedBox(height: 20),
                 
-                // Pagination Footer
-                if (items.isNotEmpty)
-                  Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Showing 1-${items.length} of ${items.length} items', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 8),
-                        Text('Next', style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold)),
-                        Icon(Icons.chevron_right, color: Colors.red.shade900, size: 16),
-                      ],
-                    ),
-                  ),
-
-                const SizedBox(height: 24),
-                
                 // Loyalty Banner
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: Colors.orange.shade100,
-                        radius: 24,
-                        child: Icon(Icons.workspace_premium, color: Colors.red.shade900, size: 28),
+                Consumer2<AuthProvider, LoyaltyProvider>(
+                  builder: (context, auth, loyalty, child) {
+                    final isLoggedIn = auth.isAuthenticated;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.shade200),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Join Lassi Lounge Loyalty Program', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade900, fontSize: 14)),
-                            const SizedBox(height: 4),
-                            Text('Earn points on every order and unlock exclusive rewards!', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                          ],
-                        ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: Colors.orange.shade100,
+                            radius: 24,
+                            child: Icon(Icons.workspace_premium, color: Colors.red.shade900, size: 28),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isLoggedIn ? 'Lassi Lounge Rewards' : 'Join Lassi Lounge Loyalty', 
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade900, fontSize: 14)
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  isLoggedIn 
+                                    ? 'Balance: ${loyalty.currentBalance} pts. Earn more on every order!' 
+                                    : 'Earn points on every order and unlock exclusive rewards!', 
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600)
+                                ),
+                              ],
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (isLoggedIn) {
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => const LoyaltyRewardsScreen()));
+                              } else {
+                                Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade900,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            ),
+                            child: Text(isLoggedIn ? 'Rewards >' : 'Join Now >', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          )
+                        ],
                       ),
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade900,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        ),
-                        child: const Text('Join Now >', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                      )
-                    ],
-                  ),
+                    );
+                  }
                 ),
                 const SizedBox(height: 30), // Padding for bottom nav
               ],

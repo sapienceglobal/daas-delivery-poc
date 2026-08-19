@@ -1647,6 +1647,7 @@ export const getInvoiceDocument = asyncHandler(async (req, response) => {
 
   const html = generateInvoiceHTML(order, payment);
   response.setHeader('Content-Type', 'text/html; charset=utf-8');
+  response.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; script-src-attr 'unsafe-inline';");
   response.send(html);
 });
 
@@ -1664,5 +1665,6 @@ export const getKOTDocument = asyncHandler(async (req, response) => {
 
   const html = generateKOTHTML(order);
   response.setHeader('Content-Type', 'text/html; charset=utf-8');
+  response.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; script-src-attr 'unsafe-inline';");
   response.send(html);
 });

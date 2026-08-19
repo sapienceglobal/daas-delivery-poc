@@ -154,19 +154,21 @@ export default function MerchantSidebar() {
       </div>
       
       {/* Need Help Box */}
-      <div className="p-5 shrink-0 border-t border-[#1f2937]">
-        <div className="bg-[#1f2937] rounded-xl p-4 flex flex-col gap-3 border border-[#374151] hover:border-[#4b5563] cursor-pointer transition-colors group">
-          <div className="flex items-center gap-3">
-            <div className="bg-[#374151] p-2 rounded-lg group-hover:bg-[#4b5563] transition-colors">
-              <Headphones className="w-4 h-4 text-gray-300" />
-            </div>
-            <div>
-              <h4 className="text-gray-200 text-sm font-bold">Need Help?</h4>
-              <p className="text-gray-400 text-xs mt-0.5">Contact Support</p>
+      <Link href="/merchant/support">
+        <div className="p-5 shrink-0 border-t border-[#1f2937]">
+          <div className="bg-[#1f2937] rounded-xl p-4 flex flex-col gap-3 border border-[#374151] hover:border-[#4b5563] cursor-pointer transition-colors group">
+            <div className="flex items-center gap-3">
+              <div className="bg-[#374151] p-2 rounded-lg group-hover:bg-[#4b5563] transition-colors">
+                <Headphones className="w-4 h-4 text-gray-300" />
+              </div>
+              <div>
+                <h4 className="text-gray-200 text-sm font-bold">Need Help?</h4>
+                <p className="text-gray-400 text-xs mt-0.5">Contact Support</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Link>
       
       {/* Custom scrollbar styling embedded for this component */}
       <style jsx>{`

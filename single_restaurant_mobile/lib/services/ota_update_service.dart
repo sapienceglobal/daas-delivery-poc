@@ -668,11 +668,9 @@ class _DownloadProgressDialogState extends State<DownloadProgressDialog>
                   ),
                   // Center icon
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primary, AppColors.secondary],
-                      ),
+                      color: Colors.white,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -682,10 +680,11 @@ class _DownloadProgressDialogState extends State<DownloadProgressDialog>
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.cloud_download_rounded,
-                      color: Colors.white,
-                      size: 36,
+                    child: Image.asset(
+                      'assets/images/branded/lassi-lounge/Lassi-Lounge-icon.png',
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ],

@@ -41,14 +41,34 @@ class RestaurantProvider with ChangeNotifier {
     for (var category in _menu) {
       if (category['items'] != null) {
         for (var item in category['items']) {
-          if (item['isAvailable'] == true) {
-            items.add(item);
+          if (item['isAvailable'] != false) {
+            String name = (item['name'] ?? '').toString().toLowerCase();
+            // Aggressively exclude boring items like water and tea from the signature section
+            if (!name.contains('water') && !name.contains('tea')) {
+              items.add(item);
+            }
           }
         }
       }
     }
-    // Simple logic: return top 5 items, or randomly select, or rely on a popular flag
-    // For now, returning first 5 available items
-    return items.take(5).toList();
+
+    // 1. Try to get actual bestsellers
+    List<dynamic> bestsellers = items.where((i) => i['isBestseller'] == true).toList();
+
+    // 2. If not enough bestsellers, pick the highest priced premium items
+    if (bestsellers.length < 6) {
+      List<dynamic> others = items.where((i) => i['isBestseller'] != true).toList();
+      
+      // Sort others by price descending
+      others.sort((a, b) {
+        double priceA = double.tryParse(a['price']?.toString() ?? '0') ?? 0.0;
+        double priceB = double.tryParse(b['price']?.toString() ?? '0') ?? 0.0;
+        return priceB.compareTo(priceA);
+      });
+      
+      bestsellers.addAll(others);
+    }
+
+    return bestsellers.take(6).toList();
   }
 }
