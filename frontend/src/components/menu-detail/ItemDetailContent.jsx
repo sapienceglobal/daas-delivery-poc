@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { menuAPI, restaurantAPI, authAPI, reviewAPI } from '@/lib/api';
+import { menuAPI, restaurantAPI, authAPI } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { showToast, Skeleton } from '@/components/ui';
@@ -16,7 +16,7 @@ import ProductInfo from '@/components/menu-detail/ProductInfo';
 import AddToCartPanel from '@/components/menu-detail/AddToCartPanel';
 import CustomizationForm from '@/components/menu-detail/CustomizationForm';
 import YouMayAlsoLike from '@/components/menu-detail/YouMayAlsoLike';
-import ReviewsSection from '@/components/menu-detail/ReviewsSection';
+
 import ValuePropsBar from '@/components/orders/ValuePropsBar';
 
 /**
@@ -38,7 +38,7 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
 
   const [restaurant, setRestaurant] = useState(null);
   const [item, setItem] = useState(null);
-  const [reviews, setReviews] = useState([]);
+
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,14 +56,12 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
   useEffect(() => {
     async function loadData() {
       try {
-        const [restRes, itemRes, reviewsRes] = await Promise.all([
+        const [restRes, itemRes] = await Promise.all([
           restaurantAPI.getById(restaurantId),
           menuAPI.getItem(itemId),
-          reviewAPI.getItemReviews(itemId).catch(() => ({ data: [] }))
         ]);
         setRestaurant(restRes.data);
         setItem(itemRes.data);
-        setReviews(reviewsRes.data || []);
 
         const flattened = restRes.data?.menu?.reduce((acc, cat) => acc.concat(cat.items || []), []) || [];
         setMenuItems(flattened);
@@ -309,17 +307,6 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
           />
         </div>
 
-        {/* Customer Reviews Section */}
-        <div className="pt-8">
-          <ReviewsSection
-            itemId={itemId}
-            restaurantId={restaurantId}
-            reviews={reviews}
-            isSingleRestaurant={isSingleRestaurant}
-            user={user}
-            isAuthenticated={isAuthenticated}
-          />
-        </div>
 
         <div className="pt-12">
           <ValuePropsBar />

@@ -1,12 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Crown, ArrowUpRight, ArrowDownRight, Gift, Activity, TrendingUp, Clock, FileText, Star } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Search, Crown, ArrowUpRight, ArrowDownRight, Gift, Activity, TrendingUp, Clock, FileText, Star, Settings, X, Save } from 'lucide-react';
 import StatCard from './StatCard';
-import { loyaltyAPI } from '@/lib/api';
+import { loyaltyAPI, restaurantAPI } from '@/lib/api';
 import { showToast, PageLoader } from '@/components/ui';
 
-export default function LoyaltyRewardsView() {
+function Toggle({ checked, onChange, size = 'md', disabled = false, label }) {
+  const dims = size === 'sm'
+    ? { trackW: 36, trackH: 20, knob: 16, on: 18 }
+    : { trackW: 44, trackH: 24, knob: 20, on: 22 };
+
+  const handleKeyDown = (e) => {
+    if (disabled) return;
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      onChange(!checked);
+    }
+  };
+
+  return (
+    <div
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
+      onClick={() => !disabled && onChange(!checked)}
+      onKeyDown={handleKeyDown}
+      className={`relative inline-flex shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8b0000] focus-visible:ring-offset-2 ${
+        disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+      }`}
+      style={{ width: dims.trackW, height: dims.trackH, backgroundColor: checked ? '#16a34a' : '#d1d5db' }}
+    >
+      <span
+        className="pointer-events-none inline-block rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out"
+        style={{ width: dims.knob, height: dims.knob, transform: `translateX(${checked ? dims.on : 2}px)` }}
+      />
+    </div>
+  );
+}
+
+export default function LoyaltyRewardsView({ restaurant }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  const [showSettings, setShowSettings] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    enabled: restaurant?.loyaltySettings?.enabled ?? true,
+    pointsPerDollar: restaurant?.loyaltySettings?.pointsPerDollar ?? 1,
+    centsPerPoint: restaurant?.loyaltySettings?.centsPerPoint ?? 1,
+    minimumOrderMultiplier: restaurant?.loyaltySettings?.minimumOrderMultiplier ?? 3,
+    termsAndConditions: restaurant?.loyaltySettings?.termsAndConditions ?? 'Earn 1 point for every $1 spent. 100 points = $1 off your next order.'
+  });
 
   useEffect(() => {
     fetchData();
@@ -25,8 +72,26 @@ export default function LoyaltyRewardsView() {
     }
   };
 
-  const handleAction = (msg) => {
-    showToast(`${msg} coming soon`, 'info');
+  const handleSaveSettings = async () => {
+    try {
+      setSaving(true);
+      await restaurantAPI.update(restaurant._id, { loyaltySettings: form });
+      showToast('Loyalty settings updated successfully', 'success');
+      handleCloseModal();
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to save settings', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setShowSettings(false);
+    }, 200);
   };
 
   if (loading || !stats) {
@@ -43,8 +108,8 @@ export default function LoyaltyRewardsView() {
           <p className="text-sm text-[#6b7280] mt-1">Track customer engagement, points issued, and rewards redeemed.</p>
         </div>
         <div>
-          <button onClick={() => handleAction('Edit Program Rules')} className="flex items-center gap-1.5 bg-[#8b0000] text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#7f0000] transition-colors shadow-sm">
-            <SettingsIcon className="w-4 h-4" /> Manage Program
+          <button onClick={() => setShowSettings(true)} className="flex items-center gap-1.5 bg-[#8b0000] text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#7f0000] transition-colors shadow-sm">
+            <Settings className="w-4 h-4" /> Manage Program
           </button>
         </div>
       </div>
@@ -187,7 +252,7 @@ export default function LoyaltyRewardsView() {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-[#111827]">Order Purchases</h4>
-                  <p className="text-xs text-[#6b7280]">Earn 1 point per $1 spent on all delivered orders.</p>
+                  <p className="text-xs text-[#6b7280]">Earn {restaurant?.loyaltySettings?.pointsPerDollar || 1} point per $1 spent on all delivered orders.</p>
                 </div>
               </div>
 
@@ -201,35 +266,146 @@ export default function LoyaltyRewardsView() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                <div className="w-8 h-8 rounded-full bg-[#f3e8ff] text-[#9333ea] flex items-center justify-center shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-[#111827]">Reviews</h4>
-                  <p className="text-xs text-[#6b7280]">Earn 20 points for reviewing a completed order.</p>
-                </div>
-              </div>
             </div>
             
             <div className="mt-6 pt-5 border-t border-gray-100 relative z-10">
               <h3 className="text-[14px] font-bold text-[#111827] mb-3">Redemption Rules</h3>
               <div className="flex items-center justify-between p-3 bg-[#fff1f2] rounded-lg border border-[#fecdd3] mb-2">
                  <span className="text-xs font-bold text-[#9f1239] flex items-center gap-1.5"><Gift className="w-4 h-4" /> Exchange Rate</span>
-                 <span className="text-[12px] font-black text-[#9f1239]">10 Points = $1</span>
+                 <span className="text-[12px] font-black text-[#9f1239]">
+                   100 Points = ${ (((restaurant?.loyaltySettings?.centsPerPoint || 1) * 100) / 100).toFixed(2) }
+                 </span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-                 <span className="text-xs font-bold text-[#374151] flex items-center gap-1.5">Min/Max Redemption</span>
-                 <span className="text-xs font-bold text-[#374151]">50 - 500 Points</span>
-              </div>
-              <p className="text-xs text-[#6b7280] text-center mt-3 italic">
-                Settings are currently hardcoded to industry standards. Custom rules engine coming soon.
+              <p className="text-xs text-[#6b7280] text-center mt-3">
+                {restaurant?.loyaltySettings?.termsAndConditions || 'Earn 1 point for every $1 spent.'}
               </p>
             </div>
           </div>
 
         </div>
       </div>
+
+      {showSettings && createPortal(
+        <div className={`fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 duration-200 ${isClosing ? 'animate-out fade-out' : 'animate-in fade-in'}`}>
+          <div className={`bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col duration-200 ${isClosing ? 'animate-out zoom-out-95' : 'animate-in zoom-in-95'}`}>
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-[#f3f4f6] flex items-center justify-between bg-[#f9fafb]/50">
+              <h2 className="text-lg font-bold text-[#111827] flex items-center gap-2">
+                <Settings className="w-5 h-5 text-[#8b0000]" />
+                Loyalty Program Settings
+              </h2>
+              <button onClick={handleCloseModal} className="p-2 hover:bg-[#e5e7eb] rounded-full transition-colors ll-focus-ring">
+                <X className="w-5 h-5 text-[#6b7280]" />
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
+               {/* Toggle Enable */}
+               <div className="flex items-center justify-between">
+                 <div>
+                   <label className="text-sm font-bold text-[#111827] block">Enable Loyalty Program</label>
+                   <p className="text-xs text-[#6b7280] mt-0.5">Allow customers to earn and redeem points.</p>
+                 </div>
+                 <Toggle 
+                   checked={form.enabled} 
+                   onChange={(val) => setForm({ ...form, enabled: val })} 
+                   label="Enable Loyalty Program"
+                 />
+               </div>
+               
+               {/* Rates Grid */}
+               <div className="grid grid-cols-2 gap-5">
+                 <div>
+                   <label className="text-sm font-bold text-[#111827] block mb-1.5">Points Earn Rate</label>
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        value={form.pointsPerDollar} 
+                        onChange={e => setForm({...form, pointsPerDollar: e.target.value === '' ? '' : Number(e.target.value)})} 
+                        className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000] text-[#1f2937] bg-white" 
+                        min="0" step="0.1"
+                      />
+                      <span className="absolute right-8 top-1/2 -translate-y-1/2 text-[11px] uppercase tracking-wider font-bold text-[#9ca3af] pointer-events-none bg-white/80 px-1">pts / $1</span>
+                    </div>
+                 </div>
+                 <div>
+                   <label className="text-sm font-bold text-[#111827] block mb-1.5">Redemption Value</label>
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        value={form.centsPerPoint} 
+                        onChange={e => setForm({...form, centsPerPoint: e.target.value === '' ? '' : Number(e.target.value)})} 
+                        className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000] text-[#1f2937] bg-white" 
+                        min="0" step="0.1"
+                      />
+                      <span className="absolute right-8 top-1/2 -translate-y-1/2 text-[11px] uppercase tracking-wider font-bold text-[#9ca3af] pointer-events-none bg-white/80 px-1">cents / pt</span>
+                    </div>
+                 </div>
+                </div>
+
+               <div className="grid grid-cols-2 gap-5">
+                 <div>
+                   <label className="text-sm font-bold text-[#111827] block mb-1.5">Minimum Order Multiplier</label>
+                    <div className="relative">
+                      <input 
+                        type="number" 
+                        value={form.minimumOrderMultiplier} 
+                        onChange={e => setForm({...form, minimumOrderMultiplier: e.target.value === '' ? '' : Number(e.target.value)})} 
+                        className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000] text-[#1f2937] bg-white" 
+                        min="1" step="0.5"
+                      />
+                      <span className="absolute right-8 top-1/2 -translate-y-1/2 text-[11px] uppercase tracking-wider font-bold text-[#9ca3af] pointer-events-none bg-white/80 px-1">X Coupon Value</span>
+                    </div>
+                   <p className="text-xs text-[#6b7280] mt-1.5">E.g., if set to 3, a $5 coupon requires a $15 minimum order.</p>
+                 </div>
+               </div>
+
+               {/* Mathematical Calculation Insight */}
+               <div className="bg-[#eff6ff] border border-[#dbeafe] rounded-xl p-4 flex gap-3 items-start">
+                 <div className="bg-[#dbeafe] p-1.5 rounded-full shrink-0">
+                   <Activity className="w-4 h-4 text-[#2563eb]" />
+                 </div>
+                 <p className="text-[13px] text-[#1e40af] leading-relaxed font-medium">
+                   <strong className="text-[#1e3a8a] font-bold block mb-0.5">Program Preview</strong> 
+                   A customer spending <strong className="text-[#1e3a8a]"> $500</strong> will earn <strong className="text-[#1e3a8a]">{500 * form.pointsPerDollar} points</strong>. 
+                   When redeeming, {500 * form.pointsPerDollar} points will translate to <strong className="text-[#1e3a8a]">${((500 * form.pointsPerDollar * form.centsPerPoint) / 100).toFixed(2)}</strong> off their order.
+                   They will need to place a minimum order of <strong className="text-[#1e3a8a]">${(((500 * form.pointsPerDollar * form.centsPerPoint) / 100) * form.minimumOrderMultiplier).toFixed(2)}</strong> to use this coupon.
+                 </p>
+               </div>
+
+               {/* Terms & Conditions */}
+               <div>
+                 <label className="text-sm font-bold text-[#111827] block mb-1.5">Terms and Conditions</label>
+                 <textarea 
+                   rows={3}
+                   value={form.termsAndConditions} 
+                   onChange={e => setForm({...form, termsAndConditions: e.target.value})} 
+                   className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000] text-[#1f2937] bg-white resize-none leading-relaxed" 
+                 />
+                 <p className="text-xs text-[#6b7280] mt-1.5">These rules will be displayed to customers in the mobile app and website.</p>
+               </div>
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-[#f3f4f6] flex items-center justify-end gap-3 bg-[#f9fafb]/50 rounded-b-2xl">
+              <button onClick={handleCloseModal} className="px-4 py-2 text-sm font-bold text-[#4b5563] hover:text-[#111827] hover:bg-[#e5e7eb] rounded-lg transition-colors">Cancel</button>
+              <button 
+                onClick={handleSaveSettings} 
+                disabled={saving}
+                className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-[#8b0000] rounded-lg hover:bg-[#7f0000] transition-colors shadow-sm disabled:opacity-50"
+              >
+                {saving ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {saving ? 'Saving...' : 'Save Settings'}
+              </button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
 
     </div>
   );

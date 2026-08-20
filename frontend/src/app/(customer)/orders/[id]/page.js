@@ -29,9 +29,6 @@ export default function OrderDetailPage() {
   
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [review, setReview] = useState('');
-  const [rating, setRating] = useState(0);
-  const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
   // Partial Refund State
   const [showRefundModal, setShowRefundModal] = useState(false);
@@ -65,10 +62,6 @@ export default function OrderDetailPage() {
     try {
       const data = await orderAPI.getById(id);
       setOrder(data.data);
-      if (data.data.rating) {
-        setRating(data.data.rating);
-        setRatingSubmitted(true);
-      }
     } catch (err) {
       showToast('Failed to load order detail', 'error');
     } finally {
@@ -120,16 +113,6 @@ export default function OrderDetailPage() {
     }
   };
 
-  const handleSubmitRating = async () => {
-    if (!rating) return;
-    try {
-      await orderAPI.rate(id, { rating, review });
-      setRatingSubmitted(true);
-      showToast('Thank you for rating your order!', 'success');
-    } catch (err) {
-      showToast(err.message || 'Failed to submit rating', 'error');
-    }
-  };
 
   if (loading) return <Loading />;
   if (!order) {
@@ -182,46 +165,6 @@ export default function OrderDetailPage() {
             {/* Delivery/Map details */}
             <DeliveryInfoCard order={order} />
 
-            {/* Rating card (shown when delivered) */}
-            {order.status === 'delivered' && (
-              <div className="rounded-2xl border border-[#e5e7eb] bg-[#ffffff] p-6 shadow-sm space-y-4">
-                <h3 className="text-[18px] font-bold font-serif text-[#1a1a1a]">
-                  {ratingSubmitted ? 'Your Feedback' : 'Rate Your Order'}
-                </h3>
-                
-                <div className="flex items-center gap-4">
-                  <StarRating rating={rating} interactive={!ratingSubmitted} onChange={setRating} size="lg" />
-                  <span className="text-[14px] font-bold text-[#4b5563]">
-                    {rating > 0 ? `${rating}/5 Stars` : 'Tap stars to rate'}
-                  </span>
-                </div>
-
-                {!ratingSubmitted && (
-                  <div className="space-y-3 pt-2">
-                    <textarea
-                      value={review}
-                      onChange={(e) => setReview(e.target.value)}
-                      placeholder="Share your dining experience with us..."
-                      className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] p-3.5 text-[14px] text-[#1a1a1a] placeholder-[#9ca3af] focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors resize-none h-24"
-                    />
-                    <button
-                      onClick={handleSubmitRating}
-                      disabled={!rating}
-                      className="bg-[#7a0b10] text-[#ffffff] hover:bg-[#5e080c] disabled:opacity-50 disabled:cursor-not-allowed font-bold text-[12px] uppercase tracking-wider px-6 py-2.5 rounded-lg transition-colors"
-                    >
-                      Submit Rating
-                    </button>
-                  </div>
-                )}
-
-                {ratingSubmitted && order.restaurantReply && (
-                  <div className="p-4 bg-[#fffcfb] border border-[#f5ebe9] rounded-xl mt-2 animate-in fade-in duration-300">
-                    <span className="text-[12px] font-bold text-[#7a0b10] block mb-1">Restaurant Response:</span>
-                    <p className="text-[14px] text-[#4b5563] italic">"{order.restaurantReply}"</p>
-                  </div>
-                )}
-              </div>
-            )}
 
           </div>
 

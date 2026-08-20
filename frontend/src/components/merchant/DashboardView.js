@@ -112,11 +112,6 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
     .sort((a,b) => new Date(a.eventDate || a.date || Date.now()) - new Date(b.eventDate || b.date || Date.now()))
     .slice(0, 3);
 
-  const recentReviews = (orders || [])
-    .filter(o => o.rating)
-    .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .slice(0, 2);
-
   return (
     <div className="space-y-6 pb-10">
       
@@ -463,36 +458,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
           <button onClick={() => onViewAll && onViewAll('catering')} className="text-xs font-extrabold text-[#991b1b] hover:underline flex items-center gap-1 mt-4">View Schedule <ArrowRight className="w-3 h-3"/></button>
         </div>
 
-        {/* Recent Customer Reviews */}
-        <div className="bg-white border border-[#e5e7eb] rounded-xl p-5 shadow-sm">
-          <div className="flex justify-between items-center mb-5">
-            <h3 className="text-[13px] font-extrabold text-[#111827] uppercase tracking-wider">Recent Customer Reviews</h3>
-          </div>
-          <div className="space-y-4">
-            {recentReviews.map((r, i) => (
-              <div key={i} className="flex items-start gap-2 border-b border-[#f3f4f6] pb-3 last:border-0 last:pb-0">
-                <div className="w-6 h-6 rounded-full bg-[#f3f4f6] text-[#6b7280] flex items-center justify-center shrink-0"><User className="w-3 h-3"/></div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-center">
-                    <div className="flex text-[#f59e0b]">
-                      {[...Array(5)].map((_, j) => <Star key={j} className={`w-2.5 h-2.5 ${j < (r.rating||5) ? 'fill-current' : 'text-[#e5e7eb]'}`} />)}
-                    </div>
-                    <span className="text-xs font-bold text-[#6b7280]">{new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                  </div>
-                  <p className="text-xs font-medium text-[#374151] mt-1 leading-tight line-clamp-2">{r.review || 'Good service.'}</p>
-                  <p className="text-xs font-bold text-[#9ca3af] mt-1">- {r.customerName || 'Guest'}</p>
-                </div>
-              </div>
-            ))}
-            {recentReviews.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-8 border border-dashed border-[#e5e7eb] rounded-xl bg-[#f9fafb]">
-                <Star className="w-8 h-8 text-[#d1d5db] mb-2" />
-                <p className="text-xs font-bold text-[#9ca3af]">No recent reviews</p>
-              </div>
-            )}
-          </div>
-          <button onClick={() => onViewAll && onViewAll('analytics')} className="text-xs font-extrabold text-[#991b1b] hover:underline flex items-center gap-1 mt-4">All Reviews <ArrowRight className="w-3 h-3"/></button>
-        </div>
+
 
         {/* Quick Stats */}
         <div className="bg-white border border-[#e5e7eb] rounded-xl p-5 shadow-sm flex flex-col">
@@ -506,13 +472,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
               <span className="text-xs font-black text-[#111827]">${(analyticsData?.summary?.aov || 0).toFixed(2)}</span>
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#374151]">
-                <div className="w-6 h-6 rounded bg-[#fefce8] text-[#ca8a04] flex items-center justify-center"><Star className="w-3.5 h-3.5"/></div>
-                Rating (Average)
-              </div>
-              <span className="text-xs font-black text-[#111827]">{restaurant?.rating?.toFixed(1) || '0.0'} / 5</span>
-            </div>
+
           </div>
           
           <div className="mt-4 pt-4 border-t border-[#f3f4f6]">

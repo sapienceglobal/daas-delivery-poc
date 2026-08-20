@@ -2,6 +2,7 @@
 
 import { MapPin, ShoppingCart, Gift, CreditCard, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useBrand } from '@/context/BrandContext';
 
 export default function DashboardTab({ user, onNavigate }) {
   const router = useRouter();
@@ -10,6 +11,8 @@ export default function DashboardTab({ user, onNavigate }) {
   const points = user?.loyaltyPoints || 0;
   const defaultAddress = user?.savedAddresses?.find(a => a.isDefault) || user?.savedAddresses?.[0];
   const savedCardsCount = user?.savedCards?.length || 0;
+  const { brand } = useBrand();
+  const isLoyaltyEnabled = brand?.loyaltySettings?.enabled !== false;
 
   return (
     <div className="space-y-6">
@@ -22,8 +25,9 @@ export default function DashboardTab({ user, onNavigate }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Loyalty Points */}
-        <div 
-          onClick={() => onNavigate('loyalty')}
+        {isLoyaltyEnabled && (
+          <div 
+            onClick={() => onNavigate('loyalty')}
           className="bg-white rounded-2xl p-4 sm:p-6 border border-[#eadfdb] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#b47b80] transition-colors group"
         >
           <div className="flex items-center gap-4">
@@ -37,6 +41,7 @@ export default function DashboardTab({ user, onNavigate }) {
           </div>
           <ChevronRight className="h-5 w-5 text-[#9ca3af] group-hover:text-[#7a0b10] transition-colors" />
         </div>
+        )}
 
         {/* Orders */}
         <div 

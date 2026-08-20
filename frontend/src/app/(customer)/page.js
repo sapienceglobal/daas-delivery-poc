@@ -221,7 +221,6 @@ export default function HomePage() {
         <span className="text-xs font-semibold text-brand-muted uppercase tracking-wider mr-2">Sort:</span>
         {[
           { label: 'Featured', value: '', icon: Sparkles },
-          { label: 'Top Rated', value: 'rating', icon: Star },
           { label: 'Newest', value: 'newest', icon: TrendingUp },
           { label: 'Name', value: 'name', icon: null },
         ].map(opt => (
@@ -325,14 +324,6 @@ function RestaurantCard({ restaurant, user, isAuthenticated, updateUser }) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-brand-bg/80 via-transparent to-transparent" />
 
-          {/* Rating badge */}
-          {isActive && (
-            <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-brand-bg/80 backdrop-blur-sm px-2.5 py-1 border border-brand-border">
-              <Star className="h-3 w-3 fill-brand-yellow text-brand-yellow" />
-              <span className="text-xs font-bold text-brand-text">{restaurant.rating?.toFixed(1) || '0.0'}</span>
-              <span className="text-[10px] text-brand-muted">({restaurant.reviewCount || 0})</span>
-            </div>
-          )}
 
           {/* Offline/Inactive Overlay Badge */}
           {!isActive && (

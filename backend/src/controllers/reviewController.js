@@ -6,6 +6,29 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
 
+/**
+ * Recalculates and updates the averageRating and reviewCount on a MenuItem
+ */
+const updateMenuItemStats = async (itemId) => {
+  if (!itemId) return;
+  const stats = await Review.aggregate([
+    { $match: { itemId: itemId, isVisible: true } },
+    { $group: { _id: null, avg: { $avg: '$overallRating' }, count: { $sum: 1 } } }
+  ]);
+
+  if (stats.length > 0) {
+    await MenuItem.findByIdAndUpdate(itemId, {
+      averageRating: Math.round(stats[0].avg * 10) / 10,
+      reviewCount: stats[0].count
+    });
+  } else {
+    await MenuItem.findByIdAndUpdate(itemId, {
+      averageRating: 0,
+      reviewCount: 0
+    });
+  }
+};
+
 export const getRestaurantReviews = asyncHandler(async (req, response) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, parseInt(req.query.limit) || 20);
@@ -128,6 +151,7 @@ export const createReview = asyncHandler(async (req, response) => {
       if (images) existingReview.images = images;
       await existingReview.save();
       await existingReview.populate('userId', 'name avatar');
+      await updateMenuItemStats(itemId);
 
       return res.success(response, { data: existingReview, message: 'Review updated successfully' });
     }
@@ -166,6 +190,10 @@ export const createReview = asyncHandler(async (req, response) => {
     }
   }
 
+  if (finalItemId) {
+    await updateMenuItemStats(finalItemId);
+  }
+
   res.created(response, { data: review, message: 'Review submitted successfully' });
 });
 
@@ -189,6 +217,9 @@ export const updateReview = asyncHandler(async (req, response) => {
 
   await review.save();
   await review.populate('userId', 'name avatar');
+  if (review.itemId) {
+    await updateMenuItemStats(review.itemId);
+  }
 
   res.success(response, { data: review, message: 'Review updated successfully' });
 });
@@ -204,6 +235,10 @@ export const deleteReview = asyncHandler(async (req, response) => {
   }
 
   await Review.findByIdAndDelete(id);
+
+  if (review.itemId) {
+    await updateMenuItemStats(review.itemId);
+  }
 
   res.success(response, { message: 'Review deleted successfully' });
 });

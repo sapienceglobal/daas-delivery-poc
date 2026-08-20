@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
@@ -42,16 +43,18 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline, color: AppColors.primary),
-            onPressed: () {},
+            onPressed: () => _showRulesInfoDialog(context),
           ),
         ],
       ),
-      body: Consumer2<LoyaltyProvider, AuthProvider>(
-        builder: (context, loyalty, auth, child) {
+      body: Consumer3<LoyaltyProvider, AuthProvider, RestaurantProvider>(
+        builder: (context, loyalty, auth, restProv, child) {
           final user = auth.user;
           final firstName = user?.name.split(' ').first ?? 'Guest';
           final balance = loyalty.currentBalance;
           final isLoading = loyalty.isLoading && loyalty.transactions.isEmpty;
+          final centsPerPoint = restProv.restaurant?['loyaltySettings']?['centsPerPoint'] ?? 1;
+          final minMultiplier = restProv.restaurant?['loyaltySettings']?['minimumOrderMultiplier'] ?? 3;
 
           if (isLoading) {
             return const Center(child: CircularProgressIndicator(color: AppColors.primary));
@@ -66,9 +69,9 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildWelcomeHeader(firstName, balance),
+                _buildWelcomeHeader(firstName, balance, centsPerPoint),
                 _buildProgressSection(balance),
-                _buildRedeemSection(loyalty),
+                _buildRedeemSection(loyalty, centsPerPoint, minMultiplier),
                 _buildMyCouponsSection(loyalty),
                 _buildHowToEarnSection(loyalty),
                 _buildRecentActivitySection(loyalty.transactions),
@@ -241,7 +244,7 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
     );
   }
 
-  Widget _buildWelcomeHeader(String name, int balance) {
+  Widget _buildWelcomeHeader(String name, int balance, dynamic centsPerPoint) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -284,7 +287,7 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Text('= \$${(balance / 100).toStringAsFixed(2)} off on your next order', style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
+                        Text('= \$${((balance * centsPerPoint) / 100).toStringAsFixed(2)} off on your next order', style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
                       ],
                     ),
                   ),
@@ -410,11 +413,11 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
     );
   }
 
-  Widget _buildRedeemSection(LoyaltyProvider loyalty) {
+  Widget _buildRedeemSection(LoyaltyProvider loyalty, dynamic centsPerPoint, dynamic minMultiplier) {
     final rewards = [
-      {'points': 100, 'off': 10, 'min': 50, 'color': Colors.blue},
-      {'points': 250, 'off': 25, 'min': 100, 'color': Colors.purple},
-      {'points': 500, 'off': 50, 'min': 150, 'color': Colors.orange},
+      {'points': 100, 'off': (100 * centsPerPoint) / 100, 'min': ((100 * centsPerPoint) / 100) * minMultiplier, 'color': Colors.blue},
+      {'points': 250, 'off': (250 * centsPerPoint) / 100, 'min': ((250 * centsPerPoint) / 100) * minMultiplier, 'color': Colors.purple},
+      {'points': 500, 'off': (500 * centsPerPoint) / 100, 'min': ((500 * centsPerPoint) / 100) * minMultiplier, 'color': Colors.orange},
     ];
 
     return Padding(
@@ -428,7 +431,7 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 180,
+            height: 220,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -447,27 +450,28 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.monetization_on, color: color, size: 18),
-                          const SizedBox(width: 4),
-                          Text(reward['points'].toString(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: color)),
-                        ],
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.monetization_on, color: Colors.amber, size: 20),
                       ),
                       const SizedBox(height: 12),
-                      Text('\$${reward['off']} OFF', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(reward['points'].toString(), style: TextStyle(color: color.shade700, fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 4),
+                      Text('\$${(reward['off'] as num).toStringAsFixed(2)} OFF', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87)),
                       const SizedBox(height: 4),
                       Text('Min order \$${reward['min']}', style: TextStyle(color: Colors.grey.shade700, fontSize: 10)),
                       const SizedBox(height: 12),
                       ElevatedButton(
                         onPressed: canRedeem ? () async {
-                          final res = await loyalty.redeemPoints(reward['points'] as int, reward['off'] as int);
+                          final res = await loyalty.redeemPoints(reward['points'] as int, (reward['off'] as num).toInt());
                           if (res['success'] && context.mounted) {
                             final couponCode = res['couponCode'] as String?;
-                            _showRedeemSuccessDialog(context, couponCode ?? '', reward['off'] as int);
+                            _showRedeemSuccessDialog(context, couponCode ?? '', (reward['off'] as num).toInt());
                           } else if (context.mounted) {
                             ToastUtils.showError(context, res['message'] ?? 'Failed');
                           }
@@ -917,7 +921,9 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
           ),
           const SizedBox(width: 12),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              ToastUtils.showInfo(context, 'This feature is coming soon!');
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -929,6 +935,53 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showRulesInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.info_outline, color: AppColors.primary),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Program Rules',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'How it works:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '• You earn points on every eligible order.\n'
+                '• Points can be redeemed for exclusive discounts.\n\n'
+                'Please note: The restaurant reserves the right to modify the points required for rewards, or the value of points, at any time without prior notice. '
+                'However, any coupons or rewards you have already redeemed will remain valid until their expiration date.',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade800, height: 1.4),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Got it', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
     );
   }
 }

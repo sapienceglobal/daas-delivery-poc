@@ -196,6 +196,25 @@ export function useCheckoutState() {
     }
   }, [subtotal, restaurant?._id, couponApplied]);
 
+  useEffect(() => {
+    if (couponApplied && couponCode && subtotal > 0 && restaurant?._id) {
+      const revalidate = async () => {
+        try {
+          const data = await couponAPI.validate(couponCode, subtotal, restaurant._id);
+          if (data.data && typeof data.data.discount === 'number') {
+             setCouponDiscount(data.data.discount);
+          }
+        } catch (err) {
+          showToast('Coupon removed: Cart total no longer meets requirements', 'error');
+          setCouponApplied(false);
+          setCouponDiscount(0);
+          setCouponCode('');
+        }
+      };
+      revalidate();
+    }
+  }, [subtotal, restaurant?._id, couponCode, couponApplied]);
+
   const handleSelectSavedAddress = (addrObj) => {
     if (!addrObj.address) return;
 

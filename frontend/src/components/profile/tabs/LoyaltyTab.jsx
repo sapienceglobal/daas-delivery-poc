@@ -5,15 +5,11 @@ import { Gift, Copy, CheckCircle, Ticket, Coins, Award, Sparkles, UserPlus, Info
 import { loyaltyAPI, couponAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
-
-const REWARDS = [
-  { points: 100, off: 10, min: 50, color: 'from-[#7a0b10] to-[#5a060a]' },
-  { points: 250, off: 25, min: 100, color: 'from-[#e8a020] to-[#c28416]' },
-  { points: 500, off: 50, min: 150, color: 'from-[#1a1a1a] to-[#000000]' },
-];
+import { useBrand } from '@/context/BrandContext';
 
 export default function LoyaltyTab({ user }) {
   const { isAuthenticated } = useAuth();
+  const { brand } = useBrand();
   const [loading, setLoading] = useState(true);
   const [redeeming, setRedeeming] = useState(false);
   const [redeemingPoints, setRedeemingPoints] = useState(null);
@@ -24,6 +20,7 @@ export default function LoyaltyTab({ user }) {
   const [copiedCode, setCopiedCode] = useState(null);
   const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [confirmReward, setConfirmReward] = useState(null);
+  const [showRulesModal, setShowRulesModal] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -187,7 +184,14 @@ export default function LoyaltyTab({ user }) {
   const isMember = history?.isLoyaltyMember;
   const currentPoints = history?.currentBalance || 0;
   const tier = history?.tier || 'BRONZE';
-  const nextReward = isMember ? REWARDS.find(r => r.points > currentPoints) : null;
+  const centsPerPoint = brand?.loyaltySettings?.centsPerPoint ?? 1;
+  const minMultiplier = brand?.loyaltySettings?.minimumOrderMultiplier ?? 3;
+  const dynamicRewards = [
+    { points: 100, off: (100 * centsPerPoint) / 100, min: ((100 * centsPerPoint) / 100) * minMultiplier, color: 'from-[#7a0b10] to-[#5a060a]' },
+    { points: 250, off: (250 * centsPerPoint) / 100, min: ((250 * centsPerPoint) / 100) * minMultiplier, color: 'from-[#e8a020] to-[#c28416]' },
+    { points: 500, off: (500 * centsPerPoint) / 100, min: ((500 * centsPerPoint) / 100) * minMultiplier, color: 'from-[#1a1a1a] to-[#000000]' },
+  ];
+  const nextReward = isMember ? dynamicRewards.find(r => r.points > currentPoints) : null;
 
   return (
     <div className="space-y-12 pb-12 animate-in fade-in zoom-in-95 duration-300">
@@ -212,7 +216,12 @@ export default function LoyaltyTab({ user }) {
               <div className="w-full md:w-px h-px md:h-20 bg-[#eadfdb] hidden md:block"></div>
 
               <div className="text-center md:text-right flex-1">
-                <p className="text-[#6b7280] text-[11px] uppercase tracking-widest font-black mb-1">Available Points</p>
+                <div className="flex items-center justify-center md:justify-end gap-1 mb-1">
+                  <p className="text-[#6b7280] text-[11px] uppercase tracking-widest font-black">Available Points</p>
+                  <button onClick={() => setShowRulesModal(true)} className="text-[#9ca3af] hover:text-[#7a0b10] transition-colors p-1.5 -m-1.5 rounded-full hover:bg-gray-100">
+                    <Info className="w-4 h-4" />
+                  </button>
+                </div>
                 <div className="flex items-center justify-center md:justify-end gap-3">
                   <h2 className="text-5xl font-black text-[#7a0b10]">{currentPoints}</h2>
                   <Coins className="w-10 h-10 text-[#e8a020]" />
@@ -224,7 +233,7 @@ export default function LoyaltyTab({ user }) {
               <div>
                 <h3 className="text-2xl font-black font-serif text-[#1a1a1a] mb-2">Join Lassi Rewards Today!</h3>
                 <p className="text-[#4b5563] text-sm font-medium max-w-md">
-                  Start earning points on every order. {REWARDS[0].points} points = ${REWARDS[0].off} off your next order. It's completely free to join.
+                  Start earning points on every order. {dynamicRewards[0].points} points = ${dynamicRewards[0].off} off your next order. It's completely free to join.
                 </p>
               </div>
               <button
@@ -287,17 +296,22 @@ export default function LoyaltyTab({ user }) {
                 <Gift className="text-[#7a0b10] w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-2xl font-black font-serif text-[#1a1a1a]">Redeem Points</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-2xl font-black font-serif text-[#1a1a1a]">Redeem Points</h3>
+                  <button onClick={() => setShowRulesModal(true)} className="text-[#9ca3af] hover:text-[#7a0b10] transition-colors p-1 rounded-full hover:bg-gray-100" title="View Program Rules">
+                    <Info className="w-5 h-5" />
+                  </button>
+                </div>
                 <p className="text-[#6b7280] text-sm font-medium mt-1">Turn your points into delicious discounts.</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {REWARDS.map((reward, idx) => {
-                const canAfford = currentPoints >= reward.points;
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {dynamicRewards.map((reward, i) => {
+              const canRedeem = currentPoints >= reward.points;
                 const isRedeemingThis = redeemingPoints === reward.points;
                 return (
-                  <div key={idx} className={`relative bg-white rounded-2xl p-6 lg:p-8 border transition-all flex flex-col items-center text-center ${canAfford ? 'border-[#eadfdb] shadow-md hover:-translate-y-1' : 'border-[#eadfdb]/50 opacity-80'}`}>
+                  <div key={i} className={`relative bg-white rounded-2xl p-6 lg:p-8 border transition-all flex flex-col items-center text-center ${canRedeem ? 'border-[#eadfdb] shadow-md hover:-translate-y-1' : 'border-[#eadfdb]/50 opacity-80'}`}>
                     <div className={`w-16 h-16 rounded-2xl mb-6 flex items-center justify-center text-white bg-gradient-to-br shadow-sm ${reward.color}`}>
                       <Gift className="w-8 h-8" />
                     </div>
@@ -310,9 +324,9 @@ export default function LoyaltyTab({ user }) {
                       </span>
                       <button
                         onClick={() => handleRedeemClick(reward)}
-                        disabled={!canAfford || redeeming}
+                        disabled={!canRedeem || redeeming}
                         className={`px-6 py-2.5 rounded-lg font-black text-[13px] uppercase tracking-widest transition-colors whitespace-nowrap ${
-                          canAfford
+                          canRedeem
                             ? 'bg-[#1a1a1a] hover:bg-[#333] text-white shadow-sm'
                             : 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed'
                         }`}
@@ -323,7 +337,7 @@ export default function LoyaltyTab({ user }) {
                       </button>
                     </div>
 
-                    {!canAfford && (
+                    {!canRedeem && (
                       <div className="absolute top-0 right-0 -mt-3 -mr-3 text-[10px] font-black uppercase tracking-widest text-[#7a0b10] bg-[#fce3e4] border border-[#f5c2c4] px-3 py-1.5 rounded-full shadow-sm">
                         Need {reward.points - currentPoints} more
                       </div>
@@ -502,6 +516,41 @@ export default function LoyaltyTab({ user }) {
                   Confirm
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showRulesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowRulesModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-[#eadfdb] flex items-center justify-between">
+              <h3 className="text-lg font-black font-serif text-[#1a1a1a] flex items-center gap-2">
+                <Info className="w-5 h-5 text-[#7a0b10]" /> Program Rules
+              </h3>
+              <button onClick={() => setShowRulesModal(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="prose prose-sm text-gray-600">
+                <p className="font-medium text-gray-800 mb-4">{brand?.loyaltySettings?.termsAndConditions}</p>
+                <ul className="space-y-3 mb-6 list-none p-0">
+                  <li className="flex gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#7a0b10] mt-2 shrink-0" />Points have no cash value and cannot be exchanged for cash.</li>
+                  <li className="flex gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#7a0b10] mt-2 shrink-0" />Coupons must meet the minimum order requirement to be applied.</li>
+                  <li className="flex gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#7a0b10] mt-2 shrink-0" />Only one coupon can be used per order.</li>
+                </ul>
+                <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 flex gap-3">
+                  <Info className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
+                  <p className="text-[13px] text-orange-800 font-medium leading-relaxed m-0">
+                    <strong>Note:</strong> We reserve the right to modify the loyalty rules, point values, or minimum order multipliers at any time. However, any previously redeemed coupons will remain valid according to the terms active when they were claimed!
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 border-t border-[#eadfdb] bg-gray-50 flex justify-end">
+              <button onClick={() => setShowRulesModal(false)} className="px-6 py-2 bg-[#7a0b10] text-white text-sm font-bold rounded-lg hover:bg-[#5a060a] transition-colors">
+                Got it
+              </button>
             </div>
           </div>
         </div>

@@ -244,16 +244,6 @@ export default function DishGrid({
                     {item.name}
                   </h3>
 
-                  {/* Rating */}
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex text-[#e8a020]">
-                      {[...Array(4)].map((_, i) => (
-                        <Star key={i} className="h-[13px] w-[13px] fill-current" />
-                      ))}
-                      <Star className="h-[13px] w-[13px] fill-[#e5e7eb] text-[#e5e7eb]" />
-                    </div>
-                    <span className="text-[11px] font-bold text-[#6b7280]">4.4 (96)</span>
-                  </div>
 
                   <p className="text-[12px] text-[#4b5563] leading-relaxed line-clamp-2 mt-2.5">
                     {item.description || 'Crispy rolls stuffed with fresh vegetables & served hot.'}

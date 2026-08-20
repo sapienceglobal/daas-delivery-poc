@@ -35,16 +35,6 @@ export default function RecommendationsCarousel({ restaurantId, orderedItemIds =
     }
   };
 
-  // Generate deterministic rating & review count from ObjectId hash
-  const getDeterministicRating = (id) => {
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-      hash = id.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const score = 4.4 + (Math.abs(hash) % 6) / 10;
-    const count = 35 + (Math.abs(hash) % 165);
-    return { rating: score.toFixed(1), reviews: count };
-  };
 
   const handleAdd = (item) => {
     handleAddToCart(item);
@@ -88,7 +78,7 @@ export default function RecommendationsCarousel({ restaurantId, orderedItemIds =
         className="flex gap-6 overflow-x-auto pb-4 scrollbar-none snap-x snap-mandatory"
       >
         {items.map((item) => {
-          const { rating, reviews } = getDeterministicRating(item._id);
+
           const isVeg = item.isVeg || false;
 
           return (
@@ -123,12 +113,6 @@ export default function RecommendationsCarousel({ restaurantId, orderedItemIds =
                     <span className={`w-1.5 h-1.5 rounded-full ${isVeg ? 'bg-[#1fae64]' : 'bg-[#ef4444]'}`}></span>
                   </span>
 
-                  {/* Stars Rating */}
-                  <div className="flex items-center text-[#e8a020]">
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                    <span className="text-[12px] font-bold ml-1 text-[#1a1a1a]">{rating}</span>
-                    <span className="text-[11px] text-[#6b7280] ml-0.5">({reviews})</span>
-                  </div>
                 </div>
 
                 {/* Product details */}

@@ -199,7 +199,8 @@ export const updateRestaurant = asyncHandler(async (req, response) => {
     'acceptsOnlineOrders', 'acceptsDineIn', 'acceptsPickup', 'autoAcceptOrders',
     'preparationTime', 'prepTime', 'currency', 'timezone', 'dateFormat', 
     'timeFormat', 'language', 'enableTips', 'cancellationTime', 
-    'taxType', 'taxRate', 'serviceCharge', 'packagingCharge', 'roundOff', 'logo'
+    'taxType', 'taxRate', 'serviceCharge', 'packagingCharge', 'roundOff', 'logo',
+    'loyaltySettings'
   ];
 
   for (const key of allowed) {

@@ -14,6 +14,7 @@ import 'package:single_restaurant_mobile/providers/order_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
+import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/screens/login_screen.dart';
 import 'package:single_restaurant_mobile/screens/favorites_screen.dart';
 import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
@@ -21,10 +22,12 @@ import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
 import 'package:single_restaurant_mobile/screens/notification_settings_screen.dart';
 import 'package:single_restaurant_mobile/screens/edit_profile_screen.dart';
 import 'package:single_restaurant_mobile/screens/book_table_screen.dart';
+import 'package:single_restaurant_mobile/screens/about_us_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -35,10 +38,12 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _picker = ImagePicker();
+  String _appVersion = '1.0.0';
 
   @override
   void initState() {
     super.initState();
+    _loadAppVersion();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       authProvider.fetchUser();
@@ -46,6 +51,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Provider.of<OrderProvider>(context, listen: false).fetchMyOrders(silent: true);
       }
     });
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final PackageInfo info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = info.version;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load app version: $e');
+    }
   }
 
   Future<void> _pickAndUploadImage(AuthProvider authProvider) async {
@@ -88,7 +106,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: AppColors.secondary),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationSettingsScreen()));
+            },
           ),
           const SizedBox(width: 8),
         ],
@@ -354,13 +374,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
             );
           }),
           const Divider(height: 1, indent: 64),
-          _buildMenuItem(Icons.workspace_premium_outlined, 'Loyalty & Rewards', 'Points, Offers & Benefits', onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const LoyaltyScreen()),
-            );
-          }),
-          const Divider(height: 1, indent: 64),
+          Consumer<RestaurantProvider>(
+            builder: (context, restProv, _) {
+              final isLoyaltyEnabled = restProv.restaurant?['loyaltySettings']?['enabled'] ?? true;
+              if (!isLoyaltyEnabled) return const SizedBox.shrink();
+              return Column(
+                children: [
+                  _buildMenuItem(Icons.workspace_premium_outlined, 'Loyalty & Rewards', 'Points, Offers & Benefits', onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoyaltyScreen()),
+                    );
+                  }),
+                  const Divider(height: 1, indent: 64),
+                ],
+              );
+            },
+          ),
           _buildMenuItem(Icons.card_giftcard_outlined, 'Invite & Earn', 'Invite friends & earn rewards', onTap: () {
             Navigator.push(
               context,
@@ -386,7 +416,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             OtaUpdateService().checkForUpdate(context, isManual: true);
           }),
           const Divider(height: 1, indent: 64),
-          _buildMenuItem(Icons.info_outline, 'About Lassi Lounge', 'Version 1.0.0'),
+          _buildMenuItem(Icons.info_outline, 'About Lassi Lounge', 'Version $_appVersion', onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AboutUsScreen()),
+            );
+          }),
         ],
       ),
     );
@@ -440,7 +475,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(width: 8),
           OutlinedButton(
-            onPressed: () {},
+            onPressed: () {
+              _showGoGreenBottomSheet(context);
+            },
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Colors.green),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
@@ -456,25 +493,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildLogoutButton(BuildContext context, AuthProvider authProvider) {
     return InkWell(
-      onTap: () async {
-        // Industry standard: Clear ALL user-specific state before navigating away.
-        // This prevents stale data (addresses, orders, cart, loyalty) from a previous
-        // account from being visible if a different user logs in on the same device.
-        if (context.mounted) {
-          Provider.of<CartProvider>(context, listen: false).clearCart();
-          Provider.of<AddressProvider>(context, listen: false).clear();
-          Provider.of<OrderProvider>(context, listen: false).clear();
-          Provider.of<LoyaltyProvider>(context, listen: false).clear();
-          Provider.of<CheckoutProvider>(context, listen: false).reset();
-          Provider.of<NotificationProvider>(context, listen: false).clear();
-        }
-        await authProvider.logout();
-        if (context.mounted) {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-            (route) => false,
-          );
-        }
+      onTap: () {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            bool isLoggingOut = false;
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return AlertDialog(
+                  title: const Text('Confirm Logout', style: TextStyle(fontWeight: FontWeight.bold)),
+                  content: const Text('Are you sure you want to log out of your account?'),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  actions: [
+                    TextButton(
+                      onPressed: isLoggingOut ? null : () => Navigator.pop(context),
+                      child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                    ),
+                    ElevatedButton(
+                      onPressed: isLoggingOut
+                          ? null
+                          : () async {
+                              setState(() {
+                                isLoggingOut = true;
+                              });
+                              if (context.mounted) {
+                                Provider.of<CartProvider>(context, listen: false).clearCart();
+                                Provider.of<AddressProvider>(context, listen: false).clear();
+                                Provider.of<OrderProvider>(context, listen: false).clear();
+                                Provider.of<LoyaltyProvider>(context, listen: false).clear();
+                                Provider.of<CheckoutProvider>(context, listen: false).reset();
+                                Provider.of<NotificationProvider>(context, listen: false).clear();
+                              }
+                              await authProvider.logout();
+                              if (context.mounted) {
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                                  (route) => false,
+                                );
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.secondary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: isLoggingOut
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Text('Logout', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -483,16 +559,78 @@ class _ProfileScreenState extends State<ProfileScreen> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.secondary.withOpacity(0.5)),
         ),
-        child: authProvider.isLoading 
-          ? const Center(child: CircularProgressIndicator(color: AppColors.secondary))
-          : const Row(
+        child: const Row(
+          children: [
+            Icon(Icons.logout, color: AppColors.secondary, size: 24),
+            SizedBox(width: 16),
+            Expanded(child: Text('Logout', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 16))),
+            Icon(Icons.chevron_right, color: AppColors.secondary, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showGoGreenBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
               children: [
-                Icon(Icons.logout, color: AppColors.secondary, size: 24),
-                SizedBox(width: 16),
-                Expanded(child: Text('Logout', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold, fontSize: 16))),
-                Icon(Icons.chevron_right, color: AppColors.secondary, size: 20),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Colors.green.shade50, shape: BoxShape.circle),
+                  child: const Icon(Icons.eco, color: Colors.green, size: 28),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Text('Our Go Green Initiative', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                ),
               ],
             ),
+            const SizedBox(height: 16),
+            const Text(
+              'We are committed to reducing our carbon footprint. By opting for eco-friendly packaging and no-contact delivery, you help us save trees, reduce plastic waste, and promote a sustainable future.',
+              style: TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Thank you for joining us in making the world a greener place!',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green, height: 1.5),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Got it!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

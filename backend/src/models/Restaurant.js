@@ -182,6 +182,18 @@ const RestaurantSchema = new mongoose.Schema({
   autoAcceptOrders: { type: Boolean, default: false },
   preparationTime: { type: Number, default: 20 },  // default prep minutes
   
+  // ── Loyalty Program Settings ────────────────────────────────────────────
+  loyaltySettings: {
+    enabled: { type: Boolean, default: true },
+    pointsPerDollar: { type: Number, default: 1 },
+    centsPerPoint: { type: Number, default: 1 },
+    minimumOrderMultiplier: { type: Number, default: 3 },
+    termsAndConditions: { 
+      type: String, 
+      default: 'Earn 1 point for every $1 spent. 100 points = $1 off your next order.' 
+    }
+  },
+  
 
   // ── Stripe ────────────────────────────────────────────────────────────
   stripeAccountId: { type: String, default: null }

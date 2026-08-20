@@ -214,21 +214,20 @@ export const redeemPoints = asyncHandler(async (req, response) => {
     throw new AppError('Invalid redemption request', 400);
   }
 
-  // Enforce Industry Standards
-  const MIN_POINTS = 50;
-  const MAX_POINTS = 500;
-  const POINTS_TO_DOLLAR_RATIO = 10; // 10 points = $1
-
-  if (points < MIN_POINTS) {
-    throw new AppError(`You must redeem at least ${MIN_POINTS} points ($${MIN_POINTS / POINTS_TO_DOLLAR_RATIO} discount)`, 400);
-  }
-  if (points > MAX_POINTS) {
-    throw new AppError(`You can redeem a maximum of ${MAX_POINTS} points per transaction`, 400);
-  }
+  const Restaurant = req.getModel('Restaurant');
+  const restaurant = await Restaurant.findOne();
   
-  const calculatedDiscount = points / POINTS_TO_DOLLAR_RATIO;
+  const loyaltySettings = restaurant?.loyaltySettings || { enabled: true, centsPerPoint: 1 };
+  
+  if (loyaltySettings.enabled === false) {
+    throw new AppError('The loyalty program is currently disabled', 400);
+  }
+
+  // Calculate discount using the dynamic conversion rate
+  const calculatedDiscount = (points * loyaltySettings.centsPerPoint) / 100;
+  
   if (expectedDiscount !== calculatedDiscount) {
-    throw new AppError(`Discount calculation mismatch. Expected $${calculatedDiscount} but got $${expectedDiscount}`, 400);
+    throw new AppError(`Discount calculation mismatch. Expected $${calculatedDiscount.toFixed(2)} but got $${expectedDiscount.toFixed(2)}`, 400);
   }
 
   if (user.loyaltyPoints < points) {
@@ -245,11 +244,16 @@ export const redeemPoints = asyncHandler(async (req, response) => {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 30);
 
+  // Calculate the required minimum order value based on the multiplier
+  const minMultiplier = loyaltySettings.minimumOrderMultiplier ?? 3;
+  const minCartValue = expectedDiscount * minMultiplier;
+
   const coupon = await Coupon.create({
     code: couponCode,
     description: `Redeemed ${points} Loyalty Points for $${expectedDiscount} OFF`,
     type: 'flat',
     value: expectedDiscount,
+    minCartValue: minCartValue,
     maxUses: 1,
     maxUsesPerUser: 1,
     isActive: true,

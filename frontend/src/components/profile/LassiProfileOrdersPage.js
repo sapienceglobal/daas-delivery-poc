@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { orderAPI, authAPI, loyaltyAPI } from '@/lib/api';
 import { useCart } from '@/context/CartContext';
+import { useBrand } from '@/context/BrandContext';
 import { showToast, Modal, Button, Input } from '@/components/ui';
 
 // ── Dish Image Fallback Mapper ──────────────────────────────────────────────
@@ -363,6 +364,12 @@ function ProfileHero({ activeNav }) {
 // ── 2. Account Sidebar ──────────────────────────────────────────────────────
 function AccountSidebar({ user, activeNav, onNavClick, onOrderNow }) {
   const points = user?.loyaltyPoints ?? 0;
+  const { brand } = useBrand();
+  const isLoyaltyEnabled = brand?.loyaltySettings?.enabled !== false;
+  
+  const visibleNavItems = navItems.filter(item => 
+    item.id !== 'loyalty' || isLoyaltyEnabled
+  );
 
   return (
     <aside className="space-y-5 lg:sticky lg:top-24">
@@ -381,7 +388,7 @@ function AccountSidebar({ user, activeNav, onNavClick, onOrderNow }) {
 
         {/* Navigation Menu */}
         <nav className="p-2 space-y-0.5">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeNav === item.id;
             const badgeValue = item.id === 'loyalty' ? points : item.badge;

@@ -7,25 +7,29 @@ import dynamic from 'next/dynamic';
 const MapLocationPicker = dynamic(() => import('@/components/shared/MapLocationPicker'), {
   ssr: false,
   loading: () => (
-    <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] bg-brand-bg/50 rounded-b-2xl">
-      <Loader2 className="w-8 h-8 text-brand-cyan animate-spin mb-3" />
-      <p className="text-sm font-bold text-brand-muted">Loading Map...</p>
+    <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] bg-gray-50 rounded-b-2xl">
+      <Loader2 className="w-8 h-8 text-[#7a0b10] animate-spin mb-3" />
+      <p className="text-sm font-bold text-gray-500">Loading Map...</p>
     </div>
   )
 });
 
 export default function AddressModal({ isOpen, onClose, onSelect, initialView = 'search' }) {
   const { user } = useAuth();
-  const [view, setView] = useState(initialView); // 'search' | 'map'
-  const [selectedCenter, setSelectedCenter] = useState(null); // { lat, lng }
+  const [view, setView] = useState(initialView);
+  const [selectedCenter, setSelectedCenter] = useState(null);
   
   const [search, setSearch] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  
   const searchTimeout = useRef(null);
   const sessionTokenRef = useRef(null);
   const requestCount = useRef(0);
+
+  const [mounted, setMounted] = useState(false);
+  const [show, setShow] = useState(false);
 
   const getSessionToken = () => {
     if (!sessionTokenRef.current) {
@@ -36,26 +40,22 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
     return sessionTokenRef.current;
   };
 
-  // Animation states
-  const [isMounted, setIsMounted] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-
   useEffect(() => {
+    let timeoutId;
     if (isOpen) {
-      setIsMounted(true);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setIsVisible(true));
-      });
+      setMounted(true);
+      timeoutId = setTimeout(() => setShow(true), 10);
     } else {
-      setIsVisible(false);
-      const timer = setTimeout(() => setIsMounted(false), 300);
-      return () => clearTimeout(timer);
+      setShow(false);
+      timeoutId = setTimeout(() => setMounted(false), 300);
     }
+    return () => clearTimeout(timeoutId);
   }, [isOpen]);
 
   const handleClose = () => {
-    onClose();
+    setShow(false);
     setTimeout(() => {
+      onClose();
       setSearch('');
       setSuggestions([]);
       setView(initialView);
@@ -63,7 +63,6 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
     }, 300);
   };
 
-  // Reset view when modal opens
   useEffect(() => {
     if (isOpen) {
       setView(initialView);
@@ -71,16 +70,15 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
     }
   }, [isOpen, initialView]);
 
-  // Close modal on escape key
   useEffect(() => {
     const handleEsc = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') handleClose();
     };
-    if (isOpen) {
+    if (show) {
       document.addEventListener('keydown', handleEsc);
     }
     return () => document.removeEventListener('keydown', handleEsc);
-  }, [isOpen, onClose]);
+  }, [show]);
 
   const handleSearchChange = (e) => {
     const val = e.target.value;
@@ -118,7 +116,7 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
       try {
         const res = await fetch(`/api/location/place?place_id=${suggestion.place_id}&sessionToken=${sessionTokenRef.current || ''}`);
         const data = await res.json();
-        sessionTokenRef.current = null; // Clear token after place details is fetched
+        sessionTokenRef.current = null;
         if (data.lat && data.lng) {
           setSelectedCenter({ lat: parseFloat(data.lat), lng: parseFloat(data.lng) });
           setView('map');
@@ -157,81 +155,77 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
     setSuggestions([]);
     setView('search');
     setSelectedCenter(null);
-    handleClose();
   };
 
-  if (!isMounted) return null;
+  if (!mounted) return null;
 
   return (
-    <div className={`fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 sm:p-0 transition-opacity duration-300 ease-in-out ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-      {/* Invisible backdrop to catch clicks for closing */}
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-4">
+      {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-transparent"
+        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ease-out ${show ? 'opacity-100' : 'opacity-0'}`}
         onClick={handleClose}
       />
       
-      <div className={`relative w-full max-w-lg bg-white border border-[#eadfdb] rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col h-[85vh] sm:h-[700px] max-h-[85vh] transition-all duration-300 ease-out transform ${isVisible ? 'translate-y-0 scale-100' : 'translate-y-8 sm:translate-y-4 scale-95'}`}>
+      {/* Modal Content */}
+      <div className={`relative z-10 w-full sm:max-w-xl bg-[#fcfbf9] text-[#1a1a1a] sm:rounded-[24px] rounded-t-[24px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[80vh] transition-all duration-300 ease-out ${show ? 'opacity-100 translate-y-0 sm:scale-100' : 'opacity-0 translate-y-8 sm:translate-y-4 sm:scale-95'}`}>
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e5e7eb] bg-white z-10 shadow-sm relative">
+        <div className="flex items-center justify-between px-6 py-5 bg-white z-10">
           <div className="flex items-center gap-3">
             {view === 'map' && (
-              <button type="button" onClick={() => setView('search')} className="p-2 -ml-2 text-[#6b7280] hover:text-[#1a1a1a] hover:bg-gray-100 rounded-full transition-colors">
+              <button onClick={() => setView('search')} className="p-2 -ml-2 text-[#6b7280] hover:text-[#1f2937] hover:bg-[#f3f4f6] rounded-full transition-all">
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            <h2 className="text-xl font-bold text-[#1a1a1a]">
-              {view === 'search' ? 'Select delivery location' : 'Confirm precise location'}
+            <h2 className="text-[20px] font-black text-[#4a0b0d] tracking-tight uppercase">
+              {view === 'search' ? 'Delivery Location' : 'Confirm Location'}
             </h2>
           </div>
           <button 
-            type="button"
             onClick={handleClose}
-            className="p-2 text-[#6b7280] hover:text-[#1a1a1a] hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 text-[#4b5563] hover:text-[#4a0b0d] hover:bg-[#fef2f2] rounded-full transition-all"
           >
-            <X className="h-5 w-5" />
+            <X className="h-6 w-6" strokeWidth={2.5} />
           </button>
         </div>
 
         {view === 'search' ? (
-          <>
-            {/* Search Input */}
-            <div className="p-4 border-b border-[#e5e7eb] bg-gray-50/50">
-              <div className="relative flex items-center bg-white rounded-xl border border-[#e5e7eb] shadow-sm focus-within:border-[#7a0b10] focus-within:ring-1 focus-within:ring-[#7a0b10] transition-all">
-                <Search className="absolute left-4 h-5 w-5 text-[#7a0b10]" />
+          <div className="flex flex-col flex-1 overflow-hidden">
+            {/* Search Input Area */}
+            <div className="px-6 py-5 relative z-50 bg-white border-b border-[#f3f4f6] shadow-sm">
+              <div className="relative flex items-center bg-white rounded-xl border border-[#e5e7eb] focus-within:border-[#4a0b0d] ring-1 ring-transparent focus-within:ring-[#4a0b0d] shadow-sm transition-all overflow-hidden">
+                <Search className="absolute left-4 h-5 w-5 text-[#c67a3f]" />
                 <input
                   type="text"
                   value={search}
                   onChange={handleSearchChange}
-                  placeholder="Search for your city, area, or street..."
-                  className="w-full bg-transparent border-none focus:ring-0 text-[#1a1a1a] placeholder-[#9ca3af] pl-12 pr-12 py-4 text-[15px]"
+                  placeholder="Enter your street and city..."
+                  className="w-full bg-transparent border-transparent !border-none !outline-none focus:ring-0 focus:!border-transparent focus:!outline-none text-[#1f2937] font-semibold pl-12 pr-12 py-4 text-[15px] placeholder:text-[#9ca3af] placeholder:font-normal"
                   autoFocus
                 />
                 {isLoading && (
-                  <Loader2 className="absolute right-4 h-5 w-5 text-[#7a0b10] animate-spin" />
+                  <Loader2 className="absolute right-4 h-5 w-5 text-[#c67a3f] animate-spin" />
                 )}
               </div>
-            </div>
 
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-2 bg-white ll-soft-scroll">
-              
-              {/* Suggestions */}
-              {suggestions.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="px-4 py-2 text-xs font-bold text-[#6b7280] uppercase tracking-wider">Search Results</h3>
-                  <ul className="space-y-1">
+              {/* Autocomplete Suggestions */}
+              {suggestions && suggestions.length > 0 && (
+                <div className="absolute left-6 right-6 top-[calc(100%-8px)] mt-2 rounded-xl border border-[#f3f4f6] bg-white shadow-xl z-[100] overflow-hidden max-h-[260px] overflow-y-auto ll-soft-scroll">
+                  <ul className="divide-y divide-[#f9fafb]">
                     {suggestions.map((s, idx) => (
                       <li key={idx}>
                         <button
                           type="button"
                           onClick={() => handleSuggestionSelect(s)}
-                          className="w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors text-left"
+                          className="w-full flex items-start gap-3 px-5 py-4 hover:bg-[#fff7ed] transition-colors text-left group"
                         >
-                          <MapPin className="h-5 w-5 text-[#7a0b10] mt-0.5 shrink-0" />
-                          <div>
-                            <p className="text-[15px] font-bold text-[#1a1a1a] leading-tight">{s.display_name.split(',')[0]}</p>
-                            <p className="text-[13px] text-[#6b7280] mt-1 truncate">{s.display_name}</p>
+                          <MapPin className="w-5 h-5 text-[#d1d5db] mt-0.5 group-hover:text-[#c67a3f] transition-colors shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-[#1f2937] text-[15px] truncate group-hover:text-[#4a0b0d] transition-colors">
+                              {s.display_name.split(',')[0]}
+                            </p>
+                            <p className="text-sm text-[#6b7280] mt-0.5 truncate">{s.display_name.split(',').slice(1).join(',').trim()}</p>
                           </div>
                         </button>
                       </li>
@@ -239,45 +233,62 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
                   </ul>
                 </div>
               )}
+            </div>
 
+            {/* Scrollable Content (Current location + Saved addresses) */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 ll-soft-scroll">
+              
               {/* Current Location Action */}
-              {!suggestions.length && (
-                <button
-                  type="button"
-                  onClick={handleCurrentLocation}
-                  disabled={isLocating}
-                  className="w-full flex items-center gap-3 px-4 py-4 hover:bg-[#fcedec] rounded-xl transition-colors text-left group mb-2 border border-transparent hover:border-[#7a0b10]/20"
-                >
-                  <Navigation className={`h-5 w-5 text-[#7a0b10] shrink-0 ${isLocating ? 'animate-pulse' : ''}`} />
-                  <div>
-                    <p className="text-[15px] font-bold text-[#7a0b10]">
-                      {isLocating ? 'Locating...' : 'Use current location'}
-                    </p>
-                    <p className="text-[13px] text-[#6b7280] mt-0.5">Using GPS</p>
+              <button
+                onClick={handleCurrentLocation}
+                disabled={isLocating}
+                className="w-full flex items-center justify-between p-4 mb-8 bg-white border border-[#e5e7eb] hover:border-[#c67a3f] rounded-2xl shadow-sm hover:shadow-md transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isLocating ? 'bg-[#ffedd5]' : 'bg-[#fef2f2] group-hover:bg-[#4a0b0d] transition-colors'}`}>
+                    <Navigation className={`h-5 w-5 ${isLocating ? 'text-[#c67a3f] animate-pulse' : 'text-[#4a0b0d] group-hover:text-white transition-colors'}`} />
                   </div>
-                </button>
-              )}
+                  <div className="text-left">
+                    <p className={`text-[15px] font-bold ${isLocating ? 'text-[#c67a3f]' : 'text-[#4a0b0d]'}`}>
+                      {isLocating ? 'Locating...' : 'Use Current Location'}
+                    </p>
+                    <p className="text-xs text-[#6b7280] font-medium mt-0.5">Enable GPS for exact delivery</p>
+                  </div>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-[#f9fafb] flex items-center justify-center group-hover:bg-[#fff7ed] transition-colors">
+                  <ArrowLeft className="w-4 h-4 text-[#9ca3af] rotate-180 group-hover:text-[#c67a3f] transition-colors" />
+                </div>
+              </button>
 
               {/* Saved Addresses */}
-              {!suggestions.length && user?.savedAddresses?.length > 0 && (
-                <div>
-                  <h3 className="px-4 py-2 text-xs font-bold text-[#6b7280] uppercase tracking-wider border-t border-[#e5e7eb] pt-4 mt-2">Saved Addresses</h3>
-                  <ul className="space-y-1 mt-1">
+              {user?.savedAddresses?.length > 0 && (
+                <div className="animate-in fade-in duration-500">
+                  <div className="flex items-center gap-3 mb-4">
+                    <h3 className="text-[11px] font-black text-[#9ca3af] uppercase tracking-widest">Saved Addresses</h3>
+                    <div className="h-px bg-[#e5e7eb] flex-1"></div>
+                  </div>
+                  
+                  <ul className="space-y-3">
                     {user.savedAddresses.map((addr) => (
                       <li key={addr._id}>
                         <button
-                          type="button"
                           onClick={() => onSelect({
                             address: addr.address,
                             lat: addr.lat,
                             lng: addr.lng
                           })}
-                          className="w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 rounded-xl transition-colors text-left"
+                          className="w-full flex items-center gap-4 p-4 bg-white border border-[#e5e7eb] hover:border-[#c67a3f]/60 rounded-2xl hover:shadow-md transition-all group text-left"
                         >
-                          <History className="h-5 w-5 text-[#9ca3af] mt-0.5 shrink-0" />
-                          <div>
-                            <p className="text-[15px] font-bold text-[#1a1a1a] leading-tight">{addr.label || 'Saved Address'}</p>
-                            <p className="text-[13px] text-[#6b7280] mt-1 truncate">{addr.address}</p>
+                          <div className="w-10 h-10 rounded-full bg-[#f9fafb] group-hover:bg-[#fff7ed] flex items-center justify-center shrink-0 transition-colors">
+                            <History className="h-4 w-4 text-[#9ca3af] group-hover:text-[#c67a3f] transition-colors" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[15px] font-bold text-[#1f2937] leading-tight group-hover:text-[#4a0b0d] transition-colors">
+                              {addr.label || 'Saved Address'}
+                            </p>
+                            <p className="text-[13px] text-[#6b7280] mt-1 truncate font-medium">
+                              {addr.address}
+                            </p>
                           </div>
                         </button>
                       </li>
@@ -285,14 +296,15 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
                   </ul>
                 </div>
               )}
-
             </div>
-          </>
+          </div>
         ) : (
-          <MapLocationPicker 
-            initialCenter={selectedCenter} 
-            onLocationSelect={handleFinalLocationConfirm} 
-          />
+          <div className="flex-1 flex flex-col bg-white text-[#1a1a1a] min-h-[400px]">
+            <MapLocationPicker 
+              initialCenter={selectedCenter} 
+              onLocationSelect={handleFinalLocationConfirm} 
+            />
+          </div>
         )}
       </div>
     </div>

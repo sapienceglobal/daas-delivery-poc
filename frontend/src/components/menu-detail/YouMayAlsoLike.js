@@ -194,12 +194,6 @@ export default function YouMayAlsoLike({
                     <h4 className="font-bold text-[15px] text-[#1a1a1a] line-clamp-1 group-hover:underline">
                       {rec.name}
                     </h4>
-                    <div className="flex items-center gap-1 mt-1">
-                      <div className="flex text-[#e8a020]">
-                        {[...Array(5)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-current" />)}
-                      </div>
-                      <span className="text-[12px] font-medium text-[#6b7280]">4.6 (87)</span>
-                    </div>
                   </div>
 
                   {/* Bottom line: Price & Cart/Quantity Controls */}

@@ -201,14 +201,24 @@ export const calculateOrderPricing = async ({
     appliedCoupon = coupon;
   }
 
+  const loyaltyEnabled = restaurant.loyaltySettings?.enabled !== false;
+  const centsPerPoint = restaurant.loyaltySettings?.centsPerPoint ?? 1;
+  const pointsPerDollar = restaurant.loyaltySettings?.pointsPerDollar ?? 1;
+
   let loyaltyDiscount = 0;
   let pointsUsed = 0;
-  if (useLoyaltyPoints && userId) {
+  if (useLoyaltyPoints && userId && loyaltyEnabled) {
     const user = await UserModel.findById(userId).select('loyaltyPoints');
-    pointsUsed = Math.max(0, Number(user?.loyaltyPoints) || 0);
+    const availablePoints = Math.max(0, Number(user?.loyaltyPoints) || 0);
+    
+    const maxDiscountFromPoints = (availablePoints * centsPerPoint) / 100;
     const maxRedeemable = roundMoney(subtotal + tax + deliveryFee + platformFee + serviceFee + safeTip - discount);
-    loyaltyDiscount = Math.min(roundMoney(pointsUsed / 100), maxRedeemable);
-    pointsUsed = Math.floor(loyaltyDiscount * 100);
+    
+    loyaltyDiscount = Math.min(maxDiscountFromPoints, maxRedeemable);
+    loyaltyDiscount = roundMoney(loyaltyDiscount);
+    
+    // Points consumed is calculated from the applied discount
+    pointsUsed = Math.ceil((loyaltyDiscount * 100) / centsPerPoint);
   }
 
   const totalBeforeLoyalty = roundMoney(subtotal + tax + deliveryFee + platformFee + serviceFee + packagingFee + safeTip - discount);
@@ -218,7 +228,10 @@ export const calculateOrderPricing = async ({
     total = Math.round(total);
   }
   
-  const pointsEarned = Math.floor(total * LOYALTY_CONFIG.POINTS_PER_DOLLAR);
+  let pointsEarned = 0;
+  if (loyaltyEnabled) {
+    pointsEarned = Math.floor(total * pointsPerDollar);
+  }
 
   return {
     restaurant,

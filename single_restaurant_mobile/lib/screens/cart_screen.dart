@@ -16,6 +16,7 @@ import 'package:single_restaurant_mobile/screens/loyalty_rewards_screen.dart';
 import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/screens/saved_addresses_screen.dart';
 import 'package:single_restaurant_mobile/utils/formatters.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -27,6 +28,7 @@ class CartScreen extends StatefulWidget {
 class _CartScreenState extends State<CartScreen> {
   Timer? _debounceTimer;
   double _lastSubtotal = -1;
+  final TextEditingController _couponController = TextEditingController();
 
   void _onCartSubtotalChanged(CartProvider cartProvider, CheckoutProvider checkoutProvider) {
     if (_lastSubtotal != cartProvider.subtotal) {
@@ -49,6 +51,7 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _couponController.dispose();
     super.dispose();
   }
 
@@ -323,8 +326,10 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildPickupLocation(CartProvider cart) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    return GestureDetector(
+      onTap: () => _showRestaurantInfoSheet(context, cart),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -363,7 +368,9 @@ class _CartScreenState extends State<CartScreen> {
               ],
             ),
           ),
+          const Icon(Icons.chevron_right, color: Colors.grey),
         ],
+      ),
       ),
     );
   }
@@ -514,38 +521,69 @@ class _CartScreenState extends State<CartScreen> {
               borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
               border: Border.all(color: const Color(0xFFF3F4F6)),
             ),
-            child: Row(
-              children: [
-                const Icon(Icons.local_offer_outlined, color: Color(0xFF7A0B10), size: 24),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Apply Coupon', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      const SizedBox(height: 4),
-                      Text(checkout.couponApplied ? 'Code: ${checkout.couponCode} applied' : 'Select a coupon code', style: TextStyle(color: checkout.couponApplied ? Colors.green : Colors.grey, fontSize: 12)),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    if (checkout.couponApplied) {
-                      checkout.handleRemoveCoupon();
-                    } else {
-                      _showCouponDialog(context, checkout, cart);
-                    }
-                  },
-                  child: Row(
-                    children: [
-                      Text(checkout.couponApplied ? 'Remove' : 'Apply', style: const TextStyle(color: Color(0xFF7A0B10), fontWeight: FontWeight.bold, fontSize: 14)),
-                      if (!checkout.couponApplied)
-                        const Icon(Icons.chevron_right, color: Color(0xFF7A0B10), size: 18),
-                    ],
-                  ),
+            child: checkout.couponApplied 
+              ? Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.green, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('\'${checkout.couponCode}\' applied', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.green)),
+                          const SizedBox(height: 2),
+                          const Text('You got a discount on this order!', style: TextStyle(color: Colors.green, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        checkout.handleRemoveCoupon();
+                        _couponController.clear();
+                      },
+                      child: const Text('REMOVE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+                    )
+                  ],
                 )
-              ],
-            ),
+              : Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 44,
+                        child: TextField(
+                          controller: _couponController,
+                          textCapitalization: TextCapitalization.characters,
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'Enter coupon code',
+                            hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF7A0B10))),
+                            prefixIcon: const Icon(Icons.local_offer_outlined, color: Colors.grey, size: 20),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    GestureDetector(
+                      onTap: checkout.couponLoading ? null : () async {
+                        if (_couponController.text.trim().isNotEmpty) {
+                          checkout.setCouponCode(_couponController.text.trim());
+                          try {
+                            await checkout.handleApplyCoupon(cart);
+                          } catch (e) {
+                            ToastUtils.showError(context, e.toString().replaceAll('Exception: ', ''));
+                          }
+                        }
+                      },
+                      child: checkout.couponLoading 
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Color(0xFF7A0B10), strokeWidth: 2))
+                          : const Text('APPLY', style: TextStyle(color: Color(0xFF7A0B10), fontWeight: FontWeight.bold, fontSize: 14)),
+                    )
+                  ],
+                ),
           ),
           // Rewards Box
           Container(
@@ -612,7 +650,9 @@ class _CartScreenState extends State<CartScreen> {
           const SizedBox(height: 16),
           _buildBillRow('Item Total (${cart.items.length} items)', subtotal),
           const SizedBox(height: 10),
-          if (checkout.quoteLoading)
+          if (!checkout.isDelivery)
+            _buildBillRow('Delivery Fee', 0, info: true, textValue: '\$0.00')
+          else if (checkout.quoteLoading)
             _buildBillRow('Delivery Fee', 0, info: true, textValue: 'Calculating...', color: Colors.grey)
           else if (checkout.quoteError != null)
             _buildBillRow('Delivery Fee', 0, info: true, textValue: 'Unavailable', color: Colors.red)
@@ -750,60 +790,84 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  void _showCouponDialog(BuildContext context, CheckoutProvider checkout, CartProvider cart) {
-    final TextEditingController _controller = TextEditingController();
-    showDialog(
+  void _showRestaurantInfoSheet(BuildContext context, CartProvider cart) {
+    final restaurant = cart.restaurant;
+    if (restaurant == null) return;
+
+    final name = restaurant['name'] ?? 'Lassi Lounge';
+    final address = restaurant['address'] ?? '123 Main St, City';
+    final phone = restaurant['phone'] ?? '';
+    final email = restaurant['email'] ?? '';
+    
+    // For maps, we try coordinates if available, otherwise just search address
+    final loc = restaurant['location'];
+    final lat = loc != null && loc['coordinates'] != null ? loc['coordinates'][1] : null;
+    final lng = loc != null && loc['coordinates'] != null ? loc['coordinates'][0] : null;
+
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Apply Coupon', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: TextField(
-            controller: _controller,
-            decoration: InputDecoration(
-              hintText: 'Enter coupon code',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF7A0B10)),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (_controller.text.trim().isNotEmpty) {
-                  checkout.setCouponCode(_controller.text.trim());
-                  try {
-                    await checkout.handleApplyCoupon(cart);
-                    if (mounted) Navigator.pop(context);
-                  } catch (e) {
-                    if (mounted) {
-                      Navigator.pop(context); // Close dialog first
-                      ToastUtils.showError(context, e.toString().replaceAll('Exception: ', ''));
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF7A0B10))),
+              const SizedBox(height: 8),
+              Text(address, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+              const SizedBox(height: 24),
+              if (phone.isNotEmpty)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.phone, color: Color(0xFF7A0B10)),
+                  title: Text(phone),
+                  onTap: () async {
+                    final uri = Uri.parse('tel:$phone');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri);
                     }
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7A0B10),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  },
+                ),
+              if (email.isNotEmpty)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.email, color: Color(0xFF7A0B10)),
+                  title: Text(email),
+                  onTap: () async {
+                    final uri = Uri.parse('mailto:$email');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri);
+                    }
+                  },
+                ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final targetAddress = '94-08 118th St, South Richmond Hill, NY 11419, United States';
+                    final uri = Uri.parse('https://maps.google.com/?q=${Uri.encodeComponent(targetAddress)}');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: const Icon(Icons.map, color: Colors.white),
+                  label: const Text('Get Directions', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7A0B10),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ),
-              child: checkout.couponLoading 
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Apply'),
-            ),
-          ],
-        );
-      },
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

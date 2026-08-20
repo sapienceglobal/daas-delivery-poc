@@ -72,6 +72,10 @@ const MenuItemSchema = new mongoose.Schema({
   isGlutenFree: { type: Boolean, default: false },
   isBestseller: { type: Boolean, default: false },
 
+  // ── Ratings & Reviews ──────────────────────────────────────────────────
+  averageRating: { type: Number, default: 0, min: 0, max: 5 },
+  reviewCount: { type: Number, default: 0, min: 0 },
+
   // ── Availability ──────────────────────────────────────────────────────
   isAvailable: { type: Boolean, default: true },
   sortOrder: { type: Number, default: 0 },

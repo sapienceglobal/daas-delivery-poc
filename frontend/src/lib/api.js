@@ -196,22 +196,9 @@ export const orderAPI = {
   refund: (id, data) => api.post(`/api/orders/${id}/refund`, data),
   // Dev
   simulate: (id) => api.post(`/api/orders/${id}/simulate`),
-  // Reviews
-  replyToReview: (id, reply) => api.post(`/api/orders/${id}/reply`, { reply }),
 };
 
-// ── Review API ──────────────────────────────────────────────────────────────
 
-export const reviewAPI = {
-  getByRestaurant: (restaurantId, params = '') => api.get(`/api/reviews/restaurant/${restaurantId}${params ? '?' + params : ''}`),
-  getItemReviews: (itemId) => api.get(`/api/reviews/item/${itemId}`),
-  getMyItemReview: (itemId) => api.get(`/api/reviews/item/${itemId}/my-review`),
-  create: (data) => api.post('/api/reviews', data),
-  update: (id, data) => api.put(`/api/reviews/${id}`, data),
-  delete: (id) => api.delete(`/api/reviews/${id}`),
-  reply: (id, text) => api.post(`/api/reviews/${id}/reply`, { text }),
-  markHelpful: (id) => api.post(`/api/reviews/${id}/helpful`),
-};
 
 // ── Coupon API ──────────────────────────────────────────────────────────────
 

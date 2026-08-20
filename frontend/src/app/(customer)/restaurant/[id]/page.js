@@ -542,8 +542,6 @@ export default function RestaurantPage() {
                 <h1 className="text-2xl md:text-4xl font-black text-brand-text">{restaurant.name}</h1>
                 <p className="text-brand-muted mt-1 text-sm">{restaurant.description || 'Authentic kitchen serving fresh meals.'}</p>
                 <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-brand-muted">
-                  <span className="flex items-center gap-1"><Star className="w-4 h-4 fill-brand-yellow text-brand-yellow" /> {restaurant.rating || '4.5'}</span>
-                  <span>•</span>
                   <span>{restaurant.cuisine?.join(', ') || 'Various Cuisines'}</span>
                   <span>•</span>
                   <span>{restaurant.address}</span>

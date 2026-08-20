@@ -287,23 +287,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           const SizedBox.shrink()
                         ],
                       ),
-                      
-                      const SizedBox(height: 8),
-                      // Rating
-                      Row(
-                        children: [
-                          Row(
-                            children: List.generate(5, (index) => Icon(
-                              Icons.star,
-                              color: index < 4 ? Colors.amber : Colors.amber.shade200,
-                              size: 16,
-                            )),
-                          ),
-                          const SizedBox(width: 8),
-                          Text('4.6 (128 Reviews)', style: TextStyle(color: Colors.grey.shade700, fontSize: 14)),
-                        ],
-                      ),
-                      
                       const SizedBox(height: 12),
                       // Price
                       Text('\$${basePrice.toStringAsFixed(2)}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.red.shade900)),
@@ -533,8 +516,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           },
                         ),
                       ),
-                      
-                      const SizedBox(height: 100), // padding for bottom bar
+                      const SizedBox(height: 24), // padding for bottom bar
                     ],
                   ),
                 ),

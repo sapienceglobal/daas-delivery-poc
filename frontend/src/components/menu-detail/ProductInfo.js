@@ -120,18 +120,7 @@ export default function ProductInfo({ item, isSingleRestaurant, isFavorite, onTo
             {item.name}
           </h1>
           
-          {/* Star ratings */}
-          <div className="flex items-center gap-2.5">
-            <div className="flex text-[#e8a020]">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`w-4 h-4 ${i < 4 ? 'fill-current' : 'text-[#d1d5db] fill-[#d1d5db]'}`}
-                />
-              ))}
-            </div>
-            <span className="text-[13px] font-medium text-[#6b7280]">4.6 (128 Reviews)</span>
-          </div>
+
         </div>
 
         {/* Price */}

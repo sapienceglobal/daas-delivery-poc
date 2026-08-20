@@ -19,7 +19,7 @@ export default function MerchantOverview() {
   const [cateringInquiries, setCateringInquiries] = useState([]);
   const [analyticsData, setAnalyticsData] = useState(null);
   const [menu, setMenu] = useState([]);
-  const [stats, setLocalStats] = useState({ todayOrders: 0, todayRevenue: 0, activeOrders: 0, avgRating: 0 });
+  const [stats, setLocalStats] = useState({ todayOrders: 0, todayRevenue: 0, activeOrders: 0 });
 
   useEffect(() => {
     if (globalLoading || !roomId) return;
@@ -53,7 +53,6 @@ export default function MerchantOverview() {
           todayOrders: todayOrders.length,
           todayRevenue: todayOrders.reduce((s, o) => s + (o.total || 0), 0),
           activeOrders: activeOrdersList.length,
-          avgRating: restaurant?.rating || 0,
         });
 
       } catch (err) {
