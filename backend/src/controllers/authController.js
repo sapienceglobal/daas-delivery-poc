@@ -255,6 +255,11 @@ export const login = asyncHandler(async (req, response) => {
     user.setPassword(password);
   }
 
+  const platform = req.headers['x-platform'];
+  if (platform && ['web', 'app'].includes(platform) && !user.loginPlatforms.includes(platform)) {
+    user.loginPlatforms.push(platform);
+  }
+
   user.lastLogin = new Date();
   await user.save();
 
@@ -361,6 +366,10 @@ export const socialLogin = asyncHandler(async (req, response) => {
   }
 
   user.lastLogin = new Date();
+  const platform = req.headers['x-platform'];
+  if (platform && ['web', 'app'].includes(platform) && !user.loginPlatforms.includes(platform)) {
+    user.loginPlatforms.push(platform);
+  }
   await user.save();
 
   sendTokenCookie(user, 200, response, tenantId);
@@ -786,6 +795,12 @@ export const verifyOtp = asyncHandler(async (req, response) => {
   user.emailOtp = null;
   user.emailOtpExpiry = null;
   user.otpAttempts = 0;
+  
+  const platform = req.headers['x-platform'];
+  if (platform && ['web', 'app'].includes(platform) && !user.loginPlatforms.includes(platform)) {
+    user.loginPlatforms.push(platform);
+  }
+  
   await user.save();
 
   // Send welcome email now that they're verified

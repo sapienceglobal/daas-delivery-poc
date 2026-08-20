@@ -32,6 +32,7 @@ const request = async (endpoint, options = {}) => {
   const headers = {
     'Content-Type': 'application/json',
     'x-tenant-id': process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true' ? 'lassi-lounge' : 'marketplace',
+    'x-platform': 'web',
     ...(appSecret ? { 'x-app-secret': appSecret } : {}),
     ...options.headers,
   };

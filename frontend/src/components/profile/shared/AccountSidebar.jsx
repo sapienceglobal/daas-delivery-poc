@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import {
   Grid2X2, User, MapPin, ShoppingCart, Heart, CreditCard,
-  Gift, Bell, Users, LogOut, Phone, Calendar
+  Gift, Bell, Users, LogOut, Phone, Calendar, Ticket
 } from 'lucide-react';
 
 const navItems = [
@@ -14,7 +14,8 @@ const navItems = [
   { id: 'reservations', label: 'My Reservations', icon: Calendar },
   { id: 'favorites', label: 'Favorites', icon: Heart },
   { id: 'payments', label: 'Payment Methods', icon: CreditCard },
-  { id: 'loyalty', label: 'Rewards & Coupons', icon: Gift },
+  { id: 'loyalty', label: 'Loyalty Rewards', icon: Gift },
+  { id: 'coupons', label: 'My Coupons', icon: Ticket },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'refer', label: 'Refer & Earn', icon: Users },
   { id: 'logout', label: 'Logout', icon: LogOut },

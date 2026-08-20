@@ -19,6 +19,10 @@ const campaignSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  actionUrl: {
+    type: String,
+    default: '',
+  },
   audience: {
     type: String,
     enum: ['all_customers', 'inactive_30_days', 'favorites_only'],

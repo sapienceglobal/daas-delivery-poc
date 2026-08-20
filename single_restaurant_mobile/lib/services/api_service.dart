@@ -32,6 +32,7 @@ class ApiService {
       'Accept': 'application/json',
       'x-tenant-id': 'lassi-lounge', // Required for single restaurant mode backend logic
       'x-app-secret': 'mobile_app_secure_key_2026', // Industry standard API key for mobile apps
+      'x-platform': 'app',
     };
 
     if (_authToken != null) {

@@ -4,7 +4,8 @@ import {
   MapPin, Phone, Mail, FileText,
   CheckCircle, XCircle, FileClock, RefreshCcw,
   AlertTriangle, ShieldAlert, Zap, ArrowDownLeft,
-  CreditCard, Info, Activity, Eye
+  CreditCard, Info, Activity, Eye,
+  Globe, Smartphone
 } from 'lucide-react';
 import { orderAPI } from '@/lib/api';
 import { showToast, ConfirmModal } from '@/components/ui';
@@ -359,7 +360,15 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                   {(order.customerName || 'G')[0].toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-[16px] font-black text-[#111827]">{order.customerName || 'Guest Customer'}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[16px] font-black text-[#111827]">{order.customerName || 'Guest Customer'}</p>
+                    {order.orderSource === 'app' && (
+                      <Smartphone className="w-4 h-4 text-green-500" title="App Order" />
+                    )}
+                    {order.orderSource === 'web' && (
+                      <Globe className="w-4 h-4 text-blue-500" title="Web Order" />
+                    )}
+                  </div>
                   <p className="text-[13px] font-bold text-[#6b7280]">{order.customerPhone || 'No Phone Number'}</p>
                 </div>
               </div>

@@ -15,6 +15,7 @@ import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/providers/search_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/widgets/network_overlay.dart';
+import 'package:single_restaurant_mobile/services/navigation_service.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -95,6 +96,7 @@ class LassiLoungeApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: NavigationService.navigatorKey,
       title: 'Lassi Lounge',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

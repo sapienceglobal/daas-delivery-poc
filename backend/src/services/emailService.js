@@ -123,7 +123,7 @@ const emailShell = ({ preheader = '', bodyHtml }) => `
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${BRAND_BORDER};">
             <tr>
               <td align="center" style="padding:28px 24px;border-bottom:1px solid ${BRAND_BORDER};">
-                <img src="${BRAND_LOGO_URL}" alt="${FROM_NAME}" height="36" style="display:block;height:36px;width:auto;border:0;" />
+                <img src="${BRAND_LOGO_URL}" alt="${FROM_NAME}" height="72" style="display:block;height:72px;width:auto;border:0;" />
               </td>
             </tr>
             <tr>

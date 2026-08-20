@@ -170,6 +170,10 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  loginPlatforms: [{
+    type: String,
+    enum: ['web', 'app']
+  }],
 
   // ── Login Lockout & Sessions ──────────────────────────────────────────
   failedLoginAttempts: {

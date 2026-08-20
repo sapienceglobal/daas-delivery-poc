@@ -72,7 +72,7 @@ export const deleteNotification = asyncHandler(async (req, response) => {
 /**
  * Helper function to create and emit a notification (used internally by other controllers)
  */
-export const createNotification = async (userId, title, body, type = 'system', actionUrl = null, io = null, getModel = null) => {
+export const createNotification = async (userId, title, body, type = 'system', actionUrl = null, io = null, getModel = null, imageUrl = null) => {
   try {
     const UserModel = getModel ? getModel('User') : User;
     const user = await UserModel.findById(userId).select('notificationPreferences fcmTokens');
@@ -92,7 +92,8 @@ export const createNotification = async (userId, title, body, type = 'system', a
       title,
       body,
       type,
-      actionUrl
+      actionUrl,
+      ...(imageUrl && { image: imageUrl })
     });
 
     if (io) {
@@ -104,14 +105,35 @@ export const createNotification = async (userId, title, body, type = 'system', a
     if (user && user.fcmTokens && user.fcmTokens.length > 0) {
       const firebaseApp = getFirebaseAdmin();
       if (firebaseApp) {
+        // Optimize image for push notifications (thumbnail)
+        let optimizedImageUrl = imageUrl;
+        if (optimizedImageUrl && optimizedImageUrl.includes('res.cloudinary.com')) {
+          optimizedImageUrl = optimizedImageUrl.replace(
+            '/upload/',
+            '/upload/w_400,h_200,c_fill,q_auto,f_auto/'
+          );
+        }
+
         const message = {
           notification: {
             title,
-            body
+            body,
+            ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),
+          },
+          android: {
+            notification: {
+              color: '#006778',
+              icon: 'ic_notification',
+              channelId: 'high_importance_channel',
+              sound: 'default',
+              ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),
+            }
           },
           data: {
             type,
-            actionUrl: actionUrl || ''
+            actionUrl: actionUrl || '',
+            ...(optimizedImageUrl && { image: optimizedImageUrl }),
+            ...(actionUrl && actionUrl.startsWith('/orders/') && { orderId: actionUrl.split('/').pop() }),
           },
           tokens: user.fcmTokens
         };

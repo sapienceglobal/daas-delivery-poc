@@ -6,9 +6,9 @@ import { api } from '../../lib/api';
 import { PageLoader, showToast } from '../ui';
 
 const severityConfig = {
-  critical: { icon: ShieldAlert, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20' },
-  warning: { icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-  info: { icon: Info, color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+  critical: { icon: ShieldAlert, color: 'text-error', bg: 'bg-error-bg', border: 'border-error/20' },
+  warning: { icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning-bg', border: 'border-warning/20' },
+  info: { icon: Info, color: 'text-info', bg: 'bg-info-bg', border: 'border-info/20' },
 };
 
 export default function SystemAuditView() {
@@ -57,7 +57,7 @@ export default function SystemAuditView() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-[20px] border border-[#e5e7eb] shadow-sm">
         <div>
           <h2 className="text-xl font-bold text-[#111827] tracking-tight flex items-center gap-3">
-            <ShieldAlert className="w-5 h-5 text-red-500" />
+            <ShieldAlert className="w-5 h-5 text-error" />
             System Audit Logs
           </h2>
           <p className="text-[#6b7280] mt-1 text-sm max-w-xl">
@@ -72,7 +72,7 @@ export default function SystemAuditView() {
               placeholder="Search logs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#f9fafb] border border-[#e5e7eb] rounded-xl py-2 pl-9 pr-4 text-sm text-[#111827] placeholder:text-[#9ca3af] focus:outline-none focus:border-[#8b0000] transition-colors"
+              className="w-full bg-[#f9fafb] border border-[#e5e7eb] rounded-xl py-2 pl-10 pr-4 text-sm text-[#111827] placeholder:text-[#9ca3af] focus:outline-none focus:border-[#8b0000] transition-colors"
             />
           </div>
           <select
@@ -80,10 +80,10 @@ export default function SystemAuditView() {
             onChange={(e) => setSeverityFilter(e.target.value)}
             className="bg-[#f9fafb] border border-[#e5e7eb] rounded-xl py-2 px-4 text-sm text-[#111827] focus:outline-none focus:border-[#8b0000] transition-colors cursor-pointer"
           >
-            <option value="all" className="text-[#111827]">All Severities</option>
-            <option value="critical" className="text-[#111827]">Critical</option>
-            <option value="warning" className="text-[#111827]">Warning</option>
-            <option value="info" className="text-[#111827]">Info</option>
+            <option value="all" className="bg-white text-[#111827]">All Severities</option>
+            <option value="critical" className="bg-white text-[#111827]">Critical</option>
+            <option value="warning" className="bg-white text-[#111827]">Warning</option>
+            <option value="info" className="bg-white text-[#111827]">Info</option>
           </select>
           <button 
             onClick={fetchLogs}
@@ -165,7 +165,7 @@ export default function SystemAuditView() {
                                   <div className="flex gap-4">
                                     <div>
                                       <h4 className="text-xs text-[#6b7280] uppercase tracking-wider mb-1">Event Type</h4>
-                                      <span className="font-mono text-xs text-blue-600">{log.event}</span>
+                                      <span className="font-mono text-xs text-info">{log.event}</span>
                                     </div>
                                     <div>
                                       <h4 className="text-xs text-[#6b7280] uppercase tracking-wider mb-1">Time</h4>

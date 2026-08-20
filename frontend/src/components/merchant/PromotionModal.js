@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { couponAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 
 export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo = null, defaultPromoType = 'Coupon' }) {
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
@@ -20,6 +22,10 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
     targetAudience: 'All Users',
     targetGroup: 'Family'
   });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Populate data if editing
   React.useEffect(() => {
@@ -45,8 +51,6 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
       setErrors({});
     }
   }, [editPromo, isOpen, defaultPromoType]);
-
-  if (!isOpen) return null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -97,10 +101,12 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[2px] transition-all duration-300" onClick={onClose}>
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose}>
       <div
-        className="bg-white rounded-[24px] w-full max-w-lg overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] flex flex-col max-h-[90vh] border border-[#e5e7eb] transform transition-all duration-300 animate-in fade-in zoom-in-95"
+        className={`bg-white rounded-[24px] w-full max-w-lg overflow-hidden shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] flex flex-col max-h-[90vh] border border-[#e5e7eb] transform transition-all duration-300 ${isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-[#e5e7eb] flex items-center justify-between">
@@ -299,6 +305,7 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

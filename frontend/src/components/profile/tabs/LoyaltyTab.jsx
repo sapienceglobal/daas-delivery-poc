@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Gift, Copy, CheckCircle, Ticket, Coins, Award, Sparkles, UserPlus, Info, Loader2, Clock } from 'lucide-react';
-import { loyaltyAPI, couponAPI } from '@/lib/api';
+import { createPortal } from 'react-dom';
+import { Gift, Coins, Award, UserPlus, Info, Loader2, Copy, CheckCircle, Ticket, Lock, ShoppingBag, Calendar, Star, Users, ArrowUpRight, ArrowDownLeft, Receipt, X } from 'lucide-react';
+import { loyaltyAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useBrand } from '@/context/BrandContext';
@@ -16,9 +17,7 @@ export default function LoyaltyTab({ user }) {
   const [joining, setJoining] = useState(false);
   const [history, setHistory] = useState(null);
   const [myCoupons, setMyCoupons] = useState([]);
-  const [publicCoupons, setPublicCoupons] = useState([]);
   const [copiedCode, setCopiedCode] = useState(null);
-  const [selectedCoupon, setSelectedCoupon] = useState(null);
   const [confirmReward, setConfirmReward] = useState(null);
   const [showRulesModal, setShowRulesModal] = useState(false);
 
@@ -30,21 +29,31 @@ export default function LoyaltyTab({ user }) {
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') {
-        setSelectedCoupon(null);
         setConfirmReward(null);
+        setShowRulesModal(false);
       }
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, []);
 
+  useEffect(() => {
+    if (confirmReward || showRulesModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [confirmReward, showRulesModal]);
+
   const fetchLoyaltyData = async () => {
     setLoading(true);
     try {
-      const [historyRes, couponsRes, activeCouponsRes] = await Promise.allSettled([
+      const [historyRes, couponsRes] = await Promise.allSettled([
         loyaltyAPI.getStatus(),
-        loyaltyAPI.getMyCoupons(),
-        couponAPI.getActive()
+        loyaltyAPI.getMyCoupons()
       ]);
 
       if (historyRes.status === 'fulfilled') {
@@ -54,11 +63,7 @@ export default function LoyaltyTab({ user }) {
       }
 
       if (couponsRes.status === 'fulfilled') {
-        setMyCoupons(couponsRes.value.data);
-      }
-
-      if (activeCouponsRes.status === 'fulfilled') {
-        setPublicCoupons(activeCouponsRes.value.data);
+        setMyCoupons(couponsRes.value.data || []);
       }
     } catch (err) {
       console.error('Failed to load loyalty data', err);
@@ -109,67 +114,11 @@ export default function LoyaltyTab({ user }) {
     }
   };
 
-  const copyToClipboard = async (code) => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopiedCode(code);
-      showToast('Coupon code copied to clipboard!', 'success');
-      setTimeout(() => setCopiedCode(null), 3000);
-    } catch (err) {
-      showToast('Could not copy automatically — please copy the code manually.', 'error');
-    }
-  };
-
-  const renderCouponCard = (coupon, isPublic = false) => {
-    const isPercentage = coupon.type === 'percentage';
-    const amount = isPercentage ? `${coupon.value}%` : `$${coupon.value}`;
-    const bgClass = isPublic ? 'bg-gradient-to-br from-[#fffaf5] to-[#fef2e6] border-[#fce3c8]' : 'bg-gradient-to-br from-[#fdfbfb] to-[#f5f7fa] border-[#eadfdb]';
-    const accentClass = isPublic ? 'bg-[#e8a020]' : 'bg-[#7a0b10]';
-
-    return (
-      <div key={coupon._id} className={`relative flex flex-col rounded-2xl border ${bgClass} shadow-sm hover:shadow-md transition-all overflow-hidden`}>
-        <div className={`h-1.5 w-full ${accentClass}`}></div>
-        <div className="p-6 flex flex-col h-full">
-           <div className="flex items-start justify-between mb-4">
-             <div>
-               {isPublic && <span className="inline-block px-2 py-1 rounded bg-white text-[#e8a020] text-[10px] font-black uppercase tracking-wider shadow-sm mb-2 border border-[#fce3c8]">Special Offer</span>}
-               <h4 className="text-3xl font-black font-serif text-[#1a1a1a]">{amount} <span className="text-lg">OFF</span></h4>
-             </div>
-             <div className="flex items-center gap-2">
-               <button
-                 onClick={() => setSelectedCoupon(coupon)}
-                 className="w-8 h-8 rounded-full bg-white border border-[#eadfdb] flex items-center justify-center text-[#6b7280] hover:text-[#7a0b10] hover:border-[#7a0b10] transition-colors shadow-sm"
-                 title="Terms & Conditions"
-               >
-                 <Info className="w-4 h-4" />
-               </button>
-               <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white ${accentClass} shadow-md`}>
-                 <Ticket className="w-6 h-6" />
-               </div>
-             </div>
-           </div>
-           <div className="flex-1 mb-6">
-             <p className="text-[13px] text-[#4b5563] font-medium">
-               {coupon.description || (coupon.minCartValue > 0 ? `Valid on orders over $${coupon.minCartValue}` : 'No minimum order required.')}
-             </p>
-             {coupon.endDate && (
-               <p className="flex items-center gap-1 text-[11px] text-[#9ca3af] font-semibold mt-1.5">
-                 <Clock className="w-3 h-3" /> Expires {new Date(coupon.endDate).toLocaleDateString()}
-               </p>
-             )}
-           </div>
-           <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-[#eadfdb]/50">
-             <span className="font-mono font-bold text-[#1a1a1a] tracking-widest">{coupon.code}</span>
-             <button
-               onClick={() => copyToClipboard(coupon.code)}
-               className={`flex items-center gap-1 text-[11px] font-black uppercase tracking-wider px-3 py-1.5 rounded-md transition-colors ${copiedCode === coupon.code ? 'bg-[#dff4df] text-[#2f8a42]' : 'bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]'}`}
-             >
-               {copiedCode === coupon.code ? <><CheckCircle className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
-             </button>
-           </div>
-        </div>
-      </div>
-    );
+  const handleCopyCode = (code) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    showToast('Coupon code copied!', 'success');
+    setTimeout(() => setCopiedCode(null), 2000);
   };
 
   if (loading) {
@@ -194,11 +143,11 @@ export default function LoyaltyTab({ user }) {
   const nextReward = isMember ? dynamicRewards.find(r => r.points > currentPoints) : null;
 
   return (
-    <div className="space-y-12 pb-12 animate-in fade-in zoom-in-95 duration-300">
+    <div className="space-y-12 pb-12">
       
       <div>
-        <h2 className="text-[20px] sm:text-[24px] font-black text-[#1a1a1a]">Rewards & Coupons</h2>
-        <p className="text-[13px] sm:text-[14px] text-[#6b7280] mt-1">Earn points with every order, redeem rewards, and manage your coupons.</p>
+        <h2 className="text-[20px] sm:text-[24px] font-black text-[#1a1a1a]">Loyalty Rewards</h2>
+        <p className="text-[13px] sm:text-[14px] text-[#6b7280] mt-1">Earn points with every order and redeem exciting rewards.</p>
       </div>
 
       <div className="space-y-4">
@@ -271,22 +220,7 @@ export default function LoyaltyTab({ user }) {
         )}
       </div>
 
-      {publicCoupons.length > 0 && (
-        <section>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-full bg-[#fdf0d5] flex items-center justify-center">
-              <Sparkles className="text-[#e8a020] w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-black font-serif text-[#1a1a1a]">Exclusive Offers</h3>
-              <p className="text-[#6b7280] text-sm font-medium mt-1">Apply these codes at checkout to save.</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {publicCoupons.map(coupon => renderCouponCard(coupon, true))}
-          </div>
-        </section>
-      )}
+      
 
       {isMember && (
         <>
@@ -348,152 +282,167 @@ export default function LoyaltyTab({ user }) {
             </div>
           </section>
 
-          <section id="my-wallet" className="scroll-mt-32">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-full bg-[#fdfaf5] border border-[#eadfdb] flex items-center justify-center">
-                <Ticket className="text-[#1a1a1a] w-6 h-6" />
+          {/* My Coupons Section */}
+          {myCoupons.length > 0 && (
+            <section className="mt-12">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-full bg-[#fbfaf7] flex items-center justify-center border border-[#eadfdb]">
+                  <Ticket className="text-[#1a1a1a] w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black font-serif text-[#1a1a1a]">My Coupons</h3>
+                  <p className="text-[#6b7280] text-sm font-medium mt-1">Coupons generated from your loyalty points.</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-2xl font-black font-serif text-[#1a1a1a]">My Reward Wallet</h3>
-                <p className="text-[#6b7280] text-sm font-medium mt-1">Your uniquely generated coupon codes.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {myCoupons.map((coupon) => {
+                  const isLocked = coupon.status === 'used';
+                  const isApplied = false; // Logic for applied can be linked to global state if needed
+                  
+                  return (
+                    <div key={coupon._id} className="relative bg-[#1a1a1a] rounded-xl overflow-hidden shadow-md border border-[#333]">
+                      <div className="p-5 flex flex-col justify-between h-full relative z-10">
+                        <div className="flex justify-between items-start mb-4">
+                          <h4 className="text-white text-2xl font-black">${coupon.value} OFF</h4>
+                          {isApplied ? (
+                            <span className="bg-white/20 px-2 py-1 rounded text-white text-[10px] font-bold">Applied ✓</span>
+                          ) : isLocked ? (
+                            <Lock className="w-5 h-5 text-white/50" />
+                          ) : (
+                            <Ticket className="w-6 h-6 text-white/60" />
+                          )}
+                        </div>
+                        
+                        <div className="bg-white/10 rounded-lg py-2 px-3 inline-block w-max mb-3 border border-white/10">
+                          <span className="text-white font-bold tracking-widest text-sm">{coupon.code}</span>
+                        </div>
+                        
+                        <div className="text-white/60 text-xs mb-4">
+                          {isLocked ? 'Used — order placed' : 'Available for your next order'}
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => !isLocked && handleCopyCode(coupon.code)}
+                            disabled={isLocked}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 ${isLocked ? 'bg-white/5 text-white/30 cursor-not-allowed' : 'bg-white/20 text-white hover:bg-white/30 transition-colors'}`}
+                          >
+                            <Copy className="w-3.5 h-3.5" /> Copy
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Decorative background element */}
+                      <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full blur-xl pointer-events-none"></div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* How to Earn */}
+          <section className="mt-12">
+            <h3 className="text-xl font-black font-serif text-[#1a1a1a] mb-6">How to Earn</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white border border-[#eadfdb] rounded-xl p-4 flex items-start gap-4 hover:shadow-sm transition-shadow">
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                  <ShoppingBag className="w-5 h-5 text-[#7a0b10]" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-[#1a1a1a] text-sm">Order Food</h4>
+                  <p className="text-xs text-[#6b7280] mt-1 mb-2">Earn {brand?.loyaltySettings?.centsPerPoint || 1} points for every $1 spent</p>
+                </div>
+              </div>
+              
+              <div className="bg-white border border-[#eadfdb] rounded-xl p-4 flex items-start gap-4 hover:shadow-sm transition-shadow">
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                  <Calendar className="w-5 h-5 text-[#7a0b10]" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-[#1a1a1a] text-sm">Daily Login Bonus</h4>
+                  <p className="text-xs text-[#6b7280] mt-1 mb-2">Download our app to claim 5 free points daily!</p>
+                </div>
+              </div>
+              
+              <div className="bg-white border border-[#eadfdb] rounded-xl p-4 flex items-start gap-4 hover:shadow-sm transition-shadow">
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                  <Star className="w-5 h-5 text-[#7a0b10]" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-[#1a1a1a] text-sm">Write a Review</h4>
+                  <p className="text-xs text-[#6b7280] mt-1 mb-2">Review a delivered order — earn 20 points</p>
+                </div>
+              </div>
+              
+              <div className="bg-white border border-[#eadfdb] rounded-xl p-4 flex items-start gap-4 hover:shadow-sm transition-shadow">
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                  <Users className="w-5 h-5 text-[#7a0b10]" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-[#1a1a1a] text-sm">Refer a Friend</h4>
+                  <p className="text-xs text-[#6b7280] mt-1 mb-2">Invite friends to earn 100 points per referral</p>
+                </div>
               </div>
             </div>
-
-            {myCoupons.length === 0 ? (
-              <div className="text-center py-12 lg:py-16 bg-white rounded-3xl border border-[#eadfdb] border-dashed shadow-sm">
-                <Ticket className="w-16 h-16 text-[#d1d5db] mx-auto mb-4" />
-                <p className="text-[#1a1a1a] text-lg font-black font-serif mb-2">Your wallet is empty</p>
-                <p className="text-[#6b7280] text-sm font-medium max-w-sm mx-auto">Redeem your loyalty points above to instantly receive exclusive discount codes here.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {myCoupons.map(coupon => renderCouponCard(coupon, false))}
-              </div>
-            )}
           </section>
+
+          {/* Recent Activity */}
+          <section className="mt-12">
+            <h3 className="text-xl font-black font-serif text-[#1a1a1a] mb-6">Recent Activity</h3>
+            <div className="bg-white border border-[#eadfdb] rounded-xl overflow-hidden">
+              {history?.transactions && history.transactions.length > 0 ? (
+                <div className="divide-y divide-[#eadfdb]">
+                  {history.transactions.slice(0, 5).map((t, idx) => {
+                    const isEarned = (t.points || t.amount || 0) > 0;
+                    return (
+                      <div key={idx} className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isEarned ? 'bg-green-50' : 'bg-blue-50'}`}>
+                          {isEarned ? <ArrowDownLeft className="w-5 h-5 text-green-600" /> : <ArrowUpRight className="w-5 h-5 text-blue-600" />}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-[#1a1a1a] text-sm">{t.title || t.description || 'Activity'}</h4>
+                          <p className="text-xs text-[#6b7280] mt-0.5">{new Date(t.createdAt).toLocaleDateString()} • {t.desc || ''}</p>
+                        </div>
+                        <div className={`font-black text-sm ${isEarned ? 'text-green-600' : 'text-red-600'}`}>
+                          {isEarned ? '+' : ''}{t.points || t.amount} PTS
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-8 text-center">
+                  <Receipt className="w-10 h-10 text-[#d1d5db] mx-auto mb-3" />
+                  <p className="text-[#6b7280] font-medium text-sm">No recent activity yet.</p>
+                </div>
+              )}
+            </div>
+          </section>
+
         </>
       )}
 
-      {selectedCoupon && (
+
+
+      {confirmReward && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={() => setSelectedCoupon(null)}
-        >
-          <div
-            className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="bg-[#7a0b10] p-6 text-white text-center relative">
-              <h3 className="text-2xl font-black font-serif">Terms & Conditions</h3>
-              <p className="text-white/80 text-sm mt-1">Code: <span className="font-mono font-bold text-[#e8a020]">{selectedCoupon.code}</span></p>
-            </div>
-
-            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-              <ul className="space-y-3 text-[13px] text-[#4b5563] font-medium">
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
-                  <span>{selectedCoupon.description || 'Applies to your order based on cart value.'}</span>
-                </li>
-                {selectedCoupon.minCartValue > 0 && (
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
-                    <span>Minimum order value of <strong>${selectedCoupon.minCartValue}</strong> is required.</span>
-                  </li>
-                )}
-                {selectedCoupon.firstOrderOnly && (
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
-                    <span>Valid for <strong>first-time orders</strong> only.</span>
-                  </li>
-                )}
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
-                  <span>Valid for <strong>{selectedCoupon.channels?.join(', ') || 'Web & Mobile'}</strong> orders.</span>
-                </li>
-                {selectedCoupon.maxDiscount > 0 && (
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
-                    <span>Maximum discount capped at <strong>${selectedCoupon.maxDiscount}</strong>.</span>
-                  </li>
-                )}
-                {selectedCoupon.endDate && (
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
-                    <span>Expires on <strong>{new Date(selectedCoupon.endDate).toLocaleDateString()}</strong>.</span>
-                  </li>
-                )}
-                {selectedCoupon.allowedPaymentMethods && selectedCoupon.allowedPaymentMethods.length > 0 && !selectedCoupon.allowedPaymentMethods.includes('All') && (
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
-                    <span>Valid only for payments via <strong>{selectedCoupon.allowedPaymentMethods.join(', ')}</strong>.</span>
-                  </li>
-                )}
-                {selectedCoupon.minOrdersRequired > 0 && (
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
-                    <span>Requires a minimum of <strong>{selectedCoupon.minOrdersRequired} past orders</strong> to unlock.</span>
-                  </li>
-                )}
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-[#2f8a42] shrink-0 mt-0.5" />
-                  <span>Only one coupon can be applied per order. Not valid with other offers.</span>
-                </li>
-              </ul>
-
-              <div className="mt-6 pt-4 border-t border-[#eadfdb] flex flex-col gap-3">
-                {(() => {
-                  const isFirstOrderError = selectedCoupon.firstOrderOnly && (history?.ordersCount || 0) > 0;
-                  const isMinOrdersError = (selectedCoupon.minOrdersRequired || 0) > 0 && (history?.ordersCount || 0) < selectedCoupon.minOrdersRequired;
-
-                  if (isFirstOrderError) {
-                    return (
-                      <div className="p-3 rounded-xl border flex items-center gap-2 text-sm font-bold bg-[#fce3e4] border-[#f5c2c4] text-[#7a0b10]">
-                        <Info className="w-5 h-5 shrink-0" />
-                        You are not eligible for this coupon as it is for first-time orders only.
-                      </div>
-                    );
-                  }
-
-                  if (isMinOrdersError) {
-                    return (
-                      <div className="p-3 rounded-xl border flex items-center gap-2 text-sm font-bold bg-[#fce3e4] border-[#f5c2c4] text-[#7a0b10]">
-                        <Info className="w-5 h-5 shrink-0" />
-                        You need at least {selectedCoupon.minOrdersRequired} past orders to use this coupon. (You have {history?.ordersCount || 0}).
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="p-3 rounded-xl border flex items-center gap-2 text-sm font-bold bg-[#dff4df] border-[#b7e4b7] text-[#2f8a42]">
-                      <Info className="w-5 h-5 shrink-0" />
-                      You are eligible to use this coupon on your next applicable order!
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-
-            <div className="p-4 bg-[#fbfaf7] border-t border-[#eadfdb] text-center">
-              <button
-                onClick={() => setSelectedCoupon(null)}
-                className="w-full py-3 bg-[#1a1a1a] hover:bg-[#333] text-white rounded-xl font-black text-sm uppercase tracking-widest transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {confirmReward && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           onClick={() => setConfirmReward(null)}
         >
           <div
-            className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+            className="bg-white rounded-2xl w-full max-w-sm shadow-[0_0_40px_rgba(0,0,0,0.15)] border border-[#eadfdb] overflow-visible animate-in fade-in zoom-in-95 duration-200 flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="px-6 py-4 border-b border-[#eadfdb] flex items-center justify-between shrink-0 bg-white rounded-t-2xl">
+              <h2 className="text-[20px] font-black text-[#1a1a1a]">
+                Confirm Redemption
+              </h2>
+              <button onClick={() => setConfirmReward(null)} className="p-2 rounded-full hover:bg-gray-100 text-[#4b5563] transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
             <div className="p-8 text-center">
               <div className={`w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center text-white bg-gradient-to-br shadow-md ${confirmReward.color}`}>
                 <Gift className="w-8 h-8" />
@@ -518,22 +467,23 @@ export default function LoyaltyTab({ user }) {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-      {showRulesModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowRulesModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-[#eadfdb] flex items-center justify-between">
-              <h3 className="text-lg font-black font-serif text-[#1a1a1a] flex items-center gap-2">
+      {showRulesModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowRulesModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-[0_0_40px_rgba(0,0,0,0.15)] border border-[#eadfdb] overflow-visible animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-[#eadfdb] flex items-center justify-between shrink-0 bg-white rounded-t-2xl">
+              <h2 className="text-[20px] font-black text-[#1a1a1a] flex items-center gap-2">
                 <Info className="w-5 h-5 text-[#7a0b10]" /> Program Rules
-              </h3>
-              <button onClick={() => setShowRulesModal(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </h2>
+              <button onClick={() => setShowRulesModal(false)} className="p-2 rounded-full hover:bg-gray-100 text-[#4b5563] transition-colors">
+                <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="p-6">
-              <div className="prose prose-sm text-gray-600">
-                <p className="font-medium text-gray-800 mb-4">{brand?.loyaltySettings?.termsAndConditions}</p>
+            <div className="overflow-y-auto ll-soft-scroll flex-1 p-6">
+              <div className="text-[13px] text-[#4b5563]">
+                <p className="font-medium text-[#1f2937] mb-4">{brand?.loyaltySettings?.termsAndConditions}</p>
                 <ul className="space-y-3 mb-6 list-none p-0">
                   <li className="flex gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#7a0b10] mt-2 shrink-0" />Points have no cash value and cannot be exchanged for cash.</li>
                   <li className="flex gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#7a0b10] mt-2 shrink-0" />Coupons must meet the minimum order requirement to be applied.</li>
@@ -547,13 +497,9 @@ export default function LoyaltyTab({ user }) {
                 </div>
               </div>
             </div>
-            <div className="p-4 border-t border-[#eadfdb] bg-gray-50 flex justify-end">
-              <button onClick={() => setShowRulesModal(false)} className="px-6 py-2 bg-[#7a0b10] text-white text-sm font-bold rounded-lg hover:bg-[#5a060a] transition-colors">
-                Got it
-              </button>
-            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

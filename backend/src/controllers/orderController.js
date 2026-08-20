@@ -399,6 +399,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     tip = 0, couponCode, courierNotes, specialInstructions, scheduledTime, tableNumber,
     stripePaymentIntentId, useLoyaltyPoints = false, savedCardId
   } = req.body;
+  const platform = req.headers['x-platform'] || 'web';
 
   if (!restaurantId || !items?.length) {
     throw new AppError('restaurantId and items are required', 400);
@@ -541,8 +542,9 @@ export const createOrder = asyncHandler(async (req, response) => {
   try {
     const order = new Order({
     userId: req.user._id,
+    orderSource: platform,
     customerName: req.user.name,
-    customerPhone: req.user.phone || '',
+    customerPhone: req.user.phone || '0000000000',
     customerEmail: req.user.email,
     address: address || restaurant.address,
     addressLat,

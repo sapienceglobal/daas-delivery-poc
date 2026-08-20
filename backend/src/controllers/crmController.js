@@ -130,7 +130,8 @@ export const getCustomers = asyncHandler(async (req, response) => {
       totalSpent: Math.max(existing.totalSpent || 0, stat.totalSpent || 0),
       lastOrderDate: stat.lastOrderDate || existing.lastOrderDate || null,
       status: existing.status || 'Active',
-      createdAt: existing.createdAt || (user ? user.createdAt : stat.firstOrderDate) || new Date()
+      createdAt: existing.createdAt || (user ? user.createdAt : stat.firstOrderDate) || new Date(),
+      loginPlatforms: user ? (user.loginPlatforms || []) : []
     });
   });
 
@@ -149,7 +150,8 @@ export const getCustomers = asyncHandler(async (req, response) => {
         totalOrders: 0,
         totalSpent: 0,
         lastOrderDate: null,
-        status: user.isActive ? 'Active' : 'Inactive'
+        status: user.isActive ? 'Active' : 'Inactive',
+        loginPlatforms: user.loginPlatforms || []
       });
     }
   });

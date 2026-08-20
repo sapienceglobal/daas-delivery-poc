@@ -364,24 +364,15 @@ export default function PromotionsView() {
                           </td>
                           <td className="px-5 py-3 text-center relative">
                              <div className="flex items-center justify-center gap-2">
-                                <button onClick={() => handleEdit(promo)} className="w-7 h-7 rounded border border-[#e5e7eb] flex items-center justify-center text-[#6b7280] hover:bg-gray-50"><Edit3 className="w-3.5 h-3.5" /></button>
+                                <button onClick={() => handleEdit(promo)} title="Edit Promotion" className="w-7 h-7 rounded border border-[#e5e7eb] flex items-center justify-center text-[#6b7280] hover:bg-gray-50 hover:text-[#374151] transition-colors"><Edit3 className="w-3.5 h-3.5" /></button>
                                 <button 
-                                  onClick={(e) => { e.stopPropagation(); setActiveDropdown(activeDropdown === promo._id ? null : promo._id); }} 
-                                  className="w-7 h-7 rounded border border-[#e5e7eb] flex items-center justify-center text-[#6b7280] hover:bg-gray-50"
+                                  onClick={() => handleDelete(promo._id)} 
+                                  title="Delete Promotion"
+                                  className="w-7 h-7 rounded border border-[#e5e7eb] flex items-center justify-center text-[#ef4444] hover:bg-red-50 hover:border-red-200 transition-colors"
                                 >
-                                  <MoreVertical className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                              </div>
-                             {activeDropdown === promo._id && (
-                               <div className="absolute right-8 top-10 w-32 bg-white rounded-lg shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] border border-gray-200 py-1 z-[999] text-left">
-                                 <button 
-                                  onClick={() => handleDelete(promo._id)}
-                                  className="w-full px-4 py-2 text-[12px] font-bold text-red-600 hover:bg-red-50 text-left"
-                                 >
-                                   Delete Promotion
-                                 </button>
-                               </div>
-                             )}
                           </td>
                         </tr>
                       );

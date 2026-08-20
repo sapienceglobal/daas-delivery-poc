@@ -25,7 +25,9 @@ import {
   Loader2,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Globe,
+  Smartphone
 } from "lucide-react";
 import { useMerchantContext } from "@/context/MerchantContext";
 import { crmAPI } from "@/lib/api";
@@ -602,9 +604,17 @@ export default function CustomersCRMView({
                           {c.name?.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-[#111827] group-hover/name:text-[#8B0000] transition-colors">
-                            {c.name}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-bold text-[#111827] group-hover/name:text-[#8B0000] transition-colors">
+                              {c.name}
+                            </p>
+                            {c.loginPlatforms?.includes('web') && (
+                              <Globe className="w-3.5 h-3.5 text-blue-500" title="Web User" />
+                            )}
+                            {c.loginPlatforms?.includes('app') && (
+                              <Smartphone className="w-3.5 h-3.5 text-green-500" title="App User" />
+                            )}
+                          </div>
                           <p className="text-xs text-[#6b7280]">
                             {c.customerId}
                           </p>

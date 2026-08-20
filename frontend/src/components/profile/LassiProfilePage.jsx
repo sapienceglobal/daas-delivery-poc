@@ -11,6 +11,7 @@ import AddressesTab from './tabs/AddressesTab';
 import FavoritesTab from './tabs/FavoritesTab';
 import PaymentsTab from './tabs/PaymentsTab';
 import LoyaltyTab from './tabs/LoyaltyTab';
+import CouponsTab from './tabs/CouponsTab';
 import NotificationsTab from './tabs/NotificationsTab';
 import ReferTab from './tabs/ReferTab';
 import MyReservationsTab from './tabs/MyReservationsTab';
@@ -66,6 +67,7 @@ export default function LassiProfilePage({ user, logout, updateUser }) {
             {activeNav === 'favorites' && <FavoritesTab user={user} updateUser={updateUser} />}
             {activeNav === 'payments' && <PaymentsTab user={user} updateUser={updateUser} />}
             {activeNav === 'loyalty' && <LoyaltyTab user={user} />}
+            {activeNav === 'coupons' && <CouponsTab user={user} />}
             {activeNav === 'notifications' && <NotificationsTab user={user} updateUser={updateUser} />}
             {activeNav === 'refer' && <ReferTab user={user} />}
           </div>

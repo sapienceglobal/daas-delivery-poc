@@ -191,6 +191,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   VisibilityDetector(
                         key: const Key('home-screen-logo'),
                         onVisibilityChanged: (visibilityInfo) {
+                          if (!mounted) return;
                           if (visibilityInfo.visibleFraction == 0.0) {
                             // 1. Jaise hi aap dusre tab par jayenge, animation chupchap reset ho jayega
                             _logoController.reset();

@@ -138,6 +138,11 @@ const OrderSchema = new mongoose.Schema({
   tableNumber: { type: String, default: null },   // for dine-in
 
   // ── Pricing ───────────────────────────────────────────────────────────
+  orderSource: {
+    type: String,
+    enum: ['web', 'app'],
+    default: 'web'
+  },
   subtotal: { type: Number, required: true, default: 0 },
   tax: { type: Number, required: true, default: 0 },
   deliveryFee: { type: Number, default: 0 },

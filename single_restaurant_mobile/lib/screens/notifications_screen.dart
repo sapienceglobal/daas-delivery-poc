@@ -267,15 +267,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ],
           
           // Icon Circle
-          Container(
+         notification.image != null && notification.image!.isNotEmpty
+    ? ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          notification.image!,
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
-              shape: BoxShape.circle,
-              border: Border.all(color: iconColor.withOpacity(0.2)),
-            ),
+            decoration: BoxDecoration(color: iconColor.withOpacity(0.1), shape: BoxShape.circle),
             child: Icon(icon, color: iconColor, size: 24),
           ),
+        ),
+      )
+    : Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: iconColor.withOpacity(0.1),
+          shape: BoxShape.circle,
+          border: Border.all(color: iconColor.withOpacity(0.2)),
+        ),
+        child: Icon(icon, color: iconColor, size: 24),
+      ),
           const SizedBox(width: 12),
           
           // Content

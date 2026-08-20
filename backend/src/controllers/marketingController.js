@@ -46,7 +46,7 @@ export const getCampaigns = asyncHandler(async (req, response) => {
  * @access  Private (Admin/Manager)
  */
 export const broadcastCampaign = asyncHandler(async (req, response) => {
-  const { title, message, imageUrl, audience, restaurantId } = req.body;
+  const { title, message, imageUrl, audience, restaurantId, actionUrl } = req.body;
 
   if (!title || !message) {
     throw new AppError('Title and message are required for a campaign', 400);
@@ -67,6 +67,7 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
     title,
     message,
     imageUrl,
+    actionUrl,
     audience: audience || 'all_customers',
     status: 'pending'
   });
@@ -118,23 +119,29 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
     notification: {
       title,
       body: message,
+      ...(imageUrl && { imageUrl }),
     },
     android: {
       notification: {
         color: '#006778',
         icon: 'ic_notification',
         channelId: 'high_importance_channel',
-        sound: 'default'
+        sound: 'default',
+        ...(imageUrl && { imageUrl }),
       }
     },
     data: {
       type: 'marketing_campaign',
-      campaignId: campaign._id.toString()
+      campaignId: campaign._id.toString(),
+      ...(imageUrl && { image: imageUrl }),
+      // Add actionUrl if it exists in the future (though we are adding it now)
     }
   };
 
-  if (imageUrl) {
-    pushMessage.notification.imageUrl = imageUrl;
+  // We are handling imageUrl directly inside pushMessage now, so we can skip the manual assignment below, 
+  // but we will also support actionUrl since we are adding it to the UI.
+  if (req.body.actionUrl) {
+    pushMessage.data.actionUrl = req.body.actionUrl;
   }
 
   try {
