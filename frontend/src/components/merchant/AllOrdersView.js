@@ -30,14 +30,14 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
   const [isProcessing, setIsProcessing] = useState(false);
 
   // ─── LOAD MORE STATE ───
-  const ITEMS_PER_LOAD = 15; // Ek baar mein 15 orders dikhayenge
+  const ITEMS_PER_LOAD = 15;
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_LOAD);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Filter change hone par list automatically top se (15 items) reset hogi
+  // Reset list on filter change
   useEffect(() => {
     setVisibleCount(ITEMS_PER_LOAD);
-    setSelectedOrders([]); // Filter change hone par selection clear karna best practice hai
+    setSelectedOrders([]);
   }, [searchQuery, dateRange, statusFilter, orderTypeFilter, paymentFilter, activeTab]);
 
   // ---------------------------------------------------------

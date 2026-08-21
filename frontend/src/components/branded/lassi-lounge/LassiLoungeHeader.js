@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { navLinks } from './config';
 import { useBrand } from '@/context/BrandContext';
 
-// 1. Ek naya component banaya jo saare hooks aur UI logic handle karega
+// Internal component handling hooks and UI logic
 function HeaderContent() {
   const { items, openCart } = useCart();
   const { isAuthenticated, user, loading: authLoading } = useAuth();
@@ -108,7 +108,7 @@ function HeaderContent() {
   );
 }
 
-// 2. Main component jisme hum `<Suspense>` ka use kar rahe hain
+// Main exported component wrapping the header content in Suspense
 export default function LassiLoungeHeader() {
   return (
     <header className="sticky top-0 z-sticky bg-background border-b border-border">

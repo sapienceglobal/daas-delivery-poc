@@ -46,7 +46,7 @@ export default function ItemCustomizationModal({ item, onClose }) {
     onClose();
   }
 
-  // Next.js hydration safety - Portal target tabhi milega jab component mount hoga
+  // Next.js hydration safety - Portal target is only available after mount
   if (!mounted) return null;
 
   // Use createPortal to break out of all parent CSS transforms and stack contexts

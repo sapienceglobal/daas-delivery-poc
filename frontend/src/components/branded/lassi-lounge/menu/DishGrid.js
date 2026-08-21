@@ -62,7 +62,7 @@ export default function DishGrid({
     setVisibleCount(ITEMS_PER_LOAD);
   }, [sortBy]);
 
-  // 🔥 YAHAN FIX KIYA GAYA HAI 🔥
+  // Smooth scroll handling
   useEffect(() => {
     setVisibleCount(ITEMS_PER_LOAD);
 
@@ -76,8 +76,8 @@ export default function DishGrid({
       if (element) {
         const rect = element.getBoundingClientRect();
         
-        // Agar rect.top 100px se kam hai, iska matlab user ne grid ko scroll karke upar bhej diya hai
-        // Sirf tabhi hum wapas scroll karenge. Agar user wahi baitha hai, toh page bilkul nahi hilega!
+        // Only scroll if the user has scrolled past the top of the grid
+        // If the user is at the top, don't move the page
         if (rect.top < 100) {
           const elementPosition = rect.top + window.scrollY;
           window.scrollTo({

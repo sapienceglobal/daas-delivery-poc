@@ -43,7 +43,7 @@ export default function EventsGallery() {
             {IMAGES.map((img, idx) => (
               <div 
                 key={idx} 
-                // lg:min-w-0 aur lg:flex-1 ensure karta hai ki desktop par images choti ho kar ek sath fit ho jayein
+                // lg:min-w-0 and lg:flex-1 ensure that on desktop the images shrink and fit together
                 className="min-w-[240px] lg:min-w-0 lg:flex-1 flex-shrink-0 lg:flex-shrink aspect-[16/10] snap-start rounded-xl overflow-hidden shadow-sm border border-[#f0e6e2] relative cursor-pointer"
               >
                 <img 

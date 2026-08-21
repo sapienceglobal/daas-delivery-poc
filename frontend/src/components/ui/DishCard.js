@@ -131,7 +131,7 @@ export default function DishCard({ item }) {
                 type="button"
                 onClick={handleDecrement}
                 aria-label={`Remove one ${item.name}`}
-                // Hover background effect hataya hai yahan se
+                // Removed hover background effect
                 className="w-6 h-full flex items-center justify-center text-primary-600 transition-colors font-bold hover:text-primary-700"
               >
                 <Minus size={12} strokeWidth={3} />
@@ -143,7 +143,7 @@ export default function DishCard({ item }) {
                 type="button"
                 onClick={handleAddToCart}
                 aria-label={`Add one more ${item.name}`}
-                // Hover background effect hataya hai yahan se
+                // Removed hover background effect
                 className="w-6 h-full flex items-center justify-center text-primary-600 transition-colors font-bold hover:text-primary-700"
               >
                 <Plus size={12} strokeWidth={3} />
@@ -154,7 +154,7 @@ export default function DishCard({ item }) {
               type="button"
               onClick={handleAddToCart}
               aria-label={`Add ${item.name} to cart`}
-              // Hover background effect hataya hai yahan se
+              // Removed hover background effect
               className="w-6 h-6 rounded-full border border-primary-600 flex items-center justify-center text-primary-600 transition-colors shadow-sm shrink-0 hover:border-primary-700 hover:text-primary-700"
             >
               <Plus size={13} strokeWidth={3} />

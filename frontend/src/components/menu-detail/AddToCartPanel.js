@@ -20,7 +20,7 @@ export default function AddToCartPanel({
   const favoriteBtnBorder = 'border-[#e5e7eb] text-[#1a1a1a] hover:bg-[#f9fafb]';
 
   const isInCart = cartQty > 0;
-  // Agar cart me nahi hai to initial price calculation ke liye qty 1 manenge
+  // Default to 1 for initial price calculation if not in cart
   const displayQty = isInCart ? cartQty : 1; 
   const numericPrice = typeof price === 'number' && !isNaN(price) ? price : 0;
   const totalPrice = (numericPrice * displayQty).toFixed(2);
@@ -41,7 +41,7 @@ export default function AddToCartPanel({
       {/* Dynamic Cart Controls */}
       <div className="space-y-3 pt-1">
         {isInCart ? (
-          // Jab item cart me ho, to badha Quantity Selector dikhayenge
+          // Show larger quantity selector when item is in cart
           <div className="flex items-center border-2 border-[#7a0b10] rounded-xl h-[46px] bg-[#7a0b10]/5 overflow-hidden w-full shadow-sm">
             <button
               type="button"
@@ -62,7 +62,7 @@ export default function AddToCartPanel({
             </button>
           </div>
         ) : (
-          // Jab cart me na ho, to Add to Cart button dikhayenge
+          // Show Add to Cart button when item is not in cart
           <button
             type="button"
             onClick={onAddToCart}

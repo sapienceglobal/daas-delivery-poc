@@ -45,14 +45,14 @@ export default function MenuManagementView({
     if (!container) return;
 
     const handleWheel = (e) => {
-      // Agar user up/down wheel ghuma raha hai (aur trackpad se horizontal scroll nahi kar raha)
+      // Convert vertical scroll to horizontal scroll
       if (e.deltaY !== 0 && e.deltaX === 0) {
         e.preventDefault();
         container.scrollBy({ left: e.deltaY, behavior: 'auto' });
       }
     };
 
-    // 'passive: false' zaroori hai taaki hum preventDefault() call kar sakein
+    // 'passive: false' is required to call preventDefault()
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
   }, [mounted, menu]);

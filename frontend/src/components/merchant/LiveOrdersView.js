@@ -53,13 +53,13 @@ export default function LiveOrdersView({
     return () => window.removeEventListener('resize', checkForScrollPosition);
   }, []);
 
-  // 🔥 FIX 2: Mouse Wheel Horizontal Scroll Listener
+  // Mouse Wheel Horizontal Scroll Listener
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
     const handleWheel = (e) => {
-      // Agar vertical scroll ghumaya hai (aur horizontal pad/shift nahi hai)
+      // Convert vertical scroll to horizontal scroll
       if (e.deltaY !== 0 && e.deltaX === 0) {
         e.preventDefault();
         container.scrollBy({ left: e.deltaY, behavior: 'auto' });

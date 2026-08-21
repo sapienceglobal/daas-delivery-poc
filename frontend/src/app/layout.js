@@ -18,22 +18,22 @@ export const metadata = {
       : '%s | Restaurant Platform',
   },
   
-  // 2. SEO Description: Location aur intent (order/reserve) clear hona chahiye
+  // SEO Description
   description: isLassiLounge
     ? 'Experience the best authentic Indian cuisine at Lassi Lounge in New York. Order online for fast delivery, easy pickup, or reserve a table for dine-in.'
     : 'Order food from your favorite local restaurants — delivery, pickup, or dine-in.',
   
-  // 3. Keywords: Next.js mein keywords array mein dena better hota hai
+  // Keywords
   keywords: isLassiLounge
     ? ['Indian restaurant NY', 'Lassi Lounge New York', 'Authentic Indian food', 'Indian food delivery NY', 'best lassi in NY', 'dine-in Indian restaurant', 'curry', 'biryani', 'lassiloungeny']
     : ['food delivery', 'restaurant', 'ordering', 'pickup', 'dine-in'],
   
-  // 4. Canonical URL: Duplicate content penalty se bachne ke liye
+  // Canonical URL
   alternates: {
     canonical: '/',
   },
   
-  // 5. Robots: Google bot ko clearly batana ki index karna hai
+  // Robots
   robots: {
     index: true,
     follow: true,
@@ -66,7 +66,7 @@ export const metadata = {
     ],
   },
   
-  // 7. Twitter Card: Twitter (X) link previews ke liye
+  // Twitter Card
   twitter: {
     card: 'summary_large_image',
     title: isLassiLounge ? 'Lassi Lounge NY | Authentic Indian Cuisine' : 'Restaurant Commerce Platform',
