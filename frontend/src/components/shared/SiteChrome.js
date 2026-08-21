@@ -8,6 +8,8 @@ import LassiLoungeFooter from '@/components/branded/lassi-lounge/LassiLoungeFoot
 import CartSidebar from '@/components/ui/CartSidebar';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 
+import WhatsAppWidget from '@/components/common/WhatsAppWidget';
+
 const SINGLE_MODE = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
 
 export default function SiteChrome({ children }) {
@@ -32,6 +34,7 @@ export default function SiteChrome({ children }) {
         <MobileBottomNav />
         {children}
         <LassiLoungeFooter />
+        <WhatsAppWidget />
       </div>
     );
   }
@@ -43,6 +46,7 @@ export default function SiteChrome({ children }) {
       <MobileBottomNav />
       {children}
       <Footer />
+      <WhatsAppWidget />
     </div>
   );
 }

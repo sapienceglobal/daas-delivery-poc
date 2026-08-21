@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Calendar, Clock, Users, MapPin, Check, ChevronDown } from 'lucide-react';
 import { showToast } from '@/components/ui';
+import PremiumDatePicker from '@/components/ui/PremiumDatePicker';
 
 const STEPS = [
   { id: 1, label: 'Date & Time' },
@@ -131,11 +132,14 @@ export default function ReservationForm({ onSubmit }) {
               <label className="text-[13px] font-bold text-[#1a1a1a]">Select Date<span className="text-[#7a0b10]">*</span></label>
               <div className="relative">
                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#6b7280]" strokeWidth={1.5} />
-                <input 
-                  type="date" 
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                <PremiumDatePicker 
+                  selected={date ? new Date(date + 'T00:00:00') : null}
+                  onChange={(d) => {
+                    if (d) setDate(d.toISOString().split('T')[0]);
+                  }}
                   className="w-full h-[52px] pl-12 pr-4 rounded-xl border border-[#eadfdb] bg-white text-[15px] font-medium text-[#1a1a1a] focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-shadow"
+                  minDate={new Date()}
+                  placeholderText="Select date"
                 />
               </div>
             </div>
@@ -144,11 +148,18 @@ export default function ReservationForm({ onSubmit }) {
               <label className="text-[13px] font-bold text-[#1a1a1a]">Select Time<span className="text-[#7a0b10]">*</span></label>
               <div className="relative">
                 <Clock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#6b7280]" strokeWidth={1.5} />
-                <input 
-                  type="time" 
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
+                <PremiumDatePicker 
+                  selected={time ? new Date(`2000-01-01T${time}:00`) : null}
+                  onChange={(d) => {
+                    if (d) setTime(d.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' }));
+                  }}
+                  showTimeSelect
+                  showTimeSelectOnly
+                  timeIntervals={15}
+                  timeCaption="Time"
+                  dateFormat="h:mm aa"
                   className="w-full h-[52px] pl-12 pr-4 rounded-xl border border-[#eadfdb] bg-white text-[15px] font-medium text-[#1a1a1a] focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-shadow appearance-none"
+                  placeholderText="Select time"
                 />
               </div>
             </div>

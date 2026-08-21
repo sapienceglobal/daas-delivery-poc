@@ -33,7 +33,7 @@ export default function CateringPage({ restaurantId }) {
             <CateringPackages onContact={handleOpenModal} />
           </div>
           <div className="w-full lg:w-[30%]">
-            <CateringWhyChooseUs phone="(516) 612-0300" />
+            <CateringWhyChooseUs />
           </div>
         </div>
       </section>

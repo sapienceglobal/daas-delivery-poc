@@ -1,16 +1,23 @@
 'use client';
 
+import { useCms } from '@/context/CmsContext';
+
 export default function BookTableHero() {
+  const { cmsData, loadingCms } = useCms();
+  
+  const heroImage = cmsData?.heroBanners?.bookTable || "/images/branded/lassi-lounge/hero-spread.jpg";
+
   return (
     <section className="relative w-full min-h-[460px] bg-[#0a0a0a] flex items-center overflow-hidden">
       
       {/* Background Image Container */}
-      <div className="absolute inset-0 w-full h-full">
-        {/* Note: Ensure the image path points to the beautiful candle-light table image you shared */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center md:bg-[center_right_-10%] bg-no-repeat opacity-90"
-          style={{ backgroundImage: "url('/images/branded/lassi-lounge/hero-spread.jpg')" }}
-        />
+      <div className={`absolute inset-0 w-full h-full transition-opacity duration-700 ${loadingCms ? 'opacity-0' : 'opacity-100'}`}>
+        {!loadingCms && (
+          <div 
+            className="absolute inset-0 bg-cover bg-center md:bg-[center_right_-10%] bg-no-repeat opacity-90 transition-all duration-700"
+            style={{ backgroundImage: `url('${heroImage}')` }}
+          />
+        )}
       </div>
       
       {/* Heavy Gradient Overlay (Matches the image: Very dark on left, fading to right) */}

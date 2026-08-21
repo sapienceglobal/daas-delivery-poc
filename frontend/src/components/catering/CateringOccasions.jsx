@@ -1,41 +1,47 @@
 'use client';
 
-import { Heart, Gift, Briefcase, Users, GraduationCap, Music } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { useCms } from '@/context/CmsContext';
 
-const OCCASIONS = [
+const DEFAULT_OCCASIONS = [
   {
-    icon: Heart,
+    icon: 'Heart',
     title: 'Weddings',
     image: '/images/branded/lassi-lounge/catering/weddings.webp'
   },
   {
-    icon: Gift,
+    icon: 'Gift',
     title: 'Birthday Parties',
     image: '/images/branded/lassi-lounge/catering/Birthday parties.webp'
   },
   {
-    icon: Briefcase,
+    icon: 'Briefcase',
     title: 'Corporate Events',
     image: '/images/branded/lassi-lounge/catering/Corporate Events.webp'
   },
   {
-    icon: Users,
+    icon: 'Users',
     title: 'Family Gatherings',
     image: '/images/branded/lassi-lounge/catering/Family Gatherings.webp'
   },
   {
-    icon: GraduationCap,
+    icon: 'GraduationCap',
     title: 'School & College Events',
     image: '/images/branded/lassi-lounge/catering/School & College Events.webp'
   },
   {
-    icon: Music,
+    icon: 'Music',
     title: 'Religious & Cultural Events',
     image: '/images/branded/lassi-lounge/catering/Religious & Cultural Events.webp'
   }
 ];
 
 export default function CateringOccasions() {
+  const { cmsData } = useCms();
+  const occasionsToRender = cmsData?.cateringOccasions?.length > 0
+    ? cmsData.cateringOccasions
+    : DEFAULT_OCCASIONS;
+
   return (
     <section className="py-16 max-w-[1200px] mx-auto px-6">
       {/* Header */}
@@ -57,8 +63,8 @@ export default function CateringOccasions() {
 
       {/* Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-        {OCCASIONS.map((occ, idx) => {
-          const Icon = occ.icon;
+        {occasionsToRender.map((occ, idx) => {
+          const Icon = LucideIcons[occ.icon] || LucideIcons.Heart;
           return (
             <div key={idx} className="bg-white rounded-2xl border border-[#eadfdb] overflow-hidden shadow-sm flex flex-col group hover:shadow-md transition-shadow">
               <div className="p-4 flex flex-col items-center justify-center text-center gap-2 flex-1">

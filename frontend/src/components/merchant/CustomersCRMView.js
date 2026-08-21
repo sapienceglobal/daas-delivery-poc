@@ -608,16 +608,26 @@ export default function CustomersCRMView({
                             <p className="text-sm font-bold text-[#111827] group-hover/name:text-[#8B0000] transition-colors">
                               {c.name}
                             </p>
-                            {c.loginPlatforms?.includes('web') && (
-                              <Globe className="w-3.5 h-3.5 text-blue-500" title="Web User" />
-                            )}
-                            {c.loginPlatforms?.includes('app') && (
-                              <Smartphone className="w-3.5 h-3.5 text-green-500" title="App User" />
+                          </div>
+                          <div className="flex flex-col gap-1 mt-0.5">
+                            <p className="text-xs text-[#6b7280]">
+                              ID: {c.customerId}
+                            </p>
+                            {(c.loginPlatforms?.includes('web') || c.loginPlatforms?.includes('app')) && (
+                              <div className="flex items-center gap-1 mt-1">
+                                {c.loginPlatforms.includes('web') && (
+                                  <span className="text-[10px] font-bold text-[#1e40af] bg-[#eff6ff] border border-[#bfdbfe] px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                                    <Globe className="w-3 h-3" /> Web
+                                  </span>
+                                )}
+                                {c.loginPlatforms.includes('app') && (
+                                  <span className="text-[10px] font-bold text-[#166534] bg-[#f0fdf4] border border-[#bbf7d0] px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                                    <Smartphone className="w-3 h-3" /> App
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
-                          <p className="text-xs text-[#6b7280]">
-                            {c.customerId}
-                          </p>
                         </div>
                       </div>
                     </td>

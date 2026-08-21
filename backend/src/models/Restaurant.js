@@ -109,6 +109,21 @@ const RestaurantSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
   isFeatured: { type: Boolean, default: false },
 
+  // ── Merchant Notifications (WhatsApp & Web Push) ───────────────────────
+  notificationSettings: {
+    whatsappEnabled: { type: Boolean, default: true },
+    whatsappNumber: { type: String, default: '+1 (347) 755-1370' },
+    pushEnabled: { type: Boolean, default: true }
+  },
+  webPushSubscriptions: [{
+    endpoint: String,
+    keys: {
+      p256dh: String,
+      auth: String
+    },
+    createdAt: { type: Date, default: Date.now }
+  }],
+
   // ── Financial ─────────────────────────────────────────────────────────
   taxType: { type: String, default: 'Sales Tax' },
   taxRate: { type: Number, default: 8.875, min: 0, max: 100 },

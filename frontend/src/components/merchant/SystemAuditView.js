@@ -15,7 +15,7 @@ export default function SystemAuditView() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
-  
+
   // Filters
   const [severityFilter, setSeverityFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,8 +26,10 @@ export default function SystemAuditView() {
       const queryParams = new URLSearchParams({ limit: 100 });
       if (severityFilter !== 'all') queryParams.append('severity', severityFilter);
       
-      const res = await api.get(`/api/audit-logs?${queryParams.toString()}`);
-      setLogs(res.data || []);
+      const res = await api.get(`/api/audit?${queryParams.toString()}`);
+      // Assuming backend uses resFormatter, res.data might be { data: logs, pagination } or just the array
+      const logsArray = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      setLogs(logsArray); 
     } catch (err) {
       console.error(err);
       showToast('Failed to load system audit logs', 'error');

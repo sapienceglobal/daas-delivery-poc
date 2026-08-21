@@ -8,10 +8,14 @@ import {
 import { useRouter } from 'next/navigation';
 import { showToast } from '@/components/ui';
 import { api } from '@/lib/api';
+import { useMerchantContext } from '@/context/MerchantContext';
+import { formatDate, formatTime } from '@/lib/formatters';
 import StatCard from './StatCard';
+import PremiumDatePicker from '@/components/ui/PremiumDatePicker';
 
 export default function AllOrdersView({ orders = [], onRowClick }) {
   const router = useRouter();
+  const { restaurant } = useMerchantContext();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -305,21 +309,15 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
           </div>
           
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex flex-col relative">
+            <div className="flex flex-col w-[150px]">
               <label className="text-xs font-bold text-[#6b7280] mb-1">Date Range</label>
-              <div className="flex items-center gap-2 border border-[#e5e7eb] bg-[#f9fafb] rounded-lg px-3 py-2 cursor-pointer relative hover:bg-white transition-colors">
-                <input 
-                  type="date" 
-                  value={dateRange}
-                  onChange={(e) => setDateRange(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-[#111827] outline-none cursor-pointer pr-4"
-                />
-                {dateRange && (
-                  <button onClick={() => setDateRange('')} className="absolute right-2 text-[#9ca3af] hover:text-[#ef4444] bg-[#f9fafb]">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
+              <PremiumDatePicker 
+                selected={dateRange ? new Date(dateRange + 'T00:00:00') : null}
+                onChange={(d) => setDateRange(d ? d.toISOString().split('T')[0] : '')}
+                className="!bg-[#f9fafb] hover:!bg-white !py-[7.5px] !text-xs !font-bold !text-[#111827] cursor-pointer w-full"
+                placeholderText="All Dates"
+                isClearable={true}
+              />
             </div>
 
             <div className="flex flex-col">
@@ -487,8 +485,8 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
                         {getStatusBadge(order.status)}
                       </td>
                       <td className="px-4 py-4">
-                        <div className="text-sm font-bold text-[#111827]">{new Date(order.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
-                        <div className="text-xs text-[#6b7280]">{new Date(order.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                        <div className="text-sm font-bold text-[#111827]">{formatTime(order.createdAt, restaurant?.timeFormat, restaurant?.timezone)}</div>
+                        <div className="text-[11px] text-[#6b7280]">{formatDate(order.createdAt, restaurant?.dateFormat, restaurant?.timezone)}</div>
                       </td>
                       <td className="px-4 py-4">
                         <div className="text-xs font-bold text-[#374151]">{order.items?.length || 0} Items</div>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Truck, MapPin } from 'lucide-react';
 import Link from 'next/link';
+import { useCms } from '@/context/CmsContext';
 import { useAuth } from '@/context/AuthContext';
 import { restaurantAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
@@ -10,6 +11,7 @@ import LassiLocationModal from './LassiLocationModal';
 
 export default function OrderOnlineHero() {
   const { user, updateUser } = useAuth();
+  const { cmsData, loadingCms } = useCms();
   const [eta, setEta] = useState({ pickup: null, delivery: null, isOutOfRange: false });
   const [loadingEta, setLoadingEta] = useState(true);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -22,6 +24,8 @@ export default function OrderOnlineHero() {
                          null;
                          
   const effectiveAddress = selectedAddress || defaultAddress;
+
+  const heroImage = cmsData?.heroBanners?.orderOnline || '/images/branded/lassi-lounge/hero-spread.jpg';
 
   useEffect(() => {
     const fetchEta = async () => {
@@ -54,10 +58,14 @@ export default function OrderOnlineHero() {
     <div className="relative w-full overflow-hidden bg-[#f8f5f0] flex items-center justify-center min-h-[360px] md:min-h-[420px]">
       
       {/* Background Image on Right */}
-      <div 
-        className="absolute inset-0 md:left-1/3 bg-cover bg-right bg-no-repeat z-0"
-        style={{ backgroundImage: `url('/images/branded/lassi-lounge/hero-spread.jpg')` }}
-      />
+      <div className={`absolute inset-0 md:left-1/3 transition-opacity duration-700 ${loadingCms ? 'opacity-0' : 'opacity-100'} z-0`}>
+        {!loadingCms && (
+          <div 
+            className="absolute inset-0 bg-cover bg-right bg-no-repeat"
+            style={{ backgroundImage: `url('${heroImage}')` }}
+          />
+        )}
+      </div>
       
       {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-[#f8f5f0] via-[#f8f5f0]/90 to-transparent z-10" />

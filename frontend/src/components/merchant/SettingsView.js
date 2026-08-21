@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Settings, MapPin, Clock, ShoppingCart, Percent, Image as ImageIcon, Shield
 } from 'lucide-react';
-import { restaurantAPI, uploadAPI, authAPI } from '@/lib/api';
+import { restaurantAPI, uploadAPI, authAPI, api } from '@/lib/api';
 import { showToast } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 
@@ -65,11 +65,13 @@ export default function SettingsView({ restaurant, onRefresh }) {
     email: '', phone: '', address: '', website: '', logo: '',
     preparationTime: 0, minimumOrder: 0,
     taxType: 'Sales Tax', taxRate: 0, serviceCharge: 0, packagingCharge: 0,
-    enableTips: false, acceptsOnlineOrders: false, autoAcceptOrders: false, roundOff: false
+    enableTips: false, acceptsOnlineOrders: false, autoAcceptOrders: false, roundOff: false,
+    whatsappEnabled: true, whatsappNumber: '+1 (347) 755-1370', pushEnabled: true
   });
   const [operatingHours, setOperatingHours] = useState({});
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
+  const [deviceSubscribed, setDeviceSubscribed] = useState(false);
 
   // 2FA state
   const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
@@ -108,6 +110,10 @@ export default function SettingsView({ restaurant, onRefresh }) {
         serviceCharge: restaurant.serviceCharge ?? 5,
         packagingCharge: restaurant.packagingCharge ?? 0.50,
         roundOff: restaurant.roundOff !== false,
+
+        whatsappEnabled: restaurant.notificationSettings?.whatsappEnabled !== false,
+        whatsappNumber: restaurant.notificationSettings?.whatsappNumber || '+1 (347) 755-1370',
+        pushEnabled: restaurant.notificationSettings?.pushEnabled !== false,
       });
 
       setOperatingHours(restaurant.operatingHours || {
@@ -121,6 +127,42 @@ export default function SettingsView({ restaurant, onRefresh }) {
       });
     }
   }, [restaurant]);
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (reg) {
+            const sub = await reg.pushManager.getSubscription();
+            setDeviceSubscribed(!!sub);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+    checkSubscription();
+    
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab) {
+        setActiveTab(tab);
+      }
+      
+      if (params.get('scroll') === 'notifications') {
+        setTimeout(() => {
+          const section = document.getElementById('notifications-section');
+          if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            section.classList.add('bg-yellow-50');
+            setTimeout(() => section.classList.remove('bg-yellow-50'), 3000);
+          }
+        }, 300);
+      }
+    }
+  }, []);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -143,6 +185,68 @@ export default function SettingsView({ restaurant, onRefresh }) {
     });
   };
 
+  // Helper to convert base64 to Uint8Array
+  const urlBase64ToUint8Array = (base64String) => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
+  const subscribeToPushNotifications = async () => {
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        showToast('Push notifications are not supported by your browser.', 'error');
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        showToast('Notification permission was denied. Please allow it in browser settings.', 'error');
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      
+      const data = await api.get('/api/web-push/vapid-public-key');
+      const convertedVapidKey = urlBase64ToUint8Array(data.publicKey);
+      
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidKey
+      });
+
+      await api.post('/api/web-push/subscribe', { subscription });
+      
+      showToast('Push notifications enabled and registered successfully!', 'success');
+      setDeviceSubscribed(true);
+    } catch (err) {
+      console.error('Failed to subscribe to push notifications:', err);
+      showToast('Failed to subscribe to push notifications.', 'error');
+    }
+  };
+
+  const unsubscribeFromPushNotifications = async () => {
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          await sub.unsubscribe();
+          setDeviceSubscribed(false);
+          showToast('Push notifications disabled on this device.', 'success');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to unsubscribe:', err);
+      showToast('Failed to unsubscribe.', 'error');
+    }
+  };
+
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -158,11 +262,14 @@ export default function SettingsView({ restaurant, onRefresh }) {
     }
   };
 
+
+
   const handleSave = async () => {
     try {
       setSaving(true);
-      // Update general fields
-      await restaurantAPI.update(restaurant._id, formData);
+      // Update general fields and nested notificationSettings
+      const updatePayload = { ...formData, notificationSettings: { whatsappEnabled: formData.whatsappEnabled, whatsappNumber: formData.whatsappNumber, pushEnabled: formData.pushEnabled } };
+      await restaurantAPI.update(restaurant._id, updatePayload);
       
       // Force all days to use the global open/close time
       const globalOpen = operatingHours['monday']?.open || '11:30';
@@ -496,6 +603,60 @@ export default function SettingsView({ restaurant, onRefresh }) {
                     <input type="number" value={formData.minimumOrder} onChange={(e) => handleChange('minimumOrder', Number(e.target.value))} className={`w-24 pl-6 pr-2 py-1.5 text-sm text-left ${fieldBase}`} />
                   </div>
                 </div>
+
+                {/* Notification Settings Moved Here */}
+                <div id="notifications-section" className="mt-6 pt-6 border-t border-[#f3f4f6]">
+                  <h3 className="text-sm font-bold text-[#111827] mb-4">Notification Preferences</h3>
+                  
+                  <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
+                    <div>
+                      <p className="text-sm font-bold text-[#111827]">Global Push Settings</p>
+                      <p className="text-xs text-[#6b7280] mt-1">Enable or disable web push alerts system-wide</p>
+                    </div>
+                    <Toggle checked={formData.pushEnabled} onChange={(val) => handleChange('pushEnabled', val)} label="Enable push notifications globally" />
+                  </div>
+
+                  <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
+                    <div>
+                      <p className="text-sm font-bold text-[#111827]">Current Device Permission</p>
+                      <p className="text-xs text-[#6b7280] mt-1">
+                        Status: <span className={deviceSubscribed ? 'text-[#25D366] font-bold' : 'text-[#dc2626] font-bold'}>{deviceSubscribed ? 'Active on this device' : 'Inactive on this device'}</span>
+                      </p>
+                      {deviceSubscribed ? (
+                        <button onClick={unsubscribeFromPushNotifications} type="button" className="mt-2 text-xs font-semibold text-[#8b0000] hover:underline">
+                          Revoke Browser Permission
+                        </button>
+                      ) : (
+                        <button onClick={subscribeToPushNotifications} type="button" className="mt-2 text-xs font-semibold text-[#8b0000] hover:underline">
+                          Allow Browser Notifications
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between py-4">
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-[#111827]">WhatsApp Order Alerts</p>
+                      <p className="text-xs text-[#6b7280] mt-1">Receive new order notifications via WhatsApp</p>
+                      {formData.whatsappEnabled && (
+                        <div className="mt-3">
+                          <label className="block text-xs font-bold text-[#4b5563] mb-1">WhatsApp Number</label>
+                          <input 
+                            type="text" 
+                            placeholder="+1 (xxx) xxx-xxxx"
+                            value={formData.whatsappNumber} 
+                            onChange={(e) => handleChange('whatsappNumber', e.target.value)} 
+                            className={`w-full max-w-xs px-3 py-2 text-sm ${fieldBase}`} 
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="self-start mt-2">
+                      <Toggle checked={formData.whatsappEnabled} onChange={(val) => handleChange('whatsappEnabled', val)} label="Enable WhatsApp Alerts" />
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
 

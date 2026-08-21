@@ -8,12 +8,14 @@ import Button from '@/components/ui/Button';
 import { menuCategoryContent, deliveryPartnersContent, heroContent } from '../config';
 import { restaurantAPI } from '@/lib/api';
 import { useBrand } from '@/context/BrandContext';
+import { useCms } from '@/context/CmsContext';
 
 export default function HomeTopSection() {
   const router = useRouter();
   const partnersScrollRef = useRef(null);
   const categoriesScrollRef = useRef(null);
   const { brand } = useBrand();
+  const { cmsData, loadingCms } = useCms();
 
   // Real DB categories — fetched using brand._id from BrandContext
   const [dbCategories, setDbCategories] = useState([]);
@@ -142,14 +144,16 @@ export default function HomeTopSection() {
       <section className="relative w-full pt-30 pb-32 md:pt-38 md:pb-30 lg:pt-56 lg:pb-44 flex flex-col justify-center overflow-hidden z-10 min-h-[600px] lg:min-h-[720px] ll-hero-mobile-fit">
 
         {/* Full-width Background Image */}
-        <div className="absolute inset-0 z-0">
-          <Image
-            src="/images/branded/lassi-lounge/hero-spread.jpg"
-            alt="Hero background"
-            fill
-            priority
-            className="object-cover object-center"
-          />
+        <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${loadingCms ? 'opacity-0' : 'opacity-100'}`}>
+          {!loadingCms && (
+            <Image
+              src={cmsData?.heroBanners?.home || "/images/branded/lassi-lounge/hero-spread.jpg"}
+              alt="Hero background"
+              fill
+              priority
+              className="object-cover object-center"
+            />
+          )}
         </div>
 
         {/* Dark Rich Gradient Overlay */}

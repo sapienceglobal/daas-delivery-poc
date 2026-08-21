@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { cateringAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
+import PremiumDatePicker from '@/components/ui/PremiumDatePicker';
 
 export default function CateringInquiryModal({ isOpen, onClose, restaurantId, initialPackage = 'Custom / Unsure' }) {
   const [loading, setLoading] = useState(false);
@@ -176,13 +177,17 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
               </div>
               <div>
                 <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Event Date *</label>
-                <input 
-                  type="date" 
-                  name="eventDate"
-                  required
-                  value={formData.eventDate}
-                  onChange={handleChange}
+                <PremiumDatePicker 
+                  selected={formData.eventDate ? new Date(formData.eventDate + 'T00:00:00') : null}
+                  onChange={(date) => {
+                    if (date) {
+                      setFormData({ ...formData, eventDate: date.toISOString().split('T')[0] });
+                      if (errors.eventDate) setErrors({ ...errors, eventDate: false });
+                    }
+                  }}
                   className={getInputClass('eventDate')}
+                  minDate={new Date()}
+                  placeholderText="Select event date"
                 />
                 {errors.eventDate && <p className="!text-[#dc2626] text-[11px] mt-1.5 font-bold">This field is required.</p>}
               </div>

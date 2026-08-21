@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { useCms } from '@/context/CmsContext';
 
 export default function AboutStorySection({ onReserveClick }) {
+  const { cmsData } = useCms();
   return (
     <section className="w-full bg-[#faf6f0] text-[#1a1a1a] py-14 lg:py-20 select-none">
       <div className="mx-auto max-w-[1300px] px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
@@ -50,7 +52,7 @@ export default function AboutStorySection({ onReserveClick }) {
 
             <div className="space-y-0.5">
               <span className="text-[26px] md:text-[30px] text-[#1a1a1a] block leading-none" style={{ fontFamily: 'var(--font-script, cursive)' }}>
-                Kuldeep Singh
+                Simarjeet Gill
               </span>
               <span className="text-[11px] font-medium text-[#6b7280] block">
                 Founder, Lassi Lounge
@@ -62,7 +64,7 @@ export default function AboutStorySection({ onReserveClick }) {
         <div className="lg:col-span-6">
           <div className="relative aspect-video sm:aspect-[16/10] lg:aspect-[4/3] w-full rounded-2xl overflow-hidden shadow-lg bg-[#e5e7eb] group">
             <img
-              src="/images/branded/lassi-lounge/about/story-spread.jpg"
+              src={cmsData?.aboutUs?.restaurantImage || "/images/branded/lassi-lounge/about/lassi-lounge-restaurant_image.jpeg"}
               alt="Authentic Indian Cuisine Spread"
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />

@@ -1,6 +1,7 @@
 'use client';
 
 import { Leaf, ShieldCheck, ClipboardList, ChefHat, Clock, Phone } from 'lucide-react';
+import { useBrand } from '@/context/BrandContext';
 
 const FEATURES = [
   {
@@ -30,7 +31,20 @@ const FEATURES = [
   }
 ];
 
-export default function CateringWhyChooseUs({ phone }) {
+export default function CateringWhyChooseUs() {
+  const { brand, isSingleRestaurantMode } = useBrand();
+  
+  let phoneValue = brand?.phone || brand?.businessInfo?.businessPhone || (isSingleRestaurantMode ? '5166120300' : '18005550199');
+  
+  // Format phone if it's 10 or 11 digits
+  const numericPhone = phoneValue.replace(/\D/g, '');
+  let phoneLabel = phoneValue;
+  if (numericPhone.length === 10) {
+    phoneLabel = `(${numericPhone.substring(0,3)}) ${numericPhone.substring(3,6)}-${numericPhone.substring(6,10)}`;
+  } else if (numericPhone.length === 11 && numericPhone.startsWith('1')) {
+    phoneLabel = `+1 (${numericPhone.substring(1,4)}) ${numericPhone.substring(4,7)}-${numericPhone.substring(7,11)}`;
+  }
+
   return (
     <div className="w-full bg-[#fdfbf7] rounded-2xl border border-[#eadfdb] p-8 shadow-sm h-full">
       <h3 className="text-[20px] md:text-[24px] font-serif font-black text-[#7a0b10] leading-tight mb-8">
@@ -52,11 +66,11 @@ export default function CateringWhyChooseUs({ phone }) {
       </div>
       
       <a 
-        href={`tel:${phone.replace(/[^0-9]/g, '')}`}
+        href={`tel:${numericPhone}`}
         className="w-full py-4 rounded-xl bg-[#7a0b10] text-white flex items-center justify-center gap-2 hover:bg-[#680307] transition-colors shadow-md"
       >
         <Phone className="h-5 w-5" />
-        <span className="text-[15px] font-bold tracking-wide">{phone}</span>
+        <span className="text-[15px] font-bold tracking-wide">{phoneLabel}</span>
       </a>
     </div>
   );

@@ -71,7 +71,7 @@ export default function ContactUsSection() {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-5 gap-12 lg:gap-8 items-start">
+        <div className="grid lg:grid-cols-5 gap-12 lg:gap-8 items-stretch">
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-white p-8 rounded-3xl shadow-sm border border-[#e5e7eb] ll-pop group hover:shadow-md transition-shadow">
               <h3 className="text-2xl font-bold font-serif text-[#1a1a1a] mb-8">Contact Information</h3>
@@ -89,15 +89,29 @@ export default function ContactUsSection() {
                 ))}
               </div>
             </div>
+
+            {/* Location Map */}
+            <div className="bg-white p-4 rounded-3xl shadow-sm border border-[#e5e7eb] ll-pop h-[300px] overflow-hidden relative group">
+              <iframe 
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(brand?.address || 'Lassi Lounge, 450 Powell Street, San Francisco, CA 94102')}&t=&z=14&ie=UTF8&iwloc=&output=embed`} 
+                width="100%" 
+                height="100%" 
+                style={{ border: 0, filter: 'grayscale(0.2) contrast(1.1)' }} 
+                allowFullScreen="" 
+                loading="lazy" 
+                referrerPolicy="no-referrer-when-downgrade"
+                className="rounded-2xl transition-all duration-500 group-hover:filter-none"
+              ></iframe>
+            </div>
           </div>
 
           {/* Contact Form (Right Col) */}
-          <div className="lg:col-span-3 bg-white p-8 sm:p-10 rounded-3xl shadow-lg border border-[#e5e7eb] ll-pop relative overflow-hidden">
+          <div className="lg:col-span-3 bg-white p-8 sm:p-10 rounded-3xl shadow-lg border border-[#e5e7eb] ll-pop relative overflow-hidden h-full flex flex-col">
             {/* Glassmorphism gradient accent */}
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary-600 via-secondary-500 to-primary-600" />
             
-            <h3 className="text-2xl font-bold font-serif text-[#1a1a1a] mb-8">Send us a Message</h3>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <h3 className="text-2xl font-bold font-serif text-[#1a1a1a] mb-8 shrink-0">Send us a Message</h3>
+            <form onSubmit={handleSubmit} className="space-y-6 flex-1 flex flex-col">
               <div className="grid sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-[#4b5563]">Your Name</label>
@@ -135,18 +149,18 @@ export default function ContactUsSection() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-[#4b5563]">Message</label>
+              <div className="space-y-2 flex-1 flex flex-col">
+                <label className="text-sm font-semibold text-[#4b5563] shrink-0">Message</label>
                 <textarea
                   required
                   rows={5}
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className="w-full bg-[#f9fafb] border border-[#e5e7eb] rounded-xl p-4 text-[#1a1a1a] focus:bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all outline-none resize-none"
+                  className="w-full flex-1 bg-[#f9fafb] border border-[#e5e7eb] rounded-xl p-4 text-[#1a1a1a] focus:bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all outline-none resize-none"
                   placeholder="Tell us more about your query..."
                 />
               </div>
-              <div className="flex justify-start sm:justify-end">
+              <div className="flex justify-start sm:justify-end shrink-0">
                 <button
                   type="submit"
                   disabled={isSubmitting}

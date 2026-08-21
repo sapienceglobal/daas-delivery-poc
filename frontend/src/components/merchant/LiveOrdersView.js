@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   RefreshCcw, Filter, LayoutGrid, Phone, ShoppingBag, Truck,
   CheckCircle2, AlertTriangle, ArrowRight, XCircle, Clock,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Bell
 } from 'lucide-react';
+import { useMerchantContext } from '@/context/MerchantContext';
+import { formatTime } from '@/lib/formatters';
 
 export default function LiveOrdersView({ 
   orders = [], 
@@ -13,6 +15,7 @@ export default function LiveOrdersView({
   onRefresh,
   onViewAll
 }) {
+  const { restaurant } = useMerchantContext();
   const [mounted, setMounted] = useState(false);
   
   // ─── LOAD MORE STATE ───
@@ -359,6 +362,60 @@ export default function LiveOrdersView({
         {/* Right Sidebar (Order Summary) */}
         <div className="w-full xl:w-[300px] shrink-0 overflow-y-auto custom-scrollbar pr-4 space-y-6 pb-6">
           
+          {/* Notification Alerts Status */}
+          {(() => {
+            const push = restaurant?.notificationSettings?.pushEnabled;
+            const wa = restaurant?.notificationSettings?.whatsappEnabled;
+            
+            let statusText = "Alerts are currently OFF";
+            let detailsText = "You won't receive external notifications for new orders.";
+            let bgClass = "bg-[#fef2f2] border-[#fecaca]";
+            let textClass = "text-[#991b1b]";
+            let iconBgClass = "bg-[#fee2e2]";
+
+            if (push && wa) {
+              statusText = "All Alerts Active";
+              detailsText = "Receiving via WhatsApp and Desktop Push.";
+              bgClass = "bg-[#f0fdf4] border-[#bbf7d0]";
+              textClass = "text-[#166534]";
+              iconBgClass = "bg-[#dcfce7]";
+            } else if (wa) {
+              statusText = "WhatsApp Alerts Active";
+              detailsText = "Desktop push notifications are disabled.";
+              bgClass = "bg-[#fff7ed] border-[#fed7aa]";
+              textClass = "text-[#9a3412]";
+              iconBgClass = "bg-[#ffedd5]";
+            } else if (push) {
+              statusText = "Push Alerts Active";
+              detailsText = "WhatsApp notifications are disabled.";
+              bgClass = "bg-[#eff6ff] border-[#bfdbfe]";
+              textClass = "text-[#1e40af]";
+              iconBgClass = "bg-[#dbeafe]";
+            }
+
+            return (
+              <div className={`${bgClass} border rounded-2xl p-4 flex flex-col gap-2 transition-colors`}>
+                <div className="flex items-start gap-3">
+                  <div className={`w-8 h-8 rounded-full ${iconBgClass} flex items-center justify-center shrink-0`}>
+                    <Bell className={`w-4 h-4 ${textClass}`} />
+                  </div>
+                  <div>
+                    <h3 className={`text-[13px] font-extrabold ${textClass}`}>{statusText}</h3>
+                    <p className={`text-xs ${textClass} mt-0.5 leading-snug opacity-90`}>
+                      {detailsText}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => window.location.href = '/merchant/settings?tab=order&scroll=notifications'}
+                  className={`mt-1 self-start text-xs font-bold ${textClass} hover:underline`}
+                >
+                  Manage Notifications &rarr;
+                </button>
+              </div>
+            );
+          })()}
+
           {/* Order Summary */}
           <div className="bg-[#F8FAFC] border border-[#e5e7eb] rounded-2xl p-5">
             <div className="flex justify-between items-center mb-5">
@@ -402,7 +459,7 @@ export default function LiveOrdersView({
                       </div>
                       <div className="flex items-center gap-1 mt-1">
                         <CheckCircle2 className="w-3 h-3 text-[#166534]" />
-                        <span className="text-xs font-medium text-[#6b7280]">Delivered • {new Date(order.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-xs font-medium text-[#6b7280]">Delivered • {formatTime(order.createdAt, restaurant?.timeFormat, restaurant?.timezone)}</span>
                       </div>
                     </div>
                     <span className="text-xs font-bold text-[#111827]">${(order.total || 0).toFixed(2)}</span>

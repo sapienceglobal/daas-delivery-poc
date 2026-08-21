@@ -3,6 +3,8 @@
 import { ChefHat, Star, Users, Truck, ArrowRight, BookOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+import { useCms } from '@/context/CmsContext';
+
 const FEATURES = [
   { icon: ChefHat, label: 'Authentic Flavors' },
   { icon: Star, label: 'Premium Quality' },
@@ -12,16 +14,26 @@ const FEATURES = [
 
 export default function CateringHero({ onGetQuote }) {
   const router = useRouter();
+  const { cmsData, loadingCms } = useCms();
+  
+  // Provide a safe fallback for the image src
+  const heroImage = cmsData?.heroBanners?.catering || "/images/branded/lassi-lounge/catering-hero.webp";
+
   return (
     <section className="relative w-full bg-[#fdfbf7] overflow-hidden min-h-[550px] flex items-center">
       {/* Right side image gradient fade */}
       <div className="absolute right-0 top-0 bottom-0 w-full md:w-[65%] lg:w-[60%] h-full z-0">
         <div className="absolute inset-0 bg-gradient-to-r from-[#fdfbf7] via-[#fdfbf7]/80 to-transparent z-10 w-1/2 left-0" />
-        <img 
-          src="/images/branded/lassi-lounge/catering/table-setting.jpg" 
-          alt="Catering Buffet" 
-          className="w-full h-full object-cover"
-        />
+        {/* Only render image after loading to prevent 404 flashes, or use a fade transition */}
+        <div className={`w-full h-full transition-opacity duration-700 ${loadingCms ? 'opacity-0' : 'opacity-100 bg-gray-100'}`}>
+          {!loadingCms && (
+            <img 
+              src={heroImage} 
+              alt="Catering Buffet" 
+              className="w-full h-full object-cover"
+            />
+          )}
+        </div>
       </div>
 
       {/* Left side content */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShoppingBag, Star, Mail, Phone, Calendar, Clock, MapPin, Gift, TrendingUp, RefreshCw, ChevronRight, MessageSquare, Tag } from 'lucide-react';
+import { X, ShoppingBag, Star, Mail, Phone, Calendar, Clock, MapPin, Gift, TrendingUp, RefreshCw, ChevronRight, MessageSquare, Tag, Globe } from 'lucide-react';
 import { crmAPI } from '@/lib/api';
 
 export default function CustomerProfileModal({ customer, restaurantId, onClose }) {
@@ -213,6 +213,24 @@ function OverviewTab({ data, customer }) {
             </span>
           </div>
           <div className="flex justify-between items-center pb-4 border-b border-[#f3f4f6]">
+            <span className="text-[#6b7280] text-sm font-medium">Platforms Used</span>
+            <div className="flex items-center gap-1.5">
+              {customer.loginPlatforms?.includes('web') && (
+                <span className="text-[11px] font-bold text-[#1e40af] bg-[#eff6ff] border border-[#bfdbfe] px-2 py-1 rounded-md flex items-center gap-1">
+                  <Globe className="w-3.5 h-3.5" /> Web
+                </span>
+              )}
+              {customer.loginPlatforms?.includes('app') && (
+                <span className="text-[11px] font-bold text-[#166534] bg-[#f0fdf4] border border-[#bbf7d0] px-2 py-1 rounded-md flex items-center gap-1">
+                  <Smartphone className="w-3.5 h-3.5" /> App
+                </span>
+              )}
+              {!customer.loginPlatforms?.length && (
+                <span className="text-[11px] font-bold text-[#6b7280] bg-[#f3f4f6] px-2 py-1 rounded-md">Unknown</span>
+              )}
+            </div>
+          </div>
+          <div className="flex justify-between items-center pb-4 border-b border-[#f3f4f6]">
             <span className="text-[#6b7280] text-sm font-medium">Total Savings (Coupons)</span>
             <span className="text-[#059669] font-bold text-sm">
               ${(stats.totalSavings || 0).toFixed(2)}
@@ -323,7 +341,7 @@ function OrdersTab({ data }) {
                     <div className="flex justify-between items-start">
                       <div className="flex items-start gap-3">
                         <span className="bg-white border border-[#e5e7eb] text-[#374151] w-6 h-6 flex items-center justify-center rounded font-bold shrink-0">{item.quantity}x</span>
-                        <span className="text-[#111827] font-bold">{item.name} {item.selectedSize && <span className="text-[#6b7280] text-xs font-medium">({item.selectedSize})</span>}</span>
+                        <span className="text-[#111827] font-bold">{typeof item.name === 'object' ? item.name.name : item.name} {item.selectedSize && <span className="text-[#6b7280] text-xs font-medium">({typeof item.selectedSize === 'object' ? item.selectedSize.name : item.selectedSize})</span>}</span>
                       </div>
                       <span className="text-[#111827] font-bold shrink-0">${(item.lineTotal || 0).toFixed(2)}</span>
                     </div>
@@ -331,7 +349,7 @@ function OrdersTab({ data }) {
                       <div className="ml-9 mt-1.5 text-xs font-medium text-[#6b7280] space-y-1">
                         {item.addOns.map((addon, i) => (
                           <div key={i} className="flex justify-between">
-                            <span>+ {addon.name}</span>
+                            <span>+ {typeof addon.name === 'object' ? addon.name.name : addon.name}</span>
                             <span>+${(addon.price || 0).toFixed(2)}</span>
                           </div>
                         ))}

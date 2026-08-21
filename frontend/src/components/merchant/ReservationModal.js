@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, Users, Phone, Mail, User, MapPin, Loader2 } from 'lucide-react';
 import { showToast } from '@/components/ui';
+import PremiumDatePicker from '@/components/ui/PremiumDatePicker';
 
 export default function ReservationModal({ isOpen, onClose, onSave, reservation, restaurantId }) {
   const [formData, setFormData] = useState({
@@ -169,22 +170,29 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
                       <label className="block text-xs font-bold text-[#374151] mb-2 uppercase tracking-wider">Date <span className="text-[#DC2626]">*</span></label>
-                      <input
-                        type="date"
-                        required
-                        value={formData.date}
-                        onChange={(e) => setFormData({...formData, date: e.target.value})}
+                      <PremiumDatePicker
+                        selected={formData.date ? new Date(formData.date + 'T00:00:00') : null}
+                        onChange={(d) => {
+                          if (d) setFormData({...formData, date: d.toISOString().split('T')[0]});
+                        }}
                         className={inputClasses}
+                        placeholderText="Select date"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-[#374151] mb-2 uppercase tracking-wider">Time <span className="text-[#DC2626]">*</span></label>
-                      <input
-                        type="time"
-                        required
-                        value={formData.time}
-                        onChange={(e) => setFormData({...formData, time: e.target.value})}
+                      <PremiumDatePicker
+                        selected={formData.time ? new Date(`2000-01-01T${formData.time}:00`) : null}
+                        onChange={(d) => {
+                          if (d) setFormData({...formData, time: d.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })});
+                        }}
+                        showTimeSelect
+                        showTimeSelectOnly
+                        timeIntervals={15}
+                        timeCaption="Time"
+                        dateFormat="h:mm aa"
                         className={inputClasses}
+                        placeholderText="Select time"
                       />
                     </div>
                   </div>

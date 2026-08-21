@@ -7,7 +7,9 @@ import { LanguageProvider } from '@/context/LanguageContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BrandProvider } from '@/context/BrandContext';
 import { ModalProvider } from '@/context/ModalContext';
+import { CmsProvider } from '@/context/CmsContext';
 import ModalRoot from './ModalRoot';
+import { Toaster } from 'react-hot-toast';
 
 export function Providers({ children }) {
   return (
@@ -17,10 +19,13 @@ export function Providers({ children }) {
           <CartProvider>
             <SocketProvider>
               <BrandProvider>
-                <ModalProvider>
-                  {children}
-                  <ModalRoot />
-                </ModalProvider>
+                <CmsProvider>
+                  <ModalProvider>
+                    {children}
+                    <ModalRoot />
+                    <Toaster position="top-center" />
+                  </ModalProvider>
+                </CmsProvider>
               </BrandProvider>
             </SocketProvider>
           </CartProvider>

@@ -256,7 +256,15 @@ export const paymentAPI = {
 // ── Analytics API ───────────────────────────────────────────────────────────
 
 export const analyticsAPI = {
-  getSalesAnalytics: (restaurantId, days = 30) => api.get(`/api/analytics/restaurant/${restaurantId}?days=${days}`)
+  getSalesAnalytics: (restaurantId, days = null, startDate = null, endDate = null) => {
+    let url = `/api/analytics/restaurant/${restaurantId}?`;
+    if (startDate && endDate) {
+      url += `startDate=${startDate}&endDate=${endDate}`;
+    } else if (days) {
+      url += `days=${days}`;
+    }
+    return api.get(url);
+  }
 };
 
 // ── Inventory & Supplier API ────────────────────────────────────────────────

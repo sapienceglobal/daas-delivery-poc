@@ -1,16 +1,23 @@
 import { ChevronLeft } from 'lucide-react';
+import { useCms } from '@/context/CmsContext';
 
 export default function CheckoutHeaderBanner({ isSingleRestaurantMode, onBack }) {
+  const { cmsData, loadingCms } = useCms();
+  const heroImage = cmsData?.heroBanners?.checkout || 'https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&w=1600&q=80';
+
   if (isSingleRestaurantMode) {
     return (
-      <div
-        className="relative py-16 md:py-20 bg-cover bg-center border-b border-[#e5e7eb] flex items-center"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, rgba(10, 10, 10, 0.90), rgba(10, 10, 10, 0.50)), url('https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&w=1600&q=80')",
-        }}
-      >
-        <div className="mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8">
+      <div className={`relative py-16 md:py-20 flex items-center border-b border-[#e5e7eb] transition-opacity duration-700 ${loadingCms ? 'opacity-0' : 'opacity-100'}`}>
+        {/* Background Image injected only after load */}
+        {!loadingCms && (
+          <div 
+            className="absolute inset-0 bg-cover bg-center z-0"
+            style={{
+              backgroundImage: `linear-gradient(to right, rgba(10, 10, 10, 0.90), rgba(10, 10, 10, 0.50)), url('${heroImage}')`,
+            }}
+          />
+        )}
+        <div className="relative z-10 mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8">
           <h1 className="text-5xl md:text-6xl font-bold font-serif text-[#ffffff] mb-3 leading-tight tracking-wide">
             Checkout
           </h1>

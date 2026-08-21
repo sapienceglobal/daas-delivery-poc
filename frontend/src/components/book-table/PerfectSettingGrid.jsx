@@ -1,6 +1,7 @@
 'use client';
+import { useCms } from '@/context/CmsContext';
 
-const OCCASIONS = [
+const DEFAULT_OCCASIONS = [
   {
     title: 'Romantic Dinner',
     desc: 'A cozy ambiance for you and your loved one.',
@@ -29,6 +30,11 @@ const OCCASIONS = [
 ];
 
 export default function PerfectSettingGrid() {
+  const { cmsData } = useCms();
+  const settingsToRender = cmsData?.bookingSettings?.length > 0 
+    ? cmsData.bookingSettings 
+    : DEFAULT_OCCASIONS;
+
   return (
     <section className="py-12 max-w-[1200px] mx-auto px-6">
       {/* Header */}
@@ -50,7 +56,7 @@ export default function PerfectSettingGrid() {
 
       {/* Grid / Carousel */}
       <div className="flex flex-row overflow-x-auto snap-x snap-mandatory no-scrollbar md:grid md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 pb-4 -mx-6 px-6 md:mx-0 md:px-0">
-        {OCCASIONS.map((occ, idx) => (
+        {settingsToRender.map((occ, idx) => (
           <div key={idx} className="group cursor-pointer shrink-0 snap-center w-[240px] md:w-auto">
             <div className="overflow-hidden rounded-xl border border-[#eadfdb] bg-white shadow-sm mb-4 aspect-[4/3]">
               <img 

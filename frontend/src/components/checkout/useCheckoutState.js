@@ -336,8 +336,11 @@ export function useCheckoutState() {
       addressLat,
       addressLng,
       specialInstructions,
+      customerPhone: phone,
+      customerName: fullName,
+      customerEmail: email
     }),
-    [restaurant?._id, checkoutItems, orderType, tip, couponApplied, couponCode, useLoyaltyPoints, compiledAddress, addressLat, addressLng, specialInstructions]
+    [restaurant?._id, checkoutItems, orderType, tip, couponApplied, couponCode, useLoyaltyPoints, compiledAddress, addressLat, addressLng, specialInstructions, phone, fullName, email]
   );
 
   const triggerGeocoding = async (addrStr) => {

@@ -6,8 +6,9 @@ import {
 import { Calendar, Download, TrendingUp, TrendingDown, DollarSign, ShoppingBag, ShoppingCart, Users, RefreshCw, ChevronDown, ArrowRight, ChefHat, CreditCard } from 'lucide-react';
 import StatCard from './StatCard';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import PremiumDatePicker from '@/components/ui/PremiumDatePicker';
 
-export default function ReportsAnalyticsView({ analyticsData, restaurant }) {
+export default function ReportsAnalyticsView({ analyticsData, restaurant, startDate, endDate, onDateRangeChange }) {
   const router = useRouter();
 
   if (!analyticsData) {
@@ -42,14 +43,13 @@ export default function ReportsAnalyticsView({ analyticsData, restaurant }) {
     document.body.removeChild(link);
   };
 
-  // Dynamic Date Range calculation for "Last 30 Days"
+  // Formatted display date range (no longer defaults to 30 days, we use All Time)
   const calculatedDateRange = useMemo(() => {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - 30);
-    return `${formatDate(start, restaurant?.dateFormat, restaurant?.timezone)} - ${formatDate(end, restaurant?.dateFormat, restaurant?.timezone)}`;
-  }, [restaurant]);
-
+    if (startDate && endDate) {
+      return `${formatDate(startDate, restaurant?.dateFormat, restaurant?.timezone)} - ${formatDate(endDate, restaurant?.dateFormat, restaurant?.timezone)}`;
+    }
+    return "All Time";
+  }, [restaurant, startDate, endDate]);
   // Formatting helpers
   const renderCurrency = (val) => formatCurrency(val, restaurant?.currency);
   const formatNumber = (val) => (val || 0).toLocaleString('en-US');
@@ -152,9 +152,19 @@ export default function ReportsAnalyticsView({ analyticsData, restaurant }) {
           <p className="text-sm text-[#6b7280] mt-1">Detailed insights to grow your business.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-[#ffffff] border border-[#d1d5db] rounded-lg px-4 py-2 text-sm font-semibold text-[#374151] cursor-pointer hover:bg-[#f9fafb]">
-            <Calendar className="w-4 h-4 text-[#6b7280]" />
-            {calculatedDateRange}
+          <div className="flex items-center w-64">
+            <PremiumDatePicker 
+              selectsRange={true}
+              selected={startDate}
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(update) => {
+                if (onDateRangeChange) onDateRangeChange(update);
+              }}
+              isClearable={true}
+              placeholderText="All Time (Lifetime)"
+              className="text-sm font-semibold text-[#374151] cursor-pointer hover:bg-[#f9fafb] border-[#d1d5db] min-w-[220px]"
+            />
           </div>
           <button onClick={handleExport} className="flex items-center gap-2 bg-[#ffffff] border border-[#d1d5db] rounded-lg px-4 py-2 text-sm font-semibold text-[#374151] hover:bg-[#f9fafb] transition-colors">
             <Download className="w-4 h-4" /> Export Report

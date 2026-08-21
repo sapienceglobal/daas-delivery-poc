@@ -200,7 +200,7 @@ export const updateRestaurant = asyncHandler(async (req, response) => {
     'preparationTime', 'prepTime', 'currency', 'timezone', 'dateFormat', 
     'timeFormat', 'language', 'enableTips', 'cancellationTime', 
     'taxType', 'taxRate', 'serviceCharge', 'packagingCharge', 'roundOff', 'logo',
-    'loyaltySettings'
+    'loyaltySettings', 'notificationSettings'
   ];
 
   for (const key of allowed) {

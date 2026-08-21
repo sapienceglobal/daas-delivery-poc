@@ -13,20 +13,36 @@ const verifyRestaurantOwnership = async (restaurantId, user) => {
 
 export const getSalesAnalytics = asyncHandler(async (req, response) => {
   const { restaurantId } = req.params;
-  const { days = 30 } = req.query;
-  const numDays = parseInt(days);
+  const { days, startDate: queryStart, endDate: queryEnd } = req.query;
 
   if (req.user.role === 'merchant') {
     await verifyRestaurantOwnership(restaurantId, req.user);
   }
 
-  const endOfToday = new Date();
+  let endOfToday = new Date();
+  let startDate;
+  let numDays = null;
   
-  const startDate = new Date(endOfToday);
-  startDate.setDate(startDate.getDate() - numDays);
+  if (queryStart && queryEnd) {
+    startDate = new Date(queryStart);
+    endOfToday = new Date(queryEnd);
+    endOfToday.setHours(23, 59, 59, 999);
+  } else if (days && !isNaN(parseInt(days))) {
+    numDays = parseInt(days);
+    startDate = new Date(endOfToday);
+    startDate.setDate(startDate.getDate() - numDays);
+  } else {
+    // All-time default
+    const firstOrder = await Order.findOne({ restaurantId }).sort({ createdAt: 1 }).select('createdAt');
+    startDate = firstOrder ? new Date(firstOrder.createdAt) : new Date(endOfToday);
+    startDate.setHours(0,0,0,0);
+  }
+
+  const diffTime = Math.abs(endOfToday - startDate);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
   const prevStartDate = new Date(startDate);
-  prevStartDate.setDate(prevStartDate.getDate() - numDays);
+  prevStartDate.setDate(prevStartDate.getDate() - diffDays);
 
   // Helper match conditions
   const currentMatch = {

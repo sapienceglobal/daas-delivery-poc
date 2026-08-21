@@ -6,7 +6,7 @@ import {
   Briefcase, Clock, Store, CalendarCheck, Calendar,
   ClipboardList, ShoppingBag, ChefHat, Truck,
   CheckCircle, XCircle, Wallet, Users, Ticket, Gift, MessageSquare, BarChart, Settings, Activity, Shield, PhoneCall,
-  Grid, Utensils, PlusCircle, Sliders, Link as LinkIcon, Eye, Headphones, Megaphone
+  Grid, Utensils, PlusCircle, Sliders, Link as LinkIcon, Eye, Headphones, Megaphone, Globe
 } from 'lucide-react';
 
 const SIDEBAR_STRUCTURE = [
@@ -52,6 +52,7 @@ const SIDEBAR_STRUCTURE = [
     heading: 'SETTINGS & OTHERS',
     items: [
       { id: 'settings', label: 'Restaurant Settings', icon: Settings },
+      { id: 'cms', label: 'Website CMS', icon: Globe },
     ]
   }
 ];

@@ -214,7 +214,10 @@ export const calculateOrderPricing = async ({
     const maxDiscountFromPoints = (availablePoints * centsPerPoint) / 100;
     const maxRedeemable = roundMoney(subtotal + tax + deliveryFee + platformFee + serviceFee + safeTip - discount);
     
-    loyaltyDiscount = Math.min(maxDiscountFromPoints, maxRedeemable);
+    // Anti-Abuse: Cart subtotal must be at least 3x the redeemed value
+    const antiAbuseCap = roundMoney(subtotal / 3);
+    
+    loyaltyDiscount = Math.min(maxDiscountFromPoints, maxRedeemable, antiAbuseCap);
     loyaltyDiscount = roundMoney(loyaltyDiscount);
     
     // Points consumed is calculated from the applied discount

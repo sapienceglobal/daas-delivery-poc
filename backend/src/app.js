@@ -36,6 +36,8 @@ import contactRoutes from './routes/contactRoutes.js';
 import locationRoutes from './routes/locationRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
 import marketingRoutes from './routes/marketingRoutes.js';
+import cmsRoutes from './routes/cmsRoutes.js';
+import webPushRoutes from './routes/webPushRoutes.js';
 
 // ── Environment ─────────────────────────────────────────────────────────────
 const isProduction = process.env.NODE_ENV === 'production';
@@ -219,11 +221,12 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/kds', tenantDb, kdsRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/location', locationRoutes);
-app.use('/api/audit-logs', tenantDb, auditRoutes);
+app.use('/api/audit', auditRoutes);
 app.use('/api/marketing', marketingRoutes);
-app.use('/api', contactRoutes);
+app.use('/api/cms', cmsRoutes);
+app.use('/api/web-push', webPushRoutes);
 
-// ── Root Info Page ──────────────────────────────────────────────────────────
+// ── Not Found & Error Handlers ──────────────────────────────────────────────────────────
 app.get('/', (_req, res) => {
   res.json({
     name: 'Restaurant Commerce Platform API',

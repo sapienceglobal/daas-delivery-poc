@@ -362,14 +362,20 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-[16px] font-black text-[#111827]">{order.customerName || 'Guest Customer'}</p>
-                    {order.orderSource === 'app' && (
-                      <Smartphone className="w-4 h-4 text-green-500" title="App Order" />
-                    )}
-                    {order.orderSource === 'web' && (
-                      <Globe className="w-4 h-4 text-blue-500" title="Web Order" />
-                    )}
                   </div>
-                  <p className="text-[13px] font-bold text-[#6b7280]">{order.customerPhone || 'No Phone Number'}</p>
+                  <p className="text-[13px] font-bold text-[#6b7280] mb-1">{order.customerPhone || 'No Phone Number'}</p>
+                  
+                  {/* Explicit Platform Indicator */}
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className="text-[10px] font-bold text-[#8b0000] uppercase tracking-wider">Source:</span>
+                    <span className="text-[12px] font-bold text-[#111827] flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-[#e5e7eb] shadow-sm">
+                      {order.orderSource === 'app' ? (
+                        <><Smartphone className="w-3.5 h-3.5 text-green-600" /> Mobile App</>
+                      ) : (
+                        <><Globe className="w-3.5 h-3.5 text-blue-600" /> Website</>
+                      )}
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">
@@ -526,24 +532,43 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
             <h3 className="text-[11px] font-black text-[#8b0000] uppercase tracking-wider mb-4">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-3">
               <button onClick={handleRemake} disabled={isRemakingOrder}
-                className="col-span-2 border border-[#e5e7eb] rounded-lg py-2.5 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors font-bold text-[13px] text-[#111827] shadow-sm disabled:opacity-50">
-                <RefreshCcw className={`w-4 h-4 text-[#16a34a] ${isRemakingOrder ? 'animate-spin' : ''}`} />
+                className="col-span-2 border border-[#e5e7eb] rounded-lg py-2.5 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors font-bold text-[13px] text-[#111827] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                {isRemakingOrder ? (
+                  <div className="w-4 h-4 border-2 border-[#16a34a] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <RefreshCcw className="w-4 h-4 text-[#16a34a]" />
+                )}
                 {isRemakingOrder ? 'Creating…' : 'Remake Order ($0)'}
               </button>
 
               <button onClick={handleSendInvoice} disabled={isSendingInvoice || !order.customerEmail}
-                className={`border rounded-lg py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-colors shadow-sm ${!order.customerEmail ? 'border-[#e5e7eb] bg-[#f9fafb] text-[#9ca3af]' : 'border-[#e5e7eb] hover:bg-gray-50 text-[#111827]'}`}>
-                <Send className="w-4 h-4" /> Email
+                className={`border rounded-lg py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${!order.customerEmail && !isSendingInvoice ? 'border-[#e5e7eb] bg-[#f9fafb] text-[#9ca3af]' : 'border-[#e5e7eb] hover:bg-gray-50 text-[#111827]'}`}>
+                {isSendingInvoice ? (
+                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                {isSendingInvoice ? 'Sending...' : 'Email'}
               </button>
 
               <button onClick={handleRefund} disabled={isRefunding || !canRefund}
-                className={`border rounded-lg py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-colors shadow-sm ${!canRefund ? 'border-[#e5e7eb] bg-[#f9fafb] text-[#9ca3af]' : 'border-[#e5e7eb] hover:bg-gray-50 text-[#111827]'}`}>
-                <FileClock className="w-4 h-4" /> {isRefunded ? 'Refunded' : 'Refund'}
+                className={`border rounded-lg py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${!canRefund && !isRefunding ? 'border-[#e5e7eb] bg-[#f9fafb] text-[#9ca3af]' : 'border-[#e5e7eb] hover:bg-gray-50 text-[#111827]'}`}>
+                {isRefunding ? (
+                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <FileClock className="w-4 h-4" />
+                )}
+                {isRefunding ? 'Refunding...' : (isRefunded ? 'Refunded' : 'Refund')}
               </button>
 
               <button onClick={handleCancel} disabled={isCancelling || !canCancel}
-                className={`col-span-2 border rounded-lg py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-colors shadow-sm ${!canCancel ? 'border-[#e5e7eb] bg-[#f9fafb] text-[#9ca3af]' : 'border-[#fecaca] bg-[#fef2f2] text-[#dc2626] hover:bg-[#fee2e2]'}`}>
-                <XCircle className="w-4 h-4" /> {isCancelling ? 'Cancelling…' : 'Cancel Order'}
+                className={`col-span-2 border rounded-lg py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${!canCancel && !isCancelling ? 'border-[#e5e7eb] bg-[#f9fafb] text-[#9ca3af]' : 'border-[#fecaca] bg-[#fef2f2] text-[#dc2626] hover:bg-[#fee2e2]'}`}>
+                {isCancelling ? (
+                  <div className="w-4 h-4 border-2 border-[#dc2626] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <XCircle className="w-4 h-4" />
+                )}
+                {isCancelling ? 'Cancelling…' : 'Cancel Order'}
               </button>
             </div>
           </div>

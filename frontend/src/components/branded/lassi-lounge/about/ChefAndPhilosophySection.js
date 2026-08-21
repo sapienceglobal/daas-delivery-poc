@@ -1,8 +1,10 @@
 'use client';
 
 import { Utensils, Leaf, Heart, Sparkles } from 'lucide-react';
+import { useCms } from '@/context/CmsContext';
 
 export default function ChefAndPhilosophySection() {
+  const { cmsData } = useCms();
   const PHILOSOPHY_POINTS = [
     {
       icon: Utensils,
@@ -54,16 +56,16 @@ export default function ChefAndPhilosophySection() {
 
             <div className="pt-3 pb-1">
               <span className="text-[30px] md:text-[36px] text-[#e8a020] block leading-none" style={{ fontFamily: 'var(--font-script, cursive)' }}>
-                Kuldeep Singh
+                Simarjeet Gill
               </span>
             </div>
           </div>
 
           <div className="relative aspect-[4/3] w-full rounded-xl overflow-hidden shadow-2xl bg-[#000000] group max-w-[90%]">
             <img
-              src="/images/branded/lassi-lounge/about/chef-kuldeep.jpg"
+              src={cmsData?.aboutUs?.ownerImage || "/images/branded/lassi-lounge/about/resturant-owner.jpeg"}
               alt="Founder & Head Chef"
-              className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105 opacity-90"
+              className="w-full h-full object-cover object-[50%_35%] transition-transform duration-700 group-hover:scale-105 opacity-90"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0e0d0c] via-[#0e0d0c]/20 to-transparent" />
           </div>

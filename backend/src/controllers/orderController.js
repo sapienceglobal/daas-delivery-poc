@@ -20,6 +20,8 @@ import { calculateOrderPricing, roundMoney } from '../services/orderPricing.js';
 import { sendOrderConfirmationEmail, sendInvoiceEmail } from '../services/emailService.js';
 import { generateInvoiceHTML, generateKOTHTML } from '../services/documentService.js';
 import { createNotification } from './notificationController.js';
+import { sendPushNotification } from '../services/webPushService.js';
+import { sendOrderAlert } from '../services/whatsappService.js';
 import logger from '../utils/logger.js';
 
 const CUSTOMER_PAYMENT_METHODS = ['credit_card', 'apple_pay', 'google_pay', 'stripe_online'];
@@ -116,6 +118,7 @@ export const rollbackLoyaltyPoints = async (order, reason = 'cancellation') => {
 
     order.loyaltyRollbackProcessed = true;
     await order.save();
+
 
     logger.info('Loyalty points rollback completed successfully', {
       orderId: order._id,
@@ -397,7 +400,8 @@ export const createOrder = asyncHandler(async (req, response) => {
     restaurantId, items, address, addressLat, addressLng,
     orderType = 'delivery', paymentMethod = 'credit_card',
     tip = 0, couponCode, courierNotes, specialInstructions, scheduledTime, tableNumber,
-    stripePaymentIntentId, useLoyaltyPoints = false, savedCardId
+    stripePaymentIntentId, useLoyaltyPoints = false, savedCardId,
+    customerPhone, customerName, customerEmail
   } = req.body;
   const platform = req.headers['x-platform'] || 'web';
 
@@ -540,12 +544,17 @@ export const createOrder = asyncHandler(async (req, response) => {
   session.startTransaction();
 
   try {
+    // If the user's phone was the dummy '0000000000' or missing, and a valid phone was provided at checkout, save it to their profile.
+    if (customerPhone && (!req.user.phone || req.user.phone === '0000000000') && customerPhone !== '0000000000') {
+      await User.findByIdAndUpdate(req.user._id, { phone: customerPhone }, { session });
+    }
+
     const order = new Order({
     userId: req.user._id,
     orderSource: platform,
-    customerName: req.user.name,
-    customerPhone: req.user.phone || '0000000000',
-    customerEmail: req.user.email,
+    customerName: customerName || req.user.name,
+    customerPhone: customerPhone || req.user.phone || '0000000000',
+    customerEmail: customerEmail || req.user.email,
     address: address || restaurant.address,
     addressLat,
     addressLng,
@@ -696,6 +705,18 @@ export const createOrder = asyncHandler(async (req, response) => {
       sendOrderConfirmationEmail(req.user.email, order).catch(() => { });
     }
 
+    // ── TRIGGER BACKGROUND NOTIFICATIONS ──────────────────────────────────────
+    try {
+      await sendPushNotification(restaurant, {
+        title: 'New Order Request',
+        body: `${order.customerName} placed a new ${order.orderType} order! Total: $${order.total.toFixed(2)}`,
+        url: `/merchant/orders/${order._id}`
+      });
+      await sendOrderAlert(restaurant, order);
+    } catch (notifErr) {
+      console.error('Error sending background notifications:', notifErr);
+    }
+
     res.created(response, { data: order });
   } catch (error) {
     await session.abortTransaction();
@@ -787,7 +808,9 @@ export const createOrder = asyncHandler(async (req, response) => {
                 paymentIntentId: finalStripePaymentIntentId,
                 amount: pricing.total,
                 refundId: refund.id,
-                error: error.message
+                error: error.message,
+                customerName: req.user.name,
+                customerEmail: req.user.email
               }
             });
           }
@@ -816,7 +839,9 @@ export const createOrder = asyncHandler(async (req, response) => {
                 paymentIntentId: finalStripePaymentIntentId,
                 amount: pricing.total,
                 checkoutError: error.message,
-                refundError: refundError.message
+                refundError: refundError.message,
+                customerName: req.user.name,
+                customerEmail: req.user.email
               }
             });
           }
@@ -837,6 +862,8 @@ export const createOrder = asyncHandler(async (req, response) => {
         metadata: {
           paymentIntentId: finalStripePaymentIntentId,
           error: error.message,
+          customerName: req.user.name,
+          customerEmail: req.user.email,
           items: pricing.orderItems
         }
       });
