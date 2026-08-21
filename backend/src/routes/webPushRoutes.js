@@ -19,7 +19,8 @@ router.post('/subscribe', protect, authorize('merchant', 'admin'), async (req, r
       return next(new AppError('Invalid subscription payload', 400));
     }
 
-    const restaurant = await Restaurant.findOne({ isActive: true }); 
+    const tenantId = req.user.tenantId || req.user.restaurantId;
+    const restaurant = await Restaurant.findById(tenantId); 
     if (!restaurant) {
       return next(new AppError('Restaurant not found', 404));
     }
