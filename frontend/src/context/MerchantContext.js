@@ -17,7 +17,8 @@ export function MerchantProvider({ children }) {
 
   const [restaurant, setRestaurant] = useState(null);
   const [roomId, setRoomId] = useState(null);
-  const [globalLoading, setGlobalLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [globalLoading, setGlobalLoading] = useState(false);
   const [stats, setStats] = useState({
     activeOrders: 0,
     newOrders: 0,
@@ -29,7 +30,7 @@ export function MerchantProvider({ children }) {
   useEffect(() => {
     if (authLoading) return;
     if (!backendVerified) return;
-    if (!isAuthenticated) { router.push('/hq-portal'); return; }
+    if (!isAuthenticated) { router.push('/restaurant-panel'); return; }
     if (!isMerchant && !isAdmin) { router.push('/'); return; }
     
     initMerchantData();
@@ -39,6 +40,7 @@ export function MerchantProvider({ children }) {
     try {
       setGlobalLoading(true);
       if (!user?.restaurantId) {
+        setInitialLoading(false);
         setGlobalLoading(false);
         return;
       }
@@ -52,6 +54,7 @@ export function MerchantProvider({ children }) {
     } catch (error) {
       console.error("Failed to load merchant context:", error);
     } finally {
+      setInitialLoading(false);
       setGlobalLoading(false);
     }
   };
@@ -84,7 +87,7 @@ export function MerchantProvider({ children }) {
     refreshRestaurant: initMerchantData
   };
 
-  if (authLoading || !backendVerified || globalLoading) {
+  if (authLoading || !backendVerified || initialLoading) {
     return (
       <div className="flex h-screen bg-[#070707] w-full text-brand-text font-sans">
         <div className="w-[250px] h-screen bg-[#111827] border-r border-[#1f2937] shrink-0" />

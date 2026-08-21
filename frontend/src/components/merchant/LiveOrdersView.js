@@ -5,6 +5,7 @@ import {
   ChevronLeft, ChevronRight, Bell
 } from 'lucide-react';
 import { useMerchantContext } from '@/context/MerchantContext';
+import { useRouter } from 'next/navigation';
 import { formatTime } from '@/lib/formatters';
 
 export default function LiveOrdersView({ 
@@ -16,6 +17,7 @@ export default function LiveOrdersView({
   onViewAll
 }) {
   const { restaurant } = useMerchantContext();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   
   // ─── LOAD MORE STATE ───
@@ -407,7 +409,7 @@ export default function LiveOrdersView({
                   </div>
                 </div>
                 <button 
-                  onClick={() => window.location.href = '/merchant/settings?tab=order&scroll=notifications'}
+                  onClick={() => router.push('/merchant/settings?tab=order&scroll=notifications')}
                   className={`mt-1 self-start text-xs font-bold ${textClass} hover:underline`}
                 >
                   Manage Notifications &rarr;

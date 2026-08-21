@@ -53,7 +53,7 @@ export async function proxy(request) {
 
   // ── 2. Single Restaurant Mode routing ────────────────────────────────────
   if (SINGLE_MODE) {
-    if (pathname.startsWith('/restaurant') && !pathname.includes('lassi-lounge') && !pathname.includes('/item/')) {
+    if (pathname.startsWith('/restaurant') && pathname !== '/restaurant-panel' && !pathname.includes('lassi-lounge') && !pathname.includes('/item/')) {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
@@ -74,7 +74,7 @@ export async function proxy(request) {
     // Customers: let the login page handle ?redirect= via its own useEffect
   }
 
-  if (pathname === '/hq-portal' && token && role) {
+  if (pathname === '/restaurant-panel' && token && role) {
     if (role === 'admin') {
       return NextResponse.redirect(new URL('/admin', request.url));
     }
@@ -130,7 +130,7 @@ export const config = {
   matcher: [
     '/',
     '/login',
-    '/hq-portal',
+    '/restaurant-panel',
     '/admin/:path*',
     '/merchant/:path*',
     '/checkout/:path*',

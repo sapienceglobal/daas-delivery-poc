@@ -132,6 +132,10 @@ export default function SettingsView({ restaurant, onRefresh }) {
     const checkSubscription = async () => {
       if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
         try {
+          if (Notification.permission !== 'granted') {
+            setDeviceSubscribed(false);
+            return;
+          }
           const reg = await navigator.serviceWorker.getRegistration();
           if (reg) {
             const sub = await reg.pushManager.getSubscription();
@@ -143,6 +147,23 @@ export default function SettingsView({ restaurant, onRefresh }) {
       }
     };
     checkSubscription();
+    
+    let permissionStatusRef = null;
+    
+    // Listen for native browser permission changes
+    if (typeof window !== 'undefined' && navigator.permissions) {
+      navigator.permissions.query({ name: 'notifications' }).then((permissionStatus) => {
+        permissionStatusRef = permissionStatus;
+        permissionStatus.onchange = () => {
+          if (permissionStatus.state !== 'granted') {
+            setDeviceSubscribed(false);
+          } else {
+            // If they granted permission natively in the browser URL bar, auto-subscribe them
+            subscribeToPushNotifications();
+          }
+        };
+      }).catch(console.error);
+    }
     
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -162,6 +183,12 @@ export default function SettingsView({ restaurant, onRefresh }) {
         }, 300);
       }
     }
+
+    return () => {
+      if (permissionStatusRef) {
+        permissionStatusRef.onchange = null;
+      }
+    };
   }, []);
 
   const handleChange = (field, value) => {
@@ -628,7 +655,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
                         </button>
                       ) : (
                         <button onClick={subscribeToPushNotifications} type="button" className="mt-2 text-xs font-semibold text-[#8b0000] hover:underline">
-                          Allow Browser Notifications
+                          Enable Notifications on this Device
                         </button>
                       )}
                     </div>
