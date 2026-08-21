@@ -710,7 +710,7 @@ export const createOrder = asyncHandler(async (req, response) => {
       await sendPushNotification(restaurant, {
         title: 'New Order Request',
         body: `${order.customerName} placed a new ${order.orderType} order! Total: $${order.total.toFixed(2)}`,
-        url: `/merchant/orders/${order._id}`
+        url: `/merchant/live-orders`
       });
       await sendOrderAlert(restaurant, order);
     } catch (notifErr) {
