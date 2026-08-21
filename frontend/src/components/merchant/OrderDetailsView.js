@@ -116,8 +116,8 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   const isRefunded = order.refunded === true || order.paymentStatus === 'refunded';
   const isPartialRefund = order.paymentStatus === 'partially_refunded';
   const hasAutoRefund = (order.paymentEvents || []).some(e => e.event === 'auto_refund_triggered');
-  const autoRefundSucceeded = (order.paymentEvents || []).some(e => e.event === 'auto_refund_succeeded');
-  const autoRefundFailed = (order.paymentEvents || []).some(e => e.event === 'auto_refund_failed');
+  const autoRefundSucceeded = isRefunded || (order.paymentEvents || []).some(e => e.event === 'auto_refund_succeeded');
+  const autoRefundFailed = !autoRefundSucceeded && (order.paymentEvents || []).some(e => e.event === 'auto_refund_failed');
   const canRefund = !isRefunded && ['paid', 'partially_refunded'].includes(order.paymentStatus);
   const canCancel = !isTerminal;
   const totalItems = (order.items || []).reduce((acc, it) => acc + it.quantity, 0);

@@ -68,7 +68,7 @@ const BRAND_BORDER = '#eadfdb';
 /**
  * Send a single email.
  */
-export const sendEmail = async ({ to, subject, text, html }) => {
+export const sendEmail = async ({ to, subject, text, html, attachments }) => {
   const mailer = initTransporter();
 
   const msg = {
@@ -76,7 +76,8 @@ export const sendEmail = async ({ to, subject, text, html }) => {
     to,
     subject,
     text,
-    html
+    html,
+    attachments
   };
 
   if (!mailer) {
@@ -258,47 +259,42 @@ export const sendOtpEmail = async (email, userName, otp) => {
   });
 };
 
-export const sendInvoiceEmail = async (email, order) => {
-  const orderRef = order.orderNumber || order._id.toString().slice(-6);
-  const itemsList = order.items?.map(i => `
-    <tr>
-      <td style="padding:8px 0;border-bottom:1px solid ${BRAND_BORDER};font-size:14px;">${i.quantity}x ${i.name}</td>
-      <td style="padding:8px 0;border-bottom:1px solid ${BRAND_BORDER};font-size:14px;text-align:right;">$${(i.lineTotal || (i.price * i.quantity)).toFixed(2)}</td>
-    </tr>`
-  ).join('') || '';
+import { generatePdfFromHtml } from './pdfService.js';
+import { generateInvoiceHTML } from './documentService.js';
 
-  const bodyHtml = `
+export const sendInvoiceEmail = async (email, order, payment = null) => {
+  const orderRef = order.orderNumber || order._id.toString().slice(-6);
+  const htmlContent = generateInvoiceHTML(order, payment);
+  let pdfBuffer = null;
+  
+  try {
+    pdfBuffer = await generatePdfFromHtml(htmlContent);
+  } catch (error) {
+    logger.error(`Failed to generate PDF for order ${orderRef}`, error);
+    // Continue and send email without attachment if PDF generation fails
+  }
+
+  const emailBody = `
     <h2 style="margin:0 0 4px;font-size:20px;color:${BRAND_TEXT};">Invoice / Receipt</h2>
     <p style="margin:0 0 24px;color:${BRAND_MUTED};font-size:13px;">Order #${orderRef}</p>
-
     <p style="margin:0 0 24px;">
-      <strong>Billed To:</strong><br>${order.customerName || 'Customer'}<br>${email}
+      Hi ${order.customerName || 'Customer'},<br><br>
+      Thank you for your order! Please find your official invoice attached to this email as a PDF document.
     </p>
-
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
-      <tr>
-        <td style="padding:8px 0;border-bottom:2px solid ${BRAND_BORDER};font-size:12px;font-weight:700;color:${BRAND_MUTED};text-transform:uppercase;">Item</td>
-        <td style="padding:8px 0;border-bottom:2px solid ${BRAND_BORDER};font-size:12px;font-weight:700;color:${BRAND_MUTED};text-transform:uppercase;text-align:right;">Total</td>
-      </tr>
-      ${itemsList}
-    </table>
-
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;">
-      <tr><td style="padding:2px 0;font-size:13px;">Subtotal</td><td style="padding:2px 0;font-size:13px;text-align:right;">$${(order.subtotal || 0).toFixed(2)}</td></tr>
-      <tr><td style="padding:2px 0;font-size:13px;">Tax</td><td style="padding:2px 0;font-size:13px;text-align:right;">$${(order.tax || 0).toFixed(2)}</td></tr>
-      <tr><td style="padding:2px 0;font-size:13px;">Delivery Fee</td><td style="padding:2px 0;font-size:13px;text-align:right;">$${(order.deliveryFee || 0).toFixed(2)}</td></tr>
-      <tr><td style="padding:2px 0;font-size:13px;">Tip</td><td style="padding:2px 0;font-size:13px;text-align:right;">$${(order.tip || 0).toFixed(2)}</td></tr>
-      <tr><td style="padding-top:10px;font-size:16px;font-weight:700;">Total Paid</td>
-          <td style="padding-top:10px;font-size:16px;font-weight:700;text-align:right;color:${BRAND_PRIMARY};">$${(order.total || 0).toFixed(2)}</td></tr>
-    </table>
-
-    <p style="margin:28px 0 0;font-size:12px;color:${BRAND_MUTED};text-align:center;">Thank you for your order!</p>
+    <p style="margin:28px 0 0;font-size:12px;color:${BRAND_MUTED};">Thank you for your business!</p>
   `;
 
   return sendEmail({
     to: email,
     subject: `Invoice for Order #${orderRef}`,
-    text: `Here is your invoice for Order #${orderRef}. Total: $${(order.total || 0).toFixed(2)}`,
-    html: emailShell({ preheader: `Your invoice for order #${orderRef}.`, bodyHtml })
+    text: `Hi ${order.customerName || 'Customer'},\n\nPlease find your invoice for Order #${orderRef} attached.\n\nThank you!`,
+    html: emailShell({ preheader: `Your invoice for Order #${orderRef} is attached`, bodyHtml: emailBody }),
+    attachments: pdfBuffer ? [
+      {
+        filename: `Invoice_${orderRef}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }
+    ] : []
   });
 };

@@ -1137,6 +1137,12 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
     }
   } else if (status === 'delivered' || status === 'picked_up') {
     awardLoyaltyPoints(order).catch(err => logger.error('Award points error', err));
+    if (order.customerEmail) {
+      const Payment = req.getModel('Payment');
+      Payment.findOne({ orderId: order._id }).lean().then(payment => {
+        sendInvoiceEmail(order.customerEmail, order, payment).catch(err => logger.error('Auto invoice email error', err));
+      }).catch(() => {});
+    }
   }
 
   const io = req.app.get('io');
@@ -1500,6 +1506,13 @@ export const driverDeliverOrder = asyncHandler(async (req, response) => {
       orderId: order._id, status: order.status
     });
     io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
+  }
+
+  if (order.customerEmail) {
+    const Payment = req.getModel('Payment');
+    Payment.findOne({ orderId: order._id }).lean().then(payment => {
+      sendInvoiceEmail(order.customerEmail, order, payment).catch(err => logger.error('Auto invoice email error (driver)', err));
+    }).catch(() => {});
   }
 
   res.success(response, { data: order, message: 'Order delivered successfully' });
