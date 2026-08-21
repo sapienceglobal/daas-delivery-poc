@@ -240,6 +240,10 @@ export default function SettingsView({ restaurant, onRefresh }) {
       const registration = await navigator.serviceWorker.register('/sw.js');
       
       const data = await api.get('/api/web-push/vapid-public-key');
+      if (!data || !data.publicKey) {
+        showToast('Server push keys not configured. Please check server .env', 'error');
+        return;
+      }
       const convertedVapidKey = urlBase64ToUint8Array(data.publicKey);
       
       const subscription = await registration.pushManager.subscribe({
