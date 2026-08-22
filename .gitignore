@@ -33,7 +33,6 @@ test/
 tests/
 
 # Temporary and scratch scripts
-*test*.js
 *test*.ps1
 *seed*.js
 *mock*.js
@@ -199,3 +198,5 @@ single_restaurant_mobile/windows/!*.[Cc]ache/
 *.cjs
 update_location.*
 *update*location*
+test_*.js
+*_test.js
