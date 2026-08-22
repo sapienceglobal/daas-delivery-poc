@@ -256,7 +256,11 @@ export const login = asyncHandler(async (req, response) => {
   }
 
   const platform = req.headers['x-platform'];
-  if (platform && ['web', 'app'].includes(platform) && !user.loginPlatforms.includes(platform)) {
+  if (platform === 'merchant_app' && user.role === 'customer') {
+    throw new AppError('Access Denied: Customers please use the customer app or website to login.', 403);
+  }
+
+  if (platform && ['web', 'app', 'merchant_app'].includes(platform) && !user.loginPlatforms.includes(platform)) {
     user.loginPlatforms.push(platform);
   }
 
@@ -367,7 +371,11 @@ export const socialLogin = asyncHandler(async (req, response) => {
 
   user.lastLogin = new Date();
   const platform = req.headers['x-platform'];
-  if (platform && ['web', 'app'].includes(platform) && !user.loginPlatforms.includes(platform)) {
+  if (platform === 'merchant_app' && user.role === 'customer') {
+    throw new AppError('Access Denied: Customers please use the customer app or website to login.', 403);
+  }
+
+  if (platform && ['web', 'app', 'merchant_app'].includes(platform) && !user.loginPlatforms.includes(platform)) {
     user.loginPlatforms.push(platform);
   }
   await user.save();
@@ -797,7 +805,7 @@ export const verifyOtp = asyncHandler(async (req, response) => {
   user.otpAttempts = 0;
   
   const platform = req.headers['x-platform'];
-  if (platform && ['web', 'app'].includes(platform) && !user.loginPlatforms.includes(platform)) {
+  if (platform && ['web', 'app', 'merchant_app'].includes(platform) && !user.loginPlatforms.includes(platform)) {
     user.loginPlatforms.push(platform);
   }
   

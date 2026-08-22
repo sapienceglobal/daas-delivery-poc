@@ -172,7 +172,7 @@ const UserSchema = new mongoose.Schema({
   },
   loginPlatforms: [{
     type: String,
-    enum: ['web', 'app']
+    enum: ['web', 'app', 'merchant_app']
   }],
 
   // ── Login Lockout & Sessions ──────────────────────────────────────────
