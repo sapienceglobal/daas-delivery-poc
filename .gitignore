@@ -47,3 +47,145 @@ backend/test/
 backend/src/config/seed.js
 backend/src/seed.js
 backend/src/config/reset-db.js
+
+
+# --- Merged from frontend\.gitignore ---
+frontend/node_modules
+frontend/a
+
+
+# --- Merged from single_restaurant_mobile\.gitignore ---
+# Miscellaneous
+single_restaurant_mobile/*.class
+single_restaurant_mobile/*.log
+single_restaurant_mobile/*.pyc
+single_restaurant_mobile/*.swp
+single_restaurant_mobile/.DS_Store
+single_restaurant_mobile/.atom/
+single_restaurant_mobile/.build/
+single_restaurant_mobile/.buildlog/
+single_restaurant_mobile/.history
+single_restaurant_mobile/.svn/
+single_restaurant_mobile/.swiftpm/
+single_restaurant_mobile/migrate_working_dir/
+
+# IntelliJ related
+single_restaurant_mobile/*.iml
+single_restaurant_mobile/*.ipr
+single_restaurant_mobile/*.iws
+single_restaurant_mobile/.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+single_restaurant_mobile/**/doc/api/
+single_restaurant_mobile/**/ios/Flutter/.last_build_id
+single_restaurant_mobile/.dart_tool/
+single_restaurant_mobile/.flutter-plugins-dependencies
+single_restaurant_mobile/.pub-cache/
+single_restaurant_mobile/.pub/
+/single_restaurant_mobile/build/
+/single_restaurant_mobile/coverage/
+
+# Symbolication related
+single_restaurant_mobile/app.*.symbols
+
+# Obfuscation related
+single_restaurant_mobile/app.*.map.json
+
+# Android Studio will place build artifacts here
+/single_restaurant_mobile/android/app/debug
+/single_restaurant_mobile/android/app/profile
+/single_restaurant_mobile/android/app/release
+
+
+# --- Merged from single_restaurant_mobile\android\.gitignore ---
+single_restaurant_mobile/android/gradle-wrapper.jar
+/single_restaurant_mobile/android/.gradle
+/single_restaurant_mobile/android/captures/
+/single_restaurant_mobile/android/gradlew
+/single_restaurant_mobile/android/gradlew.bat
+/single_restaurant_mobile/android/local.properties
+single_restaurant_mobile/android/GeneratedPluginRegistrant.java
+single_restaurant_mobile/android/.cxx/
+
+# Remember to never publicly share your keystore.
+# See https://flutter.dev/to/reference-keystore
+single_restaurant_mobile/android/key.properties
+single_restaurant_mobile/android/**/*.keystore
+single_restaurant_mobile/android/**/*.jks
+
+
+# --- Merged from single_restaurant_mobile\ios\.gitignore ---
+single_restaurant_mobile/ios/**/dgph
+single_restaurant_mobile/ios/*.mode1v3
+single_restaurant_mobile/ios/*.mode2v3
+single_restaurant_mobile/ios/*.moved-aside
+single_restaurant_mobile/ios/*.pbxuser
+single_restaurant_mobile/ios/*.perspectivev3
+single_restaurant_mobile/ios/**/*sync/
+single_restaurant_mobile/ios/.sconsign.dblite
+single_restaurant_mobile/ios/.tags*
+single_restaurant_mobile/ios/**/.vagrant/
+single_restaurant_mobile/ios/**/DerivedData/
+single_restaurant_mobile/ios/Icon?
+single_restaurant_mobile/ios/**/Pods/
+single_restaurant_mobile/ios/**/.symlinks/
+single_restaurant_mobile/ios/profile
+single_restaurant_mobile/ios/xcuserdata
+single_restaurant_mobile/ios/**/.generated/
+single_restaurant_mobile/ios/Flutter/App.framework
+single_restaurant_mobile/ios/Flutter/Flutter.framework
+single_restaurant_mobile/ios/Flutter/Flutter.podspec
+single_restaurant_mobile/ios/Flutter/Generated.xcconfig
+single_restaurant_mobile/ios/Flutter/ephemeral/
+single_restaurant_mobile/ios/Flutter/app.flx
+single_restaurant_mobile/ios/Flutter/app.zip
+single_restaurant_mobile/ios/Flutter/flutter_assets/
+single_restaurant_mobile/ios/Flutter/flutter_export_environment.sh
+single_restaurant_mobile/ios/ServiceDefinitions.json
+single_restaurant_mobile/ios/Runner/GeneratedPluginRegistrant.*
+
+# Exceptions to above rules.
+single_restaurant_mobile/ios/!default.mode1v3
+single_restaurant_mobile/ios/!default.mode2v3
+single_restaurant_mobile/ios/!default.pbxuser
+single_restaurant_mobile/ios/!default.perspectivev3
+
+
+# --- Merged from single_restaurant_mobile\linux\.gitignore ---
+single_restaurant_mobile/linux/flutter/ephemeral
+
+
+# --- Merged from single_restaurant_mobile\macos\.gitignore ---
+# Flutter-related
+single_restaurant_mobile/macos/**/Flutter/ephemeral/
+single_restaurant_mobile/macos/**/Pods/
+
+# Xcode-related
+single_restaurant_mobile/macos/**/dgph
+single_restaurant_mobile/macos/**/xcuserdata/
+
+
+# --- Merged from single_restaurant_mobile\windows\.gitignore ---
+single_restaurant_mobile/windows/flutter/ephemeral/
+
+# Visual Studio user-specific files.
+single_restaurant_mobile/windows/*.suo
+single_restaurant_mobile/windows/*.user
+single_restaurant_mobile/windows/*.userosscache
+single_restaurant_mobile/windows/*.sln.docstates
+
+# Visual Studio build-related files.
+single_restaurant_mobile/windows/x64/
+single_restaurant_mobile/windows/x86/
+
+# Visual Studio cache files
+# files ending in .cache can be ignored
+single_restaurant_mobile/windows/*.[Cc]ache
+# but keep track of directories ending in .cache
+single_restaurant_mobile/windows/!*.[Cc]ache/
+
