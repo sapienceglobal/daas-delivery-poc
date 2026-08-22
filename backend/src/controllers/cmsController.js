@@ -88,7 +88,11 @@ const defaultCmsConfig = {
     { title: 'Celebrations', desc: 'Make birthdays & anniversaries extra special.', image: '/images/branded/lassi-lounge/dishes/samosa-chaat.jpg' },
     { title: 'Business Meetings', desc: 'Professional setting for your important meetings.', image: '/images/branded/lassi-lounge/dishes/mango-lassi.jpg' },
     { title: 'Private Events', desc: 'Customized arrangements for your private parties.', image: '/images/branded/lassi-lounge/dishes/chicken-tikka-masala.jpg' }
-  ]
+  ],
+  promotions: {
+    menuPage: null,
+    mobileHome: null
+  }
 };
 
 /**
@@ -104,7 +108,26 @@ export const getCmsConfig = asyncHandler(async (req, response) => {
   }
 
   const CmsModel = req.getModel('Cms');
-  let cms = await CmsModel.findOne({ restaurantId });
+  const RestaurantModel = req.getModel('Restaurant');
+
+  let actualRestaurantId = restaurantId;
+  const isObjectId = /^[0-9a-fA-F]{24}$/.test(restaurantId);
+
+  if (!isObjectId) {
+    let restaurant;
+    if (restaurantId === 'lassi-lounge') {
+      restaurant = await RestaurantModel.findOne({ name: { $regex: /^lassi lounge$/i } });
+    } else {
+      restaurant = await RestaurantModel.findOne({ slug: restaurantId });
+    }
+    if (restaurant) {
+      actualRestaurantId = restaurant._id;
+    }
+  }
+
+  let cms = await CmsModel.findOne({ restaurantId: actualRestaurantId })
+    .populate('promotions.menuPage')
+    .populate('promotions.mobileHome');
 
   // if no CMS document exists yet, return the default mock data
   if (!cms) {
@@ -126,7 +149,7 @@ export const updateCmsConfig = asyncHandler(async (req, response) => {
     throw new AppError('Restaurant ID is required', 400);
   }
 
-  const { heroBanners, aboutUs, cateringOccasions, cateringPackages, bookingSettings } = req.body;
+  const { heroBanners, aboutUs, cateringOccasions, cateringPackages, bookingSettings, promotions } = req.body;
 
   const CmsModel = req.getModel('Cms');
   
@@ -138,6 +161,7 @@ export const updateCmsConfig = asyncHandler(async (req, response) => {
     cms.cateringOccasions = cateringOccasions || cms.cateringOccasions;
     cms.cateringPackages = cateringPackages || cms.cateringPackages;
     cms.bookingSettings = bookingSettings || cms.bookingSettings;
+    if (promotions) cms.promotions = promotions;
     await cms.save();
   } else {
     // merge provided fields with default placeholders for missing fields
@@ -147,7 +171,8 @@ export const updateCmsConfig = asyncHandler(async (req, response) => {
       aboutUs: aboutUs || defaultCmsConfig.aboutUs,
       cateringOccasions: cateringOccasions || defaultCmsConfig.cateringOccasions,
       cateringPackages: cateringPackages || defaultCmsConfig.cateringPackages,
-      bookingSettings: bookingSettings || defaultCmsConfig.bookingSettings
+      bookingSettings: bookingSettings || defaultCmsConfig.bookingSettings,
+      promotions: promotions || defaultCmsConfig.promotions
     });
   }
 

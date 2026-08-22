@@ -49,7 +49,11 @@ const cmsSchema = new mongoose.Schema(
         desc: { type: String, required: true },
         image: { type: String, required: true }
       }
-    ]
+    ],
+    promotions: {
+      menuPage: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon', default: null },
+      mobileHome: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon', default: null }
+    }
   },
   { timestamps: true }
 );

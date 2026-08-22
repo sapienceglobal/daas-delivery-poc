@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { couponAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
+import PremiumDatePicker from '@/components/ui/PremiumDatePicker';
 
 export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo = null, defaultPromoType = 'Coupon' }) {
   const [mounted, setMounted] = useState(false);
@@ -19,6 +20,7 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
     minOrdersRequired: '',
     allowedPaymentMethods: 'All',
     endDate: '',
+    maxUses: '',
     targetAudience: 'All Users',
     targetGroup: 'Family'
   });
@@ -40,13 +42,14 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
         minCartValue: editPromo.minCartValue || '',
         minOrdersRequired: editPromo.minOrdersRequired || '',
         allowedPaymentMethods: editPromo.allowedPaymentMethods?.[0] || 'All',
-        endDate: editPromo.endDate ? new Date(editPromo.endDate).toISOString().split('T')[0] : ''
+        endDate: editPromo.endDate ? new Date(editPromo.endDate).toISOString().split('T')[0] : '',
+        maxUses: editPromo.maxUses || ''
       });
     } else {
       setFormData({
         code: '', name: '', description: '', promoType: defaultPromoType,
         type: 'percentage', value: '', minCartValue: '', minOrdersRequired: '',
-        allowedPaymentMethods: 'All', endDate: '', targetAudience: 'All Users', targetGroup: 'Family'
+        allowedPaymentMethods: 'All', endDate: '', maxUses: '', targetAudience: 'All Users', targetGroup: 'Family'
       });
       setErrors({});
     }
@@ -81,6 +84,7 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
         minOrdersRequired: formData.minOrdersRequired ? Number(formData.minOrdersRequired) : 0,
         allowedPaymentMethods: formData.allowedPaymentMethods === 'All' ? ['All'] : [formData.allowedPaymentMethods],
         endDate: new Date(formData.endDate).toISOString(),
+        maxUses: formData.maxUses ? Number(formData.maxUses) : null,
         targetGroup: formData.targetAudience === 'All Users' ? 'All Users' : formData.targetGroup
       };
 
@@ -229,12 +233,12 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
               </div>
               <div>
                 <label className="block text-[12px] font-bold text-[#374151] mb-1">Expiry Date *</label>
-                <input
-                  type="date"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-lg text-[13px] text-[#1f2937] outline-none focus:border-[#8b0000]"
+                <PremiumDatePicker
+                  selected={formData.endDate ? new Date(formData.endDate + 'T00:00:00') : null}
+                  onChange={(d) => setFormData(prev => ({ ...prev, endDate: d ? d.toISOString().split('T')[0] : '' }))}
+                  className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-lg text-[13px] text-[#1f2937] outline-none focus:border-[#8b0000] cursor-pointer"
+                  placeholderText="Select expiry date"
+                  minDate={new Date()}
                 />
                 {errors.endDate && <p className="text-red-500 text-xs mt-1">{errors.endDate}</p>}
               </div>
@@ -269,6 +273,21 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
                   </select>
                 </div>
               )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[12px] font-bold text-[#374151] mb-1">Max Uses (Limit)</label>
+                <input
+                  type="number"
+                  name="maxUses"
+                  value={formData.maxUses}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-lg text-[13px] text-[#1f2937] outline-none focus:border-[#8b0000]"
+                  placeholder="e.g. 100 (blank for unlimited)"
+                  min="1"
+                />
+              </div>
             </div>
 
             <div>

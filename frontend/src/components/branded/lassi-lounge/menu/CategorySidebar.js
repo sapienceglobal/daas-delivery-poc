@@ -1,10 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Gift, Utensils, Coffee, Pizza, Salad, Flame, CakeSlice } from 'lucide-react';
-import { couponAPI } from '@/lib/api';
+import { api } from '@/lib/api';
 import { showToast } from '@/components/ui';
 
-// यह फंक्शन कैटेगरी के नाम के हिसाब से सही आइकॉन रिटर्न करेगा
+// get category icon
 const getCategoryIcon = (categoryName) => {
   const name = categoryName.toLowerCase();
   if (name.includes('appetizer')) return Utensils;
@@ -33,12 +33,13 @@ export default function CategorySidebar({
   useEffect(() => {
     const fetchCoupon = async () => {
       try {
-        const res = await couponAPI.getActive();
-        if (res.success && res.data && res.data.length > 0) {
-          setActiveCoupon(res.data[0]);
+        const BRANDED_ID = process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'lassi-lounge';
+        const res = await api.get(`/api/cms?restaurantId=${BRANDED_ID}`);
+        if (res.data?.promotions?.menuPage) {
+          setActiveCoupon(res.data.promotions.menuPage);
         }
       } catch (err) {
-        console.error('Failed to fetch coupon:', err);
+        console.error('Failed to fetch CMS promotions:', err);
       }
     };
     fetchCoupon();
@@ -101,12 +102,12 @@ export default function CategorySidebar({
                   }`}
               >
                 <div className="flex items-center gap-2 lg:gap-3">
-                  {/* आइकॉन का कलर एक्टिव स्टेट के हिसाब से बदलेगा */}
+                  {/* icon color based on active state */}
                   <Icon className={`w-4 h-4 stroke-[2px] ${isActive ? 'text-[#1a1a1a]' : 'text-[#7a0b10]'}`} />
                   <span>{cat.name}</span>
                 </div>
 
-                {/* काउंट बैज */}
+                {/* count badge */}
                 <span className={`hidden lg:inline-block text-[10px] rounded-full px-2 py-0.5 font-bold ${isActive ? 'bg-black/15 text-[#1a1a1a]' : 'bg-[#f3f4f6] text-[#6b7280]'}`}>
                   {cat.items?.length || 0}
                 </span>
@@ -120,7 +121,7 @@ export default function CategorySidebar({
       {activeCoupon && (
         <div className="hidden lg:block relative rounded-xl p-6 text-center text-[#ffffff] overflow-hidden shadow-lg border border-[#222222] mt-6">
 
-          {/* बैकग्राउंड इमेज और डार्क ओवरले (मसालों वाले बैकग्राउंड के लिए) */}
+          {/* background image and dark overlay */}
           <div
             className="absolute inset-0 opacity-30 bg-cover bg-center mix-blend-luminosity"
             style={{ backgroundImage: "url('/images/branded/lassi-lounge/menu-hero.jpg')" }}

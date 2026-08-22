@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Save, Image as ImageIcon, Loader2, Plus, Trash2, 
-  LayoutTemplate, Info, Utensils, CalendarDays, Camera, GripVertical 
+  LayoutTemplate, Info, Utensils, CalendarDays, Camera, GripVertical, Ticket 
 } from 'lucide-react';
-import { api, authAPI } from '@/lib/api';
+import { api, authAPI, couponAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 export default function CmsManagementView() {
@@ -12,20 +12,23 @@ export default function CmsManagementView() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('hero');
   const [uploadingImage, setUploadingImage] = useState(null);
+  const [activeCoupons, setActiveCoupons] = useState([]);
 
   const [cmsData, setCmsData] = useState({
     heroBanners: { home: '', menu: '', orderOnline: '', checkout: '', catering: '', bookTable: '' },
     aboutUs: { ownerImage: '', restaurantImage: '', galleryImages: [] },
     cateringOccasions: [],
     cateringPackages: [],
-    bookingSettings: []
+    bookingSettings: [],
+    promotions: { menuPage: '', mobileHome: '' }
   });
 
   const TABS = [
     { id: 'hero', label: 'Hero Banners', icon: LayoutTemplate, desc: 'Manage top banners across pages' },
     { id: 'about', label: 'About Us', icon: Info, desc: 'Update restaurant info and gallery' },
     { id: 'catering', label: 'Catering', icon: Utensils, desc: 'Manage catering occasions & packages' },
-    { id: 'booking', label: 'Booking', icon: CalendarDays, desc: 'Manage table booking settings' }
+    { id: 'booking', label: 'Booking', icon: CalendarDays, desc: 'Manage table booking settings' },
+    { id: 'promotions', label: 'Promotions', icon: Ticket, desc: 'Manage coupon placements' }
   ];
 
   useEffect(() => {
@@ -45,8 +48,17 @@ export default function CmsManagementView() {
           aboutUs: res.data.aboutUs || { ownerImage: '', restaurantImage: '', galleryImages: [] },
           cateringOccasions: res.data.cateringOccasions || [],
           cateringPackages: res.data.cateringPackages || [],
-          bookingSettings: res.data.bookingSettings || []
+          bookingSettings: res.data.bookingSettings || [],
+          promotions: res.data.promotions || { menuPage: '', mobileHome: '' }
         });
+      }
+
+      // Fetch active coupons for dropdowns
+      try {
+        const couponsRes = await couponAPI.getActive();
+        if (couponsRes.success) setActiveCoupons(couponsRes.data);
+      } catch (err) {
+        console.error('Failed to load active coupons for CMS', err);
       }
     } catch (err) {
       console.error(err);
@@ -577,6 +589,48 @@ export default function CmsManagementView() {
                   </div>
                 </div>
 
+              </div>
+            )}
+
+            {/* PROMOTIONS PLACEMENT */}
+            {activeTab === 'promotions' && (
+              <div className="space-y-8 animate-in fade-in duration-300">
+                <div className="border-b border-[#f3f4f6] pb-4 mb-6">
+                  <h2 className="text-xl font-bold text-[#111827]">Coupon Placements</h2>
+                  <p className="text-sm text-[#6b7280] mt-1">Select which active coupons should be displayed in specific areas of the customer app.</p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <label className="text-sm font-bold text-[#374151] block mb-2">Menu Page (Sidebar)</label>
+                    <p className="text-xs text-[#6b7280] mb-3">This coupon appears on the left sidebar of the customer web menu.</p>
+                    <select
+                      value={cmsData.promotions?.menuPage?._id || cmsData.promotions?.menuPage || ''}
+                      onChange={(e) => setCmsData(prev => ({ ...prev, promotions: { ...prev.promotions, menuPage: e.target.value } }))}
+                      className="w-full border border-[#d1d5db] rounded-xl px-4 py-3 text-sm text-[#1f2937] bg-white outline-none focus:border-[#8B0000]"
+                    >
+                      <option value="">-- None (Hide Coupon) --</option>
+                      {activeCoupons.map(c => (
+                        <option key={c._id} value={c._id}>{c.code} - {c.name || c.description}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-bold text-[#374151] block mb-2">Mobile App (Home Screen)</label>
+                    <p className="text-xs text-[#6b7280] mb-3">This coupon appears prominently on the Flutter mobile app home screen.</p>
+                    <select
+                      value={cmsData.promotions?.mobileHome?._id || cmsData.promotions?.mobileHome || ''}
+                      onChange={(e) => setCmsData(prev => ({ ...prev, promotions: { ...prev.promotions, mobileHome: e.target.value } }))}
+                      className="w-full border border-[#d1d5db] rounded-xl px-4 py-3 text-sm text-[#1f2937] bg-white outline-none focus:border-[#8B0000]"
+                    >
+                      <option value="">-- None (Hide Coupon) --</option>
+                      {activeCoupons.map(c => (
+                        <option key={c._id} value={c._id}>{c.code} - {c.name || c.description}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
             )}
 

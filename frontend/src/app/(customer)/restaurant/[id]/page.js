@@ -302,7 +302,7 @@ export default function RestaurantPage() {
 
         {/* ─── 2. BREADCRUMBS & SEARCH ROW ─── */}
         <div ref={menuTopRef} className="bg-[#ffffff] border-b border-[#e5e7eb] py-4 sticky lg:relative top-[56px] lg:top-auto z-[60] lg:z-10 shadow-[0_8px_24px_rgba(122,11,16,0.05)]">
-          {/* max-w-[1550px] इस्तेमाल किया है ताकि लेआउट इमेज की तरह वाइड (wide) दिखे */}
+          {/* using max-w-[1550px] for wide layout */}
           <div className="mx-auto max-w-[1550px] px-4 md:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
 
             {/* Left: Breadcrumbs */}
@@ -344,7 +344,7 @@ export default function RestaurantPage() {
         {/* ─── 3. MAIN CONTENT AREA (FLEX LAYOUT) ─── */}
         <div className="mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8 py-8">
 
-          {/* Grid की जगह Flex का इस्तेमाल किया है ताकि कॉलम्स की चौड़ाई परफेक्ट रहे */}
+          {/* using flex instead of grid for column width */}
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
 
             {/* === LEFT SIDEBAR: CATEGORIES === */}
@@ -424,7 +424,7 @@ export default function RestaurantPage() {
         </div>
 
         {/* ─── 4. BOTTOM TRUST STRIP ─── */}
-        {/* इसे इनलाइन कर दिया गया है ताकि यह इमेज जैसा परफेक्ट दिखे */}
+        {/* inline styling for exact match */}
         <div className="bg-[#fcfaf5] border-t border-[#e5e7eb] py-10 mt-auto">
           <div className="mx-auto max-w-[1550px] px-4 md:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-left md:divide-x divide-[#e5e7eb]">
             {[

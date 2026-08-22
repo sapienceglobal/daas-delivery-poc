@@ -354,7 +354,7 @@ export default function PromotionsView() {
                             <p className={`text-xs font-bold ${isExpired ? 'text-[#dc2626]' : 'text-[#16a34a]'}`}>{daysLeftText}</p>
                           </td>
                           <td className="px-5 py-3">
-                            <p className="text-xs font-bold text-[#374151]">{promo.usedCount || 0}</p>
+                            <p className="text-xs font-bold text-[#374151]">{promo.usedCount || 0} {promo.maxUses ? `/ ${promo.maxUses}` : ''}</p>
                             <p className="text-xs text-[#6b7280]">Used</p>
                           </td>
                           <td className="px-5 py-3">
