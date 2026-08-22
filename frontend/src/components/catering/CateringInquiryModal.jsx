@@ -25,7 +25,7 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // Clear error when user starts typing
+    // clear error when user starts typing
     if (errors[e.target.name]) {
       setErrors({ ...errors, [e.target.name]: false });
     }

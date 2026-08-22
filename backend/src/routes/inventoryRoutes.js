@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(protect);
 router.use(authorize(USER_ROLES.ADMIN, USER_ROLES.MERCHANT));
 
-// Routes mounted at /api/inventory
+// routes mounted at /api/inventory
 router.get('/restaurant/:restaurantId', inventoryController.getInventory);
 router.post('/restaurant/:restaurantId', inventoryController.createInventoryItem);
 

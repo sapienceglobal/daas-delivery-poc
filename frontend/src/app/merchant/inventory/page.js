@@ -16,7 +16,7 @@ export default function InventoryDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('inventory');
   
-  // Suppliers form
+  // suppliers form
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [supplierForm, setSupplierForm] = useState({ id: null, name: '', contactName: '', phone: '', email: '', address: '', itemsProvided: '' });
   

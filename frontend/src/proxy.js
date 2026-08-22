@@ -2,20 +2,20 @@ import { NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
 // ── JWT Verification (Edge Runtime compatible) ───────────────────────────────
-// We verify the actual JWT token signature so route guards CANNOT be bypassed
+// we verify the actual JWT token signature so route guards CANNOT be bypassed
 // by editing cookies in DevTools. The role is from the signed JWT payload only.
 //
 // CRITICAL: JWT_SECRET must be set in frontend .env.local to MATCH the backend.
-// Without it, every token verification fails and users get infinite login loops.
+// without it, every token verification fails and users get infinite login loops.
 
 async function getVerifiedRole(token) {
   if (!token) return null;
 
   const secret = process.env.JWT_SECRET;
   if (!secret) {
-    // If JWT_SECRET is not configured, we cannot verify any token.
-    // This will cause all protected routes to redirect to /login.
-    // To fix: add JWT_SECRET=<same-as-backend> to frontend/.env.local
+    // if JWT_SECRET is not configured, we cannot verify any token.
+    // this will cause all protected routes to redirect to /login.
+    // to fix: add JWT_SECRET=<same-as-backend> to frontend/.env.local
     console.error('[PROXY] JWT_SECRET is not set in frontend env. Token verification will fail.');
     return null;
   }
@@ -23,12 +23,12 @@ async function getVerifiedRole(token) {
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
     // payload.role is embedded in new tokens (after security update).
-    // Old tokens won't have role — default to 'customer' since:
+    // old tokens won't have role — default to 'customer' since:
     // 1. JWT signature IS verified (tampered tokens return null below)
     // 2. Backend protect() always re-checks the real role from DB
     return payload?.role || 'customer';
   } catch {
-    // Token is invalid, expired, or tampered — treat as unauthenticated
+    // token is invalid, expired, or tampered — treat as unauthenticated
     return null;
   }
 }
@@ -59,7 +59,7 @@ export async function proxy(request) {
   }
 
   // ── 3. Redirect already-logged-in admin/merchant away from /login ─────────
-  // Customers stay on /login so the page's useEffect can handle ?redirect= param.
+  // customers stay on /login so the page's useEffect can handle ?redirect= param.
   if (pathname === '/login' && token && role) {
     if (role === 'admin') {
       const redirectTo = request.nextUrl.searchParams.get('redirect');
@@ -71,7 +71,7 @@ export async function proxy(request) {
       const dest = (redirectTo && redirectTo.startsWith('/merchant')) ? redirectTo : '/merchant';
       return NextResponse.redirect(new URL(dest, request.url));
     }
-    // Customers: let the login page handle ?redirect= via its own useEffect
+    // customers: let the login page handle ?redirect= via its own useEffect
   }
 
   if (pathname === '/restaurant-panel' && token && role) {

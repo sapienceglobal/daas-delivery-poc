@@ -33,11 +33,11 @@ export const getAutocompleteSuggestions = async (req, res) => {
       }
     });
 
-    // The new API doesn't return a 'status' field in the same way, HTTP errors are thrown by axios.
-    // If suggestions is missing or empty, we return an empty array.
+    // the new API doesn't return a 'status' field in the same way, HTTP errors are thrown by axios.
+    // if suggestions is missing or empty, we return an empty array.
     const suggestionsList = response.data.suggestions || [];
 
-    // Map Google's predictions to a format similar to what frontend expects
+    // map Google's predictions to a format similar to what frontend expects
     const suggestions = suggestionsList
       .filter(s => s.placePrediction) // Only keep place predictions
       .map(s => {
@@ -81,7 +81,7 @@ export const getPlaceDetails = async (req, res) => {
 
     const result = response.data;
     
-    // Parse address components (New API format uses longText/shortText and types)
+    // parse address components (New API format uses longText/shortText and types)
     const address = {};
     if (result.addressComponents) {
       result.addressComponents.forEach(component => {
@@ -135,7 +135,7 @@ export const reverseGeocode = async (req, res) => {
 
     const result = response.data.results[0];
     
-    // Parse address components
+    // parse address components
     let houseNumber = '';
     let road = '';
     let city = '';
@@ -198,7 +198,7 @@ export const geocodeAddress = async (req, res) => {
 
     const result = response.data.results[0];
     
-    // Parse address components
+    // parse address components
     let houseNumber = '';
     let road = '';
     let city = '';

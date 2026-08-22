@@ -13,12 +13,12 @@ export const CmsProvider = ({ children }) => {
   const currentRestaurant = brand;
 
   useEffect(() => {
-    // Attempt to fetch CMS data on load
+    // attempt to fetch CMS data on load
     const fetchCms = async () => {
       try {
-        // If single restaurant mode, get it by the known restaurant ID or simply pass a generic query
-        // The backend `getCmsConfig` currently requires `restaurantId`. 
-        // If `currentRestaurant._id` is available, use it. Otherwise, we can provide a default.
+        // if single restaurant mode, get it by the known restaurant ID or simply pass a generic query
+        // the backend `getCmsConfig` currently requires `restaurantId`. 
+        // if `currentRestaurant._id` is available, use it. Otherwise, we can provide a default.
         if (!currentRestaurant?._id) return;
         
         const res = await api.get(`/api/cms?restaurantId=${currentRestaurant._id}`);

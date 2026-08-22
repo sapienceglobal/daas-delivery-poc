@@ -21,7 +21,7 @@ export const predictSales = asyncHandler(async (req, response) => {
     status: { $in: ['delivered', 'picked_up'] }
   });
 
-  // Group by day for OpenAI
+  // group by day for OpenAI
   const dailyData = {};
   orders.forEach(o => {
     const d = o.createdAt.toISOString().split('T')[0];
@@ -156,7 +156,7 @@ export const recommendFood = asyncHandler(async (req, response) => {
   }
 });
 
-// Semantic Menu Search
+// semantic Menu Search
 export const searchMenu = asyncHandler(async (req, response) => {
   const { restaurantId, query } = req.body;
   
@@ -164,7 +164,7 @@ export const searchMenu = asyncHandler(async (req, response) => {
     return res.error(response, 400, 'Missing restaurantId or query');
   }
 
-  // Resolve slug/name to ObjectId if needed
+  // resolve slug/name to ObjectId if needed
   let actualRestaurantId = restaurantId;
   const isObjectId = mongoose.Types.ObjectId.isValid(restaurantId) && String(restaurantId).length === 24;
   

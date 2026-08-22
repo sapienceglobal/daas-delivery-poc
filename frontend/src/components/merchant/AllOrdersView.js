@@ -34,7 +34,7 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_LOAD);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Reset list on filter change
+  // reset list on filter change
   useEffect(() => {
     setVisibleCount(ITEMS_PER_LOAD);
     setSelectedOrders([]);
@@ -58,7 +58,7 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
     return { total: orders.length, newOrders, preparing, ready, outForDelivery, completed };
   }, [orders]);
 
-  // Tabs Counts
+  // tabs Counts
   const tabCounts = useMemo(() => {
     let dineIn = 0, pickup = 0, delivery = 0;
     orders.forEach(o => {
@@ -75,7 +75,7 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
   // ---------------------------------------------------------
   const filteredOrders = useMemo(() => {
     return orders.filter(o => {
-      // Search
+      // search
       const searchStr = searchQuery.toLowerCase();
       const matchesSearch = !searchQuery || 
         o._id?.toLowerCase().includes(searchStr) || 
@@ -83,10 +83,10 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
         o.customerName?.toLowerCase().includes(searchStr) ||
         o.customerPhone?.toLowerCase().includes(searchStr);
 
-      // Status
+      // status
       const matchesStatus = statusFilter === 'All Status' || (o.status || '').toLowerCase() === statusFilter.toLowerCase();
       
-      // Order Type Dropdown & Tab
+      // order Type Dropdown & Tab
       const oType = (o.orderType || o.type || 'delivery').toLowerCase();
       
       let matchesDropdownType = true;
@@ -99,14 +99,14 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
       else if (activeTab === 'Takeaway') matchesTabType = oType === 'pickup';
       else if (activeTab === 'Dine-in') matchesTabType = oType === 'dine_in';
 
-      // Payment Type
+      // payment Type
       const pType = (o.paymentMethod || '').toLowerCase();
       const pStatus = (o.paymentStatus || '').toLowerCase();
       let matchesPayment = true;
       if (paymentFilter === 'Paid') matchesPayment = pStatus === 'paid' || pStatus === 'completed';
       else if (paymentFilter === 'Unpaid') matchesPayment = pStatus === 'pending' || pStatus === 'unpaid';
 
-      // Date Range
+      // date Range
       let matchesDate = true;
       if (dateRange) {
         const orderDateStr = new Date(o.createdAt).toISOString().split('T')[0];

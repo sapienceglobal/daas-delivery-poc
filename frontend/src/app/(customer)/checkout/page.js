@@ -91,6 +91,7 @@ export default function CheckoutPage() {
               user={c.user}
               appliedCouponData={c.appliedCouponData}
               isPaymentMethodLockedByCoupon={c.isPaymentMethodLockedByCoupon}
+              isPhoneValid={c.isPhoneValid}
             />
 
           </div>
@@ -162,6 +163,52 @@ export default function CheckoutPage() {
         checkoutData={c.checkoutPayload}
         onSuccess={c.executeOrderCreation}
       />
+
+      {/* Blend the react-phone-number-input default styling into the inputs */}
+      <style jsx global>{`
+        .phone-field-wrap .PhoneInputInput {
+          border: none;
+          outline: none;
+          background: transparent;
+          font-size: 14px;
+          color: #1a1a1a;
+          height: 100%;
+        }
+        .phone-field-wrap .PhoneInputCountry {
+          margin-right: 8px;
+        }
+        
+        /* Force light mode for the native select dropdown to prevent OS dark mode 
+           from making it black, and to ensure the scrollbar looks standard light */
+        .PhoneInputCountrySelect {
+          color-scheme: light;
+          background-color: #ffffff;
+          color: #1a1a1a;
+        }
+        
+        /* Style the options explicitly for browsers that allow it */
+        .PhoneInputCountrySelect option {
+          background-color: #ffffff;
+          color: #1a1a1a;
+          font-size: 14px;
+          padding: 8px;
+        }
+
+        .PhoneInputCountrySelect::-webkit-scrollbar {
+          width: 6px;
+        }
+        .PhoneInputCountrySelect::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+        .PhoneInputCountrySelect::-webkit-scrollbar-thumb {
+          background: #d1d5db;
+          border-radius: 4px;
+        }
+        .PhoneInputCountrySelect::-webkit-scrollbar-thumb:hover {
+          background: #9ca3af;
+        }
+      `}</style>
     </div>
   );
 }

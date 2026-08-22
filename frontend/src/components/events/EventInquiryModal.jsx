@@ -39,7 +39,7 @@ export default function EventInquiryModal({ isOpen, onClose, restaurantId, initi
     const finalNotes = formEl.additionalNotes?.value || formData.additionalNotes;
 
     try {
-      // Re-using catering inquiry API since data structure is identical for events
+      // re-using catering inquiry API since data structure is identical for events
       await cateringAPI.submitInquiry({
         restaurantId,
         customerName: finalName,

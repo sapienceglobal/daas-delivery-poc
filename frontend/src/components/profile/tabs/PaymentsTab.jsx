@@ -62,7 +62,7 @@ export default function PaymentsTab({ user, updateUser }) {
   };
 
   const getBrandIcon = (brand) => {
-    // For now, return generic CreditCard for all. Could map to SVG logos.
+    // for now, return generic CreditCard for all. Could map to SVG logos.
     return <CreditCard className="h-6 w-6 text-[#1a1a1a]" />;
   };
 

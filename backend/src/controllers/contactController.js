@@ -4,12 +4,12 @@ import { AppError } from '../middleware/errorHandler.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import logger from '../utils/logger.js';
 
-// @desc    Submit a new contact message
+// @desc    submit a new contact message
 // @route   POST /api/public/contact
 // @access  Public
 export const submitContactMessage = asyncHandler(async (req, res, next) => {
-  // If in single-restaurant mode or restaurant ID is passed
-  // We'll try to use the first active restaurant if ID not provided
+  // if in single-restaurant mode or restaurant ID is passed
+  // we'll try to use the first active restaurant if ID not provided
   let restaurantId = req.body.restaurantId;
 
   if (!restaurantId) {
@@ -38,7 +38,7 @@ export const submitContactMessage = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get all contact messages for the logged-in merchant
+// @desc    get all contact messages for the logged-in merchant
 // @route   GET /api/merchant/messages
 // @access  Private (Merchant/Admin)
 export const getMerchantMessages = asyncHandler(async (req, res, next) => {
@@ -50,7 +50,7 @@ export const getMerchantMessages = asyncHandler(async (req, res, next) => {
 
   const query = restaurantId ? { restaurant: restaurantId } : {};
 
-  // Optional filtering by status
+  // optional filtering by status
   if (req.query.status) {
     query.status = req.query.status;
   }
@@ -64,7 +64,7 @@ export const getMerchantMessages = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Update a contact message status
+// @desc    update a contact message status
 // @route   PATCH /api/merchant/messages/:id
 // @access  Private (Merchant/Admin)
 export const updateMessageStatus = asyncHandler(async (req, res, next) => {
@@ -74,7 +74,7 @@ export const updateMessageStatus = asyncHandler(async (req, res, next) => {
     return next(new AppError(`No message found with ID ${req.params.id}`, 404));
   }
 
-  // Ensure user owns this restaurant's messages (unless admin)
+  // ensure user owns this restaurant's messages (unless admin)
   if (req.user.role !== 'admin' && message.restaurant.toString() !== req.user.restaurantId.toString()) {
     return next(new AppError('Not authorized to update this message', 403));
   }

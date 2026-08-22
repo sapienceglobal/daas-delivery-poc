@@ -43,14 +43,14 @@ export default function ReportsAnalyticsView({ analyticsData, restaurant, startD
     document.body.removeChild(link);
   };
 
-  // Formatted display date range (no longer defaults to 30 days, we use All Time)
+  // formatted display date range (no longer defaults to 30 days, we use All Time)
   const calculatedDateRange = useMemo(() => {
     if (startDate && endDate) {
       return `${formatDate(startDate, restaurant?.dateFormat, restaurant?.timezone)} - ${formatDate(endDate, restaurant?.dateFormat, restaurant?.timezone)}`;
     }
     return "All Time";
   }, [restaurant, startDate, endDate]);
-  // Formatting helpers
+  // formatting helpers
   const renderCurrency = (val) => formatCurrency(val, restaurant?.currency);
   const formatNumber = (val) => (val || 0).toLocaleString('en-US');
   const calculateGrowth = (current, prev) => {
@@ -64,13 +64,13 @@ export default function ReportsAnalyticsView({ analyticsData, restaurant, startD
   const aovGrowth = calculateGrowth(summary?.aov, summary?.prevAov);
   const cusGrowth = calculateGrowth(summary?.newCustomers, summary?.prevCustomers);
   
-  // Fake repeat rate logic based on total customers (just for UI completeness, adhering to actual numbers passed if available)
-  // But wait, the backend doesn't send total customers overall, just "newCustomers" vs "prevCustomers". I'll calculate repeat rate as (Total Orders - New Customers) / Total Orders.
+  // fake repeat rate logic based on total customers (just for UI completeness, adhering to actual numbers passed if available)
+  // but wait, the backend doesn't send total customers overall, just "newCustomers" vs "prevCustomers". I'll calculate repeat rate as (Total Orders - New Customers) / Total Orders.
   const repeatRate = summary?.totalOrders > 0 ? Math.max(0, ((summary.totalOrders - summary.newCustomers) / summary.totalOrders) * 100).toFixed(1) : 0;
   const prevRepeatRate = summary?.prevOrders > 0 ? Math.max(0, ((summary.prevOrders - summary.prevCustomers) / summary.prevOrders) * 100).toFixed(1) : 0;
   const repGrowth = calculateGrowth(repeatRate, prevRepeatRate);
 
-  // We replaced Net Profit with Total Discounts
+  // we replaced Net Profit with Total Discounts
   const discountsGrowth = calculateGrowth(summary?.totalDiscounts, summary?.prevTotalDiscounts || 0); // (using 0 if prev not fetched to avoid undefined error)
 
   const metrics = [
@@ -83,14 +83,14 @@ export default function ReportsAnalyticsView({ analyticsData, restaurant, startD
   ];
 
   // 2. Format Charts Data
-  // Revenue Overview line chart
+  // revenue Overview line chart
   const revenueChartData = (dailyStats || []).map(day => {
     const d = new Date(day.date);
     const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
     return { name: dayName, Revenue: day.revenue, Orders: day.orders };
   }).slice(-7); // take last 7 days for "This Week" view
 
-  // Donut Charts
+  // donut Charts
   const COLORS = ['#b91c1c', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#6b7280'];
   
   const formattedSalesByChannel = (salesByChannel || []).map((c, i) => ({
@@ -107,8 +107,8 @@ export default function ReportsAnalyticsView({ analyticsData, restaurant, startD
     color: COLORS[i % COLORS.length]
   })).sort((a, b) => b.value - a.value);
 
-  // Revenue Comparison
-  // Let's actually bucket the real dailyStats into weeks if we have them.
+  // revenue Comparison
+  // let's actually bucket the real dailyStats into weeks if we have them.
   const thisMonthData = (dailyStats || []).slice(-35); // last 35 days = 5 weeks
   
   // STRICT NO MOCK DATA: If I can't get last month's weekly data, I will omit 'Last Month' bars.
@@ -118,10 +118,10 @@ export default function ReportsAnalyticsView({ analyticsData, restaurant, startD
     return { name: `Week ${weekIdx + 1}`, 'This Month': rev };
   });
 
-  // Heatmap Data (Orders by Time of Day)
+  // heatmap Data (Orders by Time of Day)
   const heatmapGrid = Array.from({ length: 7 }, () => Array(24).fill(0));
   (timeOfDayHeatmap || []).forEach(item => {
-    // MongoDB $dayOfWeek: 1 (Sunday) to 7 (Saturday). Heatmap usually starts Mon (1) to Sun (7).
+    // mongoDB $dayOfWeek: 1 (Sunday) to 7 (Saturday). Heatmap usually starts Mon (1) to Sun (7).
     let dayIdx = item._id.dayOfWeek - 2; 
     if (dayIdx < 0) dayIdx = 6; // Sunday is 6
     const hourIdx = item._id.hour;

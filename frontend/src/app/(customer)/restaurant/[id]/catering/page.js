@@ -17,7 +17,7 @@ export default function CateringRoute() {
   const { id } = useParams();
   const [restaurantId, setRestaurantId] = useState(null);
 
-  // Clean URL: /catering (no restaurant slug needed in single mode)
+  // clean URL: /catering (no restaurant slug needed in single mode)
   if (SINGLE_MODE) return <Redirect to="/catering" />;
 
   useEffect(() => {

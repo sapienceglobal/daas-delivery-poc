@@ -17,7 +17,7 @@ export default function FavoritesTab({ user, updateUser }) {
   const handleRemoveRestaurant = async (e, id) => {
     e.stopPropagation();
     try {
-      // Need a proper API method, but for now we toggle it
+      // need a proper API method, but for now we toggle it
       // await authAPI.toggleFavoriteRestaurant(id); // Wait, this method is not in api.js yet!
       showToast('Backend integration pending for removing favorites', 'info');
     } catch (err) {

@@ -23,18 +23,18 @@ export const getRestaurantETA = async (req, res, next) => {
 
     if (address && restaurant.address) {
       try {
-        // Try to get actual DoorDash quote (default order value $20)
+        // try to get actual DoorDash quote (default order value $20)
         const quote = await getBestDeliveryQuote(restaurant.address, address, 20, null);
         if (quote && quote.deliveryTime) {
           const now = new Date();
           const dropoffDate = new Date(quote.deliveryTime);
           
-          // Add prepTime offset to DoorDash delivery time estimation
-          // DoorDash assumes order is ready now, so we add prepTime to the dropoff time
+          // add prepTime offset to DoorDash delivery time estimation
+          // doorDash assumes order is ready now, so we add prepTime to the dropoff time
           const diffMs = dropoffDate.getTime() - now.getTime();
           const deliveryTransitMins = Math.round(diffMs / 60000);
           
-          // Total Delivery ETA = Prep Time + Transit Time
+          // total Delivery ETA = Prep Time + Transit Time
           deliveryTime = prepTime + Math.max(0, deliveryTransitMins);
         }
       } catch (err) {
@@ -54,7 +54,7 @@ export const getRestaurantETA = async (req, res, next) => {
     }
 
     if (!deliveryTime) {
-      // Fallback if no address or DoorDash fails
+      // fallback if no address or DoorDash fails
       deliveryTime = prepTime + 20;
     }
 

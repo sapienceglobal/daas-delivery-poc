@@ -586,7 +586,7 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 <div className="absolute left-[19px] top-4 bottom-4 w-px bg-[#e5e7eb] -z-10" />
                 
                 {(() => {
-                  // Merge statusUpdates and paymentAudit events into a single timeline
+                  // merge statusUpdates and paymentAudit events into a single timeline
                   let events = [];
                   
                   // 1. Add status updates
@@ -594,7 +594,7 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                     let label = su.status?.replace(/_/g, ' ');
                     let key = su.status?.toLowerCase();
                     
-                    // Override label if this is a refund event (backend pushes it as 'cancelled')
+                    // override label if this is a refund event (backend pushes it as 'cancelled')
                     if (su.description && su.description.toLowerCase().includes('refund of') && su.description.toLowerCase().includes('processed')) {
                       label = 'Refunded';
                       key = 'refunded';
@@ -641,12 +641,12 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                     }
                   });
 
-                  // Sort: chronological for completed events, then future pipeline at the bottom
+                  // sort: chronological for completed events, then future pipeline at the bottom
                   events.sort((a, b) => {
                     if (a.time && b.time) return a.time.getTime() - b.time.getTime();
                     if (a.time && !b.time) return -1;
                     if (!a.time && b.time) return 1;
-                    // Both future
+                    // both future
                     return 0;
                   });
 
@@ -659,10 +659,10 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                     let dotClass = "w-[14px] h-[14px] rounded-full border-2 border-[#d1d5db] bg-white ring-4 ring-white";
                     if (!isFuture) {
                       if (ev.type === 'payment') {
-                        // Payment dots use their config bg
+                        // payment dots use their config bg
                         dotClass = `w-6 h-6 -ml-[5px] rounded-full flex items-center justify-center ring-4 ring-white shadow-sm`;
                       } else {
-                        // Status dots
+                        // status dots
                         dotClass = `w-[14px] h-[14px] rounded-full ring-4 ring-white shadow-sm ${
                           isCancel ? 'bg-[#dc2626]' : isPreparing ? 'bg-[#ea580c]' : isSuccess ? 'bg-[#16a34a]' : 'bg-[#2563eb]'
                         }`;

@@ -194,7 +194,7 @@ export const testimonialsContent = {
   ],
 };
 
-// Yahan href update kiya gaya hai
+// updated href
 export const navLinks = [
   { label: 'Home', href: '/' },
   { label: 'Order Online', href: '/order-online' }, // Updated

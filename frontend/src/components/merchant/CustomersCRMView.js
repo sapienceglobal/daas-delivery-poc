@@ -130,7 +130,7 @@ export default function CustomersCRMView({
     </colgroup>
   );
 
-  // Modals state
+  // modals state
   const [promoModalOpen, setPromoModalOpen] = useState(false);
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);

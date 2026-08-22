@@ -229,8 +229,8 @@ const OrderSchema = new mongoose.Schema({
   refundReason: { type: String, default: null },
 
   // ── Payment Audit Log ─────────────────────────────────────────────────
-  // Structured event log of every payment + order lifecycle event.
-  // Use pushPaymentEvent() helper to append safely.
+  // structured event log of every payment + order lifecycle event.
+  // use pushPaymentEvent() append safely.
   paymentEvents: { type: [PaymentEventSchema], default: [] },
 
   // ── Legacy field kept for DoorDash API compatibility ──────────────────
@@ -259,13 +259,13 @@ OrderSchema.pre('save', function (next) {
     this.externalDeliveryId = `DD-${dbName}-${Date.now()}-${uuid.split('-')[0]}`;
   }
 
-  // Map cart items to DoorDash product fields
+  // map cart items to DoorDash product fields
   if (this.items?.length > 0) {
     this.productName = this.items.map(i => `${i.quantity}x ${i.name}`).join(', ').substring(0, 95);
     this.productPrice = this.subtotal;
   }
 
-  // Initialize first status update
+  // initialize first status update
   if (this.statusUpdates.length === 0) {
     this.statusUpdates.push({
       status: this.status,

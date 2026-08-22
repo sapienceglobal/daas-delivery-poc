@@ -7,7 +7,7 @@ import * as resFormatter from '../utils/responseFormatter.js';
 const router = express.Router();
 
 /**
- * @desc    Get system audit logs
+ * @desc    get system audit logs
  * @route   GET /api/audit-logs
  * @access  Private (Admin, Merchant)
  */
@@ -18,8 +18,8 @@ router.get('/', protect, authorize('admin', 'merchant'), asyncHandler(async (req
 
   const filter = {};
   
-  // If merchant, only show logs relevant to their restaurant or general platform ones?
-  // Usually system logs might be isolated to their restaurantId
+  // if merchant, only show logs relevant to their restaurant or general platform ones?
+  // usually system logs might be isolated to their restaurantId
   if (req.user.role === 'merchant') {
     filter.restaurantId = req.user.restaurantId;
   } else if (req.query.restaurantId) {

@@ -48,7 +48,7 @@ export default function EventsOccasions() {
   const scroll = (direction) => {
     if (scrollRef.current) {
       // scroll by roughly the width of one card (or full viewport depending on UX)
-      // For a carousel, scrolling by the clientWidth is standard
+      // for a carousel, scrolling by the clientWidth is standard
       const { clientWidth } = scrollRef.current;
       const scrollAmount = direction === 'left' ? -clientWidth : clientWidth;
       scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });

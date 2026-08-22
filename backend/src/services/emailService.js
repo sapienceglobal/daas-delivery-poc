@@ -51,7 +51,7 @@ const FROM_EMAIL = process.env.FROM_EMAIL || 'projects.sapience@gmail.com';
 const FROM_NAME = process.env.FROM_NAME || 'Lassi Lounge';
 
 // ── Brand config ─────────────────────────────────────────────────────────
-// Must be a public, absolute HTTPS URL — email clients cannot load local
+// must be a public, absolute HTTPS URL — email clients cannot load local
 // files or relative paths. Host this on your website (e.g. yourdomain.com/
 // assets/email-logo.png) or a CDN/S3 bucket, and set BRAND_LOGO_URL in your
 // env so each deployment of this white-label codebase can swap its own logo
@@ -65,9 +65,7 @@ const BRAND_TEXT = '#1a1a1a';
 const BRAND_MUTED = '#6b7280';
 const BRAND_BORDER = '#eadfdb';
 
-/**
- * Send a single email.
- */
+// send a single email.
 export const sendEmail = async ({ to, subject, text, html, attachments }) => {
   const mailer = initTransporter();
 
@@ -101,7 +99,7 @@ export const sendEmail = async ({ to, subject, text, html, attachments }) => {
 };
 
 // ── Shared branded layout ───────────────────────────────────────────────
-// Table-based + inline styles on purpose: this is the "bulletproof" pattern
+// table-based + inline styles on purpose: this is the "bulletproof" pattern
 // that renders consistently across Gmail, Outlook, Apple Mail, etc. — flex/
 // grid and <style> blocks are unreliable in many email clients.
 
@@ -271,7 +269,7 @@ export const sendInvoiceEmail = async (email, order, payment = null) => {
     pdfBuffer = await generatePdfFromHtml(htmlContent);
   } catch (error) {
     logger.error(`Failed to generate PDF for order ${orderRef}`, error);
-    // Continue and send email without attachment if PDF generation fails
+    // continue and send email without attachment if PDF generation fails
   }
 
   const emailBody = `

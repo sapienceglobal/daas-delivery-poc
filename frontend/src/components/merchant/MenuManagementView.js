@@ -26,7 +26,7 @@ export default function MenuManagementView({
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   
-  // Bulk selection state
+  // bulk selection state
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [isProcessingBulk, setIsProcessingBulk] = useState(false);
 
@@ -39,13 +39,13 @@ export default function MenuManagementView({
 
   useEffect(() => setMounted(true), []);
 
-  // Handle Mouse Wheel for Horizontal Scrolling
+  // handle Mouse Wheel for Horizontal Scrolling
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
     const handleWheel = (e) => {
-      // Convert vertical scroll to horizontal scroll
+      // convert vertical scroll to horizontal scroll
       if (e.deltaY !== 0 && e.deltaX === 0) {
         e.preventDefault();
         container.scrollBy({ left: e.deltaY, behavior: 'auto' });
@@ -57,7 +57,7 @@ export default function MenuManagementView({
     return () => container.removeEventListener('wheel', handleWheel);
   }, [mounted, menu]);
 
-  // Check Scroll Position to Show/Hide Left-Right Buttons
+  // check Scroll Position to Show/Hide Left-Right Buttons
   const checkForScrollPosition = () => {
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
@@ -72,14 +72,14 @@ export default function MenuManagementView({
     return () => window.removeEventListener('resize', checkForScrollPosition);
   }, [menu]);
 
-  // Button Scroll Function
+  // button Scroll Function
   const scrollByAmount = (amount) => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
     }
   };
 
-  // Flatten items for easy filtering
+  // flatten items for easy filtering
   const allItems = useMemo(() => {
     return menu.reduce((acc, cat) => {
       const itemsWithCat = (cat.items || []).map(item => ({ ...item, categoryName: cat.name }));

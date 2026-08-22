@@ -36,7 +36,7 @@ export default function CateringWhyChooseUs() {
   
   let phoneValue = brand?.phone || brand?.businessInfo?.businessPhone || (isSingleRestaurantMode ? '5166120300' : '18005550199');
   
-  // Format phone if it's 10 or 11 digits
+  // format phone if it's 10 or 11 digits
   const numericPhone = phoneValue.replace(/\D/g, '');
   let phoneLabel = phoneValue;
   if (numericPhone.length === 10) {

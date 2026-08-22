@@ -84,7 +84,7 @@ export const calculateOrderPricing = async ({
     throw new AppError('Restaurant is not accepting dine-in orders right now', 400);
   }
 
-  // Operating Hours Check
+  // operating Hours Check
   if (restaurant.operatingHours) {
     const tz = 'America/New_York'; // Timezone mapping logic can be refined later based on restaurant.timezone
     const now = new Date();
@@ -96,7 +96,7 @@ export const calculateOrderPricing = async ({
       hour12: false
     });
     
-    // Quick workaround for node's Intl format. Format: "Wednesday, 14:30"
+    // quick workaround for node's Intl format. Format: "Wednesday, 14:30"
     const parts = formatter.formatToParts(now);
     const getPart = (type) => parts.find(p => p.type === type)?.value;
     
@@ -214,13 +214,13 @@ export const calculateOrderPricing = async ({
     const maxDiscountFromPoints = (availablePoints * centsPerPoint) / 100;
     const maxRedeemable = roundMoney(subtotal + tax + deliveryFee + platformFee + serviceFee + safeTip - discount);
     
-    // Anti-Abuse: Cart subtotal must be at least 3x the redeemed value
+    // anti-Abuse: Cart subtotal must be at least 3x the redeemed value
     const antiAbuseCap = roundMoney(subtotal / 3);
     
     loyaltyDiscount = Math.min(maxDiscountFromPoints, maxRedeemable, antiAbuseCap);
     loyaltyDiscount = roundMoney(loyaltyDiscount);
     
-    // Points consumed is calculated from the applied discount
+    // points consumed is calculated from the applied discount
     pointsUsed = Math.ceil((loyaltyDiscount * 100) / centsPerPoint);
   }
 

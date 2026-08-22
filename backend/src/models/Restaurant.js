@@ -91,7 +91,7 @@ const RestaurantSchema = new mongoose.Schema({
     saturday: { type: DayHoursSchema, default: () => ({}) },
     sunday: { type: DayHoursSchema, default: () => ({}) }
   },
-  // Legacy simple fields (kept for backward compat during migration)
+  // legacy simple fields (kept for backward compat during migration)
   openTime: { type: String, default: '09:00' },
   closeTime: { type: String, default: '22:00' },
 
@@ -229,7 +229,7 @@ RestaurantSchema.pre('save', function (next) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '') + '-' + Date.now().toString(36);
   }
-  // Auto-populate cuisineTags from the comma-separated cuisine string
+  // auto-populate cuisineTags from the comma-separated cuisine string
   if (this.isModified('cuisine') && this.cuisine) {
     this.cuisineTags = this.cuisine.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
   }

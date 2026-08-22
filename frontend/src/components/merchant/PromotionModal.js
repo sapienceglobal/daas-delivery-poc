@@ -27,7 +27,7 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
     setMounted(true);
   }, []);
 
-  // Populate data if editing
+  // populate data if editing
   React.useEffect(() => {
     if (editPromo && isOpen) {
       setFormData({
@@ -60,7 +60,7 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Custom Validation
+    // custom Validation
     const newErrors = {};
     if (!formData.code) newErrors.code = "Coupon code is required.";
     if (!formData.value) newErrors.value = "Discount value is required.";

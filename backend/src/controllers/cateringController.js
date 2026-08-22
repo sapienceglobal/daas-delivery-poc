@@ -6,7 +6,7 @@ const getModels = (req) => ({
   Restaurant: req.getModel?.('Restaurant') || Restaurant,
 });
 
-// @desc    Submit a new catering inquiry
+// @desc    submit a new catering inquiry
 // @route   POST /api/catering
 // @access  Public
 export const createInquiry = async (req, res) => {
@@ -24,7 +24,7 @@ export const createInquiry = async (req, res) => {
       additionalNotes
     } = req.body;
 
-    // Verify restaurant exists
+    // verify restaurant exists
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
       return res.status(404).json({ success: false, message: 'Restaurant not found' });
@@ -52,7 +52,7 @@ export const createInquiry = async (req, res) => {
   }
 };
 
-// @desc    Get restaurant's catering inquiries
+// @desc    get restaurant's catering inquiries
 // @route   GET /api/catering/restaurant/:restaurantId
 // @access  Private (Merchant/Admin)
 export const getRestaurantInquiries = async (req, res) => {
@@ -60,7 +60,7 @@ export const getRestaurantInquiries = async (req, res) => {
     const { CateringInquiry, Restaurant } = getModels(req);
     const { restaurantId } = req.params;
 
-    // Resolve restaurant by slug or ObjectId
+    // resolve restaurant by slug or ObjectId
     let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
@@ -72,7 +72,7 @@ export const getRestaurantInquiries = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Restaurant not found' });
     }
 
-    // Auth check: Merchant must own this restaurant
+    // auth check: Merchant must own this restaurant
     if (req.user.role === 'merchant') {
       if (restaurant.ownerId?.toString() !== req.user._id.toString()) {
         return res.status(403).json({ success: false, message: 'Not authorized to view these inquiries' });
@@ -92,7 +92,7 @@ export const getRestaurantInquiries = async (req, res) => {
   }
 };
 
-// @desc    Update inquiry status
+// @desc    update inquiry status
 // @route   PUT /api/catering/:id/status
 // @access  Private (Merchant/Admin)
 export const updateInquiryStatus = async (req, res) => {
@@ -105,7 +105,7 @@ export const updateInquiryStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Inquiry not found' });
     }
 
-    // Verify ownership
+    // verify ownership
     if (req.user.role === 'merchant') {
       const restaurant = await Restaurant.findById(inquiry.restaurantId);
       if (!restaurant) {

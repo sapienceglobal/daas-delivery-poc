@@ -44,7 +44,7 @@ export const getRestaurants = asyncHandler(async (req, response) => {
 
   const filter = { status: 'approved' };
 
-  // Filters
+  // filters
   if (req.query.cuisine) {
     filter.cuisineTags = { $in: req.query.cuisine.split(',').map(c => c.trim().toLowerCase()) };
   }
@@ -55,7 +55,7 @@ export const getRestaurants = asyncHandler(async (req, response) => {
     filter.isFeatured = true;
   }
 
-  // Sort
+  // sort
   let sort = { isFeatured: -1, rating: -1 };
   if (req.query.sort === 'rating') sort = { rating: -1 };
   else if (req.query.sort === 'name') sort = { name: 1 };
@@ -108,7 +108,7 @@ export const searchRestaurants = asyncHandler(async (req, response) => {
     ]
   }).limit(30).lean();
 
-  // Also search menu items and return matching restaurant IDs
+  // also search menu items and return matching restaurant IDs
   const menuMatches = await MenuItem.find({
     isAvailable: true,
     $or: [{ name: regex }, { description: regex }, { tags: regex }]
@@ -142,7 +142,7 @@ export const getRestaurantById = asyncHandler(async (req, response) => {
 
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
-  // Load categories and items
+  // load categories and items
   const categories = await Category.find({
     restaurantId: restaurant._id,
     isActive: true
@@ -153,7 +153,7 @@ export const getRestaurantById = asyncHandler(async (req, response) => {
     isAvailable: true
   }).sort({ sortOrder: 1 }).lean();
 
-  // Group items by category
+  // group items by category
   const menu = categories.map(cat => ({
     ...cat,
     items: items.filter(item => item.categoryId.toString() === cat._id.toString())
@@ -174,7 +174,7 @@ export const createRestaurant = asyncHandler(async (req, response) => {
 
   const restaurant = await Restaurant.create(data);
 
-  // Link restaurant to the merchant user
+  // link restaurant to the merchant user
   if (req.user.role === 'merchant') {
     req.user.restaurantId = restaurant._id;
     await req.user.save();
@@ -188,7 +188,7 @@ export const updateRestaurant = asyncHandler(async (req, response) => {
   const restaurant = await Restaurant.findById(req.params.id);
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
-  // Ensure merchant can only update their own restaurant
+  // ensure merchant can only update their own restaurant
   if (req.user.role === 'merchant' && restaurant.ownerId?.toString() !== req.user._id.toString()) {
     throw new AppError('You can only update your own restaurant', 403);
   }

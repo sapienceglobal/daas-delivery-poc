@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 import { Button, showToast } from '@/components/ui';
 
-export default function CheckoutForm({ amount, onSuccess, onCancel }) {
+export default function CheckoutForm({ amount, onSuccess, onCancel, checkoutData }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,15 @@ export default function CheckoutForm({ amount, onSuccess, onCancel }) {
   return (
     <form onSubmit={handleSubmit} noValidate className="flex-1 flex flex-col min-h-0">
       <div className="flex-1 overflow-y-auto scrollbar-thin ll-soft-scroll pb-4">
-        <PaymentElement />
+        <PaymentElement options={{ 
+          defaultValues: { 
+            billingDetails: {
+              name: checkoutData?.customerName || '',
+              email: checkoutData?.customerEmail || '',
+              phone: checkoutData?.customerPhone || ''
+            }
+          }
+        }} />
       </div>
       <div className="flex gap-3 pt-5 mt-2 border-t border-[#e5e7eb] shrink-0">
         <button 

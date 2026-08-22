@@ -29,7 +29,7 @@ export default function Button({
     solid: 'bg-primary-600 text-white hover:bg-primary-700',
     outline: 'bg-transparent border-2 border-primary-600 text-primary-600 hover:bg-primary-50',
     ghost: 'bg-transparent text-primary-600 hover:bg-primary-50',
-    // No default bg/text/border classes — use this when the caller needs
+    // no default bg/text/border classes — use this when the caller needs
     // full control over color via `className` (avoids Tailwind class-order
     // specificity conflicts that can make a default variant color "win"
     // over an intended override).

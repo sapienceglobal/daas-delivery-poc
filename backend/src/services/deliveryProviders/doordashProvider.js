@@ -87,9 +87,7 @@ const buildDeliveryPayload = (order) => ({
   }))
 });
 
-/**
- * Generate a DoorDash JWT for authenticating with Drive API v2.
- */
+// generate a DoorDash JWT for authenticating with Drive API v2.
 export const generateJWT = () => {
   if (isConfigMissing) {
     throw new Error('DoorDash API credentials not configured or using placeholders in .env');
@@ -163,9 +161,7 @@ export const triggerDeliveryAPI = async (order) => {
   }
 };
 
-/**
- * Fetch a delivery quote from DoorDash Drive API.
- */
+// fetch a delivery quote from DoorDash Drive API.
 export const getDeliveryQuoteAPI = async (pickupAddress, dropoffAddress, orderValue, scheduledDeliveryTime) => {
   logger.info(`Requesting DoorDash quote: "${pickupAddress}" → "${dropoffAddress}"`);
 
@@ -198,7 +194,7 @@ export const getDeliveryQuoteAPI = async (pickupAddress, dropoffAddress, orderVa
       let simulatedFee = 599;
       const normalized = (dropoffAddress || '').toLowerCase();
       
-      // Simulate out of bounds for non-US addresses or extreme cases
+      // simulate out of bounds for non-US addresses or extreme cases
       if (normalized.includes('uk') || normalized.includes('london') || normalized.includes('india') || normalized.includes('australia') || normalized.includes('japan') || normalized.includes('china') || normalized.includes('germany') || normalized.includes('france') || normalized.includes('outside')) {
         throw new Error('OUT_OF_SERVICE_AREA');
       }
@@ -216,7 +212,7 @@ export const getDeliveryQuoteAPI = async (pickupAddress, dropoffAddress, orderVa
         }
       }
 
-      // Return simulated quote instead of throwing error unconditionally
+      // return simulated quote instead of throwing error unconditionally
       return {
         fee: simulatedFee,
         pickupTime: new Date(Date.now() + 15 * 60000),

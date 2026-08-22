@@ -27,9 +27,9 @@ router.post('/:id/remake', protect, authorize('merchant'), orderController.remak
 router.post('/:id/send-invoice', protect, authorize('merchant'), orderController.sendInvoice);
 
 // ── Payment Audit & Document Generation ────────────────────────────────────
-// Payment events audit trail (JSON)
+// payment events audit trail (JSON)
 router.get('/:id/payment-events', protect, authorize('merchant', 'admin'), orderController.getPaymentEvents);
-// Invoice & KOT — return standalone HTML for new-tab printing
+// invoice & KOT — return standalone HTML for new-tab printing
 router.get('/:id/invoice', protect, authorize('merchant', 'admin'), orderController.getInvoiceDocument);
 router.get('/:id/kot', protect, authorize('merchant', 'admin'), orderController.getKOTDocument);
 

@@ -4,9 +4,11 @@ import asyncHandler from '../utils/asyncHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { getFirebaseAdmin } from '../config/firebase.js';
+import { getMessaging } from 'firebase-admin/messaging';
+import logger from '../utils/logger.js';
 
 /**
- * @desc    Get all notifications for the logged-in user
+ * @desc    get all notifications for the logged-in user
  * @route   GET /api/notifications
  * @access  Private
  */
@@ -25,7 +27,7 @@ export const getMyNotifications = asyncHandler(async (req, response) => {
 });
 
 /**
- * @desc    Mark a notification as read
+ * @desc    mark a notification as read
  * @route   PUT /api/notifications/:id/read
  * @access  Private
  */
@@ -51,7 +53,7 @@ export const markAsRead = asyncHandler(async (req, response) => {
 });
 
 /**
- * @desc    Delete a notification
+ * @desc    delete a notification
  * @route   DELETE /api/notifications/:id
  * @access  Private
  */
@@ -69,9 +71,7 @@ export const deleteNotification = asyncHandler(async (req, response) => {
   res.success(response, { message: 'Notification deleted successfully' });
 });
 
-/**
- * Helper function to create and emit a notification (used internally by other controllers)
- */
+// create and emit a notification (used internally by other controllers)
 export const createNotification = async (userId, title, body, type = 'system', actionUrl = null, io = null, getModel = null, imageUrl = null) => {
   try {
     const UserModel = getModel ? getModel('User') : User;
@@ -97,15 +97,15 @@ export const createNotification = async (userId, title, body, type = 'system', a
     });
 
     if (io) {
-      // Emit to the specific user's socket room (assuming we use user._id as a room)
+      // emit to the specific user's socket room (assuming we use user._id as a room)
       io.to(userId.toString()).emit('new_notification', notification);
     }
     
-    // Dispatch FCM push notification
+    // dispatch FCM push notification
     if (user && user.fcmTokens && user.fcmTokens.length > 0) {
       const firebaseApp = getFirebaseAdmin();
       if (firebaseApp) {
-        // Optimize image for push notifications (thumbnail)
+        // optimize image for push notifications (thumbnail)
         let optimizedImageUrl = imageUrl;
         if (optimizedImageUrl && optimizedImageUrl.includes('res.cloudinary.com')) {
           optimizedImageUrl = optimizedImageUrl.replace(
@@ -138,11 +138,11 @@ export const createNotification = async (userId, title, body, type = 'system', a
           tokens: user.fcmTokens
         };
         
-        firebaseApp.messaging().sendMulticast(message)
+        getMessaging(firebaseApp).sendEachForMulticast(message)
           .then(response => {
             if (response.failureCount > 0) {
               logger.warn(`FCM partial failure: ${response.failureCount} failed out of ${user.fcmTokens.length} tokens.`);
-              // In production, we should remove unregistered tokens from user.fcmTokens here.
+              // in production, we should remove unregistered tokens from user.fcmTokens here.
             } else {
               logger.info(`Successfully sent FCM push to user ${userId}`);
             }

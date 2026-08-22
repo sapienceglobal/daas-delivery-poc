@@ -6,7 +6,7 @@ import * as res from '../utils/responseFormatter.js';
 
 
 /**
- * @desc    Get all tables for a restaurant
+ * @desc    get all tables for a restaurant
  * @route   GET /api/tables/:restaurantId
  * @access  Private (Merchant/Admin/Employee)
  */
@@ -17,7 +17,7 @@ export const getTables = asyncHandler(async (req, response) => {
 });
 
 /**
- * @desc    Create a new table
+ * @desc    create a new table
  * @route   POST /api/tables
  * @access  Private (Merchant/Admin)
  */
@@ -41,7 +41,7 @@ export const createTable = asyncHandler(async (req, response) => {
 });
 
 /**
- * @desc    Update a table's details or position
+ * @desc    update a table's details or position
  * @route   PUT /api/tables/:id
  * @access  Private (Merchant/Admin)
  */
@@ -52,7 +52,7 @@ export const updateTable = asyncHandler(async (req, response) => {
 });
 
 /**
- * @desc    Delete (deactivate) a table
+ * @desc    delete (deactivate) a table
  * @route   DELETE /api/tables/:id
  * @access  Private (Merchant/Admin)
  */
@@ -72,12 +72,12 @@ export const moveTable = asyncHandler(async (req, response) => {
   if (sourceTable.status !== 'occupied') throw new AppError('Source table is not occupied', 400);
   if (targetTable.status === 'occupied') throw new AppError('Target table is already occupied', 400);
 
-  // Transfer order
+  // transfer order
   targetTable.currentOrderId = sourceTable.currentOrderId;
   targetTable.status = 'occupied';
   targetTable.occupiedAt = sourceTable.occupiedAt;
 
-  // Clear source
+  // clear source
   sourceTable.currentOrderId = null;
   sourceTable.status = 'available';
   sourceTable.occupiedAt = null;
@@ -97,7 +97,7 @@ export const mergeTables = asyncHandler(async (req, response) => {
   if (!mainTable || !mergeTable) throw new AppError('Table not found', 404);
   if (mainTable.status !== 'occupied') throw new AppError('Main table must be occupied', 400);
   
-  // Actually transferring orders or just marking it as merged
+  // actually transferring orders or just marking it as merged
   mergeTable.mergedWith = [...new Set([...(mergeTable.mergedWith || []), mainTable._id])];
   mergeTable.status = 'occupied';
   
@@ -107,7 +107,7 @@ export const mergeTables = asyncHandler(async (req, response) => {
 });
 
 /**
- * @desc    Update table status (e.g., occupied, available, assign order)
+ * @desc    update table status (e.g., occupied, available, assign order)
  * @route   PUT /api/tables/:id/status
  * @access  Private (Merchant/Employee)
  */
@@ -126,7 +126,7 @@ export const updateTableStatus = asyncHandler(async (req, response) => {
   const table = await Table.findByIdAndUpdate(req.params.id, updateData, { new: true }).populate('currentOrderId', 'orderNumber status subtotal items');
   if (!table) throw new AppError('Table not found', 404);
 
-  // Notify KDS / POS clients about table update
+  // notify KDS / POS clients about table update
   const io = req.app.get('io');
   if (io) io.to(table.restaurantId.toString()).emit('table_update', table);
 

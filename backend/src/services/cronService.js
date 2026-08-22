@@ -7,7 +7,7 @@ import logger from '../utils/logger.js';
 export const initCronJobs = (io, getModel) => {
   logger.info('Initializing background cron jobs...');
 
-  // Run every minute
+  // run every minute
   cron.schedule('* * * * *', async () => {
     try {
       const Order = getModel('Order');
@@ -107,15 +107,15 @@ const processAutoCancel = async (order, internalReason, customerMessage, io, get
       description: internalReason
     });
 
-    // Initiate Refund if order was paid via card
+    // initiate Refund if order was paid via card
     await processAutoRefund(order, internalReason, io, getModel);
     
     await order.save();
 
-    // Revert loyalty points
+    // revert loyalty points
     await rollbackLoyaltyPoints(order, 'auto_cancel_resolution');
 
-    // Emit socket events
+    // emit socket events
     if (io) {
       const payload = buildOrderSocketPayload(order);
       io.to(order.restaurantId.toString()).emit('order_updated', payload);
@@ -126,7 +126,7 @@ const processAutoCancel = async (order, internalReason, customerMessage, io, get
       io.to(`order_${order._id}`).emit('order_status_changed', payload);
     }
 
-    // Notify Customer
+    // notify Customer
     if (order.userId) {
       await createNotification(
         order.userId,

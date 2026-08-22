@@ -4,11 +4,11 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
 
-// Get all inventory for a restaurant
+// get all inventory for a restaurant
 export const getInventory = asyncHandler(async (req, response) => {
   const { restaurantId } = req.params;
   
-  // Ensure the restaurant belongs to the merchant (if merchant)
+  // ensure the restaurant belongs to the merchant (if merchant)
   if (req.user.role === 'merchant') {
     const owns = await Restaurant.exists({ _id: restaurantId, ownerId: req.user._id });
     if (!owns) throw new AppError('Not authorized for this restaurant', 403);
@@ -18,7 +18,7 @@ export const getInventory = asyncHandler(async (req, response) => {
   res.success(response, items);
 });
 
-// Create inventory item
+// create inventory item
 export const createInventoryItem = asyncHandler(async (req, response) => {
   const { restaurantId } = req.params;
   const data = req.body;
@@ -37,7 +37,7 @@ export const createInventoryItem = asyncHandler(async (req, response) => {
   res.success(response, item, 201);
 });
 
-// Update inventory item
+// update inventory item
 export const updateInventoryItem = asyncHandler(async (req, response) => {
   const { itemId } = req.params;
   const data = req.body;
@@ -54,7 +54,7 @@ export const updateInventoryItem = asyncHandler(async (req, response) => {
   res.success(response, updated);
 });
 
-// Receive shipment (add to stock)
+// receive shipment (add to stock)
 export const receiveShipment = asyncHandler(async (req, response) => {
   const { itemId } = req.params;
   const { quantity, costPerUnit, supplier } = req.body;
@@ -87,7 +87,7 @@ export const receiveShipment = asyncHandler(async (req, response) => {
   res.success(response, item);
 });
 
-// Log wastage (reduce stock)
+// log wastage (reduce stock)
 export const logWastage = asyncHandler(async (req, response) => {
   const { itemId } = req.params;
   const { quantity, reason } = req.body;
@@ -118,7 +118,7 @@ export const logWastage = asyncHandler(async (req, response) => {
   res.success(response, item);
 });
 
-// Delete (soft delete)
+// delete (soft delete)
 export const deleteInventoryItem = asyncHandler(async (req, response) => {
   const { itemId } = req.params;
 

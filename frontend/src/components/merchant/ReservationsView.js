@@ -34,7 +34,7 @@ export default function ReservationsView({ reservations = [], isLoading = false,
   const [seatingFilter, setSeatingFilter] = useState('All Seating Areas');
   const [occasionFilter, setOccasionFilter] = useState('All Occasions');
   
-  // Sorting state
+  // sorting state
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
 
   const handleSort = (key) => {
@@ -48,12 +48,12 @@ export default function ReservationsView({ reservations = [], isLoading = false,
     setSortConfig({ key, direction });
   };
   
-  // Bulk selection state
+  // bulk selection state
   const [selectedItems, setSelectedItems] = useState([]);
   const [isProcessingBulk, setIsProcessingBulk] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
 
-  // Calendar state
+  // calendar state
   const [currentMonth, setCurrentMonth] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -62,12 +62,12 @@ export default function ReservationsView({ reservations = [], isLoading = false,
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_LOAD);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Filter change hone par Load More reset karein
+  // reset pagination when filters change
   useEffect(() => {
     setVisibleCount(ITEMS_PER_LOAD);
   }, [searchQuery, statusFilter, seatingFilter, occasionFilter, selectedDate]);
 
-  // Calendar Logic
+  // calendar Logic
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
   const calendarDays = [];
@@ -90,7 +90,7 @@ export default function ReservationsView({ reservations = [], isLoading = false,
   const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
 
-  // Stats Calculations
+  // stats Calculations
   const stats = useMemo(() => {
     const todayStr = new Date().toDateString();
     const todaysReservations = reservations.filter(r => new Date(r.date).toDateString() === todayStr);
@@ -104,7 +104,7 @@ export default function ReservationsView({ reservations = [], isLoading = false,
     };
   }, [reservations]);
 
-  // Filtering Logic
+  // filtering Logic
   const filteredReservations = useMemo(() => {
     return reservations.filter(r => {
       const searchStr = searchQuery.toLowerCase();
@@ -175,7 +175,7 @@ export default function ReservationsView({ reservations = [], isLoading = false,
     link.click();
   };
 
-  // Handle Load More Logic
+  // handle Load More Logic
   const displayedReservations = useMemo(() => {
     return filteredReservations.slice(0, visibleCount);
   }, [filteredReservations, visibleCount]);
@@ -239,7 +239,7 @@ export default function ReservationsView({ reservations = [], isLoading = false,
     }
   };
 
-  // Bulk Handlers
+  // bulk Handlers
   const handleSelectAll = (e) => {
     const pageIds = displayedReservations.map(r => r._id);
     if (e.target.checked) {

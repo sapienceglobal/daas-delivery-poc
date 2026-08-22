@@ -65,8 +65,8 @@ export const applyDeliveryUpdate = (order, payload = {}) => {
     const currentRank = statusRank[order.status] ?? 0;
     const newRank = statusRank[mappedStatus] ?? 0;
     
-    // Only update if the new status is a forward progression, or if it's a cancellation.
-    // Do not downgrade a manual 'accepted' or 'preparing' status back to 'pending'.
+    // only update if the new status is a forward progression, or if it's a cancellation.
+    // do not downgrade a manual 'accepted' or 'preparing' status back to 'pending'.
     if (newRank > currentRank || mappedStatus === 'cancelled') {
       order.status = mappedStatus;
       order.statusUpdates.push({

@@ -62,7 +62,7 @@ export default function DishGrid({
     setVisibleCount(ITEMS_PER_LOAD);
   }, [sortBy]);
 
-  // Smooth scroll handling
+  // smooth scroll handling
   useEffect(() => {
     setVisibleCount(ITEMS_PER_LOAD);
 
@@ -76,8 +76,8 @@ export default function DishGrid({
       if (element) {
         const rect = element.getBoundingClientRect();
         
-        // Only scroll if the user has scrolled past the top of the grid
-        // If the user is at the top, don't move the page
+        // only scroll if the user has scrolled past the top of the grid
+        // if the user is at the top, don't move the page
         if (rect.top < 100) {
           const elementPosition = rect.top + window.scrollY;
           window.scrollTo({

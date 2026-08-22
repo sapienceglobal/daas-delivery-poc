@@ -14,7 +14,7 @@ export default function LiveCourierTrackingCard({ order, isNaked = false, classN
 
   const isDelivery = order.orderType === 'delivery';
   
-  // We only show live tracking for delivery orders that are not delivered yet.
+  // we only show live tracking for delivery orders that are not delivered yet.
   if (!isDelivery || order.status === 'delivered') return null;
 
   const isCancelled = order.status === 'cancelled';

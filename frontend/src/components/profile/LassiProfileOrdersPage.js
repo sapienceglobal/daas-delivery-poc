@@ -109,7 +109,7 @@ export default function LassiProfileOrdersPage({ user, logout, updateUser }) {
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [filterType, setFilterType] = useState('all'); // 'all', 'delivery', 'pickup'
 
-  // Fetch orders from backend DB
+  // fetch orders from backend DB
   useEffect(() => {
     let isCancelled = false;
     const fetchOrders = async () => {
@@ -134,20 +134,20 @@ export default function LassiProfileOrdersPage({ user, logout, updateUser }) {
     };
   }, []);
 
-  // Filtered orders logic
+  // filtered orders logic
   const filteredOrders = useMemo(() => {
     const query = search.trim().toLowerCase();
     return orders.filter((order) => {
-      // Filter by status tab
+      // filter by status tab
       const matchesStatus =
         activeStatus === 'all' ||
         (activeStatus === 'ongoing' && isOngoingStatus(order.status)) ||
         order.status === activeStatus;
 
-      // Filter by order type (Filter Modal)
+      // filter by order type (Filter Modal)
       const matchesType = filterType === 'all' || order.orderType === filterType;
 
-      // Filter by Search Query (Order ID or dish item name)
+      // filter by Search Query (Order ID or dish item name)
       const matchesSearch =
         !query ||
         formatOrderId(order).toLowerCase().includes(query) ||
@@ -166,7 +166,7 @@ export default function LassiProfileOrdersPage({ user, logout, updateUser }) {
     setPage(1);
   }, [activeStatus, search, filterType]);
 
-  // Handle Reorder
+  // handle Reorder
   const handleReorder = (order) => {
     const restaurantData = {
       _id: order.restaurantId,

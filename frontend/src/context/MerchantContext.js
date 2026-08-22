@@ -59,15 +59,15 @@ export function MerchantProvider({ children }) {
     }
   };
 
-  // Global Realtime Notifications
+  // global Realtime Notifications
   useEffect(() => {
     if (!roomId) return undefined;
     joinRoom(roomId);
     
     const handleRealtimeOrder = (data) => {
-      // Play a sound could be added here
+      // play a sound could be added here
       showToast('🔔 New Order Update received!', 'info');
-      // You can also increment newOrders stat if needed
+      // you can also increment newOrders stat if needed
     };
 
     on('new_order', handleRealtimeOrder);

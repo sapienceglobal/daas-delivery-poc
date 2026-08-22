@@ -11,7 +11,7 @@ export default function MerchantSettingsPage() {
   const { restaurant, roomId, globalLoading, refreshRestaurant } = useMerchantContext();
   const { user } = useAuth();
   
-  // Need to provide the onboardingForm logic here for settings update
+  // need to provide the onboardingForm logic here for settings update
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [onboardingForm, setOnboardingForm] = useState({
     businessInfo: {

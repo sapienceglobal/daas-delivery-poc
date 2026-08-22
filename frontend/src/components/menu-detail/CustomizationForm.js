@@ -10,7 +10,7 @@ export default function CustomizationForm({
   setSpecialInstructions,
   isSingleRestaurant
 }) {
-  // Use real backend data only - no dummy fallbacks!
+  // use real backend data only - no dummy fallbacks!
   const sizeOptions = item.sizeVariations || [];
   const addOnOptions = item.addOns || [];
 

@@ -16,7 +16,7 @@ function Redirect({ to }) {
 export default function BookATableRoute() {
   const { id } = useParams();
 
-  // Clean URL: /book-a-table (no restaurant slug needed in single mode)
+  // clean URL: /book-a-table (no restaurant slug needed in single mode)
   if (SINGLE_MODE) return <Redirect to="/book-a-table" />;
 
   return <BookTablePage restaurantId={id} />;

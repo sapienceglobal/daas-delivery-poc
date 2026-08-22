@@ -94,7 +94,7 @@ const apiLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 
 // ── Auth-Specific Strict Rate Limiters ───────────────────────────────────────
-// These are applied BEFORE the general API limiter to enforce tighter limits
+// these are applied BEFORE the general API limiter to enforce tighter limits
 // on authentication endpoints — critical for preventing brute-force attacks
 // on the merchant/admin login portal at lassiloungeny.com.
 
@@ -145,14 +145,14 @@ if (!APP_SECRET) {
   logger.warn('APP_SECRET is not set. Browser API requests will rely on auth, CORS, and rate limits.');
 }
 app.use('/api', (req, res, next) => {
-  // Exempt webhooks from secret check (they have their own HMAC)
+  // exempt webhooks from secret check (they have their own HMAC)
   if (req.path.includes('webhook')) return next();
-  // Exempt health checks
+  // exempt health checks
   if (req.path.includes('health')) return next();
-  // Exempt static uploads GET requests
+  // exempt static uploads GET requests
   if (req.path.includes('upload') && req.method === 'GET') return next();
-  // Browser requests cannot keep an app secret confidential; use CORS + auth cookies.
-  // Same-origin GET requests often omit the Origin header, so we also check sec-fetch-mode or User-Agent
+  // browser requests cannot keep an app secret confidential; use CORS + auth cookies.
+  // same-origin GET requests often omit the Origin header, so we also check sec-fetch-mode or User-Agent
   const isBrowser = Boolean(
     req.headers.origin || 
     req.headers['sec-fetch-mode'] || 

@@ -26,3 +26,24 @@ yarn-error.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Unused / Test / Seed files (Not needed in production)
+temp_logos/
+test/
+tests/
+
+# Temporary and scratch scripts
+*test*.js
+*test*.ps1
+*seed*.js
+*mock*.js
+check_*.js
+crop_*.ps1
+refactor_*.js
+test*.pdf
+
+# Specific backend test/seed files
+backend/test/
+backend/src/config/seed.js
+backend/src/seed.js
+backend/src/config/reset-db.js

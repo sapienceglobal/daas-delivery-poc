@@ -5,13 +5,13 @@
 */
 
 const getApiBaseUrl = () => {
-  // Always use relative URLs on the client so Next.js rewrites proxy it to the backend.
-  // This solves ALL CORS and Cross-Origin Cookie problems for live deployments over HTTP.
+  // always use relative URLs on the client so Next.js rewrites proxy it to the backend.
+  // this solves ALL CORS and Cross-Origin Cookie problems for live deployments over HTTP.
   if (typeof window !== 'undefined') {
     return '';
   }
 
-  // Server-side rendering (SSR) needs absolute URL
+  // server-side rendering (SSR) needs absolute URL
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
   if (envUrl) {
     return envUrl;
@@ -22,9 +22,7 @@ const getApiBaseUrl = () => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
-/**
- * Core fetch wrapper with built-in auth, error handling, and JSON parsing.
- */
+// core fetch wrapper with built-in auth, error handling, and JSON parsing.
 const request = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
   const appSecret = process.env.NEXT_PUBLIC_APP_SECRET;
@@ -37,7 +35,7 @@ const request = async (endpoint, options = {}) => {
     ...options.headers,
   };
 
-  // Don't set Content-Type for FormData (browser sets it with boundary)
+  // don't set Content-Type for FormData (browser sets it with boundary)
   if (options.body instanceof FormData) {
     delete headers['Content-Type'];
   }
@@ -49,14 +47,14 @@ const request = async (endpoint, options = {}) => {
     headers,
   };
 
-  // Stringify body if it's an object (not FormData)
+  // stringify body if it's an object (not FormData)
   if (config.body && typeof config.body === 'object' && !(config.body instanceof FormData)) {
     config.body = JSON.stringify(config.body);
   }
 
   const response = await fetch(url, config);
 
-  // Handle non-JSON responses
+  // handle non-JSON responses
   const contentType = response.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
     if (!response.ok) {
@@ -103,24 +101,24 @@ export const authAPI = {
   verifyOtp: (email, otp) => api.post('/api/auth/verify-otp', { email, otp }),
   resendOtp: (email) => api.post('/api/auth/resend-otp', { email }),
 
-  // Two-Factor Authentication
+  // two-Factor Authentication
   generate2FA: () => api.get('/api/auth/2fa/generate'),
   enable2FA: (data) => api.post('/api/auth/2fa/enable', data),
   disable2FA: (data) => api.post('/api/auth/2fa/disable', data),
   verify2FA: (data) => api.post('/api/auth/2fa/verify', data),
 
-  // Addresses
+  // addresses
   addAddress: (data) => api.post('/api/auth/me/addresses', data),
   editAddress: (id, data) => api.put(`/api/auth/me/addresses/${id}`, data),
   removeAddress: (id) => api.delete(`/api/auth/me/addresses/${id}`),
   setDefaultAddress: (id) => api.patch(`/api/auth/me/addresses/${id}/default`),
 
-  // Cards
+  // cards
   addCard: (data) => api.post('/api/auth/me/cards', data),
   removeCard: (id) => api.delete(`/api/auth/me/cards/${id}`),
   setDefaultCard: (id) => api.patch(`/api/auth/me/cards/${id}/default`),
 
-  // Cart
+  // cart
   getCart: () => api.get('/api/auth/me/cart'),
   updateCart: (data) => api.put('/api/auth/me/cart', data),
   clearCart: () => api.delete('/api/auth/me/cart'),
@@ -178,7 +176,7 @@ export const orderAPI = {
   cancel: (id) => api.post(`/api/orders/${id}/cancel`),
   rate: (id, data) => api.post(`/api/orders/${id}/rate`, data),
   getDeliveryQuote: (data) => api.post('/api/orders/delivery-quote', data),
-  // Merchant
+  // merchant
   getRestaurantOrders: (restaurantId, params = '') => api.get(`/api/orders/restaurant/${restaurantId}${params ? '?' + params : ''}`),
   updateStatus: (id, status) => api.put(`/api/orders/${id}/status`, { status }),
   accept: (id) => api.put(`/api/orders/${id}/accept`),
@@ -186,16 +184,16 @@ export const orderAPI = {
   addNote: (id, text) => api.post(`/api/orders/${id}/note`, { text }),
   remake: (id) => api.post(`/api/orders/${id}/remake`),
   sendInvoice: (id) => api.post(`/api/orders/${id}/send-invoice`),
-  // Payment Audit Trail
+  // payment Audit Trail
   getPaymentEvents: (id) => api.get(`/api/orders/${id}/payment-events`),
-  // Document Generation — returns URL string; caller uses window.open(url, '_blank')
-  // Auth is handled via session cookie which browser sends automatically.
+  // document Generation — returns URL string; caller uses window.open(url, '_blank')
+  // auth is handled via session cookie which browser sends automatically.
   getInvoiceUrl: (id) => `${API_BASE_URL}/api/orders/${id}/invoice`,
   getKotUrl: (id) => `${API_BASE_URL}/api/orders/${id}/kot`,
-  // Admin
+  // admin
   getAll: (params = '') => api.get(`/api/orders${params ? '?' + params : ''}`),
   refund: (id, data) => api.post(`/api/orders/${id}/refund`, data),
-  // Dev
+  // dev
   simulate: (id) => api.post(`/api/orders/${id}/simulate`),
 };
 

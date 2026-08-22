@@ -53,7 +53,7 @@ const NotificationSchema = new mongoose.Schema({
 NotificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
 NotificationSchema.index({ userId: 1, type: 1 });
 
-// Auto-expire old notifications after 90 days
+// auto-expire old notifications after 90 days
 NotificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
 const Notification = mongoose.model('Notification', NotificationSchema);

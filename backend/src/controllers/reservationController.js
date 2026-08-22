@@ -6,7 +6,7 @@ const getModels = (req) => ({
   Restaurant: req.getModel?.('Restaurant') || Restaurant,
 });
 
-// @desc    Create a new reservation
+// @desc    create a new reservation
 // @route   POST /api/reservations
 // @access  Public / Private (if userId provided)
 export const createReservation = async (req, res) => {
@@ -26,7 +26,7 @@ export const createReservation = async (req, res) => {
       tableId
     } = req.body;
 
-    // Verify restaurant exists
+    // verify restaurant exists
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
       return res.status(404).json({ success: false, message: 'Restaurant not found' });
@@ -59,7 +59,7 @@ export const createReservation = async (req, res) => {
   }
 };
 
-// @desc    Get user's reservations
+// @desc    get user's reservations
 // @route   GET /api/reservations/my-reservations
 // @access  Private (Customer)
 export const getMyReservations = async (req, res) => {
@@ -79,7 +79,7 @@ export const getMyReservations = async (req, res) => {
   }
 };
 
-// @desc    Get restaurant's reservations
+// @desc    get restaurant's reservations
 // @route   GET /api/reservations/restaurant/:restaurantId
 // @access  Private (Merchant/Admin)
 export const getRestaurantReservations = async (req, res) => {
@@ -87,7 +87,7 @@ export const getRestaurantReservations = async (req, res) => {
     const { Reservation, Restaurant } = getModels(req);
     const { restaurantId } = req.params;
     
-    // Resolve restaurant by slug or ObjectId
+    // resolve restaurant by slug or ObjectId
     let restaurant;
     if (restaurantId.match(/^[0-9a-fA-F]{24}$/)) {
       restaurant = await Restaurant.findById(restaurantId);
@@ -99,7 +99,7 @@ export const getRestaurantReservations = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Restaurant not found' });
     }
 
-    // Auth check: Merchant must own this restaurant
+    // auth check: Merchant must own this restaurant
     if (req.user.role === 'merchant') {
       if (restaurant.ownerId?.toString() !== req.user._id.toString()) {
         return res.status(403).json({ success: false, message: 'Not authorized to view these reservations' });
@@ -119,7 +119,7 @@ export const getRestaurantReservations = async (req, res) => {
   }
 };
 
-// @desc    Update reservation status
+// @desc    update reservation status
 // @route   PUT /api/reservations/:id/status
 // @access  Private (Merchant/Admin)
 export const updateReservationStatus = async (req, res) => {
@@ -132,7 +132,7 @@ export const updateReservationStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Reservation not found' });
     }
 
-    // Verify ownership
+    // verify ownership
     if (req.user.role === 'merchant') {
       const restaurant = await Restaurant.findById(reservation.restaurantId);
       if (!restaurant) {
@@ -157,7 +157,7 @@ export const updateReservationStatus = async (req, res) => {
   }
 };
 
-// @desc    Update an entire reservation (merchant)
+// @desc    update an entire reservation (merchant)
 // @route   PUT /api/reservations/:id
 // @access  Private (Merchant/Admin)
 export const updateReservation = async (req, res) => {
@@ -172,7 +172,7 @@ export const updateReservation = async (req, res) => {
       });
     }
 
-    // Verify ownership (in a multi-tenant or role setup)
+    // verify ownership (in a multi-tenant or role setup)
     if (req.user.role !== 'admin' && reservation.restaurantId.toString() !== req.user.restaurantId?.toString()) {
       return res.status(403).json({
         status: 'error',
@@ -199,7 +199,7 @@ export const updateReservation = async (req, res) => {
   }
 };
 
-// @desc    Bulk update reservation status
+// @desc    bulk update reservation status
 // @route   PUT /api/reservations/bulk-status
 // @access  Private (Merchant/Admin)
 export const bulkUpdateReservationStatus = async (req, res) => {
@@ -220,7 +220,7 @@ export const bulkUpdateReservationStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'No matching reservations found' });
     }
 
-    // Verify ownership
+    // verify ownership
     if (req.user.role === 'merchant') {
       const restaurant = await Restaurant.findById(reservations[0].restaurantId);
       if (!restaurant || restaurant.ownerId?.toString() !== req.user._id.toString()) {

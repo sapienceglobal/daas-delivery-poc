@@ -41,7 +41,7 @@ export function CartProvider({ children }) {
     latestCartRef.current = { items, restaurant, specialInstructions, owner: hydratedOwner };
   }, [items, restaurant, specialInstructions, hydratedOwner]);
 
-  // Load the cart for the active tenant + active user. This prevents one
+  // load the cart for the active tenant + active user. This prevents one
   // customer's browser cart from appearing after another customer logs in.
   useEffect(() => {
     if (authLoading) return;
@@ -106,7 +106,7 @@ export function CartProvider({ children }) {
           });
         }
       } catch {
-        // Keep the user-scoped browser cache available if the network is down.
+        // keep the user-scoped browser cache available if the network is down.
       } finally {
         if (!cancelled) {
           setServerHydratedOwner(storageKeys.owner);
@@ -124,7 +124,7 @@ export function CartProvider({ children }) {
     };
   }, [authLoading, hydratedOwner, storageKeys.owner, user?._id]);
 
-  // Persist to the scoped storage only after the matching user cart is loaded.
+  // persist to the scoped storage only after the matching user cart is loaded.
   useEffect(() => {
     if (authLoading || hydratedOwner !== storageKeys.owner) return;
     localStorage.setItem(storageKeys.items, JSON.stringify(items));
@@ -140,7 +140,7 @@ export function CartProvider({ children }) {
     } else {
       localStorage.removeItem(storageKeys.restaurant);
       
-      // Auto-fetch default restaurant in single-restaurant mode.
+      // auto-fetch default restaurant in single-restaurant mode.
       // IMPORTANT: Use restaurantAPI (not raw fetch) so the correct backend
       // base URL (port 5001) and x-tenant-id header are included.
       if (process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true') {
@@ -175,7 +175,7 @@ export function CartProvider({ children }) {
   }, [authLoading, hydratedOwner, items, restaurant, specialInstructions, serverHydratedOwner, storageKeys.owner, user?._id]);
 
   const addItem = useCallback((item, restaurantData) => {
-    // If adding from a different restaurant in marketplace mode, clear cart first
+    // if adding from a different restaurant in marketplace mode, clear cart first
     if (restaurant && restaurantData && restaurant._id !== restaurantData._id) {
       return { conflict: true, pendingItem: item, pendingRestaurant: restaurantData };
     }
@@ -187,7 +187,7 @@ export function CartProvider({ children }) {
     setItems(prev => {
       const targetId = item.menuItemId || item._id || item.id;
       
-      // Check if item with same id or name, size, and addons already exists
+      // check if item with same id or name, size, and addons already exists
       const existingIdx = prev.findIndex(i => {
         const iId = i.menuItemId || i._id || i.id;
         const sameIdOrName = (targetId && iId && iId === targetId) ||

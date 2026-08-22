@@ -32,7 +32,7 @@ const getUberToken = async () => {
       });
 
       cachedToken = response.data.access_token;
-      // Cache until 5 minutes before expiry
+      // cache until 5 minutes before expiry
       tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
       return cachedToken;
     } catch (err) {
@@ -91,7 +91,7 @@ export const getDeliveryQuoteAPI = async (pickupAddress, dropoffAddress, subtota
 
   const data = await makeUberRequest('POST', `/customers/${UBEREATS_CUSTOMER_ID}/delivery_quotes`, payload);
   
-  // Uber returns fee in cents.
+  // uber returns fee in cents.
   logger.info(`UberEats quote received - Fee: ${data.fee} cents`);
   return { fee: data.fee, externalQuoteId: data.id };
 };
@@ -142,7 +142,7 @@ export const cancelDeliveryAPI = async (deliveryId) => {
 export const getDeliveryAPI = async (deliveryId) => {
   const data = await makeUberRequest('GET', `/customers/${UBEREATS_CUSTOMER_ID}/deliveries/${deliveryId}`);
   
-  // Map Uber status to standard internal status
+  // map Uber status to standard internal status
   let mappedStatus = 'accepted';
   if (data.status === 'pickup') mappedStatus = 'picked_up';
   else if (data.status === 'dropoff') mappedStatus = 'out_for_delivery';

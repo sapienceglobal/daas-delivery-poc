@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { navLinks } from './config';
 import { useBrand } from '@/context/BrandContext';
 
-// Internal component handling hooks and UI logic
+// internal component handling hooks and UI logic
 function HeaderContent() {
   const { items, openCart } = useCart();
   const { isAuthenticated, user, loading: authLoading } = useAuth();
@@ -49,7 +49,7 @@ function HeaderContent() {
             const [base, query] = link.href.split('?mode=');
             isActive = pathname === base && mode === query;
           } else {
-            // Special case: If we are on /menu but mode=delivery, the plain /menu link should NOT be active
+            // special case: If we are on /menu but mode=delivery, the plain /menu link should NOT be active
             if (pathname === '/menu' && link.href === '/menu' && mode === 'delivery') {
               isActive = false;
             } else {
@@ -108,7 +108,7 @@ function HeaderContent() {
   );
 }
 
-// Main exported component wrapping the header content in Suspense
+// main exported component wrapping the header content in Suspense
 export default function LassiLoungeHeader() {
   return (
     <header className="sticky top-0 z-sticky bg-background border-b border-border">

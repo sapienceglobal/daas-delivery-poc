@@ -1,8 +1,6 @@
 import logger from '../utils/logger.js';
 
-/**
- * Custom application error with HTTP status code.
- */
+// custom application error with HTTP status code.
 export class AppError extends Error {
   constructor(message, statusCode = 500) {
     super(message);
@@ -22,20 +20,20 @@ export const errorHandler = (err, req, res, _next) => {
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal Server Error';
 
-  // Mongoose bad ObjectId
+  // mongoose bad ObjectId
   if (err.name === 'CastError' && err.kind === 'ObjectId') {
     statusCode = 400;
     message = 'Invalid resource ID format';
   }
 
-  // Mongoose duplicate key
+  // mongoose duplicate key
   if (err.code === 11000) {
     statusCode = 409;
     const field = Object.keys(err.keyValue || {}).join(', ');
     message = `Duplicate value for field: ${field}`;
   }
 
-  // Mongoose validation error
+  // mongoose validation error
   if (err.name === 'ValidationError') {
     statusCode = 400;
     const messages = Object.values(err.errors).map((e) => e.message);
@@ -52,7 +50,7 @@ export const errorHandler = (err, req, res, _next) => {
     message = 'Token expired';
   }
 
-  // Multer file upload errors
+  // multer file upload errors
   if (err.code === 'LIMIT_FILE_SIZE') {
     statusCode = 400;
     message = 'File size exceeds the allowed limit';
@@ -64,7 +62,7 @@ export const errorHandler = (err, req, res, _next) => {
       ip: req.ip
     });
     
-    // Security Hardening: Hide internal error details in production
+    // security Hardening: Hide internal error details in production
     if (process.env.NODE_ENV === 'production' && !err.isOperational) {
       message = 'An unexpected internal error occurred. Please try again later.';
     }

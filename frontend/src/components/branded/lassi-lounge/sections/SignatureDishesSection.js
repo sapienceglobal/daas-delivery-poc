@@ -24,17 +24,17 @@ export default function SignatureDishesSection() {
   useEffect(() => {
     async function loadRealSignatureDishes() {
       try {
-        // Enforce a minimum 800ms loading time so the user sees the skeleton gracefully
+        // enforce a minimum 800ms loading time so the user sees the skeleton gracefully
         const [res] = await Promise.all([
           restaurantAPI.getById('lassi-lounge'),
           new Promise(r => setTimeout(r, 800))
         ]);
         const restaurantData = res?.data;
         if (restaurantData?.menu?.length > 0) {
-          // Flatten menu items from all categories in MongoDB
+          // flatten menu items from all categories in MongoDB
           const allItems = restaurantData.menu.reduce((acc, cat) => acc.concat(cat.items || []), []);
           
-          // Filter only available items
+          // filter only available items
           const availableItems = allItems.filter(i => i.isAvailable !== false);
           
           // 1. Try to get actual bestsellers
@@ -48,7 +48,7 @@ export default function SignatureDishesSection() {
             bestsellers = [...bestsellers, ...others];
           }
           
-          // Set top 6
+          // set top 6
           setDishes(bestsellers.slice(0, 6));
         }
       } catch (err) {

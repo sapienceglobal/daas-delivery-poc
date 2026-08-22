@@ -16,7 +16,7 @@ export default function ItemCustomizationModal({ item, onClose }) {
   const [selectedAddOns, setSelectedAddOns] = useState([]);
   const [quantity, setQuantity] = useState(1);
 
-  // Mount logic for Portal
+  // mount logic for Portal
   useEffect(() => {
     setMounted(true);
     document.body.style.overflow = 'hidden';
@@ -46,10 +46,10 @@ export default function ItemCustomizationModal({ item, onClose }) {
     onClose();
   }
 
-  // Next.js hydration safety - Portal target is only available after mount
+  // next.js hydration safety - Portal target is only available after mount
   if (!mounted) return null;
 
-  // Use createPortal to break out of all parent CSS transforms and stack contexts
+  // use createPortal to break out of all parent CSS transforms and stack contexts
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 select-none animate-in fade-in duration-200">
       

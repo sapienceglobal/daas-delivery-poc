@@ -6,7 +6,7 @@ const IdempotencyLockSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now, expires: 15 } // 15 seconds TTL
 });
 
-// Atomic uniqueness constraint
+// atomic uniqueness constraint
 IdempotencyLockSchema.index({ userId: 1, restaurantId: 1 }, { unique: true });
 
 const IdempotencyLock = mongoose.model('IdempotencyLock', IdempotencyLockSchema);

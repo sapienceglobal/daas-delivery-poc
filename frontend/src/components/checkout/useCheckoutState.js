@@ -6,6 +6,7 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { orderAPI, couponAPI, restaurantAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
+import { isValidPhoneNumber } from 'react-phone-number-input';
 
 const US_STATE_CODES = {
   Alabama: 'AL',
@@ -149,7 +150,7 @@ export function useCheckoutState() {
   const [quoteError, setQuoteError] = useState(null);
   const [quoteTrigger, setQuoteTrigger] = useState(0);
 
-  // Auto-suggestion state
+  // auto-suggestion state
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [addressVerified, setAddressVerified] = useState(false);
@@ -218,14 +219,14 @@ export function useCheckoutState() {
   const handleSelectSavedAddress = (addrObj) => {
     if (!addrObj.address) return;
 
-    // Default everything to blank first
+    // default everything to blank first
     setAddressLine1('');
     setAddressLine2('');
     setCity('');
     setState('CA');
     setZipCode('');
 
-    // Try robust regex first: looks for State + Zip at the end
+    // try robust regex first: looks for State + Zip at the end
     // E.g., "..., CA 94102" or "..., CA, 94102"
     const zipRegex = /([A-Za-z]{2})(?:,)?\s+(\d{5})(?:-\d{4})?$/;
     let match = addrObj.address.match(zipRegex);
@@ -234,11 +235,11 @@ export function useCheckoutState() {
       setState(match[1].toUpperCase());
       setZipCode(match[2]);
 
-      // Remove the matched state/zip from the rest of the string
+      // remove the matched state/zip from the rest of the string
       let rest = addrObj.address.replace(zipRegex, '').trim();
       if (rest.endsWith(',')) rest = rest.slice(0, -1).trim();
 
-      // Now split the rest by commas
+      // now split the rest by commas
       const parts = rest.split(',').map(p => p.trim()).filter(Boolean);
 
       if (parts.length > 0) {
@@ -253,7 +254,7 @@ export function useCheckoutState() {
         }
       }
     } else {
-      // Fallback if no zip code pattern is found
+      // fallback if no zip code pattern is found
       setAddressLine1(addrObj.address);
     }
 
@@ -411,7 +412,7 @@ export function useCheckoutState() {
   };
 
   const handleSelectSuggestion = async (suggestion) => {
-    // If it's a Google Place suggestion, it will have a place_id. We need to fetch details.
+    // if it's a Google Place suggestion, it will have a place_id. We need to fetch details.
     if (suggestion.place_id) {
       try {
         const res = await fetch(`/api/location/place?place_id=${suggestion.place_id}&sessionToken=${sessionTokenRef.current || ''}`);
@@ -439,7 +440,7 @@ export function useCheckoutState() {
       return;
     }
 
-    // Fallback for nominatim if any old code is using it
+    // fallback for nominatim if any old code is using it
     const parts = (suggestion.display_name || '').split(',').map((p) => p.trim());
     const addr = suggestion.address || {};
     const road = addr.road || '';
@@ -510,7 +511,7 @@ export function useCheckoutState() {
         const errorMsg = err.response?.data?.message || err.message || 'Delivery quote failed';
         setQuoteError(errorMsg);
 
-        // Auto-heal stale carts (e.g. after database resets)
+        // auto-heal stale carts (e.g. after database resets)
         if (errorMsg === 'Restaurant not found' || errorMsg.includes('no longer available')) {
           clearCart();
           showToast('Cart expired due to menu updates. Please start a new order.', 'error');
@@ -546,13 +547,13 @@ export function useCheckoutState() {
             const houseNumber = address.house_number || '';
             const line1 = `${houseNumber} ${road}`.trim() || parts[0] || '';
 
-            // Robust City extraction
+            // robust City extraction
             let cityVal = address.city || address.town || address.village || address.suburb || address.county || address.municipality || address.city_district || '';
             if (!cityVal && parts.length >= 4) {
               cityVal = parts[parts.length - 4] || '';
             }
 
-            // Robust State extraction
+            // robust State extraction
             let stateName = address.state || address.region || address.state_district || address.province || '';
             if (!stateName && parts.length >= 3) {
               const penult = parts[parts.length - 2];
@@ -564,7 +565,7 @@ export function useCheckoutState() {
               }
             }
 
-            // Robust Postcode extraction
+            // robust Postcode extraction
             let postcodeVal = address.postcode || address.postal_code || '';
             if (!postcodeVal) {
               const matchedPostcode = parts.find((p) => /^\d{5,6}$/.test(p));
@@ -690,10 +691,16 @@ export function useCheckoutState() {
     }
   };
 
+  const isPhoneValid = phone ? isValidPhoneNumber(phone) : false;
+
   const handleContinueToReview = async () => {
     // 1. Validate Delivery Info if orderType is delivery
     if (!fullName.trim() || !phone.trim() || !email.trim() || (orderType === 'delivery' && (!addressLine1.trim() || !city.trim() || !zipCode.trim()))) {
       showToast('Please fill out all required fields marked with *', 'warning');
+      return;
+    }
+    if (!isPhoneValid) {
+      showToast('Please enter a valid phone number', 'warning');
       return;
     }
 
@@ -701,7 +708,7 @@ export function useCheckoutState() {
       let currentLat = addressLat;
       let currentLng = addressLng;
 
-      // Geocode if not verified
+      // geocode if not verified
       if (!addressVerified || currentLat === null || currentLng === null) {
         setQuoteLoading(true);
         const coords = await triggerGeocoding(compiledAddress);
@@ -714,7 +721,7 @@ export function useCheckoutState() {
         currentLng = coords.lng;
       }
 
-      // Sync quote fetch if not already done
+      // sync quote fetch if not already done
       if (!deliveryQuote || quoteError) {
         setQuoteLoading(true);
         setQuoteError(null);
@@ -776,7 +783,7 @@ export function useCheckoutState() {
       const errorMsg = err.response?.data?.message || err.message || 'Checkout failed';
       showToast(errorMsg, 'error');
 
-      // Auto-heal stale carts during checkout
+      // auto-heal stale carts during checkout
       if (errorMsg === 'Restaurant not found' || errorMsg.includes('no longer available')) {
         clearCart();
         router.push('/');
@@ -827,6 +834,7 @@ export function useCheckoutState() {
     suggestions, suggestionsLoading, addressVerified,
     items, restaurant, subtotal, itemCount, updateQuantity, removeItem, user,
     compiledAddress, checkoutPayload, tax, deliveryFee, platformFee, serviceFee, packagingFee, tip, setTip, total,
+    isPhoneValid,
     handleSelectSavedAddress, handleUseCurrentLocation,
     handleAddressLine1Change, handleSelectSuggestion,
     handleApplyCoupon, handleRemoveCoupon,

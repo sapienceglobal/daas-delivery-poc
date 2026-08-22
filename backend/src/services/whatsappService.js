@@ -18,18 +18,18 @@ export const sendOrderAlert = async (restaurant, order) => {
   const messageText = `🚨 *New Order Alert!* 🚨\n\n*Customer:* ${order.customerName}\n*Type:* ${order.orderType}\n*Total:* $${order.total.toFixed(2)}\n\n*View Order:* ${dashboardLink}`;
 
   if (!token || !phoneNumberId || token === 'your_meta_whatsapp_api_token') {
-    // If not configured, just log to console as requested
+    // if not configured, just log to console as requested
     console.log(`\n[WHATSAPP MOCK] To: ${whatsappNumber}\n${messageText}\n`);
     return;
   }
 
-  // Formatting phone number to E.164 (remove everything except numbers, optionally keep + if present)
+  // formatting phone number to E.164 (remove everything except numbers, optionally keep + if present)
   let formattedNumber = whatsappNumber.replace(/[^\d+]/g, '');
   if (!formattedNumber.startsWith('+')) {
-    // Assuming US default for this app
+    // assuming US default for this app
     formattedNumber = `+1${formattedNumber.replace(/^1/, '')}`;
   }
-  // Meta API expects number without '+'
+  // meta API expects number without '+'
   const metaNumber = formattedNumber.replace('+', '');
 
   try {

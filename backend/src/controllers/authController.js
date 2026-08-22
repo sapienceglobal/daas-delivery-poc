@@ -28,8 +28,8 @@ export const ensureCanManageRestaurant = (reqOrUser, restaurantId) => {
   }
 };
 
-// Role is embedded in JWT so Next.js Edge middleware can verify it without DB access.
-// The backend ALWAYS re-fetches the user from DB (auth.js protect middleware) —
+// role is embedded in JWT so Next.js Edge middleware can verify it without DB access.
+// the backend ALWAYS re-fetches the user from DB (auth.js protect middleware) —
 // the JWT role is only used for routing decisions, never trusted for data access.
 const generateToken = (id, role, tenantId = 'marketplace', tokenVersion = 0) => jwt.sign({ id, role, tenantId, tokenVersion }, JWT_SECRET, { expiresIn: '7d' });
 
@@ -42,8 +42,8 @@ const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace', r
     user: user.toSafeJSON()
   };
 
-  // The mobile app requires the token in the JSON body because it doesn't automatically parse httpOnly cookies.
-  // We check for x-app-secret to identify mobile app requests and return the token even in production.
+  // the mobile app requires the token in the JSON body because it doesn't automatically parse httpOnly cookies.
+  // we check for x-app-secret to identify mobile app requests and return the token even in production.
   if (
     process.env.RETURN_AUTH_TOKEN === 'true' ||
     process.env.NODE_ENV !== 'production' ||
@@ -59,8 +59,8 @@ const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace', r
     path: '/'
   };
 
-  // Industry Standard: If rememberMe is checked, persist the cookie (e.g. 30 days).
-  // If not checked, omit 'expires' so it becomes a Session Cookie that deletes on browser close.
+  // industry Standard: If rememberMe is checked, persist the cookie (e.g. 30 days).
+  // if not checked, omit 'expires' so it becomes a Session Cookie that deletes on browser close.
   if (rememberMe) {
     cookieOptions.expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   }
@@ -90,7 +90,7 @@ export const register = asyncHandler(async (req, response) => {
   }
 
   // M3 FIX: ALLOW_PUBLIC_MERCHANT_SIGNUP defaults to false for security.
-  // In production, merchants should be onboarded by an admin, not self-registered.
+  // in production, merchants should be onboarded by an admin, not self-registered.
   const publicMerchantSignup = process.env.ALLOW_PUBLIC_MERCHANT_SIGNUP === 'true';
   if (publicMerchantSignup && process.env.NODE_ENV === 'production') {
     logger.warn('[SECURITY] ALLOW_PUBLIC_MERCHANT_SIGNUP is enabled in production. Anyone can self-register as a merchant.');
@@ -120,11 +120,11 @@ export const register = asyncHandler(async (req, response) => {
     user.savedAddresses = [];
   }
 
-  // Generate random 6-character referral code
+  // generate random 6-character referral code
   user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
 
-  // Generate 6-digit OTP for email verification.
-  // Using crypto.randomInt instead of Math.random() — this code gates
+  // generate 6-digit OTP for email verification.
+  // using crypto.randomInt instead of Math.random() — this code gates
   // account access, so it should come from a cryptographically secure
   // source, not Math.random() (which is predictable).
   const otp = crypto.randomInt(100000, 1000000).toString();
@@ -137,12 +137,12 @@ export const register = asyncHandler(async (req, response) => {
   // OTP fields. One write is enough.)
   await user.save();
 
-  // Send OTP email (fire-and-forget — don't block registration)
+  // send OTP email (fire-and-forget — don't block registration)
   sendOtpEmail(email, name, otp).catch(e =>
     logger.warn('OTP email failed', { error: e.message, otp: process.env.NODE_ENV !== 'production' ? otp : '[hidden]' })
   );
 
-  // In dev mode, always log OTP to console for easy testing without email
+  // in dev mode, always log OTP to console for easy testing without email
   if (process.env.NODE_ENV !== 'production') {
     logger.info(`[DEV] Email OTP for ${email}: ${otp}`);
   }
@@ -156,7 +156,7 @@ export const register = asyncHandler(async (req, response) => {
   // /api/auth/register succeeded, regardless of what happened on the OTP
   // screen afterwards.
   //
-  // The account is created as unverified (isEmailVerified: false,
+  // the account is created as unverified (isEmailVerified: false,
   // isVerified: false, per the schema defaults) and NO session is issued
   // here. A session is only created inside verifyOtp() below, once the
   // code is confirmed correct and unexpired. Do not add sendTokenCookie
@@ -198,14 +198,14 @@ export const login = asyncHandler(async (req, response) => {
   }
 
   if (!user.validatePassword(password)) {
-    // Increment failed attempts atomically
+    // increment failed attempts atomically
     const updatedUser = await UserModel.findOneAndUpdate(
       { _id: user._id },
       { $inc: { failedLoginAttempts: 1 } },
       { new: true }
     );
 
-    // Lock if threshold reached
+    // lock if threshold reached
     if (updatedUser && updatedUser.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
       await UserModel.updateOne(
         { _id: user._id },
@@ -234,7 +234,7 @@ export const login = asyncHandler(async (req, response) => {
   // endpoint issuing a session too early, just reachable through a
   // different door.
   //
-  // Placed AFTER password validation on purpose: a wrong password still
+  // placed AFTER password validation on purpose: a wrong password still
   // returns the same generic "Invalid email or password" either way, so
   // this never leaks whether a given email is registered-but-unverified
   // to someone who doesn't actually know the password.
@@ -246,11 +246,11 @@ export const login = asyncHandler(async (req, response) => {
     );
   }
 
-  // Successful login — reset failed attempts
+  // successful login — reset failed attempts
   user.failedLoginAttempts = 0;
   user.loginLockedUntil = null;
 
-  // Transparently upgrade old password hashes
+  // transparently upgrade old password hashes
   if (user.needsPasswordRehash()) {
     user.setPassword(password);
   }
@@ -277,10 +277,10 @@ export const login = asyncHandler(async (req, response) => {
 });
 
 export const socialLogin = asyncHandler(async (req, response) => {
-  // We expect 'provider' (e.g. 'google', 'apple'), 'token', and optionally 'role'
+  // we expect 'provider' (e.g. 'google', 'apple'), 'token', and optionally 'role'
   const { provider, token, credential, role } = req.body;
   
-  // Fallback for older frontend still sending 'credential' instead of 'token'
+  // fallback for older frontend still sending 'credential' instead of 'token'
   const jwtToken = token || credential;
   
   if (!jwtToken) throw new AppError(`${provider || 'Social'} token is missing.`, 400);
@@ -295,7 +295,7 @@ export const socialLogin = asyncHandler(async (req, response) => {
   let email, name, socialId, picture;
 
   if (provider === 'google' || !provider) {
-    // Google Token Verification
+    // google Token Verification
     const ticket = await googleClient.verifyIdToken({
       idToken: jwtToken,
       audience: [
@@ -312,7 +312,7 @@ export const socialLogin = asyncHandler(async (req, response) => {
   } else if (provider === 'apple') {
     // CRITICAL SECURITY FIX: Disabling Apple login because it was accepting 
     // forged tokens (jwt.decode does not verify signatures). 
-    // To re-enable, install `apple-signin-auth` and verify the JWT signature 
+    // to re-enable, install `apple-signin-auth` and verify the JWT signature 
     // against Apple's public JWKS, ensuring the audience matches your Apple Client ID.
     throw new AppError('Apple login is not currently supported or configured.', 501);
   } else {
@@ -336,14 +336,14 @@ export const socialLogin = asyncHandler(async (req, response) => {
       isVerified: true,
       isEmailVerified: true
     });
-    // Create random robust password for DB constraint if needed
+    // create random robust password for DB constraint if needed
     user.setPassword(crypto.randomBytes(20).toString('hex'));
     await user.save();
 
     sendWelcomeEmail(email, name).catch(e => logger.warn('Welcome email failed', { error: e.message }));
   } else {
-    // Industry Level: Account Linking!
-    // If user exists (manual register or other social), link this new social ID
+    // industry Level: Account Linking!
+    // if user exists (manual register or other social), link this new social ID
     if (provider === 'apple' && !user.socialLogin.appleId) {
       user.socialLogin.appleId = socialId;
       await user.save();
@@ -353,7 +353,7 @@ export const socialLogin = asyncHandler(async (req, response) => {
       await user.save();
     }
     
-    // If the user registered manually but never verified OTP, social login auto-verifies them!
+    // if the user registered manually but never verified OTP, social login auto-verifies them!
     if (!user.isEmailVerified) {
       user.isEmailVerified = true;
       user.isVerified = true;
@@ -398,13 +398,13 @@ export const getMe = asyncHandler(async (req, response) => {
 
   if (!user) throw new AppError('User not found', 404);
 
-  // Ensure referral code exists for old users
+  // ensure referral code exists for old users
   if (!user.referralCode) {
     user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
     await user.save();
   }
 
-  // Fetch group tag from Customer table for this user's email
+  // fetch group tag from Customer table for this user's email
   const CustomerModel = req.getModel('Customer');
   const customerRecord = await CustomerModel.findOne({ email: user.email, isDeleted: { $ne: true } }).sort({ createdAt: -1 });
 
@@ -482,7 +482,7 @@ export const forgotPassword = asyncHandler(async (req, response) => {
   if (!email) throw new AppError('Please provide your email address.', 400);
 
   const user = await req.getModel('User').findOne({ email });
-  // Always respond 200 to avoid email enumeration
+  // always respond 200 to avoid email enumeration
   if (!user) {
     return res.success(response, { message: 'If that email exists, a reset link has been sent.' });
   }
@@ -546,7 +546,7 @@ export const removeAddress = asyncHandler(async (req, response) => {
     a => a._id.toString() !== req.params.addressId
   );
 
-  // If we removed the default address, make the first one default (if any)
+  // if we removed the default address, make the first one default (if any)
   if (user.savedAddresses.length > 0 && !user.savedAddresses.some(a => a.isDefault)) {
     user.savedAddresses[0].isDefault = true;
   }
@@ -617,7 +617,7 @@ export const removeCard = asyncHandler(async (req, response) => {
     c => c._id.toString() !== req.params.cardId
   );
 
-  // Reset default if needed
+  // reset default if needed
   if (user.savedCards.length > 0 && !user.savedCards.some(c => c.isDefault)) {
     user.savedCards[0].isDefault = true;
   }
@@ -789,7 +789,7 @@ export const verifyOtp = asyncHandler(async (req, response) => {
     throw new AppError('Invalid OTP. Please check and try again.', 400);
   }
 
-  // Mark email as verified and clear OTP
+  // mark email as verified and clear OTP
   user.isEmailVerified = true;
   user.isVerified = true;
   user.emailOtp = null;
@@ -803,7 +803,7 @@ export const verifyOtp = asyncHandler(async (req, response) => {
   
   await user.save();
 
-  // Send welcome email now that they're verified
+  // send welcome email now that they're verified
   sendWelcomeEmail(user.email, user.name).catch(e =>
     logger.warn('Welcome email failed', { error: e.message })
   );
@@ -830,7 +830,7 @@ export const resendOtp = asyncHandler(async (req, response) => {
     throw new AppError('Email is already verified.', 400);
   }
 
-  // Rate limit: allow resend only if previous OTP was sent > 60 seconds ago.
+  // rate limit: allow resend only if previous OTP was sent > 60 seconds ago.
   // emailOtpExpiry is set to (sendTime + 10 minutes). So the remaining time until
   // expiry = emailOtpExpiry - Date.now(). If remaining > 9 min (540s), it means
   // fewer than 60 seconds have elapsed since the OTP was first generated.
@@ -934,8 +934,8 @@ export const verify2FA = asyncHandler(async (req, response) => {
     throw new AppError('Invalid token usage', 400);
   }
 
-  // Get the default DB model, since login happens on the primary tenant usually
-  // Or we can rely on decoded.tenantId
+  // get the default DB model, since login happens on the primary tenant usually
+  // or we can rely on decoded.tenantId
   const UserModel = req.getModel('User');
   const user = await UserModel.findById(decoded.id);
 

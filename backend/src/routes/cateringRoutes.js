@@ -10,10 +10,10 @@ import { createCateringSchema } from '../middleware/schemas.js';
 
 const router = express.Router();
 
-// Public route for submitting inquiries
+// public route for submitting inquiries
 router.post('/', validate(createCateringSchema), createInquiry);
 
-// Merchant/Admin routes for managing inquiries
+// merchant/Admin routes for managing inquiries
 router.get('/restaurant/:restaurantId', protect, authorize('merchant', 'admin'), getRestaurantInquiries);
 router.put('/:id/status', protect, authorize('merchant', 'admin'), updateInquiryStatus);
 

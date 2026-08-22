@@ -6,8 +6,8 @@ import { useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 
 // ── Single Restaurant Mode Redirect ─────────────────────────────────────────
-// In single-restaurant mode, the canonical URL is /menu (SEO-friendly, no slug).
-// This wrapper immediately redirects old /restaurant/[id] URLs to /menu so that:
+// in single-restaurant mode, the canonical URL is /menu (SEO-friendly, no slug).
+// this wrapper immediately redirects old /restaurant/[id] URLs to /menu so that:
 //  • Existing bookmarks still work
 //  • SEO crawlers follow the canonical route
 //  • No user ever sees /restaurant/lassi-lounge in the address bar
@@ -38,7 +38,7 @@ import { showToast, Skeleton, Modal, ItemDetailModal, PortalModal, GlassCard, Ba
 
 import Loading from '@/app/loading';
 
-// Lassi Lounge Branded Modular Components
+// lassi Lounge Branded Modular Components
 import OrderOnlineHero from '@/components/branded/lassi-lounge/menu/OrderOnlineHero';
 import CategorySidebar from '@/components/branded/lassi-lounge/menu/CategorySidebar';
 import DishGrid from '@/components/branded/lassi-lounge/menu/DishGrid';
@@ -58,8 +58,8 @@ const getDishImage = (itemName) => {
 };
 
 export default function RestaurantPage() {
-  // In single-restaurant mode, /restaurant/[id] is a legacy URL.
-  // Redirect immediately to the canonical /menu page.
+  // in single-restaurant mode, /restaurant/[id] is a legacy URL.
+  // redirect immediately to the canonical /menu page.
   if (SINGLE_MODE) return <RestaurantRedirect />;
 
   const { id } = useParams();
@@ -86,7 +86,7 @@ export default function RestaurantPage() {
   const menuTopRef = useRef(null);
   const dishGridRef = useRef(null);
 
-  // Local state for quantity selector in card before adding to cart
+  // local state for quantity selector in card before adding to cart
   const [localQuantities, setLocalQuantities] = useState({});
 
   useEffect(() => {
@@ -96,7 +96,7 @@ export default function RestaurantPage() {
         setRestaurant(data.data);
         setMenu(data.data.menu || []);
         if (data.data.menu?.length > 0) {
-          // If a categoryName is passed in URL, try to select it
+          // if a categoryName is passed in URL, try to select it
           let matchedCategory = null;
           if (categoryName) {
             matchedCategory = data.data.menu.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
@@ -134,14 +134,14 @@ export default function RestaurantPage() {
     }
   };
 
-  // Instant Fuzzy Search using Fuse.js
+  // instant Fuzzy Search using Fuse.js
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults(null);
       return;
     }
     const allItems = (menu || []).reduce((acc, cat) => {
-      // Pass category name down to items so they can be matched
+      // pass category name down to items so they can be matched
       const itemsWithCat = (cat.items || []).map(i => ({ ...i, catName: cat.name || cat.catName }));
       return acc.concat(itemsWithCat);
     }, []);
@@ -161,7 +161,7 @@ export default function RestaurantPage() {
     setSearchResults(results);
   }, [searchQuery, menu]);
 
-  // Deep Semantic Search using AI
+  // deep Semantic Search using AI
   const handleAiSearch = async () => {
     if (!searchQuery.trim() || !restaurant?._id) return;
     setIsAiSearching(true);
@@ -283,8 +283,8 @@ export default function RestaurantPage() {
     const currentCategory = activeCategory === 'all' 
       ? { _id: 'all', name: 'All Items' } 
       : (categories.find(cat => cat._id === activeCategory) || categories[0]);
-    // If searchQuery is present, we show the fuzzy search results (or AI results).
-    // Otherwise, we show the items from the active category.
+    // if searchQuery is present, we show the fuzzy search results (or AI results).
+    // otherwise, we show the items from the active category.
     const filteredItems = searchQuery.trim()
       ? (searchResults || [])
       : (activeCategory === 'all' ? categories.flatMap(c => c.items || []) : (currentCategory?.items || []));
@@ -354,14 +354,14 @@ export default function RestaurantPage() {
                   categories={categories}
                   activeCategory={activeCategory}
                   setActiveCategory={(id) => {
-                    // Scroll FIRST (smoothly) before React re-renders
+                    // scroll FIRST (smoothly) before React re-renders
                     if (dishGridRef.current) {
                       const rect = dishGridRef.current.getBoundingClientRect();
                       if (rect.top < 80) {
                         window.scrollTo({ top: window.scrollY + rect.top - 80, behavior: 'smooth' });
                       }
                     }
-                    // Then update category state — content changes after position is already correct
+                    // then update category state — content changes after position is already correct
                     setActiveCategory(id);
 
                     // CLEAR the search query so the user returns to normal category browsing
@@ -516,7 +516,7 @@ export default function RestaurantPage() {
       </div>
     );
   } else {
-    // Marketplace Mode Fallback
+    // marketplace Mode Fallback
     const categories = menu || [];
     const currentCategory = categories.find(cat => cat._id === activeCategory) || categories[0];
     const filteredItems = (currentCategory?.items || []).filter(item =>

@@ -83,16 +83,16 @@ export const getStats = async (req, res) => {
   try {
     const { restaurantId } = req.params;
     
-    // Active Stations
+    // active Stations
     const activeStations = await KDSStation.countDocuments({ restaurantId, status: 'Online' });
     
-    // Active Orders (preparing, accepted, ready)
+    // active Orders (preparing, accepted, ready)
     const activeOrders = await Order.countDocuments({
       restaurantId,
       status: { $in: ['accepted', 'preparing', 'ready', 'new', 'pending'] }
     });
     
-    // Completed Today
+    // completed Today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const completedToday = await Order.countDocuments({
@@ -101,7 +101,7 @@ export const getStats = async (req, res) => {
       updatedAt: { $gte: today }
     });
     
-    // Avg Prep Time (difference between preparing and ready for today's orders)
+    // avg Prep Time (difference between preparing and ready for today's orders)
     const todaysOrders = await Order.find({
       restaurantId,
       createdAt: { $gte: today },

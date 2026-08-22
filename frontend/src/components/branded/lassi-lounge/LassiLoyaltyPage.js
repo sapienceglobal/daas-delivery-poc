@@ -35,7 +35,7 @@ export default function LassiLoyaltyPage() {
     fetchLoyaltyData();
   }, [isAuthenticated, router]);
 
-  // Close any open modal on Escape — small a11y/UX touch.
+  // close any open modal on Escape — small a11y/UX touch.
   useEffect(() => {
     const handleEsc = (e) => {
       if (e.key === 'Escape') {
@@ -114,7 +114,7 @@ export default function LassiLoyaltyPage() {
       showToast('Reward redeemed successfully!', 'success');
       await fetchLoyaltyData();
 
-      // Scroll to wallet
+      // scroll to wallet
       const walletEl = document.getElementById('my-wallet');
       if (walletEl) walletEl.scrollIntoView({ behavior: 'smooth' });
     } catch (err) {
@@ -205,7 +205,7 @@ export default function LassiLoyaltyPage() {
   const isMember = history?.isLoyaltyMember;
   const currentPoints = history?.currentBalance || 0;
   const tier = history?.tier || 'BRONZE';
-  // Smallest reward tier the member hasn't unlocked yet — drives the
+  // smallest reward tier the member hasn't unlocked yet — drives the
   // progress bar below. REWARDS is defined smallest-to-largest already.
   const nextReward = isMember ? REWARDS.find(r => r.points > currentPoints) : null;
 

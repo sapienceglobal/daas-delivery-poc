@@ -4,9 +4,7 @@ import { X, Lock } from 'lucide-react';
 import StripeProvider from '@/components/payment/StripeProvider';
 import CheckoutForm from '@/components/payment/CheckoutForm';
 
-/**
- * PaymentSimulatorModal — secure Stripe Elements modal for online checkout.
- */
+// paymentSimulatorModal — secure Stripe Elements modal for online checkout.
 export default function PaymentSimulatorModal({ isOpen, onClose, amount, checkoutData, onSuccess }) {
   const [mounted, setMounted] = useState(false);
 
@@ -43,7 +41,7 @@ export default function PaymentSimulatorModal({ isOpen, onClose, amount, checkou
         <div className="flex-1 flex flex-col min-h-0 font-sans bg-[#fdfcfb]">
           <div className="p-6 flex-1 flex flex-col min-h-0">
             <StripeProvider amount={amount} checkoutData={checkoutData}>
-              <CheckoutForm amount={amount} onSuccess={onSuccess} onCancel={onClose} />
+              <CheckoutForm amount={amount} onSuccess={onSuccess} onCancel={onClose} checkoutData={checkoutData} />
             </StripeProvider>
           </div>
         </div>

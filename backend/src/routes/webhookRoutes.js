@@ -74,7 +74,7 @@ router.post('/', asyncHandler(async (req, response) => {
     logger.error('Failed to save order in webhook', { orderId: order._id, error: err.message });
   }
 
-  // Emit real-time update via Socket.io
+  // emit real-time update via Socket.io
   const io = req.app.get('io');
   if (io) {
     const socketPayload = buildOrderSocketPayload(order);

@@ -13,7 +13,7 @@ export default function MerchantOverview() {
   const [loading, setLoading] = useState(true);
   const [timeframe, setTimeframe] = useState(30);
   
-  // Data for the dashboard view
+  // data for the dashboard view
   const [orders, setOrders] = useState([]);
   const [reservations, setReservations] = useState([]);
   const [cateringInquiries, setCateringInquiries] = useState([]);

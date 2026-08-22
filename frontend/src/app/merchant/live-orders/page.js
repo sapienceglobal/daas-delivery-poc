@@ -31,7 +31,7 @@ export default function MerchantLiveOrdersPage() {
     loadData();
   }, [roomId, globalLoading]);
 
-  // Socket logic
+  // socket logic
   useEffect(() => {
     if (!roomId) return undefined;
     joinRoom(roomId);

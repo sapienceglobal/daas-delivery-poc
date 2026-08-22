@@ -1,6 +1,4 @@
-/**
- * Currency, Date, and Time formatters that adapt to Merchant Settings
- */
+// currency, Date, and Time formatters that adapt to Merchant Settings
 
 /**
  * Formats an amount based on the merchant's currency setting.
@@ -27,9 +25,7 @@ export const formatCurrency = (amount, currencySetting) => {
   });
 };
 
-/**
- * Maps the settings timezone string to an IANA timezone identifier
- */
+// maps the settings timezone string to an IANA timezone identifier
 export const mapTimezone = (timezoneStr) => {
   if (!timezoneStr) return Intl.DateTimeFormat().resolvedOptions().timeZone;
   if (timezoneStr.includes('Eastern Time')) return 'America/New_York';
@@ -38,9 +34,7 @@ export const mapTimezone = (timezoneStr) => {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 };
 
-/**
- * Formats a date object/string based on merchant settings
- */
+// formats a date object/string based on merchant settings
 export const formatDate = (dateValue, dateFormat = 'MM/DD/YYYY', timezone = null) => {
   if (!dateValue) return '';
   const date = new Date(dateValue);
@@ -64,9 +58,7 @@ export const formatDate = (dateValue, dateFormat = 'MM/DD/YYYY', timezone = null
   return `${mm}/${dd}/${yyyy}`;
 };
 
-/**
- * Formats a time object/string based on merchant settings
- */
+// formats a time object/string based on merchant settings
 export const formatTime = (dateValue, timeFormat = '12 Hour (AM/PM)', timezone = null) => {
   if (!dateValue) return '';
   const date = new Date(dateValue);

@@ -7,7 +7,8 @@ export default function PaymentMethodSection({
   paymentMethod, setPaymentMethod,
   onBack, onContinue,
   orderType, quoteError, user,
-  appliedCouponData, isPaymentMethodLockedByCoupon
+  appliedCouponData, isPaymentMethodLockedByCoupon,
+  isPhoneValid
 }) {
   return (
     <div className={`rounded-2xl border border-[#e5e7eb] bg-[#ffffff] p-6 shadow-sm ll-interactive ${step === 3 ? 'opacity-85' : ''}`}>
@@ -114,9 +115,9 @@ export default function PaymentMethodSection({
               onClick={() => {
                 onContinue();
               }}
-              disabled={(orderType === 'delivery' && quoteError) || isPaymentMethodLockedByCoupon}
+              disabled={(orderType === 'delivery' && quoteError) || isPaymentMethodLockedByCoupon || !isPhoneValid}
               className={`w-full sm:w-auto font-bold text-[14px] text-[#ffffff] py-2 px-6 rounded-lg flex items-center justify-center gap-2 shadow-sm ${
-                (orderType === 'delivery' && quoteError) || isPaymentMethodLockedByCoupon ? 'bg-[#9ca3af] cursor-not-allowed' : 'bg-[#7a0b10] hover:bg-[#5a080c] ll-interactive ll-focus-ring'
+                (orderType === 'delivery' && quoteError) || isPaymentMethodLockedByCoupon || !isPhoneValid ? 'bg-[#9ca3af] cursor-not-allowed' : 'bg-[#7a0b10] hover:bg-[#5a080c] ll-interactive ll-focus-ring'
               }`}
             >
               Review Order <span>&rarr;</span>

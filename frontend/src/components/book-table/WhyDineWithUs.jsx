@@ -91,7 +91,7 @@ export default function WhyDineWithUs() {
   );
 }
 
-// Simple clock icon specifically for the timings section
+// simple clock icon specifically for the timings section
 function ClockIcon(props) {
   return (
     <svg

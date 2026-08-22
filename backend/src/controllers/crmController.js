@@ -21,7 +21,7 @@ export const getCustomers = asyncHandler(async (req, response) => {
   const { restaurantId } = req.params;
   console.log(`[CRM] getCustomers called with params.restaurantId: ${restaurantId}`);
 
-  // Resolve slug/name to ObjectId if needed
+  // resolve slug/name to ObjectId if needed
   const isObjectId = /^[a-fA-F0-9]{24}$/.test(restaurantId);
   let actualRestaurantId = restaurantId;
   
@@ -68,7 +68,7 @@ export const getCustomers = asyncHandler(async (req, response) => {
     { $sort: { lastOrderDate: -1 } }
   ]);
 
-  // Then, retrieve explicit Customer profiles created by Merchant
+  // then, retrieve explicit Customer profiles created by Merchant
   const manualCustomers = await CustomerModel.find({ restaurantId: actualRestaurantId, isDeleted: { $ne: true } }).lean();
   
   // 3. Fetch all registered users to enrich data (if they match email)
@@ -79,8 +79,7 @@ export const getCustomers = asyncHandler(async (req, response) => {
   });
 
   const uniqueCustomersMap = new Map();
-
-  // Helper to add/merge customer into the map
+// add/merge customer into the map
   const addCustomerToMap = (identifier, data) => {
     if (!identifier) return;
     if (uniqueCustomersMap.has(identifier)) {
@@ -91,7 +90,7 @@ export const getCustomers = asyncHandler(async (req, response) => {
     }
   };
 
-  // Add Manual Customers first
+  // add Manual Customers first
   manualCustomers.forEach(c => {
     const identifier = (c.email || c.phone || c._id.toString()).toLowerCase();
     addCustomerToMap(identifier, {
@@ -101,7 +100,7 @@ export const getCustomers = asyncHandler(async (req, response) => {
     });
   });
 
-  // Merge Order Stats
+  // merge Order Stats
   orderStats.forEach(stat => {
     const email = stat._id.email;
     const phone = stat._id.phone;
@@ -135,7 +134,7 @@ export const getCustomers = asyncHandler(async (req, response) => {
     });
   });
 
-  // Finally, add any registered app users who haven't placed an order yet
+  // finally, add any registered app users who haven't placed an order yet
   users.forEach(user => {
     const identifier = (user.email || user.phone || user._id.toString()).toLowerCase();
     if (!uniqueCustomersMap.has(identifier)) {
@@ -163,7 +162,7 @@ export const getCustomers = asyncHandler(async (req, response) => {
 export const getCustomerProfile = asyncHandler(async (req, response) => {
   const { restaurantId, customerId } = req.params;
 
-  // Resolve slug/name to ObjectId if needed
+  // resolve slug/name to ObjectId if needed
   const isObjectIdRest = /^[a-fA-F0-9]{24}$/.test(restaurantId);
   let actualRestaurantId = restaurantId;
   
@@ -196,8 +195,8 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
     user = await UserModel.findById(customerId).lean();
   }
 
-  // If customer is neither in Customer nor User, they are a pure Guest.
-  // We'll reconstruct a basic customer object from their email/phone which is passed as `customerId`.
+  // if customer is neither in Customer nor User, they are a pure Guest.
+  // we'll reconstruct a basic customer object from their email/phone which is passed as `customerId`.
   if (!customer && !user) {
     const isEmail = customerId.includes('@');
     customer = {
@@ -221,7 +220,7 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
     };
   }
 
-  // Find all orders for this customer by email, phone, or userId
+  // find all orders for this customer by email, phone, or userId
   const orderQuery = { restaurantId: new mongoose.Types.ObjectId(actualRestaurantId) };
   const orConditions = [];
   
@@ -262,11 +261,11 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
     preferredOrderType = Object.keys(orderTypes).reduce((a, b) => orderTypes[a] > orderTypes[b] ? a : b);
   }
 
-  // Loyalty history
+  // loyalty history
   let loyaltyHistory = [];
   let currentPoints = user ? (user.loyaltyPoints || 0) : 0;
   
-  // Extract loyalty events from orders for history
+  // extract loyalty events from orders for history
   orders.forEach(order => {
     if (order.loyaltyPointsEarned > 0) {
       loyaltyHistory.push({
@@ -284,7 +283,7 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
     }
   });
 
-  // Sort history newest first
+  // sort history newest first
   loyaltyHistory.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const profileData = {
@@ -318,7 +317,7 @@ export const createCustomer = asyncHandler(async (req, response) => {
 
   const CustomerModel = req.getModel?.('Customer') || Customer;
 
-  // Generate unique customerId like #CUST1001
+  // generate unique customerId like #CUST1001
   const count = await CustomerModel.countDocuments({ restaurantId });
   const customerId = `#CUST${1000 + count + 1}`;
 

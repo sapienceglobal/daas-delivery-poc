@@ -1,12 +1,12 @@
 import logger from '../../utils/logger.js';
 
-// Simulation Mode Implementation for Grubhub
+// simulation Mode Implementation for Grubhub
 export const getDeliveryQuoteAPI = async (pickupAddress, dropoffAddress, subtotal, scheduledTime) => {
   logger.info(`Requesting Grubhub quote: "${pickupAddress}" → "${dropoffAddress}"`);
-  // Simulate API delay
+  // simulate API delay
   await new Promise(r => setTimeout(r, 700));
   
-  // Grubhub random fee between 450 and 650 cents
+  // grubhub random fee between 450 and 650 cents
   const simulatedFee = Math.floor(Math.random() * (650 - 450 + 1) + 450);
   
   logger.info(`Grubhub quote received — Fee: ${simulatedFee} cents`);

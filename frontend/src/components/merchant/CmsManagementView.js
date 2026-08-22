@@ -123,7 +123,7 @@ export default function CmsManagementView() {
     const key = tab === 'catering' ? 'cateringOccasions' : 'bookingSettings';
     setCmsData(prev => ({
       ...prev,
-      // Add to TOP of array instead of bottom
+      // add to TOP of array instead of bottom
       [key]: [{ title: '', desc: '', image: '', icon: '' }, ...(prev[key] || [])]
     }));
   };
@@ -325,7 +325,7 @@ export default function CmsManagementView() {
                       <button 
                         onClick={() => setCmsData(prev => ({
                           ...prev,
-                          // Add new package to the top
+                          // add new package to the top
                           cateringPackages: [
                             { id: `pkg-${Date.now()}`, name: 'New Package', price: 0, popular: false, image: '', features: ['Feature 1'] },
                             ...(prev.cateringPackages || [])

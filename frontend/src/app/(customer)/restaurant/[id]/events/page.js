@@ -17,7 +17,7 @@ export default function RestaurantEventsRoute() {
   const { id } = useParams();
   const [restaurantId, setRestaurantId] = useState(null);
 
-  // Clean URL: /events (no restaurant slug needed in single mode)
+  // clean URL: /events (no restaurant slug needed in single mode)
   if (SINGLE_MODE) return <Redirect to="/events" />;
 
   useEffect(() => {

@@ -301,7 +301,7 @@ function MenuContent() {
   );
 }
 
-// Separate component for Repeat Modal
+// separate component for Repeat Modal
 function RepeatCustomizationModal({ isOpen, onClose, lastCartItem, onRepeat, onChooseNew }) {
   if (!isOpen || !lastCartItem) return null;
   return (
@@ -334,7 +334,7 @@ function RepeatCustomizationModal({ isOpen, onClose, lastCartItem, onRepeat, onC
   );
 }
 
-// Suspense Wrapper for build safety
+// suspense Wrapper for build safety
 export default function MenuPage() {
   return (
     <Suspense fallback={<Loading />}>

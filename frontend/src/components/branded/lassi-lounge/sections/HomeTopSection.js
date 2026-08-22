@@ -17,7 +17,7 @@ export default function HomeTopSection() {
   const { brand } = useBrand();
   const { cmsData, loadingCms } = useCms();
 
-  // Real DB categories — fetched using brand._id from BrandContext
+  // real DB categories — fetched using brand._id from BrandContext
   const [dbCategories, setDbCategories] = useState([]);
 
   useEffect(() => {
@@ -25,20 +25,20 @@ export default function HomeTopSection() {
     restaurantAPI.getById(brand._id)
       .then(res => {
         const cats = res.data?.menu || [];
-        // Only include categories that have at least one available item
+        // only include categories that have at least one available item
         const withItems = cats.filter(c => (c.items || []).length > 0);
         if (withItems.length > 0) setDbCategories(withItems);
       })
       .catch(() => {}); // silently fall back to config categories
   }, [brand?._id]);
 
-  // Build display categories: prefer DB, fall back to config
+  // build display categories: prefer DB, fall back to config
   const { categories: configCategories, viewFullMenuCta } = menuCategoryContent;
   const displayCategories = dbCategories.length > 0
     ? dbCategories.map(cat => ({
         id: cat._id,
         label: cat.name,
-        // Use the category image from DB if set, else use the first item's image, else fallback
+        // use the category image from DB if set, else use the first item's image, else fallback
         icon: cat.image
           || (cat.items && cat.items[0]?.image)
           || configCategories.find(c => c.label.toLowerCase().includes(cat.name.toLowerCase().split(' ')[0]))?.icon
@@ -112,7 +112,7 @@ export default function HomeTopSection() {
 
   useEffect(() => {
     if (partnersScrollRef.current) {
-      // Small timeout ensures the DOM has fully painted the widths
+      // small timeout ensures the DOM has fully painted the widths
       setTimeout(() => {
         const container = partnersScrollRef.current;
         const scrollTarget = (container.scrollWidth - container.clientWidth) / 2;

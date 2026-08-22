@@ -55,7 +55,7 @@ export default function CartSidebar() {
     if (touchStartY === null) return;
     const currentY = e.touches[0].clientY;
     const diff = currentY - touchStartY;
-    // Only allow dragging downwards
+    // only allow dragging downwards
     if (diff > 0) {
       setDragY(diff);
     }
@@ -66,11 +66,11 @@ export default function CartSidebar() {
     
     setIsDragging(false);
     
-    // If swiped down by more than 100px, close the cart
+    // if swiped down by more than 100px, close the cart
     if (dragY > 100) {
       closeCart();
     } else {
-      // Spring back
+      // spring back
       setDragY(0);
     }
     
@@ -90,7 +90,7 @@ export default function CartSidebar() {
     ? "translate-y-0 sm:translate-x-0"
     : "translate-y-[150%] sm:translate-y-0 sm:translate-x-full";
 
-  // Disable transition during drag so it sticks exactly to the finger
+  // disable transition during drag so it sticks exactly to the finger
   const transitionClass = isDragging ? "" : "transition-transform duration-slow ease-in-out";
 
   return (

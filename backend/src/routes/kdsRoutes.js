@@ -9,7 +9,7 @@ import {
   getStats
 } from '../controllers/kdsController.js';
 
-// Base path in app.js should be /api/kds
+// base path in app.js should be /api/kds
 const router = express.Router({ mergeParams: true });
 
 // :restaurantId is expected in the route either via mergeParams or direct path

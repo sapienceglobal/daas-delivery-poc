@@ -8,7 +8,7 @@ export function Footer() {
   const pathname = usePathname();
   const { isSingleRestaurantMode, brand } = useBrand();
 
-  // In single restaurant mode, hide global footer on landing screens
+  // in single restaurant mode, hide global footer on landing screens
   if (isSingleRestaurantMode && (pathname === '/' || pathname === '/')) {
     return null;
   }

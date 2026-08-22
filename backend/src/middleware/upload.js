@@ -69,9 +69,7 @@ export const uploadToCloudinary = (buffer, { folder = 'restaurant-platform', pub
   });
 };
 
-/**
- * Delete a file from Cloudinary by public ID.
- */
+// delete a file from Cloudinary by public ID.
 export const deleteFromCloudinary = async (publicId, resourceType = 'image') => {
   try {
     const result = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
@@ -83,9 +81,7 @@ export const deleteFromCloudinary = async (publicId, resourceType = 'image') => 
   }
 };
 
-/**
- * Upload a base64 data URI directly to Cloudinary (for legacy /api/upload endpoint).
- */
+// upload a base64 data URI directly to Cloudinary (for legacy /api/upload endpoint).
 export const uploadBase64ToCloudinary = async (base64DataUri, { folder = 'restaurant-platform' } = {}) => {
   try {
     const result = await cloudinary.uploader.upload(base64DataUri, {

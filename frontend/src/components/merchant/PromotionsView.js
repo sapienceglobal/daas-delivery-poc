@@ -99,7 +99,7 @@ export default function PromotionsView() {
   };
 
   const filteredPromotions = promotions.filter(promo => {
-    // Tab Filter
+    // tab Filter
     let tabMatch = activeTab === 'All Promotions';
     if (!tabMatch) {
       if (activeTab === 'Coupons') tabMatch = promo.promoType === 'Coupon';
@@ -110,28 +110,28 @@ export default function PromotionsView() {
       else tabMatch = promo.promoType === activeTab;
     }
 
-    // Search Filter
+    // search Filter
     const searchMatch = !searchTerm || 
       (promo.name && promo.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (promo.code && promo.code.toLowerCase().includes(searchTerm.toLowerCase()));
       
-    // Type Filter
+    // type Filter
     const typeMatch = filterType === 'All Types' || promo.promoType === filterType;
     
-    // Status Filter
+    // status Filter
     const isExpired = getDaysLeft(promo.endDate) === 'Expired' || !promo.isActive;
     const statusMatch = filterStatus === 'All Status' || 
       (filterStatus === 'Active' && !isExpired) || 
       (filterStatus === 'Expired' && isExpired);
       
-    // Channel Filter
+    // channel Filter
     const channels = promo.channels || ['Mobile', 'Web'];
     const channelMatch = filterChannel === 'All Channels' || channels.includes(filterChannel);
 
     return tabMatch && searchMatch && typeMatch && statusMatch && channelMatch;
   });
 
-  // Reset page when filters change
+  // reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [activeTab, searchTerm, filterType, filterStatus, filterChannel]);

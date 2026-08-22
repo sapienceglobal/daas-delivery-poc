@@ -18,7 +18,7 @@ export default function OrderOnlineHero() {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState(null);
 
-  // Get default address from user or local state
+  // get default address from user or local state
   const defaultAddress = user?.savedAddresses?.find(a => a.isDefault)?.address || 
                          user?.savedAddresses?.[0]?.address || 
                          null;

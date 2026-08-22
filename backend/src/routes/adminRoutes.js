@@ -4,25 +4,25 @@ import * as adminController from '../controllers/adminController.js';
 
 const router = Router();
 
-// All admin routes require admin role
+// all admin routes require admin role
 router.use(protect, authorize('admin'));
 
-// Dashboard Stats
+// dashboard Stats
 router.get('/dashboard', adminController.getDashboardStats);
 
-// User Management
+// user Management
 router.get('/users', adminController.getUsers);
 router.put('/users/:id/role', adminController.updateUserRole);
 router.put('/users/:id/toggle', adminController.toggleUserActive);
 
-// Restaurant Management
+// restaurant Management
 router.get('/restaurants', adminController.getAllRestaurants);
 
-// Platform Analytics
+// platform Analytics
 router.get('/analytics/revenue', adminController.getRevenueAnalytics);
 router.get('/analytics/orders', adminController.getOrderAnalytics);
 
-// Finance & Settlements
+// finance & Settlements
 router.get('/finance/summary', adminController.getFinanceSummary);
 router.get('/settlements', adminController.listSettlements);
 router.post('/settlements', adminController.generateSettlement);

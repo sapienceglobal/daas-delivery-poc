@@ -33,9 +33,9 @@ function SetupForm({ onSuccess, onCancel }) {
       try {
         const paymentMethodId = setupIntent.payment_method;
 
-        // In a real integration, the backend would expand the payment method or you'd fetch it.
-        // For simplicity, we just send the ID. The backend will usually use the Stripe API to get the brand/last4.
-        // But since our addCard API expects brand and last4, we can extract it if needed, or pass placeholders 
+        // in a real integration, the backend would expand the payment method or you'd fetch it.
+        // for simplicity, we just send the ID. The backend will usually use the Stripe API to get the brand/last4.
+        // but since our addCard API expects brand and last4, we can extract it if needed, or pass placeholders 
         // and let the backend fix it. However, to stay compatible with the existing API:
 
         await authAPI.addCard({

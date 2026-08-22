@@ -6,7 +6,7 @@ import { getDishImage } from '@/components/profile/profileUtils';
 export default function OrderDetailsCard({ order }) {
   if (!order) return null;
 
-  // Simple dynamic veg/non-veg helper based on common keywords
+  // simple dynamic veg/non-veg helper based on common keywords
   const isVegItem = (name) => {
     const lower = name.toLowerCase();
     const nonVegKeywords = ['chicken', 'beef', 'pork', 'bacon', 'pepperoni', 'lamb', 'mutton', 'fish', 'shrimp', 'crab', 'meat', 'egg'];

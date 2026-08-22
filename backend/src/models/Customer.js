@@ -53,7 +53,7 @@ const customerSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Ensure unique customer ID within a restaurant
+// ensure unique customer ID within a restaurant
 customerSchema.index({ restaurantId: 1, customerId: 1 }, { unique: true });
 
 const Customer = mongoose.model('Customer', customerSchema);

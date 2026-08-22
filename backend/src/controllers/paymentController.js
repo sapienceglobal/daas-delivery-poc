@@ -1,4 +1,4 @@
-import { createPaymentIntent, createSetupIntent as createStripeSetupIntent, handleWebhook, createCustomer, createEphemeralKey } from '../services/stripeService.js';
+import { createPaymentIntent, createSetupIntent as createStripeSetupIntent, handleWebhook, createCustomer, updateCustomer, createEphemeralKey } from '../services/stripeService.js';
 import Order from '../models/Order.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import logger from '../utils/logger.js';
@@ -25,17 +25,17 @@ const getTrustedDeliveryQuoteForPayment = async ({ restaurant, address, subtotal
 };
 
 /**
- * @desc    Create a Stripe Payment Intent
+ * @desc    create a Stripe Payment Intent
  * @route   POST /api/payments/create-intent
  * @access  Private
  */
 export const createIntent = asyncHandler(async (req, res) => {
-  // Support both flat payload and legacy nested { checkoutData: {...} } format
+  // support both flat payload and legacy nested { checkoutData: {...} } format
   const body = req.body.checkoutData
     ? { ...req.body, ...req.body.checkoutData }
     : req.body;
 
-  const { amount, orderId, restaurantId, items, orderType, tip, couponCode, useLoyaltyPoints, address, addressLat, addressLng, scheduledTime, paymentMethod } = body;
+  const { amount, orderId, restaurantId, items, orderType, tip, couponCode, useLoyaltyPoints, address, addressLat, addressLng, scheduledTime, paymentMethod, customerPhone, customerName, customerEmail } = body;
 
   logger.info('createIntent called', { restaurantId, orderType, itemCount: items?.length, amount });
 
@@ -46,18 +46,24 @@ export const createIntent = asyncHandler(async (req, res) => {
   let stripeCustomerId = req.user?.stripeCustomerId || null;
   if (req.user && !stripeCustomerId) {
     try {
-      const customer = await createCustomer(req.user.email, req.user.name || 'DaaS User', { userId: req.user._id.toString() });
+      const customer = await createCustomer(customerEmail || req.user.email, customerName || req.user.name || 'DaaS User', { userId: req.user._id.toString() }, customerPhone || req.user.phone);
       stripeCustomerId = customer.id;
       req.user.stripeCustomerId = stripeCustomerId;
       await req.user.save();
     } catch (err) {
       logger.warn('Failed to create stripe customer during createIntent', err);
     }
+  } else if (stripeCustomerId && customerPhone && customerPhone !== '0000000000') {
+    try {
+      await updateCustomer(stripeCustomerId, { phone: customerPhone });
+    } catch (err) {
+      logger.warn('Failed to update stripe customer phone', err);
+    }
   }
 
   if (req.user?._id) metadata.userId = req.user._id.toString();
   if (req.tenantDb?.name) metadata.tenantDbName = req.tenantDb.name;
-  // Safety fallback: always ensure tenantDbName is set so Stripe webhooks write to the correct DB.
+  // safety fallback: always ensure tenantDbName is set so Stripe webhooks write to the correct DB.
   if (!metadata.tenantDbName) {
     metadata.tenantDbName = process.env.FORCE_TENANT_DB_NAME || 'daas_poc_lassi_lounge';
   }
@@ -125,7 +131,7 @@ export const createIntent = asyncHandler(async (req, res) => {
       stripeCustomerId = null;
       if (req.user) {
         try {
-          const customer = await createCustomer(req.user.email, req.user.name || 'DaaS User', { userId: req.user._id.toString() });
+          const customer = await createCustomer(customerEmail || req.user.email, customerName || req.user.name || 'DaaS User', { userId: req.user._id.toString() }, customerPhone || req.user.phone);
           stripeCustomerId = customer.id;
           req.user.stripeCustomerId = stripeCustomerId;
           await req.user.save();
@@ -164,7 +170,7 @@ export const createIntent = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Create a Stripe Setup Intent (for saving cards)
+ * @desc    create a Stripe Setup Intent (for saving cards)
  * @route   POST /api/payments/create-setup-intent
  * @access  Private
  */
@@ -179,7 +185,7 @@ export const createSetupIntent = asyncHandler(async (req, res) => {
   let stripeCustomerId = req.user?.stripeCustomerId || null;
   if (req.user && !stripeCustomerId) {
     try {
-      const customer = await createCustomer(req.user.email, req.user.name || 'DaaS User', { userId: req.user._id.toString() });
+      const customer = await createCustomer(req.user.email, req.user.name || 'DaaS User', { userId: req.user._id.toString() }, req.user.phone);
       stripeCustomerId = customer.id;
       req.user.stripeCustomerId = stripeCustomerId;
       await req.user.save();
@@ -197,7 +203,7 @@ export const createSetupIntent = asyncHandler(async (req, res) => {
       stripeCustomerId = null;
       if (req.user) {
         try {
-          const customer = await createCustomer(req.user.email, req.user.name || 'DaaS User', { userId: req.user._id.toString() });
+          const customer = await createCustomer(req.user.email, req.user.name || 'DaaS User', { userId: req.user._id.toString() }, req.user.phone);
           stripeCustomerId = customer.id;
           req.user.stripeCustomerId = stripeCustomerId;
           await req.user.save();
@@ -234,7 +240,7 @@ export const createSetupIntent = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Handle Stripe Webhooks
+ * @desc    handle Stripe Webhooks
  * @route   POST /api/payments/webhook
  * @access  Public (Stripe only)
  */
@@ -249,13 +255,13 @@ export const stripeWebhook = asyncHandler(async (req, res) => {
   }
 
   try {
-    // We use req.rawBody which was added by express.json() verify function in app.js
+    // we use req.rawBody which was added by express.json() verify function in app.js
     await handleWebhook(req.rawBody, signature, secret);
     res.status(200).json({ received: true });
   } catch (err) {
     logger.error(`Webhook error: ${err.message}`);
     
-    // Log to global system audit
+    // log to global system audit
     const AuditLog = (await import('../models/AuditLog.js')).default;
     await AuditLog.create({
       event: 'webhook_error',

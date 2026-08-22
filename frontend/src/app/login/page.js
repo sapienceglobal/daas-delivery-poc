@@ -22,7 +22,7 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
-// Phone is now required and validated as a real, dialable number
+// phone is now required and validated as a real, dialable number
 // (matching the mobile app, which already requires it). If phone should
 // stay optional on the website, tell me and I'll relax this back to
 // `.optional()` — just flagging that mobile and web disagreed before.
@@ -40,9 +40,9 @@ const registerSchema = z.object({
   path: ['confirmPassword'],
 });
 
-// Customer-facing equivalent of admin/login's operational features grid —
+// customer-facing equivalent of admin/login's operational features grid —
 // swapped for things an end customer actually cares about (not
-// Menu Management / Reports, which are merchant/admin concerns).
+// menu Management / Reports, which are merchant/admin concerns).
 const customerFeatures = [
   { icon: ShoppingBag, label: 'Easy\nOrdering' },
   { icon: Bike, label: 'Fast\nDelivery' },
@@ -70,18 +70,18 @@ function LoginPageContent() {
   });
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errors, setErrors] = useState({});
-  // Top-of-form banner for anything the backend rejects (duplicate
+  // top-of-form banner for anything the backend rejects (duplicate
   // email, wrong password, server errors) — replaces relying on the
   // toast alone, which disappears fast and isn't tied to the form.
   const [formError, setFormError] = useState('');
-  // Set to true when backend says email is not verified — triggers the
+  // set to true when backend says email is not verified — triggers the
   // special "Go verify" CTA banner instead of the plain red error.
   const [isUnverifiedEmail, setIsUnverifiedEmail] = useState(false);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
       if (user.role === 'customer') {
-        // Use window.location.href instead of router.push to bypass Next.js router cache
+        // use window.location.href instead of router.push to bypass Next.js router cache
         // which aggressively caches middleware redirects, causing infinite loops.
         const dest = redirectPath || '/';
         window.location.href = dest;
@@ -89,8 +89,8 @@ function LoginPageContent() {
     }
   }, [authLoading, isAuthenticated, user, redirectPath]);
 
-  // If backend verification is done and user is authenticated, show loader while redirect fires.
-  // We check !authLoading to avoid showing the spinner during the initial /me fetch —
+  // if backend verification is done and user is authenticated, show loader while redirect fires.
+  // we check !authLoading to avoid showing the spinner during the initial /me fetch —
   // that would cause a blink: spinner → form → spinner → redirect.
   if (!authLoading && isAuthenticated) {
     return (
@@ -164,7 +164,7 @@ function LoginPageContent() {
       } else {
         const userData = await login(form.email, form.password, form.rememberMe);
 
-        // Strictly restrict this portal to customers
+        // strictly restrict this portal to customers
         if (userData.role === 'admin' || userData.role === 'merchant') {
           await logout();
           setFormError('Restaurant partners must log in through the Partner Portal.');
@@ -175,7 +175,7 @@ function LoginPageContent() {
       }
     } catch (err) {
       const message = err.message || 'Something went wrong. Please try again.';
-      // Detect the "unverified email" error and set a special flag so the
+      // detect the "unverified email" error and set a special flag so the
       // UI can show a CTA button to navigate back to the verify-otp page.
       if (message.toLowerCase().includes('verify your email')) {
         setIsUnverifiedEmail(true);
@@ -194,7 +194,7 @@ function LoginPageContent() {
       const userData = await socialLogin('google', credentialResponse.credential, form.role);
       showToast(isRegister ? 'Account created via Google!' : 'Signed in via Google!', 'success');
 
-      // Handled by the useEffect above
+      // handled by the useEffect above
     } catch (err) {
       setFormError(err.message || 'Google authentication failed');
     } finally {
@@ -203,8 +203,8 @@ function LoginPageContent() {
   };
 
   const handleAppleSuccess = async () => {
-    // In a real app, you would use react-apple-signin-auth.
-    // For this boilerplate, we'll show an error since it requires Apple Dev Setup.
+    // in a real app, you would use react-apple-signin-auth.
+    // for this boilerplate, we'll show an error since it requires Apple Dev Setup.
     showToast('Apple Sign In requires an Apple Developer Account setup.', 'error');
   };
 
@@ -588,6 +588,36 @@ function LoginPageContent() {
           }
           .phone-field-wrap .PhoneInputCountry {
             margin-right: 8px;
+          }
+
+          /* Force light mode for the native select dropdown */
+          .PhoneInputCountrySelect {
+            color-scheme: light;
+            background-color: #ffffff;
+            color: #1a1a1a;
+          }
+          
+          /* Style options and add custom scrollbars where supported */
+          .PhoneInputCountrySelect option {
+            background-color: #ffffff;
+            color: #1a1a1a;
+            font-size: 14px;
+            padding: 8px;
+          }
+
+          .PhoneInputCountrySelect::-webkit-scrollbar {
+            width: 6px;
+          }
+          .PhoneInputCountrySelect::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+          }
+          .PhoneInputCountrySelect::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+          }
+          .PhoneInputCountrySelect::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
           }
         `}</style>
       </div>

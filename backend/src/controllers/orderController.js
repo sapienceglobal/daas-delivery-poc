@@ -93,7 +93,7 @@ export const rollbackLoyaltyPoints = async (order, reason = 'cancellation') => {
     user.loyaltyPoints = newBalance;
     await user.save();
 
-    // Log the rollback transaction(s)
+    // log the rollback transaction(s)
     if (pointsUsed > 0) {
       await LoyaltyTransactionModel.create({
         userId: order.userId,
@@ -145,17 +145,17 @@ export const awardLoyaltyPoints = async (order) => {
     const tenantId = order.constructor.db.name;
     const OrderModel = getTenantModel(tenantId, 'Order');
     
-    // Atomic guard: Only one thread will successfully set loyaltyPointsAwarded from false to true
+    // atomic guard: Only one thread will successfully set loyaltyPointsAwarded from false to true
     const updatedOrder = await OrderModel.findOneAndUpdate(
       { _id: order._id, loyaltyPointsAwarded: false },
       { $set: { loyaltyPointsAwarded: true } }
     );
 
     if (!updatedOrder) {
-      // Points were already awarded concurrently
+      // points were already awarded concurrently
       return;
     }
-    // Update local instance so the caller sees the new state
+    // update local instance so the caller sees the new state
     order.loyaltyPointsAwarded = true;
 
     const UserModel = getTenantModel(tenantId, 'User');
@@ -249,7 +249,7 @@ export const processAutoRefund = async (order, reason, io, getModel) => {
     return { processed: false, error: 'missing_stripe_payment_intent' };
   }
 
-  // Log: auto_refund_triggered
+  // log: auto_refund_triggered
   pushPaymentEvent(order, 'auto_refund_triggered', {
     amount: remainingAmount,
     stripePaymentIntentId: order.stripePaymentIntentId,
@@ -280,7 +280,7 @@ export const processAutoRefund = async (order, reason, io, getModel) => {
       description: `Auto-refunded $${remainingAmount.toFixed(2)}: ${reason}`
     });
 
-    // Log: auto_refund_succeeded
+    // log: auto_refund_succeeded
     pushPaymentEvent(order, 'auto_refund_succeeded', {
       amount: remainingAmount,
       stripeRefundId: refund.id,
@@ -293,7 +293,7 @@ export const processAutoRefund = async (order, reason, io, getModel) => {
     logger.info('Auto-refunded order', { orderId: order._id, refundAmount: remainingAmount, stripeRefundId: refund.id });
     return { processed: true, amount: remainingAmount, stripeRefundId: refund.id };
   } catch (stripeError) {
-    // Log: auto_refund_failed
+    // log: auto_refund_failed
     pushPaymentEvent(order, 'auto_refund_failed', {
       amount: remainingAmount,
       stripePaymentIntentId: order.stripePaymentIntentId,
@@ -409,14 +409,14 @@ export const createOrder = asyncHandler(async (req, response) => {
     throw new AppError('restaurantId and items are required', 400);
   }
 
-  // Prevent double-submit / accidental duplicate orders (15 seconds debounce) - ATOMIC LOCK
+  // prevent double-submit / accidental duplicate orders (15 seconds debounce) - ATOMIC LOCK
   try {
     await IdempotencyLock.create({ userId: req.user._id, restaurantId });
   } catch (error) {
     if (error.code === 11000) {
       throw new AppError('You just placed an order. Please wait a moment before placing another one.', 429);
     }
-    // If it's a different error, just log and allow the order to proceed rather than blocking checkout
+    // if it's a different error, just log and allow the order to proceed rather than blocking checkout
     logger.warn('Failed to create idempotency lock', { error: error.message });
   }
 
@@ -438,7 +438,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     throw new AppError('Unsupported payment method for US customer checkout. Please use card, Apple Pay, or Google Pay.', 400);
   }
 
-  // Accept both MongoDB ObjectId and slug (e.g. 'lassi-lounge')
+  // accept both MongoDB ObjectId and slug (e.g. 'lassi-lounge')
   const isObjectId = /^[a-fA-F0-9]{24}$/.test(restaurantId);
   let restaurantCheck;
   if (isObjectId) {
@@ -451,13 +451,13 @@ export const createOrder = asyncHandler(async (req, response) => {
   if (!restaurantCheck) {
     throw new AppError('Restaurant not found', 404);
   }
-  // Normalize restaurantId to ObjectId string for all downstream operations
+  // normalize restaurantId to ObjectId string for all downstream operations
   const normalizedRestaurantId = restaurantCheck._id.toString();
   if (restaurantCheck.isActive === false) {
     throw new AppError('This restaurant is not accepting orders right now', 400);
   }
 
-  // Geo-distance serviceability check for delivery orders
+  // geo-distance serviceability check for delivery orders
   if (orderType === 'delivery') {
     validateDeliveryDistance(restaurantCheck, addressLat, addressLng);
   }
@@ -537,16 +537,17 @@ export const createOrder = asyncHandler(async (req, response) => {
     userId: req.user._id
   });
 
-  // Track whether the order document has been persisted to DB.
-  // Used in the catch block to decide between orphan-cleanup vs. simple refund.
+  // track whether the order document has been persisted to DB.
+  // used in the catch block to decide between orphan-cleanup vs. simple refund.
   let savedOrder = null;
   const session = await Order.startSession();
   session.startTransaction();
 
   try {
-    // If the user's phone was the dummy '0000000000' or missing, and a valid phone was provided at checkout, save it to their profile.
-    if (customerPhone && (!req.user.phone || req.user.phone === '0000000000') && customerPhone !== '0000000000') {
+    // only update the user profile phone if they don't have one (e.g. Google Sign-in default '0000000000')
+    if (customerPhone && customerPhone !== '0000000000' && (!req.user.phone || req.user.phone === '0000000000')) {
       await User.findByIdAndUpdate(req.user._id, { phone: customerPhone }, { session });
+      req.user.phone = customerPhone; // Update local reference
     }
 
     const order = new Order({
@@ -595,7 +596,7 @@ export const createOrder = asyncHandler(async (req, response) => {
   await order.save({ session });
   savedOrder = order; // Mark as persisted — catch block will use this to clean up properly
 
-  // Log: order_saved + payment_confirmed
+  // log: order_saved + payment_confirmed
   pushPaymentEvent(order, 'order_saved', {
     stripePaymentIntentId: finalStripePaymentIntentId,
     meta: { orderNumber: order.orderNumber }
@@ -645,7 +646,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     }
   }], { session });
 
-  // Mark coupon usage atomically
+  // mark coupon usage atomically
   if (pricing.coupon) {
     const CouponModel = req.getModel('Coupon');
     const updateQuery = { _id: pricing.coupon._id };
@@ -667,7 +668,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     }
   }
 
-  // Handle loyalty points: deduct used, add earned
+  // handle loyalty points: deduct used, add earned
   if (pricing.pointsUsed > 0) {
     const updatedUser = await User.findOneAndUpdate(
       { _id: req.user._id, loyaltyPoints: { $gte: pricing.pointsUsed } },
@@ -690,7 +691,7 @@ export const createOrder = asyncHandler(async (req, response) => {
   await session.commitTransaction();
   session.endSession();
 
-  // Emit socket event
+  // emit socket event
   const io = req.app.get('io');
   if (io) {
     io.to(restaurant._id.toString()).emit('new_order', {
@@ -724,8 +725,8 @@ export const createOrder = asyncHandler(async (req, response) => {
     if (finalStripePaymentIntentId) {
       try {
         if (savedOrder) {
-          // Order already persisted — mark it as 'failed' so it is visible in merchant
-          // All Orders view and audit trails rather than becoming an invisible orphan.
+          // order already persisted — mark it as 'failed' so it is visible in merchant
+          // all Orders view and audit trails rather than becoming an invisible orphan.
           savedOrder.status = 'failed';
           savedOrder.statusUpdates.push({
             status: 'failed',
@@ -736,14 +737,14 @@ export const createOrder = asyncHandler(async (req, response) => {
           savedOrder.refundAmount = pricing.total;
           savedOrder.refundReason = 'order_creation_failed';
 
-          // Log: order_creation_failed
+          // log: order_creation_failed
           pushPaymentEvent(savedOrder, 'order_creation_failed', {
             amount: pricing.total,
             stripePaymentIntentId: finalStripePaymentIntentId,
             error: error.message,
             triggeredBy: 'system'
           });
-          // Log: auto_refund_triggered
+          // log: auto_refund_triggered
           pushPaymentEvent(savedOrder, 'auto_refund_triggered', {
             amount: pricing.total,
             stripePaymentIntentId: finalStripePaymentIntentId,
@@ -760,7 +761,7 @@ export const createOrder = asyncHandler(async (req, response) => {
           });
         }
 
-        // Issue Stripe refund with correct signature
+        // issue Stripe refund with correct signature
         try {
           const refund = await refundStripePayment(
             finalStripePaymentIntentId,
@@ -781,7 +782,7 @@ export const createOrder = asyncHandler(async (req, response) => {
               logger.error('Failed to save auto_refund_succeeded event on failed order', { orderId: savedOrder._id, error: saveErr.message })
             );
 
-            // Also record the refund in the Payment collection if it was created
+            // also record the refund in the Payment collection if it was created
             try {
               await recordPaymentRefund({
                 order: savedOrder,
@@ -797,7 +798,7 @@ export const createOrder = asyncHandler(async (req, response) => {
               });
             }
           } else {
-            // No savedOrder, log orphaned auto-refund success to global audit log
+            // no savedOrder, log orphaned auto-refund success to global audit log
             await AuditLog.create({
               restaurantId: restaurant._id,
               userId: req.user._id,
@@ -828,7 +829,7 @@ export const createOrder = asyncHandler(async (req, response) => {
             });
             await savedOrder.save().catch(() => {});
           } else {
-            // No savedOrder, log orphaned auto-refund failure to global audit log
+            // no savedOrder, log orphaned auto-refund failure to global audit log
             await AuditLog.create({
               restaurantId: restaurant._id,
               userId: req.user._id,
@@ -852,7 +853,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     }
 
     if (!savedOrder && finalStripePaymentIntentId) {
-      // Log the initial checkout failure that caused the whole rollback chain
+      // log the initial checkout failure that caused the whole rollback chain
       await AuditLog.create({
         restaurantId: restaurant._id,
         userId: req.user._id,
@@ -912,7 +913,7 @@ export const getOrderById = asyncHandler(async (req, response) => {
   const order = await Order.findById(req.params.id).populate('restaurantId');
   if (!order) throw new AppError('Order not found', 404);
 
-  // Customer can only see their own orders; merchant/admin can see restaurant orders
+  // customer can only see their own orders; merchant/admin can see restaurant orders
   if (req.user.role === 'customer' && order.userId?.toString() !== req.user._id.toString()) {
     throw new AppError('Not authorized to view this order', 403);
   }
@@ -996,7 +997,7 @@ export const getDeliveryQuote = asyncHandler(async (req, response) => {
   const { restaurantId, address, addressLat, addressLng, scheduledTime, items = [] } = req.body;
   if (!restaurantId || !address) throw new AppError('restaurantId and address are required', 400);
 
-  // Accept both MongoDB ObjectId and slug (e.g. 'lassi-lounge')
+  // accept both MongoDB ObjectId and slug (e.g. 'lassi-lounge')
   const isObjectId = /^[a-fA-F0-9]{24}$/.test(restaurantId);
   let restaurant;
   if (isObjectId) {
@@ -1299,7 +1300,7 @@ export const refundOrder = asyncHandler(async (req, response) => {
   }
 
   if (order.stripePaymentIntentId && ['paid', 'partially_refunded'].includes(order.paymentStatus)) {
-    // Prevent double-click accidental double-refunds via state-based idempotency key
+    // prevent double-click accidental double-refunds via state-based idempotency key
     const idempotencyKey = req.body.idempotencyKey || `manual-refund-${order._id}-${Math.round((order.refundAmount || 0) * 100)}-${Math.round(refundAmount * 100)}`;
     const refund = await issueStripeRefund(order.stripePaymentIntentId, refundAmount, idempotencyKey);
     stripeRefundId = refund.id;
@@ -1319,7 +1320,7 @@ export const refundOrder = asyncHandler(async (req, response) => {
   order.refundReason = reason || 'Refund processed';
   order.paymentStatus = order.refundAmount >= order.total ? 'refunded' : 'partially_refunded';
 
-  // Auto-cancel active orders if fully refunded
+  // auto-cancel active orders if fully refunded
   if (order.paymentStatus === 'refunded' && !['delivered', 'cancelled'].includes(order.status)) {
     order.status = 'cancelled';
     order.statusUpdates.push({
@@ -1338,7 +1339,7 @@ export const refundOrder = asyncHandler(async (req, response) => {
     await rollbackLoyaltyPoints(order, 'order_refund');
   }
 
-  // Send Notification
+  // send Notification
   if (order.userId) {
     const io = req.app.get('io');
     await createNotification(
@@ -1352,12 +1353,12 @@ export const refundOrder = asyncHandler(async (req, response) => {
     );
   }
 
-  // Emit Socket Event
+  // emit Socket Event
   const io = req.app.get('io');
   if (io) {
     io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
 
-    // Also notify the restaurant room so the merchant dashboard order list updates in real-time
+    // also notify the restaurant room so the merchant dashboard order list updates in real-time
     io.to(order.restaurantId.toString()).emit('order_updated', {
       orderId: order._id,
       status: order.status,
@@ -1426,8 +1427,8 @@ export const replyToReview = asyncHandler(async (req, response) => {
 // ── Driver ──────────────────────────────────────────────────────────────────
 
 export const getAvailableDriverOrders = asyncHandler(async (req, response) => {
-  // Find orders that are ready for pickup and have no assigned driver, or orders that this driver just accepted.
-  // Actually, let's just find orders with status 'ready' and orderType 'delivery' and no deliveryId (DoorDash)
+  // find orders that are ready for pickup and have no assigned driver, or orders that this driver just accepted.
+  // actually, let's just find orders with status 'ready' and orderType 'delivery' and no deliveryId (DoorDash)
   const orders = await Order.find({
     orderType: 'delivery',
     status: 'ready',
@@ -1438,7 +1439,7 @@ export const getAvailableDriverOrders = asyncHandler(async (req, response) => {
 });
 
 export const getActiveDriverOrder = asyncHandler(async (req, response) => {
-  // An active order is one that the driver has accepted or picked up, but not delivered.
+  // an active order is one that the driver has accepted or picked up, but not delivered.
   const order = await Order.findOne({
     driverId: req.user._id,
     status: { $in: ['accepted_by_driver', 'picked_up'] }
@@ -1526,7 +1527,7 @@ export const addAdminNote = asyncHandler(async (req, response) => {
   const order = await Order.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
 
-  // Author logic: if user has a name use it, else default to 'Admin/Staff'
+  // author logic: if user has a name use it, else default to 'Admin/Staff'
   const author = req.user?.name || (req.user?.role === 'admin' ? 'Admin' : 'Kitchen');
 
   order.adminNotes.push({
@@ -1537,7 +1538,7 @@ export const addAdminNote = asyncHandler(async (req, response) => {
 
   await order.save();
 
-  // Notify clients if needed (optional)
+  // notify clients if needed (optional)
   const io = req.app.get('io');
   if (io) {
     io.to(order.restaurantId.toString()).emit('order_updated', {
@@ -1556,7 +1557,7 @@ export const remakeOrder = asyncHandler(async (req, response) => {
   if (!order) throw new AppError('Order not found', 404);
   ensureCanManageRestaurant(req.user, order.restaurantId);
   
-  // Create duplicate remake order with $0 cost
+  // create duplicate remake order with $0 cost
   const remake = new OrderModel({
     ...order.toObject(),
     _id: undefined,
@@ -1621,7 +1622,7 @@ export const sendInvoice = asyncHandler(async (req, response) => {
 // ── Payment Events Audit Trail ───────────────────────────────────────────────
 
 /**
- * @desc    Get payment event audit log for an order
+ * @desc    get payment event audit log for an order
  * @route   GET /api/orders/:id/payment-events
  * @access  Private (merchant, admin)
  */
@@ -1630,7 +1631,7 @@ export const getPaymentEvents = asyncHandler(async (req, response) => {
   const order = await Order.findById(req.params.id).select('paymentEvents statusUpdates orderNumber paymentStatus refunded refundAmount refundReason stripePaymentIntentId').lean();
   if (!order) throw new AppError('Order not found', 404);
 
-  // Merge paymentEvents + statusUpdates into a unified chronological audit log
+  // merge paymentEvents + statusUpdates into a unified chronological audit log
   const paymentEvts = (order.paymentEvents || []).map(ev => ({
     type: 'payment_event',
     event: ev.event,
@@ -1673,7 +1674,7 @@ export const getPaymentEvents = asyncHandler(async (req, response) => {
 // ── Document Generation (Invoice & KOT) ────────────────────────────────────
 
 /**
- * @desc    Generate and serve standalone Invoice HTML
+ * @desc    generate and serve standalone Invoice HTML
  * @route   GET /api/orders/:id/invoice
  * @access  Private (merchant, admin)
  */
@@ -1694,7 +1695,7 @@ export const getInvoiceDocument = asyncHandler(async (req, response) => {
 });
 
 /**
- * @desc    Generate and serve standalone KOT (Kitchen Order Ticket) HTML
+ * @desc    generate and serve standalone KOT (Kitchen Order Ticket) HTML
  * @route   GET /api/orders/:id/kot
  * @access  Private (merchant, admin)
  */

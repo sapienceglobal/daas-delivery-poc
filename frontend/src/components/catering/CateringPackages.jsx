@@ -147,7 +147,7 @@ export default function CateringPackages({ onContact }) {
             <div 
               key={pkg.id || idx} 
               onClick={() => handleCardClick(idx)}
-              // Card Height increased to 580px, Width adjusted for better proportion
+              // card Height increased to 580px, Width adjusted for better proportion
               className={`absolute top-1/2 -translate-y-1/2 bg-white rounded-[24px] border border-[#f3f4f6] overflow-hidden flex flex-col w-[290px] sm:w-[320px] h-[580px] transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer
                 ${isCenter ? 'shadow-[0_20px_50px_rgba(122,11,16,0.15)] ring-1 ring-[#7a0b10]/20' : 'shadow-lg'}
               `}

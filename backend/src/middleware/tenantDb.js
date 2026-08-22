@@ -24,13 +24,13 @@ export default async (req, res, next) => {
       return next();
     }
 
-    // Validate the client-supplied x-tenant-id against the allowed whitelist.
+    // validate the client-supplied x-tenant-id against the allowed whitelist.
     const headerTenantId = req.headers['x-tenant-id'];
     if (headerTenantId) {
       const normalized = normalizeTenantId(headerTenantId);
       const allowed = getAllowedTenantIds();
       if (!allowed.has(normalized)) {
-        // Unknown tenant — silently fall back to marketplace instead of erroring,
+        // unknown tenant — silently fall back to marketplace instead of erroring,
         // to avoid leaking information about configured tenants.
         bindTenantContext(req, 'marketplace');
         return next();
@@ -39,7 +39,7 @@ export default async (req, res, next) => {
       return next();
     }
 
-    // No header — default to marketplace
+    // no header — default to marketplace
     bindTenantContext(req, 'marketplace');
     return next();
   } catch (error) {

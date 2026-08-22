@@ -2,8 +2,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // ---------------------------------------------------------------------------
-// Lightweight structured logger
-// Uses Winston when available, otherwise falls back to a formatted console
+// lightweight structured logger
+// uses Winston when available, otherwise falls back to a formatted console
 // implementation so the app never hard-crashes if the dependency is missing.
 // ---------------------------------------------------------------------------
 
@@ -61,7 +61,7 @@ try {
     ]
   });
 } catch {
-  // Fallback when winston is not installed yet
+  // fallback when winston is not installed yet
   const levels = { error: 0, warn: 1, info: 2, http: 3, debug: 4 };
   const colors = {
     error: '\x1b[31m',

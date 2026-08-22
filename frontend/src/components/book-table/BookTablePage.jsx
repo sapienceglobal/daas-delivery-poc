@@ -31,7 +31,7 @@ export default function BookTablePage({ restaurantId, initialUser }) {
     try {
       if (!realRestaurantId) return showToast('Restaurant details are loading. Please wait.', 'warning');
       
-      // Attach restaurant ID
+      // attach restaurant ID
       const payload = {
         ...data,
         restaurantId: realRestaurantId

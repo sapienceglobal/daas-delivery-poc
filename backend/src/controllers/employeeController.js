@@ -11,7 +11,7 @@ const verifyRestaurantOwnership = async (restaurantId, userId) => {
   if (!owns) throw new AppError('Not authorized for this restaurant', 403);
 };
 
-// Get all employees for a restaurant
+// get all employees for a restaurant
 export const getEmployees = asyncHandler(async (req, response) => {
   const { restaurantId } = req.params;
   
@@ -26,7 +26,7 @@ export const getEmployees = asyncHandler(async (req, response) => {
   res.success(response, employees);
 });
 
-// Create employee
+// create employee
 export const createEmployee = asyncHandler(async (req, response) => {
   const { restaurantId } = req.params;
   const data = req.body;
@@ -35,14 +35,14 @@ export const createEmployee = asyncHandler(async (req, response) => {
     await verifyRestaurantOwnership(restaurantId, req.user._id);
   }
 
-  // Generate a random 4-digit PIN if not provided
+  // generate a random 4-digit PIN if not provided
   if (!data.pin) {
     data.pin = Math.floor(1000 + Math.random() * 9000).toString();
   } else if (data.pin.length !== 4) {
     throw new AppError('PIN must be exactly 4 digits', 400);
   }
 
-  // Ensure unique PIN for the same restaurant
+  // ensure unique PIN for the same restaurant
   const existingPin = await Employee.findOne({ restaurantId, pin: data.pin, isActive: true });
   if (existingPin) {
     throw new AppError('This PIN is already in use by another employee', 400);
@@ -52,7 +52,7 @@ export const createEmployee = asyncHandler(async (req, response) => {
   res.success(response, employee, 201);
 });
 
-// Update employee
+// update employee
 export const updateEmployee = asyncHandler(async (req, response) => {
   const { employeeId } = req.params;
   const data = req.body;
@@ -79,7 +79,7 @@ export const updateEmployee = asyncHandler(async (req, response) => {
   res.success(response, updated);
 });
 
-// Update employee schedule
+// update employee schedule
 export const updateSchedule = asyncHandler(async (req, response) => {
   const { employeeId } = req.params;
   const { schedule } = req.body;
@@ -97,7 +97,7 @@ export const updateSchedule = asyncHandler(async (req, response) => {
   res.success(response, emp);
 });
 
-// Remove employee
+// remove employee
 export const removeEmployee = asyncHandler(async (req, response) => {
   const { employeeId } = req.params;
 
@@ -124,19 +124,19 @@ const findEmployeeByPin = async (restaurantId, pin) => {
     throw new AppError('PIN and Restaurant ID are required', 400);
   }
 
-  // Find all active employees in this restaurant (don't match PIN yet — need to check lockout first)
-  // We match by restaurantId only then validate PIN to support lockout tracking per employee.
-  // But we can't know WHICH employee without the PIN. So we find by PIN + restaurantId
+  // find all active employees in this restaurant (don't match PIN yet — need to check lockout first)
+  // we match by restaurantId only then validate PIN to support lockout tracking per employee.
+  // but we can't know WHICH employee without the PIN. So we find by PIN + restaurantId
   // but ONLY after confirming the restaurant exists to prevent timing attacks.
   const employee = await Employee.findOne({ restaurantId, isActive: true, pin });
 
   if (!employee) {
-    // We don't track failed attempts here since we don't know which employee was targeted.
+    // we don't track failed attempts here since we don't know which employee was targeted.
     // IP-level rate limiting (in the route) handles this case.
     throw new AppError('Invalid PIN', 401);
   }
 
-  // Check if this employee's PIN is locked
+  // check if this employee's PIN is locked
   if (employee.pinLockedUntil && employee.pinLockedUntil > new Date()) {
     const minsLeft = Math.ceil((employee.pinLockedUntil - Date.now()) / 60000);
     throw new AppError(`PIN locked due to too many wrong attempts. Try again in ${minsLeft} minute(s).`, 429);
@@ -158,7 +158,7 @@ export const clockInWithPin = asyncHandler(async (req, response) => {
 
   const employee = await findEmployeeByPin(restaurantId, pin);
 
-  // Check if already clocked in today without clock out
+  // check if already clocked in today without clock out
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -199,7 +199,7 @@ export const clockOutWithPin = asyncHandler(async (req, response) => {
   const attendance = employee.attendance[activeAttendanceIdx];
   attendance.clockOut = new Date();
 
-  // Calculate hours
+  // calculate hours
   const ms = attendance.clockOut.getTime() - attendance.clockIn.getTime();
   attendance.hoursWorked = Number((ms / (1000 * 60 * 60)).toFixed(2));
 
@@ -228,7 +228,7 @@ export const getPayrollReport = asyncHandler(async (req, response) => {
   const employees = await Employee.find({ restaurantId, isActive: true });
 
   const payroll = employees.map(emp => {
-    // Basic payroll calc: total hours worked * hourlyRate
+    // basic payroll calc: total hours worked * hourlyRate
     const totalHours = emp.attendance.reduce((sum, record) => sum + (record.hoursWorked || 0), 0);
     const amountOwed = emp.payType === 'salary' 
       ? emp.salary 

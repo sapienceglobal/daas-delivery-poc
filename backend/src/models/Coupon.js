@@ -92,9 +92,7 @@ const CouponSchema = new mongoose.Schema({
 
 CouponSchema.index({ isActive: 1, endDate: 1 });
 
-/**
- * Check if a coupon is valid for a given context.
- */
+// check if a coupon is valid for a given context.
 CouponSchema.methods.isValid = function (cartValue, userId, pastOrderCount = 0, paymentMethod = null) {
   const now = new Date();
 
@@ -106,9 +104,9 @@ CouponSchema.methods.isValid = function (cartValue, userId, pastOrderCount = 0, 
   if (this.firstOrderOnly && pastOrderCount > 0) return { valid: false, reason: 'This coupon is valid for first orders only' };
   if (this.minOrdersRequired > 0 && pastOrderCount < this.minOrdersRequired) return { valid: false, reason: `You must complete ${this.minOrdersRequired} orders to unlock this coupon` };
 
-  // Check payment method constraint
+  // check payment method constraint
   if (paymentMethod && this.allowedPaymentMethods && !this.allowedPaymentMethods.includes('All')) {
-    // Standardize naming
+    // standardize naming
     const normalizedMethods = this.allowedPaymentMethods.map(m => m.toLowerCase().replace(/_/g, ' '));
     const normalizedInput = paymentMethod.toLowerCase().replace(/_/g, ' ');
     
@@ -118,14 +116,14 @@ CouponSchema.methods.isValid = function (cartValue, userId, pastOrderCount = 0, 
     }
   }
 
-  // Check if coupon is restricted to specific users
+  // check if coupon is restricted to specific users
   if (this.applicableUsers && this.applicableUsers.length > 0) {
     if (!userId || !this.applicableUsers.some(id => id.toString() === userId.toString())) {
       return { valid: false, reason: 'This coupon is not valid for your account' };
     }
   }
 
-  // Check per-user limit
+  // check per-user limit
   if (userId && this.maxUsesPerUser) {
     const userUses = this.usedBy.filter(u => u.userId?.toString() === userId.toString()).length;
     if (userUses >= this.maxUsesPerUser) return { valid: false, reason: 'You have already used this coupon' };
@@ -134,9 +132,7 @@ CouponSchema.methods.isValid = function (cartValue, userId, pastOrderCount = 0, 
   return { valid: true, reason: null };
 };
 
-/**
- * Calculate the discount amount.
- */
+// calculate the discount amount.
 CouponSchema.methods.calculateDiscount = function (cartValue) {
   let discountAmount = 0;
 

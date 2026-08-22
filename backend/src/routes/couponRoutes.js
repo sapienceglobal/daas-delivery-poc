@@ -4,11 +4,11 @@ import * as couponController from '../controllers/couponController.js';
 
 const router = Router();
 
-// Customer
+// customer
 router.post('/validate', protect, couponController.validateCoupon);
 router.get('/active', couponController.getActiveCoupons); // Public route for apps to fetch banners
 
-// Admin / Merchant
+// admin / Merchant
 router.get('/stats', protect, authorize('admin', 'merchant'), couponController.getCouponStats);
 router.get('/', protect, authorize('admin', 'merchant'), couponController.getCoupons);
 router.post('/', protect, authorize('admin', 'merchant'), couponController.createCoupon);

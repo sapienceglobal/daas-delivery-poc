@@ -91,7 +91,7 @@ ReviewSchema.index({ orderId: 1 }, {
 
 const Review = mongoose.model('Review', ReviewSchema);
 
-// Drop legacy index if it exists and sync
+// drop legacy index if it exists and sync
 setTimeout(async () => {
   try {
     if (mongoose.connection.readyState === 1) {
@@ -99,7 +99,7 @@ setTimeout(async () => {
       await Review.syncIndexes();
     }
   } catch (err) {
-    // Ignore if index doesn't exist
+    // ignore if index doesn't exist
   }
 }, 3000);
 

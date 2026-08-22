@@ -23,17 +23,17 @@ export const metadata = {
     ? 'Experience the best authentic Indian cuisine at Lassi Lounge in New York. Order online for fast delivery, easy pickup, or reserve a table for dine-in.'
     : 'Order food from your favorite local restaurants — delivery, pickup, or dine-in.',
   
-  // Keywords
+  // keywords
   keywords: isLassiLounge
     ? ['Indian restaurant NY', 'Lassi Lounge New York', 'Authentic Indian food', 'Indian food delivery NY', 'best lassi in NY', 'dine-in Indian restaurant', 'curry', 'biryani', 'lassiloungeny']
     : ['food delivery', 'restaurant', 'ordering', 'pickup', 'dine-in'],
   
-  // Canonical URL
+  // canonical URL
   alternates: {
     canonical: '/',
   },
   
-  // Robots
+  // robots
   robots: {
     index: true,
     follow: true,
@@ -66,7 +66,7 @@ export const metadata = {
     ],
   },
   
-  // Twitter Card
+  // twitter Card
   twitter: {
     card: 'summary_large_image',
     title: isLassiLounge ? 'Lassi Lounge NY | Authentic Indian Cuisine' : 'Restaurant Commerce Platform',

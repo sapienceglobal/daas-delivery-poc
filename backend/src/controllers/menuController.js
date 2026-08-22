@@ -94,7 +94,7 @@ export const deleteCategory = asyncHandler(async (req, response) => {
 
   await ensureOwner(category.restaurantId, req.user, Restaurant);
 
-  // Delete associated menu items
+  // delete associated menu items
   await MenuItem.deleteMany({ categoryId: category._id });
   await category.deleteOne();
 
@@ -176,7 +176,7 @@ export const bulkDeleteItems = asyncHandler(async (req, response) => {
   const items = await MenuItem.find({ _id: { $in: itemIds } });
   if (items.length === 0) throw new AppError('No matching items found', 404);
 
-  // Ensure owner for at least the first item (assuming all from same restaurant in UI)
+  // ensure owner for at least the first item (assuming all from same restaurant in UI)
   if (items[0]) {
     await ensureOwner(items[0].restaurantId, req.user, Restaurant);
   }
@@ -229,7 +229,7 @@ export const bulkImportItems = asyncHandler(async (req, response) => {
   const created = [];
 
   for (const item of items) {
-    // Find or create category
+    // find or create category
     let category = await Category.findOne({ restaurantId, name: item.category || 'General' });
     if (!category) {
       category = await Category.create({ restaurantId, name: item.category || 'General' });

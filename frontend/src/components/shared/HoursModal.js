@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
 
-// Format time from 24h to 12h
+// format time from 24h to 12h
 const formatTime = (timeStr) => {
   if (!timeStr) return '';
   const [hours, minutes] = timeStr.split(':');
@@ -13,7 +13,7 @@ const formatTime = (timeStr) => {
   return `${h}:${minutes} ${ampm}`;
 };
 
-// Subtract minutes from 24h format (HH:mm)
+// subtract minutes from 24h format (HH:mm)
 const subtractMinutes = (timeStr, mins) => {
   if (!timeStr || typeof timeStr !== 'string') return timeStr;
   const parts = timeStr.split(':');
@@ -32,20 +32,20 @@ const subtractMinutes = (timeStr, mins) => {
 export default function HoursModal({ isOpen, onClose, brand }) {
   const [openSection, setOpenSection] = useState('lassi-lounge');
   
-  // Animation states
+  // animation states
   const [isMounted, setIsMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setIsMounted(true);
-      // Small delay to allow mount before triggering transition
+      // small delay to allow mount before triggering transition
       requestAnimationFrame(() => {
         requestAnimationFrame(() => setIsVisible(true));
       });
     } else {
       setIsVisible(false);
-      // Wait for exit animation to finish before unmounting
+      // wait for exit animation to finish before unmounting
       const timer = setTimeout(() => setIsMounted(false), 300);
       return () => clearTimeout(timer);
     }
@@ -53,7 +53,7 @@ export default function HoursModal({ isOpen, onClose, brand }) {
 
   if (!isMounted) return null;
 
-  // Generate 7-day schedule starting from TODAY
+  // generate 7-day schedule starting from TODAY
   const generateDynamicHours = (closeOffsetMinutes = 0) => {
     const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const todayIndex = new Date().getDay(); 

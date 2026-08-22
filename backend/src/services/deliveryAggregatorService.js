@@ -9,16 +9,14 @@ const providers = {
   grubhub: grubhubProvider
 };
 
-/**
- * Fetches quotes from all enabled providers and returns the cheapest one.
- */
+// fetches quotes from all enabled providers and returns the cheapest one.
 export const getBestDeliveryQuote = async (pickupAddress, dropoffAddress, subtotal, scheduledTime) => {
   logger.info(`Aggregating quotes for delivery to ${dropoffAddress}`);
   
   const enabledProviders = ['doordash', 'ubereats'];
   const quotes = [];
   
-  // Run all requests in parallel
+  // run all requests in parallel
   const results = await Promise.allSettled(
     enabledProviders.map(provider => 
       providers[provider].getDeliveryQuoteAPI(pickupAddress, dropoffAddress, subtotal, scheduledTime)
@@ -39,7 +37,7 @@ export const getBestDeliveryQuote = async (pickupAddress, dropoffAddress, subtot
     throw new Error('Delivery is currently unavailable in this area.');
   }
   
-  // Sort by lowest fee
+  // sort by lowest fee
   quotes.sort((a, b) => a.fee - b.fee);
   const bestQuote = quotes[0];
   
@@ -48,9 +46,7 @@ export const getBestDeliveryQuote = async (pickupAddress, dropoffAddress, subtot
   return bestQuote;
 };
 
-/**
- * Triggers the delivery creation API on the provider selected during quote.
- */
+// triggers the delivery creation API on the provider selected during quote.
 export const triggerDelivery = async (order) => {
   const providerKey = order.deliveryProvider || 'doordash';
   const provider = providers[providerKey];
@@ -62,9 +58,7 @@ export const triggerDelivery = async (order) => {
   return await provider.triggerDeliveryAPI(order);
 };
 
-/**
- * Cancels a delivery on the active provider.
- */
+// cancels a delivery on the active provider.
 export const cancelDelivery = async (order, reason) => {
   if (!order.deliveryId && !order.externalDeliveryId) return true;
   
@@ -79,21 +73,18 @@ export const cancelDelivery = async (order, reason) => {
   return await provider.cancelDeliveryAPI(order.externalDeliveryId || order.deliveryId, reason);
 };
 
-/**
- * Gets real-time tracking payload for a delivery.
- */
+// gets real-time tracking payload for a delivery.
 export const getDeliveryTracking = async (order) => {
   if (!order.deliveryId && !order.externalDeliveryId) throw new Error('No delivery ID');
   
   const providerKey = order.deliveryProvider || 'doordash';
   const provider = providers[providerKey];
   
-  // Real API call for supported providers (DoorDash, UberEats)
+  // real API call for supported providers (DoorDash, UberEats)
   if (provider && typeof provider.getDeliveryAPI === 'function') {
     return await provider.getDeliveryAPI(order.externalDeliveryId || order.deliveryId);
   }
-  
-  // Note: For Grubhub simulation, we will just return mock status
+// note: For Grubhub simulation, we will just return mock status
   return {
     status: order.status, // keep existing status
     tracking_url: order.trackingUrl

@@ -10,7 +10,7 @@ import { showToast, Skeleton } from '@/components/ui';
 
 import Loading from '@/app/loading';
 
-// Custom subcomponents
+// custom subcomponents
 import Breadcrumbs from '@/components/menu-detail/Breadcrumbs';
 import ProductInfo from '@/components/menu-detail/ProductInfo';
 import AddToCartPanel from '@/components/menu-detail/AddToCartPanel';
@@ -42,12 +42,12 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Form states
+  // form states
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedAddOns, setSelectedAddOns] = useState([]);
   const [specialInstructions, setSpecialInstructions] = useState('');
 
-  // Conflict state
+  // conflict state
   const [conflictOpen, setConflictOpen] = useState(false);
   const [pendingCartItem, setPendingCartItem] = useState(null);
 
@@ -66,7 +66,7 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
         const flattened = restRes.data?.menu?.reduce((acc, cat) => acc.concat(cat.items || []), []) || [];
         setMenuItems(flattened);
 
-        // Pre-select default size (e.g. Full Portion or standard size)
+        // pre-select default size (e.g. Full Portion or standard size)
         if (itemRes.data?.sizeVariations?.length > 0) {
           setSelectedSize(itemRes.data.sizeVariations[0]);
         } else {
@@ -81,7 +81,7 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
     loadData();
   }, [restaurantId, itemId]);
 
-  // Find matching cart items for active configuration
+  // find matching cart items for active configuration
   const targetId = itemId || item?._id || item?.id;
   const hasSizeVars = item?.sizeVariations && item.sizeVariations.length > 0;
 

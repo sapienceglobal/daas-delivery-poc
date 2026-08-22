@@ -6,7 +6,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Loader2, Navigation } from 'lucide-react';
 
-// Fix for default marker icon issues in react-leaflet
+// fix for default marker icon issues in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -26,7 +26,7 @@ function MapCenterWatcher({ onMapSettle }) {
 
     map.on('moveend', handleMoveEnd);
     
-    // Initial trigger
+    // initial trigger
     handleMoveEnd();
 
     return () => {
@@ -47,11 +47,11 @@ export default function MapLocationPicker({
   const [addressDetails, setAddressDetails] = useState(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
   
-  // Track user's specific manual input
+  // track user's specific manual input
   const [flatNo, setFlatNo] = useState('');
   const [landmark, setLandmark] = useState('');
 
-  // Search State
+  // search State
   const [searchInput, setSearchInput] = useState('');
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -98,7 +98,7 @@ export default function MapLocationPicker({
     }
   }, [initialCenter, locateMe]);
 
-  // Use a ref to debounce geocoding API calls while panning
+  // use a ref to debounce geocoding API calls while panning
   const geocodeTimeout = useRef(null);
 
   const reverseGeocode = useCallback(async (lat, lng) => {
@@ -143,7 +143,7 @@ export default function MapLocationPicker({
   const handleConfirm = () => {
     let finalAddress = currentAddress;
     
-    // Prepend flat/house number and landmark if provided
+    // prepend flat/house number and landmark if provided
     const prefixParts = [];
     if (flatNo.trim()) prefixParts.push(flatNo.trim());
     if (landmark.trim()) prefixParts.push(`Near ${landmark.trim()}`);

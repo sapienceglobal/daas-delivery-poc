@@ -1,16 +1,12 @@
 import mongoose from 'mongoose';
 
-/**
- * Size variation for a menu item (e.g. Small $9.99, Medium $12.99, Large $14.99).
- */
+// size variation for a menu item (e.g. Small $9.99, Medium $12.99, Large $14.99).
 const SizeVariationSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },     // "Small", "Medium", "Large"
   price: { type: Number, required: true, min: 0 }
 }, { _id: false });
 
-/**
- * Add-on / modifier for a menu item (e.g. Extra Cheese +$2.00).
- */
+// add-on / modifier for a menu item (e.g. Extra Cheese +$2.00).
 const AddOnSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   price: { type: Number, required: true, min: 0, default: 0 },
@@ -92,9 +88,7 @@ MenuItemSchema.index({ restaurantId: 1, categoryId: 1, sortOrder: 1 });
 MenuItemSchema.index({ restaurantId: 1, isAvailable: 1 });
 MenuItemSchema.index({ name: 'text', description: 'text', tags: 'text' });
 
-/**
- * Virtual: effective price after discount.
- */
+// virtual: effective price after discount.
 MenuItemSchema.virtual('effectivePrice').get(function () {
   if (!this.discount?.type || !this.discount?.value) return this.price;
   if (this.discount.type === 'flat') return Math.max(0, this.price - this.discount.value);

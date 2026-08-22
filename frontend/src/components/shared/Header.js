@@ -18,7 +18,7 @@ export function Header() {
   const pathname = usePathname();
   const { isSingleRestaurantMode, brand } = useBrand();
 
-  // In single restaurant mode, hide global header on landing screens
+  // in single restaurant mode, hide global header on landing screens
   if (isSingleRestaurantMode && (pathname === '/' || pathname === '/')) {
     return null;
   }

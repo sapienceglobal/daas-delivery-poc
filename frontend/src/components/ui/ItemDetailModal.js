@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Plus, Minus } from 'lucide-react';
 
-// Common Dish Image generator
+// common Dish Image generator
 const getDishImage = (itemName = '') => {
   const name = itemName.toLowerCase();
   if (name.includes('butter chicken')) return '/images/branded/lassi-lounge/dishes/butter-chicken.png';
@@ -40,7 +40,7 @@ export function PortalModal({ isOpen, onClose, title, children, size = 'md' }) {
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.paddingRight = `${scrollbarWidth}px`;
       document.body.style.overflow = 'hidden';
-      // Safe delay for initial render before animating in
+      // safe delay for initial render before animating in
       timeoutId = setTimeout(() => setShow(true), 50);
     } else {
       setShow(false);
@@ -56,12 +56,12 @@ export function PortalModal({ isOpen, onClose, title, children, size = 'md' }) {
   }, [isOpen]);
 
   const handleClose = () => {
-    // Trigger exit animation
+    // trigger exit animation
     setShow(false);
-    // Cleanup body styles immediately so background can scroll
+    // cleanup body styles immediately so background can scroll
     document.body.style.overflow = '';
     document.body.style.paddingRight = '';
-    // Wait for animation to finish before telling parent to unmount
+    // wait for animation to finish before telling parent to unmount
     setTimeout(() => {
       if (onClose) onClose();
     }, 300);

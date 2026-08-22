@@ -6,7 +6,7 @@ import { authAPI } from '@/lib/api';
 const AuthContext = createContext(null);
 
 // M6 FIX: Only cache non-sensitive display fields in localStorage.
-// Credentials are in httpOnly cookies (safe). Sensitive fields like
+// credentials are in httpOnly cookies (safe). Sensitive fields like
 // savedAddresses, savedCards, savedCart are fetched fresh from the server when needed.
 const SAFE_CACHE_FIELDS = [
   '_id', 'name', 'email', 'role', 'avatar', 'phone',
@@ -23,7 +23,7 @@ const toSafeCacheObject = (user) => {
 };
 
 // M4 FIX: These fields can ONLY change via a verified backend response.
-// They must never be accepted via client-side updateUser() calls.
+// they must never be accepted via client-side updateUser() calls.
 const BLOCKED_UPDATE_FIELDS = ['role', 'isActive', 'isAdmin', 'restaurantId', 'password', 'salt'];
 
 export function AuthProvider({ children }) {
@@ -31,13 +31,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   // H3 FIX: backendVerified is true ONLY after /me successfully confirms the session.
-  // Role-restricted pages must check backendVerified before rendering sensitive content.
+  // role-restricted pages must check backendVerified before rendering sensitive content.
   const [backendVerified, setBackendVerified] = useState(false);
 
-  // Token is stored only in the httpOnly cookie set by the server.
+  // token is stored only in the httpOnly cookie set by the server.
   // localStorage stores a minimal display cache — never credentials.
-  // On init, we ALWAYS call /me to verify the session with the backend.
-  // The httpOnly cookie is sent automatically — JS cannot access or forge it.
+  // on init, we ALWAYS call /me to verify the session with the backend.
+  // the httpOnly cookie is sent automatically — JS cannot access or forge it.
   useEffect(() => {
     let cancelled = false;
 
@@ -45,18 +45,18 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('marketplace_user');
       localStorage.removeItem('marketplace_token');
       // user_role cookie is a UX hint only — NEVER used for security decisions.
-      // Next.js middleware verifies the JWT directly (via jose), not this cookie.
+      // next.js middleware verifies the JWT directly (via jose), not this cookie.
       document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     };
 
     const initializeAuth = async () => {
       try {
-        // Always verify with backend — localStorage alone is never trusted for access control.
+        // always verify with backend — localStorage alone is never trusted for access control.
         const data = await authAPI.getMe();
         const userData = data.data;
         if (cancelled) return;
 
-        // Cache only safe fields — never cache addresses, cards, or cart data in localStorage.
+        // cache only safe fields — never cache addresses, cards, or cart data in localStorage.
         localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
         // user_role cookie is a UX hint for smooth navigation only.
         document.cookie = `user_role=${userData.role}; path=/; max-age=604800; SameSite=Lax`;
@@ -137,7 +137,7 @@ export function AuthProvider({ children }) {
     // succeeds — that flow does a full page reload to /customer, which
     // re-runs the /me check above and populates real auth state then.
     //
-    // Previously this function treated register() exactly like login() —
+    // previously this function treated register() exactly like login() —
     // caching the user and marking backendVerified true immediately —
     // which is what let people reach authenticated pages without ever
     // completing OTP verification.
@@ -177,7 +177,7 @@ export function AuthProvider({ children }) {
   }, [logout]);
 
   // M4 FIX: updateUser strips security-sensitive fields before applying any update.
-  // Role, isActive, and restaurantId can ONLY change via a real backend response.
+  // role, isActive, and restaurantId can ONLY change via a real backend response.
   const updateUser = useCallback((updates) => {
     const safeUpdates = { ...updates };
     for (const blocked of BLOCKED_UPDATE_FIELDS) {
@@ -187,7 +187,7 @@ export function AuthProvider({ children }) {
     setUser(prev => {
       const updated = { ...prev, ...safeUpdates };
       localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(updated)));
-      // Do NOT update user_role cookie from client-side updateUser — role changes only via backend.
+      // do NOT update user_role cookie from client-side updateUser — role changes only via backend.
       return updated;
     });
   }, []);
@@ -197,7 +197,7 @@ export function AuthProvider({ children }) {
     token: null,
     loading,
     backendVerified, // H3: pages gate sensitive rendering on this flag
-    // All role flags require BOTH user data AND backend verification
+    // all role flags require BOTH user data AND backend verification
     isAuthenticated: !!user && backendVerified,
     isCustomer: user?.role === 'customer' && backendVerified,
     isMerchant: user?.role === 'merchant' && backendVerified,

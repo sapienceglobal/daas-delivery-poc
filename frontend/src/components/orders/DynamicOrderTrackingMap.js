@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Fix for default marker icon issues in react-leaflet
+// fix for default marker icon issues in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -13,7 +13,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Custom HTML Icons (Using basic colored divs for now, looking premium)
+// custom HTML Icons (Using basic colored divs for now, looking premium)
 const createIcon = (color, label) => {
   return L.divIcon({
     className: 'custom-leaflet-icon',
@@ -29,9 +29,7 @@ const createIcon = (color, label) => {
 
 const restaurantIcon = createIcon('#1f2937', 'R'); // Dark gray
 const customerIcon = createIcon('#3b82f6', 'C'); // Blue
-const courierIcon = createIcon('#ef4444', '🏍️'); // Red with bike emoji
-
-// Component to handle auto-centering the map based on markers and provide a recenter button
+const courierIcon = createIcon('#ef4444', '🏍️'); // Red with bike emoji// auto-centering the map based on markers and provide a recenter button
 function MapBounds({ markers }) {
   const map = useMap();
   

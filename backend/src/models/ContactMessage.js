@@ -37,7 +37,7 @@ const ContactMessageSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Index for fetching messages by restaurant efficiently, sorted by newest first
+// index for fetching messages by restaurant efficiently, sorted by newest first
 ContactMessageSchema.index({ restaurant: 1, createdAt: -1 });
 
 export default mongoose.model('ContactMessage', ContactMessageSchema);

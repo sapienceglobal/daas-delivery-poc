@@ -32,7 +32,7 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
     startDate = new Date(endOfToday);
     startDate.setDate(startDate.getDate() - numDays);
   } else {
-    // All-time default
+    // all-time default
     const firstOrder = await Order.findOne({ restaurantId }).sort({ createdAt: 1 }).select('createdAt');
     startDate = firstOrder ? new Date(firstOrder.createdAt) : new Date(endOfToday);
     startDate.setHours(0,0,0,0);
@@ -44,7 +44,7 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
   const prevStartDate = new Date(startDate);
   prevStartDate.setDate(prevStartDate.getDate() - diffDays);
 
-  // Helper match conditions
+  // helper match conditions
   const currentMatch = {
     restaurantId: new mongoose.Types.ObjectId(restaurantId),
     createdAt: { $gte: startDate, $lt: endOfToday },
@@ -66,7 +66,7 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
     { $sort: { _id: 1 } }
   ]);
 
-  // Fill in missing days
+  // fill in missing days
   const filledStats = [];
   const curr = new Date(startDate);
   while (curr <= endOfToday) {
@@ -142,7 +142,7 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
   ]);
   const prevCustomers = prevCustomerStats.length > 0 ? prevCustomerStats[0].count : 0;
 
-  // Aggregate current summary
+  // aggregate current summary
   const totalRevenue = filledStats.reduce((sum, day) => sum + day.revenue, 0);
   const totalOrders = filledStats.reduce((sum, day) => sum + day.orders, 0);
   const currentAov = totalOrders > 0 ? (totalRevenue / totalOrders) : 0;

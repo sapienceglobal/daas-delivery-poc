@@ -11,7 +11,7 @@ const LanguageContext = createContext();
 export function LanguageProvider({ children }) {
   const [lang, setLang] = useState('en');
 
-  // Load saved preference on mount
+  // load saved preference on mount
   useEffect(() => {
     const saved = localStorage.getItem('rc_lang');
     if (saved && dictionaries[saved]) {
@@ -36,7 +36,7 @@ export function LanguageProvider({ children }) {
     let value = dictionaries[lang];
     for (const k of keys) {
       if (value[k] === undefined) {
-        // Fallback to English if translation is missing
+        // fallback to English if translation is missing
         let fallbackValue = dictionaries['en'];
         for (const fk of keys) {
           if (fallbackValue[fk] === undefined) return key; // Return key if not found in English either

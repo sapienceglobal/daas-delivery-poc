@@ -24,7 +24,7 @@ export default function NotificationsTab({ user, updateUser }) {
       updateUser(res.data);
       showToast('Preferences updated', 'success');
     } catch (err) {
-      // Revert on error
+      // revert on error
       setPrefs(prefs);
       showToast('Failed to update preferences', 'error');
     } finally {

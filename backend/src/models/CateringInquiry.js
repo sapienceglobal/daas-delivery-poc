@@ -54,7 +54,7 @@ const CateringInquirySchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Indexes
+// indexes
 CateringInquirySchema.index({ restaurantId: 1, createdAt: -1 });
 CateringInquirySchema.index({ status: 1 });
 

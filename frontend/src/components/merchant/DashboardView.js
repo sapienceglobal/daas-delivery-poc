@@ -30,7 +30,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
   const activeOrdersCount = (orders || []).filter(o => ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'picked_up'].includes((o.status || '').toLowerCase())).length;
   const newCustomers = analyticsData?.summary?.newCustomers || 0;
   
-  // Pending Catering
+  // pending Catering
   const pendingCateringCount = (cateringInquiries || []).filter(c => (c.status || '').toLowerCase() === 'pending').length;
 
   // ---------------------------------------------------------
@@ -70,7 +70,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
   }).filter(d => d.value > 0);
   const channelData = channelDataRaw.length > 0 ? channelDataRaw : [];
 
-  // Peak Hours Bar Chart (grouped by hour of day from analyticsData)
+  // peak Hours Bar Chart (grouped by hour of day from analyticsData)
   const heatmap = analyticsData?.timeOfDayHeatmap || [];
   const hoursMap = {};
   heatmap.forEach(entry => {

@@ -19,7 +19,7 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
   const [label, setLabel] = useState('Home');
   const [isDefault, setIsDefault] = useState(false);
   
-  // Checkout-style address fields
+  // checkout-style address fields
   const [addressLine1, setAddressLine1] = useState('');
   const [addressLine2, setAddressLine2] = useState('');
   const [city, setCity] = useState('');
@@ -28,7 +28,7 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
   const [lat, setLat] = useState(0);
   const [lng, setLng] = useState(0);
 
-  // Auto-suggestion state
+  // auto-suggestion state
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const searchTimeoutRef = useRef(null);
@@ -47,7 +47,7 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
     if (addressToEdit) {
       setLabel(addressToEdit.label || 'Home');
       setIsDefault(addressToEdit.isDefault || false);
-      // Robust parsing for editing existing address
+      // robust parsing for editing existing address
       setAddressLine1('');
       setAddressLine2('');
       setCity('');

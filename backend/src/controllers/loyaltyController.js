@@ -13,7 +13,7 @@ export const getMyCoupons = asyncHandler(async (req, response) => {
   const LoyaltyTransaction = req.getModel('LoyaltyTransaction');
   const Coupon = req.getModel('Coupon');
 
-  // Find all redeem transactions for this user that have a couponId
+  // find all redeem transactions for this user that have a couponId
   const redeemTxns = await LoyaltyTransaction.find({
     userId: req.user._id,
     type: 'redeemed',
@@ -28,7 +28,7 @@ export const getMyCoupons = asyncHandler(async (req, response) => {
     return res.success(response, { data: [] });
   }
 
-  // Fetch coupons that are still active (not yet used = usedCount < maxUses) and not expired
+  // fetch coupons that are still active (not yet used = usedCount < maxUses) and not expired
   const coupons = await Coupon.find({
     _id: { $in: couponIds },
     isActive: true,
@@ -103,7 +103,7 @@ export const joinProgram = asyncHandler(async (req, response) => {
   user.loyaltyPoints = user.loyaltyPoints || 0;
   await user.save();
 
-  // Give 50 welcome points
+  // give 50 welcome points
   user.loyaltyPoints += 50;
   await user.save();
   await LoyaltyTransaction.create({
@@ -147,18 +147,18 @@ export const earnPoints = asyncHandler(async (req, response) => {
     description = 'Daily Login Bonus';
 
   } else if (action === 'review') {
-    // Must provide an orderId for the review
+    // must provide an orderId for the review
     if (!orderId) {
       throw new AppError('Please provide the orderId for the order you are reviewing', 400);
     }
 
-    // Order must belong to this user and be delivered
+    // order must belong to this user and be delivered
     const order = await Order.findOne({ _id: orderId, userId: req.user._id, status: 'delivered' });
     if (!order) {
       throw new AppError('You can only earn review points for your own completed orders', 400);
     }
 
-    // Check if review bonus already claimed for this order
+    // check if review bonus already claimed for this order
     const alreadyClaimed = await LoyaltyTransaction.findOne({
       userId: req.user._id,
       description: `Review Bonus for order ${orderId}`
@@ -171,8 +171,8 @@ export const earnPoints = asyncHandler(async (req, response) => {
     description = `Review Bonus for order ${orderId}`;
 
   } else if (action === 'refer') {
-    // Refer bonus is awarded only by the referral system when a referred user completes their first order.
-    // This endpoint cannot be used to self-claim referral points.
+    // refer bonus is awarded only by the referral system when a referred user completes their first order.
+    // this endpoint cannot be used to self-claim referral points.
     throw new AppError('Referral points are automatically awarded when your referred friend places their first order', 400);
 
   } else {
@@ -223,7 +223,7 @@ export const redeemPoints = asyncHandler(async (req, response) => {
     throw new AppError('The loyalty program is currently disabled', 400);
   }
 
-  // Calculate discount using the dynamic conversion rate
+  // calculate discount using the dynamic conversion rate
   const calculatedDiscount = (points * loyaltySettings.centsPerPoint) / 100;
   
   if (expectedDiscount !== calculatedDiscount) {
@@ -234,17 +234,17 @@ export const redeemPoints = asyncHandler(async (req, response) => {
     throw new AppError(`Insufficient points. You need ${points} but have ${user.loyaltyPoints}`, 400);
   }
 
-  // Deduct points
+  // deduct points
   user.loyaltyPoints -= points;
   await user.save();
 
-  // Create single-use flat discount coupon
+  // create single-use flat discount coupon
   const couponCode = `LOYALTY${expectedDiscount}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
-  // Set expiry to 30 days from now
+  // set expiry to 30 days from now
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 30);
 
-  // Calculate the required minimum order value based on the multiplier
+  // calculate the required minimum order value based on the multiplier
   const minMultiplier = loyaltySettings.minimumOrderMultiplier ?? 3;
   const minCartValue = expectedDiscount * minMultiplier;
 
@@ -261,7 +261,7 @@ export const redeemPoints = asyncHandler(async (req, response) => {
     applicableUsers: [user._id]
   });
 
-  // Log transaction
+  // log transaction
   await LoyaltyTransaction.create({
     userId: user._id,
     type: 'redeemed',

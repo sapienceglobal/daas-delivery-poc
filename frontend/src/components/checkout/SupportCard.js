@@ -1,12 +1,12 @@
 import { Phone, Mail } from 'lucide-react';
 
 export default function SupportCard({ isSingleRestaurantMode, restaurant }) {
-  // Use real backend data if available, fallback to hardcoded if not
-  // Prioritize restaurant.phone / restaurant.email as these are what SettingsView updates
+  // use real backend data if available, fallback to hardcoded if not
+  // prioritize restaurant.phone / restaurant.email as these are what SettingsView updates
   let phoneValue = restaurant?.phone || restaurant?.businessInfo?.businessPhone || (isSingleRestaurantMode ? '5166120300' : '18005550199');
   let emailValue = restaurant?.email || restaurant?.businessInfo?.businessEmail || (isSingleRestaurantMode ? 'info@lassilounge.com' : 'support@daasplatform.com');
   
-  // Format phone if it's 10 or 11 digits
+  // format phone if it's 10 or 11 digits
   const numericPhone = phoneValue.replace(/\D/g, '');
   let phoneLabel = phoneValue;
   if (numericPhone.length === 10) {

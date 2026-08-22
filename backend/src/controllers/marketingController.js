@@ -6,9 +6,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import { getFirebaseAdmin } from '../config/firebase.js';
 import { getMessaging } from 'firebase-admin/messaging';
 
-/**
- * Helper to chunk an array into smaller arrays of a specified size
- */
+// chunk an array into smaller arrays of a specified size
 const chunkArray = (array, size) => {
   const chunked = [];
   let index = 0;
@@ -20,7 +18,7 @@ const chunkArray = (array, size) => {
 };
 
 /**
- * @desc    Get all marketing campaigns for a restaurant
+ * @desc    get all marketing campaigns for a restaurant
  * @route   GET /api/marketing
  * @access  Private (Admin/Manager)
  */
@@ -41,7 +39,7 @@ export const getCampaigns = asyncHandler(async (req, response) => {
 });
 
 /**
- * @desc    Create and broadcast a marketing campaign via Push Notifications
+ * @desc    create and broadcast a marketing campaign via Push Notifications
  * @route   POST /api/marketing/broadcast
  * @access  Private (Admin/Manager)
  */
@@ -52,7 +50,7 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
     throw new AppError('Title and message are required for a campaign', 400);
   }
 
-  // Use the restaurantId from body or from user token
+  // use the restaurantId from body or from user token
   const targetRestaurantId = restaurantId || req.user.restaurantId;
 
   if (!targetRestaurantId) {
@@ -76,17 +74,17 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
   const UserModel = req.getModel('User');
   let userQuery = { role: 'customer', fcmTokens: { $exists: true, $not: { $size: 0 } } };
 
-  // Example Audience filtering logic
+  // example Audience filtering logic
   if (audience === 'inactive_30_days') {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    // Assuming we have a lastActive or lastOrder field. For now, we'll just fall back or rely on updatedAt
+    // assuming we have a lastActive or lastOrder field. For now, we'll just fall back or rely on updatedAt
     userQuery.updatedAt = { $lt: thirtyDaysAgo };
   }
 
   const targetUsers = await UserModel.find(userQuery).select('fcmTokens');
 
-  // Extract all unique tokens
+  // extract all unique tokens
   const allTokens = new Set();
   targetUsers.forEach(user => {
     user.fcmTokens.forEach(token => allTokens.add(token));
@@ -109,7 +107,7 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
     throw new AppError('Firebase Admin SDK is not initialized', 500);
   }
 
-  // Multicast limit is 500
+  // multicast limit is 500
   const tokenChunks = chunkArray(tokensArray, 500);
   
   let totalSuccess = 0;
@@ -134,11 +132,11 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
       type: 'marketing_campaign',
       campaignId: campaign._id.toString(),
       ...(imageUrl && { image: imageUrl }),
-      // Add actionUrl if it exists in the future (though we are adding it now)
+      // add actionUrl if it exists in the future (though we are adding it now)
     }
   };
 
-  // We are handling imageUrl directly inside pushMessage now, so we can skip the manual assignment below, 
+  // we are handling imageUrl directly inside pushMessage now, so we can skip the manual assignment below, 
   // but we will also support actionUrl since we are adding it to the UI.
   if (req.body.actionUrl) {
     pushMessage.data.actionUrl = req.body.actionUrl;
@@ -155,7 +153,7 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
       totalFailure += fbResponse.failureCount;
     }
 
-    // Update Campaign Record
+    // update Campaign Record
     campaign.status = totalFailure === 0 ? 'sent' : (totalSuccess > 0 ? 'partial_success' : 'failed');
     campaign.successCount = totalSuccess;
     campaign.failureCount = totalFailure;

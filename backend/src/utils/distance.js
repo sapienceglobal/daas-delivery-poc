@@ -7,8 +7,8 @@ import logger from './logger.js';
  */
 export const validateDeliveryDistance = (restaurant, addressLat, addressLng, maxDistanceMiles = 15) => {
   if (!addressLat || !addressLng || Number(addressLat) === 0 || Number(addressLng) === 0) {
-    // If we don't have lat/lng from the frontend, we must either geocode it or reject it.
-    // For safety, if it's a delivery order, we should enforce valid coordinates.
+    // if we don't have lat/lng from the frontend, we must either geocode it or reject it.
+    // for safety, if it's a delivery order, we should enforce valid coordinates.
     throw new AppError('Delivery address coordinates missing. Please select a valid address from the dropdown.', 400);
   }
 

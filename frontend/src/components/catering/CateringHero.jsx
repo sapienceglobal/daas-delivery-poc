@@ -16,7 +16,7 @@ export default function CateringHero({ onGetQuote }) {
   const router = useRouter();
   const { cmsData, loadingCms } = useCms();
   
-  // Provide a safe fallback for the image src
+  // provide a safe fallback for the image src
   const heroImage = cmsData?.heroBanners?.catering || "/images/branded/lassi-lounge/catering-hero.webp";
 
   return (

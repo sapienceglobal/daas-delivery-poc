@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { Package, MapPin, Navigation, Store, Check, Loader2 } from 'lucide-react';
 import AddressModal from '@/components/shared/AddressModal';
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 const US_STATES = [
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
@@ -150,16 +152,18 @@ export default function DeliveryInfoSection({
               </div>
               <div>
                 <label className="block text-[13px] font-bold text-[#1a1a1a] mb-1.5">Phone Number*</label>
-                <input
-                  type="tel" 
-                  required 
-                  name="phone"
-                  autoComplete="tel"
-                  value={phone} 
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="(123) 456-7890"
-                  className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
-                />
+                <div className={`phone-field-wrap h-[46px] rounded-xl border bg-[#ffffff] px-4 flex items-center transition-all ${
+                  phone && typeof isValidPhoneNumber === 'function' && !isValidPhoneNumber(phone) ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#7a0b10] focus-within:ring-1 focus-within:ring-[#7a0b10]'
+                }`}>
+                  <PhoneInput
+                    international
+                    defaultCountry="IN"
+                    placeholder="Enter phone number"
+                    value={phone}
+                    onChange={(val) => setPhone(val || '')}
+                    className="w-full"
+                  />
+                </div>
               </div>
             </div>
 
@@ -237,7 +241,7 @@ export default function DeliveryInfoSection({
                         initialView="map"
                         onClose={() => setIsAddressModalOpen(false)}
                         onSelect={(locationData) => {
-                          // Handle selection from map
+                          // handle selection from map
                           const { address, lat, lng, addressDetails, flatNo, landmark } = locationData;
                           
                           let line1 = address;
@@ -271,16 +275,16 @@ export default function DeliveryInfoSection({
                           }
 
                           if (onAddressLine1Change) {
-                            // We construct a mock 'suggestion' format if parent relies on `handleSelectSuggestion`
-                            // Or better, directly set fields via props
+                            // we construct a mock 'suggestion' format if parent relies on `handleSelectSuggestion`
+                            // or better, directly set fields via props
                             setAddressLine1(line1);
                             if (line2) setAddressLine2(line2);
                             setCity(newCity);
                             setState(newState);
                             setZipCode(newZip);
-                            // Also need to set coordinates in parent. Since parent triggers quote automatically on address match,
-                            // But we need to feed lat/lng to parent. `DeliveryInfoSection` receives suggestions.
-                            // We can use `onSelectSuggestion` mock:
+                            // also need to set coordinates in parent. Since parent triggers quote automatically on address match,
+                            // but we need to feed lat/lng to parent. `DeliveryInfoSection` receives suggestions.
+                            // we can use `onSelectSuggestion` mock:
                             onSelectSuggestion({
                               display_name: `${line1}, ${newCity}, ${newState} ${newZip}`,
                               lat: lat.toString(),

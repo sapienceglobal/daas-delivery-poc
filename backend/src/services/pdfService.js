@@ -16,12 +16,12 @@ export const generatePdfFromHtml = async (htmlContent) => {
     });
     const page = await browser.newPage();
     
-    // Set the HTML content of the page
+    // set the HTML content of the page
     await page.setContent(htmlContent, {
       waitUntil: 'networkidle0'
     });
 
-    // Generate PDF
+    // generate PDF
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,

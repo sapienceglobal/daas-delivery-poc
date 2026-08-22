@@ -113,7 +113,11 @@ export const createOrderSchema = Joi.object({
   tableNumber: Joi.alternatives().try(Joi.string(), Joi.number()).allow(null).optional(),
   stripePaymentIntentId: Joi.string().max(200).allow('', null).optional(),
   savedCardId: Joi.string().max(200).allow('', null).optional(),
-  useLoyaltyPoints: Joi.boolean().default(false)
+  useLoyaltyPoints: Joi.boolean().default(false),
+  customerPhone: Joi.string().max(30).allow('', null).optional(),
+  customerName: Joi.string().max(100).allow('', null).optional(),
+  customerEmail: Joi.string().email().allow('', null).optional(),
+  specialInstructions: Joi.string().max(1000).allow('', null).optional()
 });
 
 export const rateOrderSchema = Joi.object({

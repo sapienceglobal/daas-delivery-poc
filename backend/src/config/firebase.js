@@ -7,7 +7,7 @@ import logger from '../utils/logger.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Usually stored in the backend root
+// usually stored in the backend root
 const serviceAccountPath = path.resolve(__dirname, '../../firebase-adminsdk.json');
 
 let firebaseApp = null;
@@ -18,7 +18,7 @@ export const initFirebase = () => {
   try {
     // 1. First check if environment variables are provided
     if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
-      // Handle the fact that private keys might have literal \n escaped in .env
+      // handle the fact that private keys might have literal \n escaped in .env
       const privateKey = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
       
       firebaseApp = admin.initializeApp({

@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 // to be authorized using the known fallback string — that is a critical vulnerability.
 if (!JWT_SECRET) {
   if (process.env.NODE_ENV === 'production') {
-    // Fatal — crash the process so the deployment fails loudly rather than running insecurely.
+    // fatal — crash the process so the deployment fails loudly rather than running insecurely.
     console.error('[FATAL] JWT_SECRET environment variable is not set. Refusing to start in production with an insecure default.');
     process.exit(1);
   } else {
@@ -39,8 +39,8 @@ export const protect = async (req, _res, next) => {
   try {
     const decoded = jwt.verify(token, resolvedJwtSecret);
 
-    // Protected routes always trust the signed JWT tenant, never the browser header.
-    // However, if FORCE_TENANT_ID is set (single-tenant setup), it takes precedence over even the JWT.
+    // protected routes always trust the signed JWT tenant, never the browser header.
+    // however, if FORCE_TENANT_ID is set (single-tenant setup), it takes precedence over even the JWT.
     const forcedTenant = process.env.FORCE_TENANT_ID;
     bindTenantContext(req, forcedTenant || decoded.tenantId || 'marketplace');
 
@@ -50,12 +50,12 @@ export const protect = async (req, _res, next) => {
       return next(new AppError('Not authorized, user not found', 401));
     }
 
-    // Block deactivated accounts even if they have a valid token
+    // block deactivated accounts even if they have a valid token
     if (!user.isActive) {
       return next(new AppError('Your account has been deactivated. Contact support.', 403));
     }
 
-    // Invalidate old sessions if password was changed
+    // invalidate old sessions if password was changed
     if ((decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
       return next(new AppError('Session expired. Please log in again.', 401));
     }
@@ -66,7 +66,7 @@ export const protect = async (req, _res, next) => {
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
       return next(new AppError('Not authorized, token failed', 401));
     }
-    // If it's a DB error or something else, pass it down so it's logged properly
+    // if it's a DB error or something else, pass it down so it's logged properly
     return next(error);
   }
 };

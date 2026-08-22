@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { showToast, GlassCard, Badge, Button } from '@/components/ui';
 import Loading from '@/app/loading';
 
-// Modular components
+// modular components
 import OrderHeaderBanner from '@/components/orders/OrderHeaderBanner';
 import OrderDetailsCard from '@/components/orders/OrderDetailsCard';
 import OrderStatusCard from '@/components/orders/OrderStatusCard';
@@ -30,7 +30,7 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Partial Refund State
+  // partial Refund State
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundAmount, setRefundAmount] = useState('');
   const [refundReason, setRefundReason] = useState('');
@@ -127,7 +127,7 @@ export default function OrderDetailPage() {
     );
   }
 
-  // Get item IDs currently ordered to filter recommendations
+  // get item IDs currently ordered to filter recommendations
   const orderedItemIds = order.items?.map((item) => item.menuItemId) || [];
 
   return (

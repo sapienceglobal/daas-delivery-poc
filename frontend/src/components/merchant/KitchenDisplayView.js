@@ -12,7 +12,7 @@ export default function KitchenDisplayView({ orders = [], restaurantId }) {
   
   const [newOrdersCount, setNewOrdersCount] = useState(0);
 
-  // Simple Web Audio API for "ding" sound
+  // simple Web Audio API for "ding" sound
   const playSound = () => {
     if (!soundEnabled) return;
     try {

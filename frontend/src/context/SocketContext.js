@@ -47,7 +47,7 @@ export function SocketProvider({ children }) {
         });
 
         socket.on('connect_error', (err) => {
-          // Ignore harmless polling errors during backend nodemon restarts
+          // ignore harmless polling errors during backend nodemon restarts
           if (err.message === 'xhr poll error') return;
           console.error('Socket connect_error:', err.message);
         });

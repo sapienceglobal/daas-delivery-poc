@@ -3,7 +3,7 @@ import * as res from '../utils/responseFormatter.js';
 import { AppError } from '../middleware/errorHandler.js';
 import '../models/Cms.js';
 
-// Define the default placeholder CMS content
+// define the default placeholder CMS content
 const defaultCmsConfig = {
   heroBanners: {
     home: '/images/branded/lassi-lounge/hero-spread.jpg',
@@ -92,7 +92,7 @@ const defaultCmsConfig = {
 };
 
 /**
- * @desc    Get CMS Config for a restaurant
+ * @desc    get CMS Config for a restaurant
  * @route   GET /api/cms
  * @access  Public
  */
@@ -106,7 +106,7 @@ export const getCmsConfig = asyncHandler(async (req, response) => {
   const CmsModel = req.getModel('Cms');
   let cms = await CmsModel.findOne({ restaurantId });
 
-  // If no CMS document exists yet, return the default mock data
+  // if no CMS document exists yet, return the default mock data
   if (!cms) {
     return res.success(response, { data: defaultCmsConfig });
   }
@@ -115,7 +115,7 @@ export const getCmsConfig = asyncHandler(async (req, response) => {
 });
 
 /**
- * @desc    Update CMS Config
+ * @desc    update CMS Config
  * @route   PUT /api/cms
  * @access  Private (Admin/Manager)
  */
@@ -140,7 +140,7 @@ export const updateCmsConfig = asyncHandler(async (req, response) => {
     cms.bookingSettings = bookingSettings || cms.bookingSettings;
     await cms.save();
   } else {
-    // Merge provided fields with default placeholders for missing fields
+    // merge provided fields with default placeholders for missing fields
     cms = await CmsModel.create({
       restaurantId,
       heroBanners: heroBanners || defaultCmsConfig.heroBanners,

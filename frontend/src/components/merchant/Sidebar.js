@@ -60,15 +60,13 @@ const SIDEBAR_STRUCTURE = [
 export default function MerchantSidebar() {
   const pathname = usePathname();
   const { stats = {} } = useMerchantContext();
-  
-  // Helper to determine active state
+// determine active state
   const isActiveNav = (id) => {
     if (id === 'dashboard') return pathname === '/merchant';
     const normalizedId = id.replace('_', '-');
     return pathname.startsWith(`/merchant/${normalizedId}`);
   };
-
-  // Dynamically update badges based on passed stats
+// update badges based on passed stats
   const getBadgeCount = (id, defaultBadge) => {
     switch (id) {
       case 'live_orders': return stats.activeOrders ?? defaultBadge;

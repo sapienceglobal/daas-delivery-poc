@@ -6,9 +6,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
 
-/**
- * Recalculates and updates the averageRating and reviewCount on a MenuItem
- */
+// recalculates and updates the averageRating and reviewCount on a MenuItem
 const updateMenuItemStats = async (itemId) => {
   if (!itemId) return;
   const stats = await Review.aggregate([
@@ -47,7 +45,7 @@ export const getRestaurantReviews = asyncHandler(async (req, response) => {
 export const getItemReviews = asyncHandler(async (req, response) => {
   const { itemId } = req.params;
 
-  // Find order IDs that contain this menu item
+  // find order IDs that contain this menu item
   const orders = await Order.find({ 'items.menuItemId': itemId }).select('_id').lean();
   const orderIds = orders.map(o => o._id);
 
@@ -55,7 +53,7 @@ export const getItemReviews = asyncHandler(async (req, response) => {
   const limit = Math.min(50, parseInt(req.query.limit) || 20);
   const skip = (page - 1) * limit;
 
-  // Match either direct itemId OR orderId matching item
+  // match either direct itemId OR orderId matching item
   const filter = {
     $or: [
       { itemId },
@@ -74,7 +72,7 @@ export const getItemReviews = asyncHandler(async (req, response) => {
     Review.countDocuments(filter)
   ]);
 
-  // Calculate rating stats
+  // calculate rating stats
   let totalRatingSum = 0;
   const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
 
@@ -123,7 +121,7 @@ export const createReview = asyncHandler(async (req, response) => {
   let finalRestaurantId = restaurantId;
   let finalItemId = itemId;
 
-  // If itemId is provided, find item & restaurantId if missing
+  // if itemId is provided, find item & restaurantId if missing
   if (itemId && !finalRestaurantId) {
     const menuItem = await MenuItem.findById(itemId);
     if (menuItem) {
@@ -131,7 +129,7 @@ export const createReview = asyncHandler(async (req, response) => {
     }
   }
 
-  // If orderId provided, verify order
+  // if orderId provided, verify order
   if (orderId) {
     const order = await Order.findById(orderId);
     if (!order) throw new AppError('Order not found', 404);
@@ -139,11 +137,11 @@ export const createReview = asyncHandler(async (req, response) => {
     finalRestaurantId = order.restaurantId;
   }
 
-  // Check if user already reviewed this item
+  // check if user already reviewed this item
   if (itemId) {
     let existingReview = await Review.findOne({ userId: req.user._id, itemId });
     if (existingReview) {
-      // Update existing review instead of throwing error
+      // update existing review instead of throwing error
       existingReview.overallRating = finalRating;
       existingReview.foodRating = finalRating;
       if (title !== undefined) existingReview.title = title;
@@ -175,7 +173,7 @@ export const createReview = asyncHandler(async (req, response) => {
 
   await review.populate('userId', 'name avatar');
 
-  // Recalculate restaurant average rating if restaurantId exists
+  // recalculate restaurant average rating if restaurantId exists
   if (finalRestaurantId) {
     const stats = await Review.aggregate([
       { $match: { restaurantId: finalRestaurantId, isVisible: true } },
@@ -247,7 +245,7 @@ export const replyToReview = asyncHandler(async (req, response) => {
   const review = await Review.findById(req.params.id);
   if (!review) throw new AppError('Review not found', 404);
 
-  // Verify merchant owns the restaurant
+  // verify merchant owns the restaurant
   const restaurant = await Restaurant.findById(review.restaurantId);
   if (!restaurant || restaurant.ownerId?.toString() !== req.user._id.toString()) {
     throw new AppError('Only the restaurant owner can reply', 403);

@@ -25,7 +25,7 @@ export const initChangeStreams = (io) => {
           });
         }
 
-        // Also emit to a global orders channel for admin dashboards
+        // also emit to a global orders channel for admin dashboards
         io.emit('global_order_update', {
           orderId: order._id,
           orderNumber: order.orderNumber,
@@ -41,7 +41,7 @@ export const initChangeStreams = (io) => {
 
     logger.info('MongoDB Change Streams initialized for real-time order sync');
   } catch (error) {
-    // Change streams require a replica set — log and continue gracefully
+    // change streams require a replica set — log and continue gracefully
     logger.warn('Change Streams unavailable (replica set required). Real-time sync will rely on manual Socket.io emits.', {
       error: error.message
     });

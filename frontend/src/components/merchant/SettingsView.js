@@ -12,8 +12,8 @@ import { useAuth } from '@/context/AuthContext';
  * sizing/animation/focus behaviour can never drift between instances.
  */
 function Toggle({ checked, onChange, size = 'md', disabled = false, label }) {
-  // NOTE: sizes are set via inline px styles, not Tailwind w-*/h-* classes.
-  // The JIT compiler wasn't generating a rare value like w-11 (44px) for this
+// note: sizes are set via inline px styles, not Tailwind w-*/h-* classes.
+  // the JIT compiler wasn't generating a rare value like w-11 (44px) for this
   // element, so the track collapsed to the knob's own width. Inline styles
   // sidestep that entirely, regardless of Tailwind content/purge config.
   const dims = size === 'sm'
@@ -50,7 +50,7 @@ function Toggle({ checked, onChange, size = 'md', disabled = false, label }) {
   );
 }
 
-// Shared base classes so every text/number field looks and behaves the same
+// shared base classes so every text/number field looks and behaves the same
 // (a couple of fields — e.g. Service Charge — were previously missing focus
 // styles entirely, which made them feel unresponsive next to the rest).
 const fieldBase =
@@ -150,7 +150,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
     
     let permissionStatusRef = null;
     
-    // Listen for native browser permission changes
+    // listen for native browser permission changes
     if (typeof window !== 'undefined' && navigator.permissions) {
       navigator.permissions.query({ name: 'notifications' }).then((permissionStatus) => {
         permissionStatusRef = permissionStatus;
@@ -158,7 +158,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
           if (permissionStatus.state !== 'granted') {
             setDeviceSubscribed(false);
           } else {
-            // If they granted permission natively in the browser URL bar, auto-subscribe them
+            // if they granted permission natively in the browser URL bar, auto-subscribe them
             subscribeToPushNotifications();
           }
         };
@@ -211,8 +211,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
       return next;
     });
   };
-
-  // Helper to convert base64 to Uint8Array
+// convert base64 to Uint8Array
   const urlBase64ToUint8Array = (base64String) => {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
@@ -298,11 +297,11 @@ export default function SettingsView({ restaurant, onRefresh }) {
   const handleSave = async () => {
     try {
       setSaving(true);
-      // Update general fields and nested notificationSettings
+      // update general fields and nested notificationSettings
       const updatePayload = { ...formData, notificationSettings: { whatsappEnabled: formData.whatsappEnabled, whatsappNumber: formData.whatsappNumber, pushEnabled: formData.pushEnabled } };
       await restaurantAPI.update(restaurant._id, updatePayload);
       
-      // Force all days to use the global open/close time
+      // force all days to use the global open/close time
       const globalOpen = operatingHours['monday']?.open || '11:30';
       const globalClose = operatingHours['monday']?.close || '22:00';
       const normalizedHours = {};
@@ -314,7 +313,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
         };
       });
 
-      // Update hours
+      // update hours
       await restaurantAPI.updateHours(restaurant._id, { operatingHours: normalizedHours });
 
       showToast('Settings saved successfully!', 'success');

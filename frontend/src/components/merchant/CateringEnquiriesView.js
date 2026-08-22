@@ -36,7 +36,7 @@ export default function CateringEnquiriesView({ inquiries = [], isLoading = fals
   const [eventTypeFilter, setEventTypeFilter] = useState('All Event Types');
   const [chartTimeframe, setChartTimeframe] = useState('This Month');
   
-  // Sorting state
+  // sorting state
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
 
   const handleSort = (key) => {
@@ -64,12 +64,12 @@ export default function CateringEnquiriesView({ inquiries = [], isLoading = fals
 
   useEffect(() => setMounted(true), []);
 
-  // Filter change hone par items reset karein
+  // reset items when filters change
   useEffect(() => {
     setVisibleCount(ITEMS_PER_LOAD);
   }, [searchTerm, statusFilter, eventTypeFilter]);
 
-  // Check Scroll Position
+  // check Scroll Position
   const checkForScrollPosition = () => {
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;

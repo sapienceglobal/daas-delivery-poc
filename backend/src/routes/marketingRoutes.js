@@ -4,7 +4,7 @@ import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Only allow admin and manager to access marketing campaigns
+// only allow admin and manager to access marketing campaigns
 router.use(protect);
 router.use(authorize('merchant', 'admin'));
 

@@ -18,12 +18,12 @@ const pinLimiter = rateLimit({
   skipSuccessfulRequests: false, // Count successful attempts too (prevent enumeration)
 });
 
-// Public / POS routes — rate-limited to prevent PIN brute-force
+// public / POS routes — rate-limited to prevent PIN brute-force
 router.post('/pin/clock-in', pinLimiter, employeeController.clockInWithPin);
 router.post('/pin/clock-out', pinLimiter, employeeController.clockOutWithPin);
 router.post('/pin/verify', pinLimiter, employeeController.verifyPin);
 
-// Protected routes (Admin / Merchant)
+// protected routes (Admin / Merchant)
 router.use(protect);
 router.use(authorize(USER_ROLES.ADMIN, USER_ROLES.MERCHANT));
 

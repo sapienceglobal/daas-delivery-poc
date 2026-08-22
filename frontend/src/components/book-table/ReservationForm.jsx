@@ -23,7 +23,7 @@ const OCCASIONS = ['Birthday', 'Anniversary', 'Date Night', 'Business Dinner', '
 export default function ReservationForm({ onSubmit }) {
   const [currentStep, setCurrentStep] = useState(1);
   
-  // Form State
+  // form State
   const today = new Date().toISOString().split('T')[0];
   const [date, setDate] = useState(today);
   const [time, setTime] = useState('19:00');
@@ -32,7 +32,7 @@ export default function ReservationForm({ onSubmit }) {
   const [occasion, setOccasion] = useState('');
   const [note, setNote] = useState('');
 
-  // Step 2 State
+  // step 2 State
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -46,7 +46,7 @@ export default function ReservationForm({ onSubmit }) {
       if (!partySize || partySize < 1) return showToast('Please select a valid party size', 'error');
       
       setCurrentStep(2);
-      // Scroll the form card to top
+      // scroll the form card to top
       if (formRef.current) formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (currentStep === 2) {
       if (!name || name.trim().length < 3) {
@@ -59,11 +59,11 @@ export default function ReservationForm({ onSubmit }) {
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return showToast('Please enter a valid email address', 'error');
       }
-      // Assuming step 3 is skipped for now since requests are in step 1 based on UI
+      // assuming step 3 is skipped for now since requests are in step 1 based on UI
       setCurrentStep(4);
       if (formRef.current) formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       
-      // Submit to backend
+      // submit to backend
       if (onSubmit) {
         onSubmit({
           date, time, partySize: Number(partySize), location, occasion, specialRequests: note,

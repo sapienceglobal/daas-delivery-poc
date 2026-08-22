@@ -7,7 +7,7 @@ export default function OrderStatusCard({ order }) {
 
   const isDelivery = order.orderType === 'delivery';
 
-  // Define steps dynamically based on order type (Delivery vs Pickup/Dine-in)
+  // define steps dynamically based on order type (Delivery vs Pickup/Dine-in)
   const steps = isDelivery
     ? [
         {
@@ -80,7 +80,7 @@ export default function OrderStatusCard({ order }) {
         },
       ];
 
-  // Status rank for sequence comparison
+  // status rank for sequence comparison
   const statusRank = isDelivery
     ? {
         pending: 0,
@@ -102,8 +102,7 @@ export default function OrderStatusCard({ order }) {
 
   const currentStatus = order.status;
   const currentRank = statusRank[currentStatus] ?? 0;
-
-  // Helper to resolve status progress
+// resolve status progress
   const getStepState = (stepIndex) => {
     let isCompleted = false;
     let isActive = false;
@@ -118,7 +117,7 @@ export default function OrderStatusCard({ order }) {
       isActive = true;
     }
 
-    // Attempt to pull timestamp from statusUpdates list
+    // attempt to pull timestamp from statusUpdates list
     const stepObj = steps[stepIndex];
     const updateMatch = order.statusUpdates?.find(u => stepObj.statuses.includes(u.status));
     const timestampText = updateMatch

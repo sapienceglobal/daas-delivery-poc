@@ -64,7 +64,7 @@ const ReservationSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Indexes for fast lookup
+// indexes for fast lookup
 ReservationSchema.index({ restaurantId: 1, date: 1 });
 ReservationSchema.index({ userId: 1, date: -1 });
 ReservationSchema.index({ status: 1 });

@@ -13,7 +13,7 @@ export default function LassiLocationModal({ isOpen, onClose }) {
   const phone = brand?.phone || footerContent.findUs.phone;
   const email = brand?.email || footerContent.findUs.email;
   
-  // Transitions
+  // transitions
   useEffect(() => {
     let timeoutId;
     if (isOpen) {
@@ -41,7 +41,7 @@ export default function LassiLocationModal({ isOpen, onClose }) {
     return () => document.removeEventListener('keydown', handleEsc);
   }, [show]);
   
-  // Format hours
+  // format hours
   const getDynamicHours = () => {
     if (!brand?.operatingHours) return footerContent.hours;
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];

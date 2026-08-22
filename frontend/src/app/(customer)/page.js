@@ -35,7 +35,7 @@ export default function HomePage() {
   const { t } = useLanguage();
 
   useEffect(() => {
-    // Check if user has a default saved address on mount
+    // check if user has a default saved address on mount
     if (user && user.savedAddresses?.length > 0 && !lat) {
       const defaultAddr = user.savedAddresses.find(a => a.isDefault) || user.savedAddresses[0];
       if (defaultAddr.lat && defaultAddr.lng) {

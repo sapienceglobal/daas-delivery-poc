@@ -14,7 +14,7 @@ import {
 } from '@/components/ui';
 import AddressModal from '@/components/shared/AddressModal';
 
-// Naye modularized components ko import karein
+// import newly modularized components
 import LassiProfilePage from '@/components/profile/LassiProfilePage';
 
 import Loading from '@/app/loading';
@@ -40,12 +40,12 @@ export default function ProfilePage() {
     return <Loading />;
   }
 
-  // Single-Restaurant (Lassi Lounge) route ko naye structure ki taraf point karein
+  // point Single-Restaurant mode route to the new structure
   if (isSingleRestaurantMode) {
     return <LassiProfilePage user={user} logout={logout} updateUser={updateUser} />;
   }
 
-  // Enterprise (Zomato/Swiggy type) route (exactly unchanged)
+  // enterprise (Zomato/Swiggy type) route (unchanged)
   return <MarketplaceProfilePage user={user} updateUser={updateUser} />;
 }
 
@@ -53,7 +53,7 @@ export default function ProfilePage() {
 /**
  * ────────────────────────────────────────────────────────────────────────
  * MARKETPLACE / ENTERPRISE PROFILE COMPONENTS
- * (Ye sab aapke purane code ke hisab se exactly same hain)
+ * (These components are kept unchanged from the original code)
  * ────────────────────────────────────────────────────────────────────────
  */
 
@@ -214,7 +214,7 @@ function AddressesTab({ user, updateUser }) {
   const [form, setForm] = useState({ label: 'Home' });
   const [loading, setLoading] = useState(false);
 
-  // Address fields matching checkout
+  // address fields matching checkout
   const [addressLine1, setAddressLine1] = useState('');
   const [addressLine2, setAddressLine2] = useState('');
   const [city, setCity] = useState('');
@@ -223,7 +223,7 @@ function AddressesTab({ user, updateUser }) {
   const [lat, setLat] = useState(null);
   const [lng, setLng] = useState(null);
 
-  // Auto-suggestion state
+  // auto-suggestion state
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState(null);

@@ -48,7 +48,7 @@ export default function ReviewOrderSection({
 
   const isDelivery = orderType === 'delivery';
 
-  // Format payment method text
+  // format payment method text
   const getPaymentLabel = () => {
     switch (paymentMethod) {
       case 'credit_card':

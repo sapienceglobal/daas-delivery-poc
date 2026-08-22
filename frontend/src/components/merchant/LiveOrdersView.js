@@ -32,7 +32,7 @@ export default function LiveOrdersView({
   const checkForScrollPosition = () => {
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      // Added 1px tolerance for floating point rounding issues
+      // added 1px tolerance for floating point rounding issues
       setCanScrollLeft(scrollLeft > 1);
       setCanScrollRight(Math.ceil(scrollLeft) < scrollWidth - clientWidth - 1);
     }
@@ -47,19 +47,19 @@ export default function LiveOrdersView({
     return () => clearTimeout(timer);
   }, [orders, visibleCounts]); 
 
-  // Window Resize Listener
+  // window Resize Listener
   useEffect(() => {
     window.addEventListener('resize', checkForScrollPosition);
     return () => window.removeEventListener('resize', checkForScrollPosition);
   }, []);
 
-  // Mouse Wheel Horizontal Scroll Listener
+  // mouse Wheel Horizontal Scroll Listener
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
     const handleWheel = (e) => {
-      // Convert vertical scroll to horizontal scroll
+      // convert vertical scroll to horizontal scroll
       if (e.deltaY !== 0 && e.deltaX === 0) {
         e.preventDefault();
         container.scrollBy({ left: e.deltaY, behavior: 'auto' });
@@ -87,7 +87,7 @@ export default function LiveOrdersView({
 
   if (!mounted) return null;
 
-  // Group orders by status
+  // group orders by status
   const getColOrders = (statuses) => orders.filter(o => statuses.includes((o.status || '').toLowerCase()));
 
   const columns = [
@@ -240,7 +240,7 @@ export default function LiveOrdersView({
     );
   };
 
-  // Right Sidebar Stats
+  // right Sidebar Stats
   const todayOrders = orders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString());
   const completedToday = todayOrders.filter(o => ['delivered', 'completed', 'picked_up'].includes(o.status?.toLowerCase()));
   const cancelledToday = todayOrders.filter(o => ['cancelled', 'refunded'].includes(o.status?.toLowerCase()));

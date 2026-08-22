@@ -19,7 +19,7 @@ export const validateCoupon = asyncHandler(async (req, response) => {
   }
 
   const pastOrderCount = await OrderModel.countDocuments({ userId: req.user._id });
-  // Pass null for paymentMethod during live validation so it applies successfully and frontend can enforce the UI lock
+  // pass null for paymentMethod during live validation so it applies successfully and frontend can enforce the UI lock
   const validation = coupon.isValid(cartValue || 0, req.user._id, pastOrderCount, null);
 
   if (!validation.valid) {
@@ -85,7 +85,7 @@ export const getActiveCoupons = asyncHandler(async (req, response) => {
     ]
   };
 
-  // Allow optional restaurant filtering for single restaurant app or marketplace
+  // allow optional restaurant filtering for single restaurant app or marketplace
   if (req.query.restaurantId) {
     filter.$and.push({
       $or: [
@@ -95,7 +95,7 @@ export const getActiveCoupons = asyncHandler(async (req, response) => {
     });
   }
 
-  // Only return coupons that haven't hit their usage limit
+  // only return coupons that haven't hit their usage limit
   filter.$expr = { $or: [{ $eq: ["$maxUses", null] }, { $lt: ["$usedCount", "$maxUses"] }] };
 
   const coupons = await CouponModel.find(filter)
@@ -115,13 +115,13 @@ export const createCoupon = asyncHandler(async (req, response) => {
     req.body.specificRestaurant = req.user.restaurantId;
   }
 
-  // Handle Target Group Logic
+  // handle Target Group Logic
   const { targetGroup } = req.body;
   if (targetGroup && targetGroup !== 'All Users') {
     const CustomerModel = req.getModel ? req.getModel('Customer') : Customer;
     const UserModel = req.getModel ? req.getModel('User') : User;
 
-    // Find customers in this group
+    // find customers in this group
     const customers = await CustomerModel.find({ 
       restaurantId: req.user.restaurantId, 
       group: targetGroup,
@@ -131,14 +131,14 @@ export const createCoupon = asyncHandler(async (req, response) => {
     const emails = customers.map(c => c.email).filter(Boolean);
     const users = await UserModel.find({ email: { $in: emails } });
     
-    // Set applicable users to restrict the coupon
+    // set applicable users to restrict the coupon
     req.body.applicableUsers = users.map(u => u._id);
   }
 
   const CouponModel = req.getModel ? req.getModel('Coupon') : Coupon;
   const coupon = await CouponModel.create(req.body);
 
-  // Send notifications to targeted users
+  // send notifications to targeted users
   if (targetGroup && targetGroup !== 'All Users' && req.body.applicableUsers?.length > 0) {
     const NotificationModel = req.getModel ? req.getModel('Notification') : (await import('../models/Notification.js')).default;
     const notifications = req.body.applicableUsers.map(uid => ({
@@ -202,13 +202,13 @@ export const getCouponStats = asyncHandler(async (req, response) => {
     CouponModel.countDocuments({ ...filter, isActive: true, endDate: { $gte: now } })
   ]);
 
-  // Total Orders for Redemption Rate
+  // total Orders for Redemption Rate
   const allOrdersFilter = req.user.role === 'merchant' ? { restaurantId: req.user.restaurantId } : {};
   const totalOrders = await OrderModel.countDocuments(allOrdersFilter);
 
   const orderFilter = { couponId: { $ne: null }, ...allOrdersFilter };
 
-  // All time stats
+  // all time stats
   const orderStats = await OrderModel.aggregate([
     { $match: orderFilter },
     {
@@ -221,7 +221,7 @@ export const getCouponStats = asyncHandler(async (req, response) => {
     }
   ]);
 
-  // This month stats
+  // this month stats
   const thisMonthStats = await OrderModel.aggregate([
     { $match: { ...orderFilter, createdAt: { $gte: startOfThisMonth } } },
     {
@@ -234,7 +234,7 @@ export const getCouponStats = asyncHandler(async (req, response) => {
     }
   ]);
 
-  // Last month stats
+  // last month stats
   const lastMonthStats = await OrderModel.aggregate([
     { $match: { ...orderFilter, createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth } } },
     {
@@ -247,7 +247,7 @@ export const getCouponStats = asyncHandler(async (req, response) => {
     }
   ]);
 
-  // Promotions created this/last month for trend
+  // promotions created this/last month for trend
   const [promosThisMonth, promosLastMonth] = await Promise.all([
     CouponModel.countDocuments({ ...filter, createdAt: { $gte: startOfThisMonth } }),
     CouponModel.countDocuments({ ...filter, createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth } })

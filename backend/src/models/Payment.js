@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { PAYMENT_METHOD_VALUES, PAYMENT_STATUS_VALUES } from '../config/constants.js';
 
-// Extend payment method values to include stripe_online (used in orderController)
+// extend payment method values to include stripe_online (used in orderController)
 const EXTENDED_PAYMENT_METHOD_VALUES = [...PAYMENT_METHOD_VALUES, 'stripe_online'];
 
 const PaymentSchema = new mongoose.Schema({
@@ -84,11 +84,11 @@ PaymentSchema.index({ restaurantId: 1, createdAt: -1 });
 PaymentSchema.index({ stripePaymentIntentId: 1 }, { sparse: true });
 
 // ── Pre-save: auto-generate invoice number ─────────────────────────────────
-// Format: INV-YYYY-XXXXX (e.g. INV-2026-00042)
+// format: INV-YYYY-XXXXX (e.g. INV-2026-00042)
 PaymentSchema.pre('save', async function (next) {
   if (!this.invoiceNumber) {
     const year = new Date().getFullYear();
-    // Count total payments this year to get sequence
+    // count total payments this year to get sequence
     const count = await this.constructor.countDocuments({
       createdAt: {
         $gte: new Date(`${year}-01-01T00:00:00.000Z`),

@@ -14,18 +14,22 @@ if (process.env.STRIPE_SECRET_KEY) {
   logger.warn('Stripe is not configured. Payments will not work.');
 }
 
-/**
- * Create a Stripe Customer
- */
-export const createCustomer = async (email, name, metadata = {}) => {
+// create a Stripe Customer
+export const createCustomer = async (email, name, metadata = {}, phone = null) => {
   if (!stripe) throw new Error('Stripe is not configured');
-  const customer = await stripe.customers.create({ email, name, metadata });
+  const params = { email, name, metadata };
+  if (phone && phone !== '0000000000') params.phone = phone;
+  const customer = await stripe.customers.create(params);
   return customer;
 };
 
-/**
- * Create an Ephemeral Key for a Customer
- */
+// update a Stripe Customer
+export const updateCustomer = async (customerId, updates) => {
+  if (!stripe) throw new Error('Stripe is not configured');
+  return await stripe.customers.update(customerId, updates);
+};
+
+// create an Ephemeral Key for a Customer
 export const createEphemeralKey = async (customerId, stripeVersion) => {
   if (!stripe) throw new Error('Stripe is not configured');
   const ephemeralKey = await stripe.ephemeralKeys.create(
@@ -35,9 +39,7 @@ export const createEphemeralKey = async (customerId, stripeVersion) => {
   return ephemeralKey;
 };
 
-/**
- * Create a Payment Intent
- */
+// create a Payment Intent
 export const createPaymentIntent = async (amount, metadata = {}, customerId = null) => {
   if (!stripe) throw new Error('Stripe is not configured');
 
@@ -45,7 +47,7 @@ export const createPaymentIntent = async (amount, metadata = {}, customerId = nu
     amount: Math.round(amount * 100), // Stripe expects cents
     currency: 'usd',
     metadata,
-    // Explicitly specify 'card' only — do NOT use automatic_payment_methods
+    // explicitly specify 'card' only — do NOT use automatic_payment_methods
     // automatic_payment_methods enables Stripe Link which opens checkout.link.com
     // in a webview on mobile and breaks the native payment sheet flow.
     payment_method_types: ['card'],
@@ -61,9 +63,7 @@ export const createPaymentIntent = async (amount, metadata = {}, customerId = nu
   return paymentIntent;
 };
 
-/**
- * Charge a saved card synchronously (off-session or direct on-session)
- */
+// charge a saved card synchronously (off-session or direct on-session)
 export const chargeSavedCard = async (amount, customerId, paymentMethodId, metadata = {}) => {
   if (!stripe) throw new Error('Stripe is not configured');
 
@@ -80,9 +80,7 @@ export const chargeSavedCard = async (amount, customerId, paymentMethodId, metad
   return paymentIntent;
 };
 
-/**
- * Create a Setup Intent for saving a card without charging
- */
+// create a Setup Intent for saving a card without charging
 export const createSetupIntent = async (metadata = {}, customerId = null) => {
   if (!stripe) throw new Error('Stripe is not configured');
 
@@ -100,17 +98,13 @@ export const createSetupIntent = async (metadata = {}, customerId = null) => {
   return setupIntent;
 };
 
-/**
- * Retrieve a Payment Intent from Stripe for server-side verification.
- */
+// retrieve a Payment Intent from Stripe for server-side verification.
 export const retrievePaymentIntent = async (paymentIntentId) => {
   if (!stripe) throw new Error('Stripe is not configured');
   return stripe.paymentIntents.retrieve(paymentIntentId);
 };
 
-/**
- * Handle Stripe Webhook
- */
+// handle Stripe Webhook
 export const handleWebhook = async (rawBody, signature, secret) => {
   if (!stripe) throw new Error('Stripe is not configured');
 
@@ -122,7 +116,7 @@ export const handleWebhook = async (rawBody, signature, secret) => {
     throw err;
   }
 
-  // Handle the event
+  // handle the event
   switch (event.type) {
     case 'payment_intent.succeeded': {
       const paymentIntent = event.data.object;
@@ -158,7 +152,7 @@ export const handleWebhook = async (rawBody, signature, secret) => {
       break;
     }
 
-    // Add other event types here (e.g., charge.refunded)
+    // add other event types here (e.g., charge.refunded)
     default:
       logger.info(`Unhandled Stripe event type: ${event.type}`);
   }
@@ -166,9 +160,7 @@ export const handleWebhook = async (rawBody, signature, secret) => {
   return true;
 };
 
-/**
- * Issue a Refund
- */
+// issue a Refund
 export const refundPayment = async (paymentIntentId, amount = null, optionsOverride = {}) => {
   if (!stripe) throw new Error('Stripe is not configured');
 
@@ -187,6 +179,7 @@ export const refundPayment = async (paymentIntentId, amount = null, optionsOverr
 
 export default {
   createCustomer,
+  updateCustomer,
   createPaymentIntent,
   createSetupIntent,
   chargeSavedCard,

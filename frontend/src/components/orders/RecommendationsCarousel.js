@@ -21,12 +21,12 @@ export default function RecommendationsCarousel({ restaurantId, orderedItemIds =
       const data = await menuAPI.getByRestaurant(restaurantId);
       const allItems = data.data || [];
       
-      // Filter out items that are already in the order
+      // filter out items that are already in the order
       const filtered = allItems.filter(
         (item) => !orderedItemIds.includes(item._id) && item.isAvailable
       );
       
-      // Limit to 8 items for recommendation carousel
+      // limit to 8 items for recommendation carousel
       setItems(filtered.slice(0, 8));
     } catch (err) {
       console.error('Failed to load recommended items:', err);

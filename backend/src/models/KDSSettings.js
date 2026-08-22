@@ -7,7 +7,7 @@ const kdsSettingsSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  // Display Settings
+  // display Settings
   orderGrouping: {
     type: String,
     enum: ['Order Time', 'Order Type', 'Status'],
@@ -43,7 +43,7 @@ const kdsSettingsSchema = new mongoose.Schema({
     enum: ['Highlight', 'Move to Top'],
     default: 'Highlight'
   },
-  // Alerts & Notifications
+  // alerts & Notifications
   newOrderAlert: {
     type: String,
     enum: ['Sound + Popup', 'Sound Only', 'Popup Only', 'None'],
