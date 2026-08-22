@@ -189,3 +189,15 @@ single_restaurant_mobile/windows/*.[Cc]ache
 # but keep track of directories ending in .cache
 single_restaurant_mobile/windows/!*.[Cc]ache/
 
+
+# Agent and AI config files
+.agents/
+.agents
+.gemini/
+*AI*.js
+*ai*.js
+
+# Misc Scratch Files
+*.cjs
+update_location.*
+*update*location*
