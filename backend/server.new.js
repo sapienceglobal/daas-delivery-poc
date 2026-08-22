@@ -5,7 +5,6 @@ import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import app from './src/app.js';
 import connectDB from './src/config/db.js';
-import seedDemoData from './src/config/seed.js';
 import { initChangeStreams } from './src/config/changeStreams.js';
 import { startDeliveryPolling } from './src/services/deliverySyncService.js';
 import { initCronJobs } from './src/services/cronService.js';
@@ -206,7 +205,12 @@ io.on('connection', (socket) => {
 const startServer = async () => {
   validateEnvironment();
   await connectDB();
-  await seedDemoData();
+  try {
+    const { default: seedDemoData } = await import('./src/config/seed.js');
+    await seedDemoData();
+  } catch (err) {
+    logger.info('Skipping database seed: seed.js not found or failed to load');
+  }
   initChangeStreams(io);
   startDeliveryPolling(io, (model) => getTenantModel('lassi-lounge', model));
   initCronJobs(io, (model) => getTenantModel('lassi-lounge', model));

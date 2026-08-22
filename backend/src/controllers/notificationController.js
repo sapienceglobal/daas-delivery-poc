@@ -4,7 +4,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { getFirebaseAdmin } from '../config/firebase.js';
-import { getMessaging } from 'firebase-admin/messaging';
+import admin from 'firebase-admin';
 import logger from '../utils/logger.js';
 
 /**
@@ -138,7 +138,7 @@ export const createNotification = async (userId, title, body, type = 'system', a
           tokens: user.fcmTokens
         };
         
-        getMessaging(firebaseApp).sendEachForMulticast(message)
+        admin.messaging().sendEachForMulticast(message)
           .then(response => {
             if (response.failureCount > 0) {
               logger.warn(`FCM partial failure: ${response.failureCount} failed out of ${user.fcmTokens.length} tokens.`);

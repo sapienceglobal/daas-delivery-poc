@@ -4,6 +4,9 @@
   "type": "module",
   "description": "Production-grade Restaurant Commerce Platform — SaaS backend with DoorDash Drive API integration",
   "main": "server.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "start": "node server.new.js",
     "dev": "nodemon server.new.js",
