@@ -29,12 +29,14 @@ export function MerchantProvider({ children }) {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!backendVerified) return;
-    if (!isAuthenticated) { router.push('/restaurant-panel'); return; }
+    if (!backendVerified || !isAuthenticated) { 
+      router.push('/restaurant-panel'); 
+      return; 
+    }
     if (!isMerchant && !isAdmin) { router.push('/'); return; }
     
     initMerchantData();
-  }, [isAuthenticated, isMerchant, isAdmin, authLoading, backendVerified]);
+  }, [isAuthenticated, isMerchant, isAdmin, authLoading, backendVerified, router]);
 
   const initMerchantData = async () => {
     try {
@@ -87,11 +89,11 @@ export function MerchantProvider({ children }) {
     refreshRestaurant: initMerchantData
   };
 
-  if (authLoading || !backendVerified || initialLoading) {
+  if (authLoading || (!isAuthenticated && !backendVerified) || initialLoading) {
     return (
       <div className="flex h-screen bg-[#070707] w-full text-brand-text font-sans">
         <div className="w-[250px] h-screen bg-[#111827] border-r border-[#1f2937] shrink-0" />
-        <div className="flex-1 p-6 bg-[#F8FAFC]"><PageLoader text="Loading Workspace..." /></div>
+        <div className="flex-1 p-6 bg-[#F8FAFC]"><PageLoader text={(!isAuthenticated && !backendVerified && !authLoading) ? "Redirecting..." : "Loading Workspace..."} /></div>
       </div>
     );
   }

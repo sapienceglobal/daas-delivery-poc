@@ -35,7 +35,7 @@ class AboutUsScreen extends StatelessWidget {
               height: 250,
               decoration: const BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage('assets/images/branded/lassi-lounge/about/story-spread.jpg'),
+                  image: AssetImage('assets/images/branded/lassi-lounge/story/restaurant-interior.jpg'),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -51,7 +51,7 @@ class AboutUsScreen extends StatelessWidget {
                       const Text(
                         'OUR STORY',
                         style: TextStyle(
-                          color: Colors.orange,
+                          color: AppColors.secondary,
                           fontWeight: FontWeight.w900,
                           fontSize: 12,
                           letterSpacing: 2.0,
@@ -61,7 +61,7 @@ class AboutUsScreen extends StatelessWidget {
                       Expanded(
                         child: Container(
                           height: 1.5,
-                          color: Colors.orange.withOpacity(0.5),
+                          color: AppColors.secondary.withOpacity(0.5),
                         ),
                       ),
                     ],
@@ -78,9 +78,9 @@ class AboutUsScreen extends StatelessWidget {
                         color: Colors.black,
                       ),
                       children: [
-                        TextSpan(text: 'A Passion For Authentic\n'),
+                        TextSpan(text: 'The Essence Of\n'),
                         TextSpan(
-                          text: 'Indian Cuisine',
+                          text: 'Authentic India',
                           style: TextStyle(color: AppColors.secondary),
                         ),
                       ],
@@ -90,17 +90,7 @@ class AboutUsScreen extends StatelessWidget {
                   
                   // Body Text
                   const Text(
-                    'Lassi Lounge was born from a simple idea – to bring the rich, diverse and soulful flavors of India to the heart of New York. From the bustling streets of Delhi to the royal kitchens of Punjab, our recipes are crafted with love, tradition and the finest ingredients.',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.black87,
-                      height: 1.6,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Every dish we serve is a reflection of our culture, our memories and our promise to deliver an experience you\'ll want to come back to.',
+                    'At Lassi Lounge, we bring you the true taste of India with recipes passed down through generations. Every dish is prepared with the freshest ingredients and traditional spices.',
                     style: TextStyle(
                       fontSize: 15,
                       color: Colors.black87,
@@ -110,53 +100,23 @@ class AboutUsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 40),
                   
-                  // Founder Section
-                  Row(
-                    children: [
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                          image: const DecorationImage(
-                            image: AssetImage('assets/images/branded/lassi-lounge/about/chef-kuldeep.jpg'),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'Kuldeep Singh',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              fontStyle: FontStyle.italic,
-                              color: Colors.black,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Founder, Lassi Lounge',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  // Features Section
+                  _buildFeatureItem(
+                    icon: Icons.restaurant_menu,
+                    title: 'Authentic Recipes',
+                    description: 'Traditional recipes crafted by experienced chefs.',
+                  ),
+                  const SizedBox(height: 24),
+                  _buildFeatureItem(
+                    icon: Icons.eco,
+                    title: 'Fresh Ingredients',
+                    description: 'We use the freshest & highest quality ingredients.',
+                  ),
+                  const SizedBox(height: 24),
+                  _buildFeatureItem(
+                    icon: Icons.celebration,
+                    title: 'Warm Ambience',
+                    description: 'Perfect place for family, friends & special occasions.',
                   ),
                   const SizedBox(height: 40),
                 ],
@@ -165,6 +125,47 @@ class AboutUsScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFeatureItem({required IconData icon, required String title, required String description}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.secondary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: AppColors.secondary, size: 28),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

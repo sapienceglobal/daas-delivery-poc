@@ -44,6 +44,8 @@ export function AuthProvider({ children }) {
     const clearAuthStorage = () => {
       localStorage.removeItem('marketplace_user');
       localStorage.removeItem('marketplace_token');
+      localStorage.removeItem('marketplace_remember_me');
+      localStorage.removeItem('marketplace_last_activity');
       // user_role cookie is a UX hint only — NEVER used for security decisions.
       // next.js middleware verifies the JWT directly (via jose), not this cookie.
       document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -90,6 +92,11 @@ export function AuthProvider({ children }) {
 
     localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
     localStorage.removeItem('marketplace_token');
+    localStorage.setItem('marketplace_remember_me', rememberMe ? 'true' : 'false');
+    
+    if (!rememberMe) {
+      sessionStorage.setItem('marketplace_tab_active', 'true');
+    }
 
     const cookieAge = rememberMe ? 'max-age=2592000;' : '';
     document.cookie = `user_role=${userData.role}; path=/; ${cookieAge} SameSite=Lax`;
@@ -105,6 +112,11 @@ export function AuthProvider({ children }) {
 
     localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
     localStorage.removeItem('marketplace_token');
+    localStorage.setItem('marketplace_remember_me', rememberMe ? 'true' : 'false');
+
+    if (!rememberMe) {
+      sessionStorage.setItem('marketplace_tab_active', 'true');
+    }
 
     const cookieAge = rememberMe ? 'max-age=2592000;' : '';
     document.cookie = `user_role=${userData.role}; path=/; ${cookieAge} SameSite=Lax`;
@@ -120,6 +132,7 @@ export function AuthProvider({ children }) {
 
     localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
     localStorage.removeItem('marketplace_token');
+    localStorage.setItem('marketplace_remember_me', 'true');
     document.cookie = `user_role=${userData.role}; path=/; max-age=2592000; SameSite=Lax`;
 
     setUser(userData);
@@ -152,6 +165,8 @@ export function AuthProvider({ children }) {
     }
     localStorage.removeItem('marketplace_user');
     localStorage.removeItem('marketplace_token');
+    localStorage.removeItem('marketplace_remember_me');
+    localStorage.removeItem('marketplace_last_activity');
     document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     setUser(null);
     setBackendVerified(false);
@@ -191,6 +206,92 @@ export function AuthProvider({ children }) {
       return updated;
     });
   }, []);
+
+  // M7 FIX: Industry Standard Inactivity Logout for Merchants
+  // Banks and enterprise apps enforce inactivity logouts to circumvent the browser's
+  // "Continue where you left off" feature which forcefully restores session cookies.
+  useEffect(() => {
+    let activityInterval;
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    
+    const handleActivity = () => {
+      const now = Date.now();
+      const last = parseInt(localStorage.getItem('marketplace_last_activity') || '0', 10);
+      if (now - last > 5000) {
+        localStorage.setItem('marketplace_last_activity', now.toString());
+      }
+    };
+
+    if (backendVerified && localStorage.getItem('marketplace_remember_me') === 'false' && user?.role !== 'customer') {
+      localStorage.setItem('marketplace_last_activity', Date.now().toString());
+      events.forEach(e => window.addEventListener(e, handleActivity, { passive: true }));
+      
+      activityInterval = setInterval(() => {
+        const lastActivity = parseInt(localStorage.getItem('marketplace_last_activity') || '0', 10);
+        if (Date.now() - lastActivity > 30 * 60 * 1000) { // 30 minutes
+          logout();
+          alert('You have been securely logged out due to 30 minutes of inactivity.');
+          window.location.href = '/login';
+        }
+      }, 60000);
+    }
+
+    return () => {
+      events.forEach(e => window.removeEventListener(e, handleActivity));
+      if (activityInterval) clearInterval(activityInterval);
+    };
+  }, [backendVerified, logout, user?.role]);
+
+  // M8 FIX: Strict Logout on Tab/Browser Close (Cross-tab validation)
+  // This applies to ALL roles (merchants and customers) if rememberMe is false.
+  // It guarantees instant logout if all tabs are closed, defeating Chrome's session restore.
+  useEffect(() => {
+    if (!backendVerified || localStorage.getItem('marketplace_remember_me') !== 'false') return;
+
+    // Answer pings from other tabs
+    const handleStorage = (e) => {
+      if (e.key === 'session_ping') {
+        localStorage.setItem('session_pong', Date.now().toString());
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // Check if this tab is authorized
+    if (!sessionStorage.getItem('marketplace_tab_active')) {
+      let isSharedSession = false;
+      const listenPong = (e) => {
+        if (e.key === 'session_pong') isSharedSession = true;
+      };
+      window.addEventListener('storage', listenPong);
+      
+      // Ping other tabs
+      localStorage.setItem('session_ping', Date.now().toString());
+      
+      const timer = setTimeout(() => {
+        window.removeEventListener('storage', listenPong);
+        if (isSharedSession) {
+          // Another tab is open, authorize this tab
+          sessionStorage.setItem('marketplace_tab_active', 'true');
+        } else {
+          // No other tabs responded. Check if it was a page refresh.
+          const navType = performance.getEntriesByType('navigation')[0]?.type;
+          if (navType === 'reload' || navType === 'back_forward') {
+            sessionStorage.setItem('marketplace_tab_active', 'true');
+          } else {
+            // Fresh launch, no other tabs open -> Strict logout!
+            logout();
+          }
+        }
+      }, 200);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('storage', handleStorage);
+      };
+    }
+
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [backendVerified, user?.role, logout]);
 
   const value = {
     user,
