@@ -702,9 +702,20 @@ export const createOrder = asyncHandler(async (req, response) => {
     });
   }
 
+    // Send confirmation emails to Account Owner and/or Customer Email provided at checkout
+    const emailsToNotify = new Set();
     if (req.user.email && req.user.notificationPreferences?.email !== false) {
-      sendOrderConfirmationEmail(req.user.email, order).catch(() => { });
+      emailsToNotify.add(req.user.email);
     }
+    if (order.customerEmail) {
+      emailsToNotify.add(order.customerEmail);
+    }
+
+    emailsToNotify.forEach(email => {
+      sendOrderConfirmationEmail(email, order).catch((err) => {
+        logger.error(`Failed to send confirmation email to ${email}`, { error: err.message });
+      });
+    });
 
     // ── TRIGGER BACKGROUND NOTIFICATIONS ──────────────────────────────────────
     try {
@@ -910,11 +921,14 @@ export const getMyOrders = asyncHandler(async (req, response) => {
 
 export const getOrderById = asyncHandler(async (req, response) => {
   const Order = req.getModel('Order');
-  const order = await Order.findById(req.params.id).populate('restaurantId');
+  const order = await Order.findById(req.params.id)
+    .populate('restaurantId')
+    .populate('userId', 'name email phone');
   if (!order) throw new AppError('Order not found', 404);
 
   // customer can only see their own orders; merchant/admin can see restaurant orders
-  if (req.user.role === 'customer' && order.userId?.toString() !== req.user._id.toString()) {
+  const orderUserId = order.userId?._id?.toString() || order.userId?.toString();
+  if (req.user.role === 'customer' && orderUserId !== req.user._id.toString()) {
     throw new AppError('Not authorized to view this order', 403);
   }
   if (req.user.role === 'merchant') {
@@ -1054,7 +1068,7 @@ export const getRestaurantOrders = asyncHandler(async (req, response) => {
   }
 
   const [orders, total] = await Promise.all([
-    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('userId', 'name email phone').lean(),
     Order.countDocuments(filter)
   ]);
 
@@ -1075,7 +1089,7 @@ export const getMerchantOrders = asyncHandler(async (req, response) => {
   if (req.query.status) filter.status = req.query.status;
 
   const [orders, total] = await Promise.all([
-    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('userId', 'name email phone').lean(),
     Order.countDocuments(filter)
   ]);
 
@@ -1270,7 +1284,7 @@ export const getAllOrders = asyncHandler(async (req, response) => {
   if (req.query.restaurantId) filter.restaurantId = req.query.restaurantId;
 
   const [orders, total] = await Promise.all([
-    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('userId', 'name email phone').lean(),
     Order.countDocuments(filter)
   ]);
 

@@ -385,6 +385,21 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 <div className="flex gap-2 mt-4">
                   <a href={`tel:${order.customerPhone || ''}`} className="flex-1 bg-white border border-[#e5e7eb] py-2 rounded-lg text-center text-xs font-bold text-[#111827] hover:bg-gray-50 flex justify-center items-center gap-1.5 shadow-sm transition-colors"><Phone className="w-3.5 h-3.5" /> Call</a>
                 </div>
+                
+                {/* Account Holder Information if different */}
+                {order.userId && (
+                  (order.userId.name && order.userId.name !== order.customerName) ||
+                  (order.userId.email && order.userId.email !== order.customerEmail)
+                ) && (
+                  <div className="mt-4 pt-3 border-t border-dashed border-[#e5e7eb]">
+                    <p className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider mb-1.5">Account Owner</p>
+                    <p className="text-[13px] font-bold text-[#111827]">{order.userId.name}</p>
+                    <p className="text-[12px] font-medium text-[#6b7280]">{order.userId.email}</p>
+                    {order.userId.phone && order.userId.phone !== '0000000000' && (
+                      <p className="text-[12px] font-medium text-[#6b7280]">{order.userId.phone}</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <div className="p-5 flex-1 flex flex-col justify-between">

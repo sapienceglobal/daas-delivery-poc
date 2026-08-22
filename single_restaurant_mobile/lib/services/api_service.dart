@@ -9,8 +9,8 @@ class ApiService {
   // When building for release, pass the production URL using --dart-define=API_BASE_URL=https://your-server.com
   static const String _configuredBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    // defaultValue: 'https://api.lassiloungeny.com', // Change your laptop's actual IP
-    defaultValue: 'http://192.168.1.7:5001',
+       defaultValue: 'https://api.lassiloungeny.com', // Change your laptop's actual IP
+    // defaultValue: 'http://192.168.1.7:5001',
   );
   static const Duration _requestTimeout = Duration(seconds: 20);
  
