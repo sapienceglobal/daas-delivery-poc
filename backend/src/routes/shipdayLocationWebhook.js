@@ -74,7 +74,7 @@ router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
   }
 
   // Only update location for active delivery orders
-  const activeStatuses = ['accepted', 'preparing', 'ready', 'picked_up', 'driver_assigned'];
+  const activeStatuses = ['accepted', 'preparing', 'ready', 'picked_up', 'driver_assigned', 'out_for_delivery', 'arrived'];
   if (!activeStatuses.includes(order.status)) {
     return response.status(200).json({ received: true });
   }
