@@ -21,6 +21,8 @@ import Loading from '@/app/loading';
 import MenuHero from '@/components/branded/lassi-lounge/menu/MenuHero';
 import CategorySidebar from '@/components/branded/lassi-lounge/menu/CategorySidebar';
 import DishGrid from '@/components/branded/lassi-lounge/menu/DishGrid';
+import AiRecommendationsModal from '@/components/ui/AiRecommendationsModal';
+import { sortCategories } from '@/lib/menuUtils';
 
 const getDishImage = (itemName) => {
   const name = itemName.toLowerCase();
@@ -68,7 +70,7 @@ export default function RestaurantPage() {
       try {
         const data = await restaurantAPI.getById(id);
         setRestaurant(data.data);
-        const fetchedMenu = data.data.menu || [];
+        const fetchedMenu = sortCategories(data.data.menu || []);
         setMenu(fetchedMenu);
         if (fetchedMenu.length > 0) {
           let selectedId = 'all';

@@ -42,6 +42,7 @@ import Loading from '@/app/loading';
 import OrderOnlineHero from '@/components/branded/lassi-lounge/menu/OrderOnlineHero';
 import CategorySidebar from '@/components/branded/lassi-lounge/menu/CategorySidebar';
 import DishGrid from '@/components/branded/lassi-lounge/menu/DishGrid';
+import { sortCategories } from '@/lib/menuUtils';
 import CartSidebar from '@/components/branded/lassi-lounge/menu/CartSidebar';
 
 const getDishImage = (itemName) => {
@@ -94,12 +95,13 @@ export default function RestaurantPage() {
       try {
         const data = await restaurantAPI.getById(id);
         setRestaurant(data.data);
-        setMenu(data.data.menu || []);
-        if (data.data.menu?.length > 0) {
+        const fetchedMenu = sortCategories(data.data.menu || []);
+        setMenu(fetchedMenu);
+        if (fetchedMenu.length > 0) {
           // if a categoryName is passed in URL, try to select it
           let matchedCategory = null;
           if (categoryName) {
-            matchedCategory = data.data.menu.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
+            matchedCategory = fetchedMenu.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
           }
           setActiveCategory(matchedCategory ? matchedCategory._id : 'all');
         }

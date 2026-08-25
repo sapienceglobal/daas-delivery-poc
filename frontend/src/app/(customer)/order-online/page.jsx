@@ -12,6 +12,7 @@ import { Home, Search, X, ShieldCheck, ChefHat, Award, Leaf } from 'lucide-react
 import OrderOnlineHero from '@/components/branded/lassi-lounge/menu/OrderOnlineHero';
 import CategorySidebar from '@/components/branded/lassi-lounge/menu/CategorySidebar';
 import DishGrid from '@/components/branded/lassi-lounge/menu/DishGrid';
+import { sortCategories } from '@/lib/menuUtils';
 import CartSidebar from '@/components/branded/lassi-lounge/menu/CartSidebar';
 
 const BRANDED_ID = process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'lassi-lounge';
@@ -54,7 +55,7 @@ function OrderOnlineContent() {
       try {
         const data = await restaurantAPI.getById(BRANDED_ID);
         setRestaurant(data.data);
-        const cats = data.data.menu || [];
+        const cats = sortCategories(data.data.menu || []);
         setMenu(cats);
         if (cats.length > 0) {
           const matched = categoryName ? cats.find(c => c.name.toLowerCase() === categoryName.toLowerCase()) : null;
