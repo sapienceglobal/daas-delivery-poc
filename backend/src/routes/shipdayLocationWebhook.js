@@ -67,7 +67,13 @@ router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
   });
 
   // Find order by Shipday orderId (stored as deliveryId)
-  const order = await Order.findOne({ deliveryId: String(orderId) });
+  let order = await Order.findOne({ deliveryId: String(orderId) });
+  
+  // Fallback for testing script
+  if (!order && req.body.order_number) {
+    order = await Order.findOne({ orderNumber: String(req.body.order_number) });
+  }
+
   if (!order) {
     logger.debug(`Shipday location: no order found for shipdayOrderId ${orderId}`);
     return response.status(200).json({ received: true });
