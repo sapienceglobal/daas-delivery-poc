@@ -220,18 +220,12 @@ export const getActiveOrders = async () => {
  * to mark the order as incomplete, or simply rely on webhooks to handle it.
  *
  * @param {string|number} shipdayOrderId
- * @param {string} reason
+ * @param {string} reason - Cancellation reason
  * @returns {Promise<boolean>}
  */
 export const deleteOrder = async (shipdayOrderId, reason = 'Order cancelled') => {
   try {
-    // Shipday API supports deleting/marking orders via editing
-    // If the order cannot be edited (already completed), this is a no-op
     logger.info(`Cancelling Shipday order ${shipdayOrderId}: ${reason}`);
-
-    // Attempt to edit the order with empty/cancelled status
-    // Note: Shipday may not support direct cancellation via API —
-    // the order will be managed from the Shipday dashboard
     await shipdayRequest({
       method: 'put',
       path: `/orders/${encodeURIComponent(shipdayOrderId)}`,
@@ -239,12 +233,51 @@ export const deleteOrder = async (shipdayOrderId, reason = 'Order cancelled') =>
         deliveryInstruction: `CANCELLED: ${reason}`
       }
     });
-
     return true;
   } catch (error) {
     logger.warn(`Failed to cancel Shipday order ${shipdayOrderId}`, {
       error: error.response?.data || error.message
     });
     return false;
+  }
+};
+
+/**
+ * Gets a delivery fee estimate from Shipday's Third-Party Network (DoorDash, Uber, etc.).
+ * @param {string} pickupAddress
+ * @param {string} deliveryAddress
+ * @returns {Promise<{ fee: number, provider: string, reference: string } | null>}
+ */
+export const getThirdPartyEstimate = async (pickupAddress, deliveryAddress) => {
+  try {
+    const response = await shipdayRequest({
+      method: 'post',
+      path: '/on-demand/availability',
+      data: {
+        pickupAddress: { address: pickupAddress },
+        deliveryAddress: { address: deliveryAddress }
+      }
+    });
+
+    const options = response.data;
+    if (Array.isArray(options) && options.length > 0) {
+      // Find the cheapest option
+      const bestOption = options.reduce((prev, curr) => {
+        return (Number(curr.fee) < Number(prev.fee)) ? curr : prev;
+      });
+
+      return {
+        fee: Number(bestOption.fee) || 0,
+        provider: bestOption.provider || 'Third Party',
+        reference: bestOption.estimateReference || null
+      };
+    }
+    return null;
+  } catch (error) {
+    logger.warn('Failed to fetch Shipday third-party estimate', { 
+      error: error.message,
+      data: error.response?.data
+    });
+    return null;
   }
 };

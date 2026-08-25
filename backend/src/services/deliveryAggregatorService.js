@@ -75,8 +75,15 @@ export const getDeliveryTracking = async (order) => {
  * @returns {Promise<{ fee: number, provider: string }>}
  */
 export const getBestDeliveryQuote = async (pickupAddress, dropoffAddress, subtotal, scheduledTime) => {
-  // Shipday doesn't have a delivery quote API.
-  // The delivery fee is configured on the restaurant model and calculated server-side.
-  // This function now throws so the caller falls back to restaurant.deliveryFee.
+  try {
+    const estimate = await shipdayProvider.getThirdPartyEstimate(pickupAddress, dropoffAddress);
+    if (estimate && estimate.fee > 0) {
+      return estimate; // { fee: number, provider: string, reference: string }
+    }
+  } catch (error) {
+    logger.warn('Error fetching Shipday third-party estimate', { error: error.message });
+  }
+
+  // Fallback if the Shipday API doesn't return a quote or errors out
   throw new Error('QUOTE_NOT_AVAILABLE');
 };

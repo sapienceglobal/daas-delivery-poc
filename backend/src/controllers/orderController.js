@@ -373,15 +373,12 @@ const getTrustedDeliveryQuote = async ({ restaurant, address, subtotal, schedule
   try {
     const quote = await getBestDeliveryQuote(restaurant.address, address, subtotal || 10, scheduledTime);
     return {
-      deliveryFee: roundMoney((quote.fee || 0) / 100),
+      deliveryFee: roundMoney(quote.fee || 0),
       quote
     };
   } catch (err) {
-    // Shipday does not have a dynamic quote API. Fallback to the restaurant's fixed delivery fee.
-    return {
-      deliveryFee: roundMoney(restaurant.deliveryFee || 0),
-      quote: null
-    };
+    // Delivery fee is mandatory. Do not fallback to 0 or fixed fee to avoid restaurant loss.
+    throw new AppError('Unable to calculate delivery fee for this address. Please check the address and try again, or contact support.', 400);
   }
 };
 
