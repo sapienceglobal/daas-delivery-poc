@@ -1,5 +1,6 @@
 import logger from '../utils/logger.js';
 import * as shipdayProvider from './deliveryProviders/shipdayProvider.js';
+import * as doordashProvider from './deliveryProviders/doordashProvider.js';
 
 // ── Delivery Aggregator Service ─────────────────────────────────────────────
 // Single-provider aggregator pointing to Shipday.
@@ -76,14 +77,19 @@ export const getDeliveryTracking = async (order) => {
  */
 export const getBestDeliveryQuote = async (pickupAddress, dropoffAddress, subtotal, scheduledTime) => {
   try {
-    const estimate = await shipdayProvider.getThirdPartyEstimate(pickupAddress, dropoffAddress);
-    if (estimate && estimate.fee > 0) {
-      return estimate; // { fee: number, provider: string, reference: string }
+    const quote = await doordashProvider.getDeliveryQuoteAPI(pickupAddress, dropoffAddress, subtotal, scheduledTime);
+    if (quote && quote.fee > 0) {
+      // DoorDash returns fee in cents. Convert to dollars for the rest of the system.
+      return {
+        fee: quote.fee / 100,
+        provider: 'doordash',
+        reference: null
+      };
     }
   } catch (error) {
-    logger.warn('Error fetching Shipday third-party estimate', { error: error.message });
+    logger.warn('Error fetching DoorDash third-party estimate', { error: error.message });
   }
 
-  // Fallback if the Shipday API doesn't return a quote or errors out
+  // Fallback if the API doesn't return a quote or errors out
   throw new Error('QUOTE_NOT_AVAILABLE');
 };

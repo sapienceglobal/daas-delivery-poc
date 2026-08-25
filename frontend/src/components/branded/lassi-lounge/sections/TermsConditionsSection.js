@@ -22,6 +22,11 @@ export default function TermsConditionsSection() {
       icon: <AlertCircle className="w-8 h-8 text-primary-600" />,
       title: "4. Modifications to Service",
       content: "Lassi Lounge reserves the right at any time and from time to time to modify or discontinue, temporarily or permanently, the Service (or any part thereof) with or without notice.",
+    },
+    {
+      icon: <CheckCircle className="w-8 h-8 text-primary-600" />,
+      title: "5. Cancellation & Refund Policy",
+      content: "Customers may cancel an order for a full refund only while the status is 'Pending' or 'Accepted'. Once preparation begins, cancellations are not permitted. If delivery fails due to customer negligence (e.g., wrong address, unresponsive), no refunds will be issued. If an order is cancelled, any single-use coupons are forfeited, and earned loyalty points will be revoked.",
     }
   ];
 

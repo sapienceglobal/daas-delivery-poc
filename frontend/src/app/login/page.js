@@ -496,7 +496,7 @@ function LoginPageContent() {
                         {agreedToTerms && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                       </div>
                       <label onClick={() => setAgreedToTerms(p => !p)} className="text-[13px] text-[#4b5563] cursor-pointer select-none leading-snug">
-                        I agree to the <span className="text-[#4a090b] font-bold hover:underline cursor-pointer">Terms & Conditions</span> and <span className="text-[#4a090b] font-bold hover:underline cursor-pointer">Privacy Policy</span>
+                        I agree to the <span className="text-[#4a090b] font-bold hover:underline cursor-pointer">Terms, Cancellation & Refund Policy</span> and <span className="text-[#4a090b] font-bold hover:underline cursor-pointer">Privacy Policy</span>
                       </label>
                     </div>
                   )}
@@ -793,7 +793,7 @@ function LoginPageContent() {
                   {agreedToTerms && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                 </div>
                 <label onClick={() => setAgreedToTerms(p => !p)} className="text-sm text-brand-muted cursor-pointer select-none leading-snug">
-                  I agree to the <span className="text-brand-cyan font-bold hover:underline cursor-pointer">Terms & Conditions</span> and <span className="text-brand-cyan font-bold hover:underline cursor-pointer">Privacy Policy</span>
+                  I agree to the <span className="text-brand-cyan font-bold hover:underline cursor-pointer">Terms, Cancellation & Refund Policy</span> and <span className="text-brand-cyan font-bold hover:underline cursor-pointer">Privacy Policy</span>
                 </label>
               </div>
             )}

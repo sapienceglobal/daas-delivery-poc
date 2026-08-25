@@ -366,8 +366,8 @@ function AccountSidebar({ user, activeNav, onNavClick, onOrderNow }) {
   const points = user?.loyaltyPoints ?? 0;
   const { brand } = useBrand();
   const isLoyaltyEnabled = brand?.loyaltySettings?.enabled !== false;
-  
-  const visibleNavItems = navItems.filter(item => 
+
+  const visibleNavItems = navItems.filter(item =>
     item.id !== 'loyalty' || isLoyaltyEnabled
   );
 
@@ -397,11 +397,10 @@ function AccountSidebar({ user, activeNav, onNavClick, onOrderNow }) {
               <button
                 key={item.id}
                 onClick={() => onNavClick(item.id)}
-                className={`w-full flex items-center justify-between gap-3 rounded-lg px-4 py-3 text-left text-[14px] font-bold transition-all ${
-                  isActive
+                className={`w-full flex items-center justify-between gap-3 rounded-lg px-4 py-3 text-left text-[14px] font-bold transition-all ${isActive
                     ? 'bg-[#fff1cf] text-[#7a0b10] shadow-[inset_4px_0_0_#7a0b10]'
                     : 'text-[#333333] hover:bg-[#fff8ed] hover:text-[#7a0b10]'
-                }`}
+                  }`}
               >
                 <span className="flex items-center gap-3.5">
                   <Icon className={`h-5 w-5 ${isActive ? 'text-[#7a0b10]' : 'text-[#8d1118]'}`} strokeWidth={1.8} />
@@ -476,11 +475,10 @@ function OrdersHeader({ activeStatus, setActiveStatus, search, setSearch, onOpen
           {/* Filter Button */}
           <button
             onClick={onOpenFilter}
-            className={`h-10 rounded-lg border px-5 text-[13px] font-black flex items-center justify-center gap-2 transition-colors ${
-              filterType !== 'all'
+            className={`h-10 rounded-lg border px-5 text-[13px] font-black flex items-center justify-center gap-2 transition-colors ${filterType !== 'all'
                 ? 'bg-[#7a0b10] border-[#7a0b10] text-white'
                 : 'border-[#b47b80] text-[#7a0b10] hover:bg-[#fff8ed]'
-            }`}
+              }`}
           >
             <Filter className="h-4 w-4" /> Filter {filterType !== 'all' && `(${filterType})`}
           </button>
@@ -495,9 +493,8 @@ function OrdersHeader({ activeStatus, setActiveStatus, search, setSearch, onOpen
             <button
               key={tab.id}
               onClick={() => setActiveStatus(tab.id)}
-              className={`relative pb-3 text-[14px] font-black transition-colors ${
-                isActive ? 'text-[#7a0b10]' : 'text-[#6b7280] hover:text-[#7a0b10]'
-              }`}
+              className={`relative pb-3 text-[14px] font-black transition-colors ${isActive ? 'text-[#7a0b10]' : 'text-[#6b7280] hover:text-[#7a0b10]'
+                }`}
             >
               {tab.label}
               {isActive && (
@@ -646,9 +643,8 @@ function OrderDetailsModal({ order, onClose, onReorder, onCancelOrder }) {
                 return (
                   <div key={step.key} className="flex flex-col items-center relative z-10 flex-1">
                     <div
-                      className={`h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-black ${
-                        isCompleted ? 'bg-[#7a0b10] text-white shadow-xs' : 'bg-[#e5e7eb] text-[#6b7280]'
-                      }`}
+                      className={`h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-black ${isCompleted ? 'bg-[#7a0b10] text-white shadow-xs' : 'bg-[#e5e7eb] text-[#6b7280]'
+                        }`}
                     >
                       {isCompleted ? '✓' : idx + 1}
                     </div>
@@ -786,11 +782,10 @@ function FilterModal({ filterType, setFilterType, onClose }) {
               <button
                 key={type.id}
                 onClick={() => setFilterType(type.id)}
-                className={`py-2.5 rounded-lg text-[13px] font-bold border transition-colors ${
-                  filterType === type.id
+                className={`py-2.5 rounded-lg text-[13px] font-bold border transition-colors ${filterType === type.id
                     ? 'bg-[#7a0b10] border-[#7a0b10] text-white'
                     : 'border-[#eadfdb] bg-white text-[#333] hover:bg-[#fff8ed]'
-                }`}
+                  }`}
               >
                 {type.label}
               </button>
@@ -847,11 +842,10 @@ function Pagination({ page, pageCount, setPage }) {
           <button
             key={value}
             onClick={() => setPage(value)}
-            className={`h-9 w-9 rounded-lg border text-[13px] font-black transition-colors ${
-              isActive
+            className={`h-9 w-9 rounded-lg border text-[13px] font-black transition-colors ${isActive
                 ? 'bg-[#7a0b10] border-[#7a0b10] text-white shadow-xs'
                 : 'border-[#eadfdb] bg-white text-[#4b5563] hover:bg-[#fff8ed]'
-            }`}
+              }`}
           >
             {value}
           </button>
@@ -897,8 +891,8 @@ function EmptyOrders({ activeStatus, search }) {
         {search
           ? `No orders matching "${search}"`
           : activeStatus === 'all'
-          ? 'Your Lassi Lounge order history will appear here after you place an order.'
-          : `No ${activeStatus} orders found in your history.`}
+            ? 'Your Lassi Lounge order history will appear here after you place an order.'
+            : `No ${activeStatus} orders found in your history.`}
       </p>
     </div>
   );

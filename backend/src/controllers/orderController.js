@@ -144,7 +144,7 @@ export const awardLoyaltyPoints = async (order) => {
   try {
     const tenantId = order.constructor.db.name;
     const OrderModel = getTenantModel(tenantId, 'Order');
-    
+
     // atomic guard: Only one thread will successfully set loyaltyPointsAwarded from false to true
     const updatedOrder = await OrderModel.findOneAndUpdate(
       { _id: order._id, loyaltyPointsAwarded: false },
@@ -547,156 +547,156 @@ export const createOrder = asyncHandler(async (req, response) => {
     }
 
     const order = new Order({
-    userId: req.user._id,
-    orderSource: platform,
-    customerName: customerName || req.user.name,
-    customerPhone: customerPhone || req.user.phone || '0000000000',
-    customerEmail: customerEmail || req.user.email,
-    address: address || restaurant.address,
-    addressLat,
-    addressLng,
-    restaurantId: restaurant._id,
-    restaurantName: restaurant.name,
-    restaurantAddress: restaurant.address,
-    restaurantPhone: restaurant.phone,
-    items: pricing.orderItems,
-    orderType,
-    tableNumber: orderType === 'dine_in' ? tableNumber : null,
-    subtotal: pricing.subtotal,
-    tax: pricing.tax,
-    deliveryFee: pricing.deliveryFee,
-    platformFee: pricing.platformFee,
-    serviceFee: pricing.serviceFee,
-    tip: pricing.tip,
-    discount: pricing.discount,
-    loyaltyDiscount: pricing.loyaltyDiscount,
-    loyaltyPointsUsed: pricing.pointsUsed,
-    loyaltyPointsEarned: pricing.pointsEarned,
-    total: pricing.total,
-    paymentMethod,
-    paymentStatus,
-    couponId: pricing.coupon?._id || null,
-    couponCode: pricing.coupon?.code || null,
-    courierNotes: sanitizedCourierNotes,
-    specialInstructions: specialInstructions ? xss(String(specialInstructions)).slice(0, 500) : '',
-    scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
-    stripePaymentIntentId: finalStripePaymentIntentId || null,
-    deliveryProvider: deliveryQuote.quote?.provider || 'doordash',
-    status: restaurant.autoAcceptOrders ? 'accepted' : 'pending',
-    statusUpdates: [
-      { status: 'pending', description: 'Order placed by customer', timestamp: new Date() },
-      ...(restaurant.autoAcceptOrders ? [{ status: 'accepted', description: 'Order auto-accepted by restaurant', timestamp: new Date() }] : [])
-    ]
-  });
-
-  await order.save({ session });
-  savedOrder = order; // Mark as persisted — catch block will use this to clean up properly
-
-  // log: order_saved + payment_confirmed
-  pushPaymentEvent(order, 'order_saved', {
-    stripePaymentIntentId: finalStripePaymentIntentId,
-    meta: { orderNumber: order.orderNumber }
-  });
-  if (finalStripePaymentIntentId && paymentStatus === 'paid') {
-    pushPaymentEvent(order, 'payment_confirmed', {
-      amount: pricing.total,
-      stripePaymentIntentId: finalStripePaymentIntentId,
-      triggeredBy: 'customer'
-    });
-  }
-  await order.save({ session }); // persist events
-
-  if (order.orderType === 'dine_in' && order.tableNumber) {
-    const table = await Table.findOneAndUpdate(
-      { restaurantId: restaurant._id, tableNumber: order.tableNumber },
-      {
-        status: 'occupied',
-        currentOrderId: order._id,
-        occupiedAt: new Date()
-      },
-      { new: true, session }
-    ).populate('currentOrderId', 'orderNumber status subtotal items');
-
-    if (table) {
-      const io = req.app.get('io');
-      if (io) io.to(restaurant._id.toString()).emit('table_update', table);
-    }
-  }
-
-  await Payment.create([{
-    orderId: order._id,
-    userId: req.user._id,
-    restaurantId: restaurant._id,
-    method: paymentMethod,
-    status: paymentStatus,
-    amount: order.total,
-    tip: order.tip,
-    stripePaymentIntentId: finalStripePaymentIntentId || null,
-    metadata: {
-      orderNumber: order.orderNumber,
-      platformFee: order.platformFee,
-      serviceFee: order.serviceFee,
-      deliveryFee: order.deliveryFee,
-      discount: order.discount,
-      loyaltyDiscount: order.loyaltyDiscount
-    }
-  }], { session });
-
-  // mark coupon usage atomically
-  if (pricing.coupon) {
-    const CouponModel = req.getModel('Coupon');
-    const updateQuery = { _id: pricing.coupon._id };
-    if (pricing.coupon.maxUses) {
-      updateQuery.usedCount = { $lt: pricing.coupon.maxUses };
-    }
-    
-    const updatedCoupon = await CouponModel.findOneAndUpdate(
-      updateQuery,
-      {
-        $inc: { usedCount: 1 },
-        $push: { usedBy: { userId: req.user._id } }
-      },
-      { new: true, session }
-    );
-
-    if (!updatedCoupon) {
-      throw new AppError('Sorry, this coupon just reached its usage limit.', 400);
-    }
-  }
-
-  // handle loyalty points: deduct used, add earned
-  if (pricing.pointsUsed > 0) {
-    const updatedUser = await User.findOneAndUpdate(
-      { _id: req.user._id, loyaltyPoints: { $gte: pricing.pointsUsed } },
-      { $inc: { loyaltyPoints: -pricing.pointsUsed } },
-      { new: true, session }
-    );
-    if (!updatedUser) {
-      throw new AppError('Insufficient loyalty points to complete this order.', 400);
-    }
-    await LoyaltyTransaction.create([{
       userId: req.user._id,
-      orderId: order._id,
-      type: 'redeemed',
-      points: -pricing.pointsUsed,
-      balanceAfter: updatedUser.loyaltyPoints,
-      description: `Redeemed on Order #${order.orderNumber}`
-    }], { session });
-  }
-
-  await session.commitTransaction();
-  session.endSession();
-
-  // emit socket event
-  const io = req.app.get('io');
-  if (io) {
-    io.to(restaurant._id.toString()).emit('new_order', {
-      orderId: order._id,
-      orderNumber: order.orderNumber,
-      items: order.items.length,
-      total: order.total
+      orderSource: platform,
+      customerName: customerName || req.user.name,
+      customerPhone: customerPhone || req.user.phone || '0000000000',
+      customerEmail: customerEmail || req.user.email,
+      address: address || restaurant.address,
+      addressLat,
+      addressLng,
+      restaurantId: restaurant._id,
+      restaurantName: restaurant.name,
+      restaurantAddress: restaurant.address,
+      restaurantPhone: restaurant.phone,
+      items: pricing.orderItems,
+      orderType,
+      tableNumber: orderType === 'dine_in' ? tableNumber : null,
+      subtotal: pricing.subtotal,
+      tax: pricing.tax,
+      deliveryFee: pricing.deliveryFee,
+      platformFee: pricing.platformFee,
+      serviceFee: pricing.serviceFee,
+      tip: pricing.tip,
+      discount: pricing.discount,
+      loyaltyDiscount: pricing.loyaltyDiscount,
+      loyaltyPointsUsed: pricing.pointsUsed,
+      loyaltyPointsEarned: pricing.pointsEarned,
+      total: pricing.total,
+      paymentMethod,
+      paymentStatus,
+      couponId: pricing.coupon?._id || null,
+      couponCode: pricing.coupon?.code || null,
+      courierNotes: sanitizedCourierNotes,
+      specialInstructions: specialInstructions ? xss(String(specialInstructions)).slice(0, 500) : '',
+      scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
+      stripePaymentIntentId: finalStripePaymentIntentId || null,
+      deliveryProvider: deliveryQuote.quote?.provider || 'doordash',
+      status: restaurant.autoAcceptOrders ? 'accepted' : 'pending',
+      statusUpdates: [
+        { status: 'pending', description: 'Order placed by customer', timestamp: new Date() },
+        ...(restaurant.autoAcceptOrders ? [{ status: 'accepted', description: 'Order auto-accepted by restaurant', timestamp: new Date() }] : [])
+      ]
     });
-  }
+
+    await order.save({ session });
+    savedOrder = order; // Mark as persisted — catch block will use this to clean up properly
+
+    // log: order_saved + payment_confirmed
+    pushPaymentEvent(order, 'order_saved', {
+      stripePaymentIntentId: finalStripePaymentIntentId,
+      meta: { orderNumber: order.orderNumber }
+    });
+    if (finalStripePaymentIntentId && paymentStatus === 'paid') {
+      pushPaymentEvent(order, 'payment_confirmed', {
+        amount: pricing.total,
+        stripePaymentIntentId: finalStripePaymentIntentId,
+        triggeredBy: 'customer'
+      });
+    }
+    await order.save({ session }); // persist events
+
+    if (order.orderType === 'dine_in' && order.tableNumber) {
+      const table = await Table.findOneAndUpdate(
+        { restaurantId: restaurant._id, tableNumber: order.tableNumber },
+        {
+          status: 'occupied',
+          currentOrderId: order._id,
+          occupiedAt: new Date()
+        },
+        { new: true, session }
+      ).populate('currentOrderId', 'orderNumber status subtotal items');
+
+      if (table) {
+        const io = req.app.get('io');
+        if (io) io.to(restaurant._id.toString()).emit('table_update', table);
+      }
+    }
+
+    await Payment.create([{
+      orderId: order._id,
+      userId: req.user._id,
+      restaurantId: restaurant._id,
+      method: paymentMethod,
+      status: paymentStatus,
+      amount: order.total,
+      tip: order.tip,
+      stripePaymentIntentId: finalStripePaymentIntentId || null,
+      metadata: {
+        orderNumber: order.orderNumber,
+        platformFee: order.platformFee,
+        serviceFee: order.serviceFee,
+        deliveryFee: order.deliveryFee,
+        discount: order.discount,
+        loyaltyDiscount: order.loyaltyDiscount
+      }
+    }], { session });
+
+    // mark coupon usage atomically
+    if (pricing.coupon) {
+      const CouponModel = req.getModel('Coupon');
+      const updateQuery = { _id: pricing.coupon._id };
+      if (pricing.coupon.maxUses) {
+        updateQuery.usedCount = { $lt: pricing.coupon.maxUses };
+      }
+
+      const updatedCoupon = await CouponModel.findOneAndUpdate(
+        updateQuery,
+        {
+          $inc: { usedCount: 1 },
+          $push: { usedBy: { userId: req.user._id } }
+        },
+        { new: true, session }
+      );
+
+      if (!updatedCoupon) {
+        throw new AppError('Sorry, this coupon just reached its usage limit.', 400);
+      }
+    }
+
+    // handle loyalty points: deduct used, add earned
+    if (pricing.pointsUsed > 0) {
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: req.user._id, loyaltyPoints: { $gte: pricing.pointsUsed } },
+        { $inc: { loyaltyPoints: -pricing.pointsUsed } },
+        { new: true, session }
+      );
+      if (!updatedUser) {
+        throw new AppError('Insufficient loyalty points to complete this order.', 400);
+      }
+      await LoyaltyTransaction.create([{
+        userId: req.user._id,
+        orderId: order._id,
+        type: 'redeemed',
+        points: -pricing.pointsUsed,
+        balanceAfter: updatedUser.loyaltyPoints,
+        description: `Redeemed on Order #${order.orderNumber}`
+      }], { session });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // emit socket event
+    const io = req.app.get('io');
+    if (io) {
+      io.to(restaurant._id.toString()).emit('new_order', {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        items: order.items.length,
+        total: order.total
+      });
+    }
 
     // Send confirmation emails ONLY if the order is auto-accepted. Otherwise, wait until merchant accepts.
     if (order.status === 'accepted') {
@@ -727,12 +727,12 @@ export const createOrder = asyncHandler(async (req, response) => {
       // Trigger FCM for merchant app users
       const UserModel = req.getModel ? req.getModel('User') : req.app.get('tenantModels')[req.tenantId]?.User;
       if (UserModel) {
-        const merchantUsers = await UserModel.find({ 
-          restaurantId: restaurant._id, 
+        const merchantUsers = await UserModel.find({
+          restaurantId: restaurant._id,
           role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] },
           fcmTokens: { $exists: true, $not: { $size: 0 } }
         });
-        
+
         console.log(`[FCM] Found ${merchantUsers.length} merchant users with FCM tokens for restaurant ${restaurant._id}`);
         // Using a premium, vibrant image of Indian cuisine/restaurant atmosphere for a true "industry level" feel
         const newOrderImageUrl = 'https://res.cloudinary.com/h2cylj8r/image/upload/v1787569372/restaurant-platform/notifications/ouwuhg99wjuxrfzksswe.png';
@@ -863,7 +863,7 @@ export const createOrder = asyncHandler(async (req, response) => {
               reason: 'order_creation_failed',
               triggeredBy: 'system'
             });
-            await savedOrder.save().catch(() => {});
+            await savedOrder.save().catch(() => { });
           } else {
             // no savedOrder, log orphaned auto-refund failure to global audit log
             await AuditLog.create({
@@ -1013,14 +1013,14 @@ export const cancelOrder = asyncHandler(async (req, response) => {
   try {
     const UserModel = req.getModel ? req.getModel('User') : req.app.get('tenantModels')[req.tenantId]?.User;
     if (UserModel) {
-      const merchantUsers = await UserModel.find({ 
-        restaurantId: order.restaurantId, 
+      const merchantUsers = await UserModel.find({
+        restaurantId: order.restaurantId,
         role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] },
         fcmTokens: { $exists: true, $not: { $size: 0 } }
       });
-      
+
       const cancelledImageUrl = 'https://images.unsplash.com/photo-1526367790999-0150786686a2?q=80&w=600&auto=format&fit=crop';
-      
+
       for (const mUser of merchantUsers) {
         await createNotification(
           mUser._id,
@@ -1211,7 +1211,7 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
       const Payment = req.getModel('Payment');
       Payment.findOne({ orderId: order._id }).lean().then(payment => {
         sendInvoiceEmail(order.customerEmail, order, payment).catch(err => logger.error('Auto invoice email error', err));
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }
 
@@ -1596,7 +1596,7 @@ export const driverDeliverOrder = asyncHandler(async (req, response) => {
     const Payment = req.getModel('Payment');
     Payment.findOne({ orderId: order._id }).lean().then(payment => {
       sendInvoiceEmail(order.customerEmail, order, payment).catch(err => logger.error('Auto invoice email error (driver)', err));
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
   res.success(response, { data: order, message: 'Order delivered successfully' });
@@ -1639,7 +1639,7 @@ export const remakeOrder = asyncHandler(async (req, response) => {
   const order = await OrderModel.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
   ensureCanManageRestaurant(req.user, order.restaurantId);
-  
+
   // create duplicate remake order with $0 cost
   const remake = new OrderModel({
     ...order.toObject(),
@@ -1688,7 +1688,7 @@ export const sendInvoice = asyncHandler(async (req, response) => {
   const order = await OrderModel.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
   ensureCanManageRestaurant(req.user, order.restaurantId);
-  
+
   if (order.customerEmail) {
     try {
       await sendInvoiceEmail(order.customerEmail, order);
@@ -1698,7 +1698,7 @@ export const sendInvoice = asyncHandler(async (req, response) => {
   } else {
     logger.warn(`Cannot send invoice for order ${order._id}: no customer email found`);
   }
-  
+
   res.success(response, { data: null, message: 'Invoice sent successfully' });
 });
 
