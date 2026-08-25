@@ -219,10 +219,15 @@ export default function LiveOrdersView({
           {col.id === 'preparing' && (
             <button onClick={() => onUpdateStatus && onUpdateStatus(order._id, 'ready')} className={`w-full text-white text-xs font-bold py-2 rounded-lg transition-colors ${col.theme.buttonBg} ${col.theme.buttonHover}`}>Mark as Ready</button>
           )}
-          {col.id === 'ready' && (
+          {col.id === 'ready' && order.orderType === 'pickup' && (
             <button onClick={() => onUpdateStatus && onUpdateStatus(order._id, 'picked_up')} className={`w-full text-white text-xs font-bold py-2 rounded-lg transition-colors ${col.theme.buttonBg} ${col.theme.buttonHover}`}>
-              {order.orderType === 'pickup' ? 'Ready for Pickup' : 'Handed to Rider'}
+              Handed to Customer
             </button>
+          )}
+          {col.id === 'ready' && order.orderType === 'delivery' && (
+            <div className={`w-full text-center text-xs font-bold py-2 rounded-lg border-2 border-dashed border-[#bbf7d0] text-[#166534] bg-[#f0fdf4]`}>
+              Waiting for Rider...
+            </div>
           )}
           {col.id === 'out_for_delivery' && (
             <button 
