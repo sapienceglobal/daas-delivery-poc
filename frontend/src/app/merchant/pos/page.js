@@ -3,12 +3,13 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  Store, ShoppingBag, Trash2, Plus, Minus, CreditCard, ChevronLeft, Clock, LogOut
+  Store, ShoppingBag, Trash2, Plus, Minus, CreditCard, ChevronLeft, Clock, LogOut,
+  User, Phone, Mail, Tag, DollarSign, Printer, RotateCcw, CheckCircle2, Terminal
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { menuAPI, orderAPI, employeeAPI } from '@/lib/api';
 import {
-  GlassCard, Button, showToast, Skeleton, Input
+  Button, showToast, Skeleton, Input
 } from '@/components/ui';
 
 function POSContent() {
@@ -28,9 +29,26 @@ function POSContent() {
   const [orderType, setOrderType] = useState('takeout');
   const [splitWays, setSplitWays] = useState(1);
 
+  // Customer Details
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  
+  // Coupon
+  const [couponCode, setCouponCode] = useState('');
+
+  // Modals
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState('');
-  const [pinMode, setPinMode] = useState('in'); // 'in' or 'out'
+  const [pinMode, setPinMode] = useState('in');
+
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  
+  // Payment State
+  const [selectedPayment, setSelectedPayment] = useState('cash'); // cash, card_terminal
+  const [tenderAmount, setTenderAmount] = useState('');
+  const [completedOrder, setCompletedOrder] = useState(null);
 
   const handlePinSubmit = async () => {
     if (pin.length !== 4) return showToast('PIN must be 4 digits', 'error');
@@ -68,15 +86,14 @@ function POSContent() {
         return;
       }
 
-      const [menuRes, catRes] = await Promise.all([
-        menuAPI.getByRestaurant(restaurantId),
-        menuAPI.getCategories(restaurantId)
-      ]);
-      setMenu(menuRes.data || []);
+      const menuRes = await menuAPI.getByRestaurant(restaurantId);
+      const groupedMenu = menuRes.data || [];
+      setMenu(groupedMenu);
       
-      const cats = catRes.data || [];
-      setCategories(cats);
-      if (cats.length > 0) setActiveCategory(cats[0]._id);
+      if (groupedMenu.length > 0) {
+        setCategories(groupedMenu);
+        setActiveCategory(groupedMenu[0]._id);
+      }
     } catch (err) {
       showToast('Failed to load menu for POS', 'error');
     } finally {
@@ -112,8 +129,18 @@ function POSContent() {
   const tax = subtotal * 0.0875;
   const total = subtotal + tax;
 
-  const handleCheckout = async () => {
+  const getChangeDue = () => {
+    const tendered = parseFloat(tenderAmount) || 0;
+    return Math.max(0, tendered - total).toFixed(2);
+  };
+
+  const initiateCheckout = () => {
     if (ticket.length === 0) return;
+    setShowPaymentModal(true);
+    setTenderAmount(total.toFixed(2).toString());
+  };
+
+  const handleProcessPayment = async () => {
     setProcessing(true);
     try {
       const orderData = {
@@ -127,12 +154,30 @@ function POSContent() {
         })),
         address: tableNumber ? `Table ${tableNumber}` : 'Walk-in Customer',
         orderType: orderType === 'takeout' ? 'pickup' : 'dine_in',
-        paymentMethod: 'cash', // Default to cash for simple POS flow
+        paymentMethod: 'cash', // always cash for backend logic bypass
         tableNumber: orderType === 'dine_in' ? tableNumber : null,
+        
+        // CRM Details
+        customerName: customerName.trim() || undefined,
+        customerPhone: customerPhone.trim() || undefined,
+        customerEmail: customerEmail.trim() || undefined,
+        
+        // Discount
+        couponCode: couponCode.trim() || undefined,
+        
+        // Custom flag for pos to track actual tender type
+        courierNotes: `POS Payment: ${selectedPayment}` // We can track this in notes for now
       };
 
-      await orderAPI.create(orderData);
+      const res = await orderAPI.create(orderData);
+      setCompletedOrder(res.data);
       setTicket([]);
+      setCustomerName('');
+      setCustomerPhone('');
+      setCustomerEmail('');
+      setCouponCode('');
+      setShowPaymentModal(false);
+      setShowCompleteModal(true);
       showToast('Order processed successfully!', 'success');
     } catch (err) {
       showToast(err.message || 'Failed to process order', 'error');
@@ -141,7 +186,7 @@ function POSContent() {
     }
   };
 
-  const visibleItems = menu.filter(item => item.categoryId?._id === activeCategory);
+  const visibleItems = menu.find(cat => cat._id === activeCategory)?.items || [];
 
   if (loading) return <div className="p-8"><Skeleton className="h-64 w-full" /></div>;
 
@@ -152,31 +197,31 @@ function POSContent() {
       <div className="flex-1 flex flex-col gap-4 overflow-hidden">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => router.push('/merchant')}>
-              <ChevronLeft className="h-4 w-4 mr-1" /> Dashboard
-            </Button>
+            <button className="flex items-center gap-1 px-3 py-1.5 text-sm font-bold text-[#374151] hover:bg-[#f3f4f6] rounded-md transition-colors" onClick={() => router.push('/merchant')}>
+              <ChevronLeft className="h-4 w-4" /> Dashboard
+            </button>
             <h1 className="text-xl font-black text-[#111827] flex items-center gap-2">
               <Store className="h-5 w-5 text-[#8b0000]" /> Point of Sale
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => { setPinMode('in'); setShowPinModal(true); }}>
-              <Clock className="h-4 w-4 mr-1" /> Clock In
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => { setPinMode('out'); setShowPinModal(true); }}>
-              <LogOut className="h-4 w-4 mr-1" /> Clock Out
-            </Button>
+            <button className="flex items-center gap-1 px-3 py-1.5 text-sm font-bold border border-[#e5e7eb] text-[#374151] hover:bg-[#f3f4f6] rounded-md transition-colors bg-white" onClick={() => { setPinMode('in'); setShowPinModal(true); }}>
+              <Clock className="h-4 w-4" /> Clock In
+            </button>
+            <button className="flex items-center gap-1 px-3 py-1.5 text-sm font-bold border border-[#e5e7eb] text-[#374151] hover:bg-[#f3f4f6] rounded-md transition-colors bg-white" onClick={() => { setPinMode('out'); setShowPinModal(true); }}>
+              <LogOut className="h-4 w-4" /> Clock Out
+            </button>
           </div>
         </div>
 
         {/* Categories */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide shrink-0">
           {categories.map(cat => (
             <button
               key={cat._id}
               onClick={() => setActiveCategory(cat._id)}
               className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors
-                ${activeCategory === cat._id ? 'bg-[#8b0000] text-white' : 'bg-white text-[#6b7280] hover:text-[#111827]'}`}
+                ${activeCategory === cat._id ? 'bg-[#8b0000] text-white' : 'bg-white border border-[#e5e7eb] text-[#6b7280] hover:text-[#111827]'}`}
             >
               {cat.name}
             </button>
@@ -184,79 +229,121 @@ function POSContent() {
         </div>
 
         {/* Items Grid */}
-        <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-10 content-start">
           {visibleItems.map(item => (
-            <GlassCard 
+            <div 
               key={item._id} 
-              className="cursor-pointer hover:border-[#8b0000]/50 transition-colors flex flex-col justify-between"
+              className="bg-white border border-[#e5e7eb] rounded-xl cursor-pointer hover:border-[#8b0000] hover:shadow-md transition-all flex flex-col overflow-hidden shadow-sm h-48"
               onClick={() => addToTicket(item)}
             >
-              <div>
-                <h3 className="font-bold text-[#111827] text-sm mb-1">{item.name}</h3>
-                <p className="text-xs text-[#6b7280] line-clamp-2">{item.description}</p>
+              <div className="h-24 bg-[#f3f4f6] w-full shrink-0 flex items-center justify-center overflow-hidden">
+                {item.image || item.imageUrl ? (
+                  <img src={item.image || item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Store className="w-8 h-8 text-[#9ca3af] opacity-50" />
+                )}
               </div>
-              <p className="text-[#8b0000] font-black mt-2">${item.price.toFixed(2)}</p>
-            </GlassCard>
+              <div className="p-3 flex flex-col justify-between flex-1">
+                <div>
+                  <h3 className="font-bold text-[#111827] text-[13px] leading-tight line-clamp-1 mb-0.5">{item.name}</h3>
+                  <p className="text-[11px] text-[#6b7280] line-clamp-1 leading-snug">{item.description || 'No description'}</p>
+                </div>
+                <p className="text-[#8b0000] font-black mt-1 text-sm">${item.price.toFixed(2)}</p>
+              </div>
+            </div>
           ))}
           {visibleItems.length === 0 && (
-            <div className="col-span-full text-center text-[#6b7280] py-8 text-sm">No items in this category.</div>
+            <div className="col-span-full text-center text-[#9ca3af] py-8 text-sm">No items in this category.</div>
           )}
         </div>
       </div>
 
       {/* Right: Current Ticket */}
-      <div className="w-full md:w-[350px] lg:w-[400px] flex flex-col bg-white/50 border border-[#e5e7eb] rounded-2xl overflow-hidden shrink-0">
-        <div className="p-4 border-b border-[#e5e7eb] bg-white flex justify-between items-center">
-          <h2 className="font-bold text-[#111827] flex items-center gap-2">
-            <ShoppingBag className="h-4 w-4 text-[#8b0000]" /> 
-            {tableNumber ? `Table ${tableNumber} Ticket` : 'Current Ticket'}
-          </h2>
-          <Button variant="ghost" size="sm" onClick={() => setTicket([])} disabled={ticket.length === 0} className="text-[#ef4444]">
-            Clear
-          </Button>
-        </div>
-
-        {/* Order Type Toggle */}
-        <div className="flex border-b border-[#e5e7eb]">
-          <button 
-            className={`flex-1 py-3 text-sm font-bold transition-colors ${orderType === 'takeout' ? 'bg-red-50 text-[#8b0000] border-b-2 border-[#8b0000]' : 'text-[#6b7280] hover:bg-white'}`}
-            onClick={() => !tableNumber && setOrderType('takeout')}
-            disabled={!!tableNumber}
-          >
-            Takeout
-          </button>
-          <button 
-            className={`flex-1 py-3 text-sm font-bold transition-colors ${orderType === 'dine_in' ? 'bg-red-50 text-[#8b0000] border-b-2 border-[#8b0000]' : 'text-[#6b7280] hover:bg-white'}`}
-            onClick={() => setOrderType('dine_in')}
-          >
-            Dine-In
-          </button>
+      <div className="w-full md:w-[360px] lg:w-[420px] flex flex-col bg-white border border-[#e5e7eb] rounded-2xl overflow-hidden shrink-0 shadow-sm">
+        
+        {/* Order Type & Customer Details */}
+        <div className="bg-[#f3f4f6] border-b border-[#e5e7eb] p-4 flex flex-col gap-3">
+          <div className="flex bg-white rounded-lg border border-[#e5e7eb] overflow-hidden p-1">
+            <button 
+              className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${orderType === 'takeout' ? 'bg-[#8b0000] text-white' : 'text-[#6b7280] hover:bg-[#f9fafb]'}`}
+              onClick={() => !tableNumber && setOrderType('takeout')}
+              disabled={!!tableNumber}
+            >
+              Takeout
+            </button>
+            <button 
+              className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${orderType === 'dine_in' ? 'bg-[#8b0000] text-white' : 'text-[#6b7280] hover:bg-[#f9fafb]'}`}
+              onClick={() => setOrderType('dine_in')}
+            >
+              Dine-In {tableNumber ? `(T${tableNumber})` : ''}
+            </button>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="relative">
+              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
+                <User className="w-4 h-4 text-[#9ca3af]" />
+              </div>
+              <input 
+                type="text" placeholder="Customer Name (Optional)" 
+                value={customerName} onChange={e => setCustomerName(e.target.value)}
+                className="w-full pl-10 pr-3 py-1.5 text-[13px] bg-white border border-[#e5e7eb] rounded-md focus:border-[#8b0000] outline-none text-[#111827] placeholder-[#9ca3af]"
+              />
+            </div>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
+                  <Phone className="w-4 h-4 text-[#9ca3af]" />
+                </div>
+                <input 
+                  type="text" placeholder="Phone" 
+                  value={customerPhone} onChange={e => setCustomerPhone(e.target.value)}
+                  className="w-full pl-10 pr-3 py-1.5 text-[13px] bg-white border border-[#e5e7eb] rounded-md focus:border-[#8b0000] outline-none text-[#111827] placeholder-[#9ca3af]"
+                />
+              </div>
+              <div className="relative flex-1">
+                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
+                  <Mail className="w-4 h-4 text-[#9ca3af]" />
+                </div>
+                <input 
+                  type="email" placeholder="Email" 
+                  value={customerEmail} onChange={e => setCustomerEmail(e.target.value)}
+                  className="w-full pl-10 pr-3 py-1.5 text-[13px] bg-white border border-[#e5e7eb] rounded-md focus:border-[#8b0000] outline-none text-[#111827] placeholder-[#9ca3af]"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Ticket Items */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[#f9fafb]">
           {ticket.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-[#6b7280] text-sm gap-2">
-              <ShoppingBag className="h-8 w-8 opacity-20" />
-              <p>Ticket is empty</p>
+            <div className="h-full flex flex-col items-center justify-center text-[#9ca3af] text-sm gap-3">
+              <ShoppingBag className="h-12 w-12 opacity-30" />
+              <p>Scan or select items to start</p>
             </div>
           ) : (
             ticket.map((item, idx) => (
-              <div key={idx} className="flex justify-between items-center bg-[#f3f4f6]/50 p-2 rounded-lg border border-[#e5e7eb]/50">
-                <div className="flex-1 min-w-0 pr-2">
-                  <p className="text-sm font-bold text-[#111827] truncate">{item.name}</p>
-                  <p className="text-xs text-[#6b7280]">${item.price.toFixed(2)}</p>
+              <div key={idx} className="flex flex-col bg-white p-3 rounded-xl border border-[#e5e7eb] shadow-sm">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1 pr-2">
+                    <p className="text-[13px] font-bold text-[#111827] leading-tight">{item.name}</p>
+                    <p className="text-[11px] text-[#6b7280]">${item.price.toFixed(2)} each</p>
+                  </div>
+                  <span className="font-bold text-[#8b0000] text-sm">${item.lineTotal.toFixed(2)}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => updateQuantity(idx, item.quantity - 1)} className="p-1 bg-white rounded-md hover:bg-[#e5e7eb] transition-colors">
-                    <Minus className="h-3 w-3 text-[#111827]" />
-                  </button>
-                  <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(idx, item.quantity + 1)} className="p-1 bg-white rounded-md hover:bg-[#e5e7eb] transition-colors">
-                    <Plus className="h-3 w-3 text-[#111827]" />
-                  </button>
-                  <button onClick={() => removeItem(idx)} className="p-1 ml-1 text-[#ef4444]/60 hover:text-[#ef4444]">
-                    <Trash2 className="h-3 w-3" />
+                <div className="flex items-center justify-between mt-1">
+                  <div className="flex items-center gap-1 bg-[#f3f4f6] rounded-lg p-0.5 border border-[#e5e7eb]">
+                    <button onClick={() => updateQuantity(idx, item.quantity - 1)} className="p-1.5 bg-white rounded-md shadow-sm text-[#111827] hover:text-[#8b0000]">
+                      <Minus className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="text-[13px] font-black w-6 text-center text-[#111827]">{item.quantity}</span>
+                    <button onClick={() => updateQuantity(idx, item.quantity + 1)} className="p-1.5 bg-white rounded-md shadow-sm text-[#111827] hover:text-[#8b0000]">
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <button onClick={() => removeItem(idx)} className="p-2 text-[#9ca3af] hover:text-[#ef4444] transition-colors">
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -264,67 +351,194 @@ function POSContent() {
           )}
         </div>
 
-        {/* Totals & Pay */}
-        <div className="p-4 bg-white border-t border-[#e5e7eb] space-y-3">
-          <div className="flex justify-between text-sm text-[#6b7280]">
-            <span>Subtotal</span>
-            <span>${subtotal.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm text-[#6b7280]">
-            <span>Tax</span>
-            <span>${tax.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-lg font-black text-[#111827] pt-2 border-t border-[#e5e7eb]/50">
-            <span>Total</span>
-            <span>${total.toFixed(2)}</span>
-          </div>
-
-          {/* Split Bill Controls */}
-          {orderType === 'dine_in' && ticket.length > 0 && (
-            <div className="pt-3 border-t border-[#e5e7eb]/50 flex items-center justify-between">
-              <span className="text-sm font-bold text-[#111827]">Split Bill</span>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setSplitWays(Math.max(1, splitWays - 1))}
-                  className="p-1.5 bg-[#f3f4f6] rounded-lg border border-[#e5e7eb] hover:border-[#8b0000] transition-colors"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="font-black text-[#8b0000] w-4 text-center">{splitWays}</span>
-                <button 
-                  onClick={() => setSplitWays(Math.min(10, splitWays + 1))}
-                  className="p-1.5 bg-[#f3f4f6] rounded-lg border border-[#e5e7eb] hover:border-[#8b0000] transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
+        {/* Coupon & Totals */}
+        <div className="p-4 bg-white border-t border-[#e5e7eb]">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="relative flex-1">
+              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
+                <Tag className="w-4 h-4 text-[#9ca3af]" />
               </div>
+              <input 
+                type="text" placeholder="Promo/Coupon Code" 
+                value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())}
+                className="w-full pl-10 pr-3 py-2 text-[13px] bg-[#f9fafb] border border-[#e5e7eb] rounded-lg focus:border-[#8b0000] uppercase outline-none text-[#111827] placeholder-[#9ca3af]"
+              />
             </div>
-          )}
-        </div>
-        
-        {/* Checkout Button */}
-        <div className="p-4 border-t border-[#e5e7eb] bg-white">
-          <Button 
-            className="w-full py-4 text-lg" 
-            onClick={handleCheckout} 
-            loading={processing}
+            {couponCode && (
+              <Button size="sm" variant="outline" className="h-[38px] text-[#111827]" onClick={() => setCouponCode('')}>Clear</Button>
+            )}
+          </div>
+          
+          <div className="space-y-1.5 mb-4">
+            <div className="flex justify-between text-[13px] text-[#6b7280]">
+              <span>Subtotal</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-[13px] text-[#6b7280]">
+              <span>Tax (8.75%)</span>
+              <span>${tax.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-xl font-black text-[#111827] pt-2 border-t border-[#e5e7eb] mt-2">
+              <span>Total</span>
+              <span>${total.toFixed(2)}</span>
+            </div>
+          </div>
+          
+          <button 
+            className="w-full py-4 text-lg font-black shadow-md bg-[#8b0000] text-white rounded-xl hover:bg-[#7a0000] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" 
+            onClick={initiateCheckout} 
             disabled={ticket.length === 0}
-            icon={CreditCard}
           >
-            {splitWays > 1 ? `Pay ${(total / splitWays).toFixed(2)} / person` : `Pay ${total.toFixed(2)}`}
-          </Button>
+            <CreditCard className="w-5 h-5" /> Charge ${total.toFixed(2)}
+          </button>
         </div>
       </div>
 
+      {/* PAYMENT MODAL */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-[500px] overflow-hidden shadow-2xl flex flex-col">
+            <div className="p-5 border-b border-[#e5e7eb] bg-[#f3f4f6] flex justify-between items-center">
+              <h2 className="text-xl font-black text-[#111827]">Complete Payment</h2>
+              <button onClick={() => setShowPaymentModal(false)} className="p-2 text-[#9ca3af] hover:text-[#111827] rounded-full hover:bg-[#f3f4f6]"><LogOut className="w-5 h-5" /></button>
+            </div>
+            
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <p className="text-sm text-[#9ca3af] uppercase tracking-widest font-bold mb-1">Total Due</p>
+                <p className="text-4xl font-black text-[#8b0000]">${total.toFixed(2)}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <button 
+                  onClick={() => setSelectedPayment('cash')}
+                  className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${selectedPayment === 'cash' ? 'border-[#8b0000] bg-[#fef2f2] text-[#8b0000]' : 'border-[#e5e7eb] text-[#9ca3af] hover:bg-[#f9fafb]'}`}
+                >
+                  <DollarSign className="w-8 h-8" />
+                  <span className="font-bold">Cash</span>
+                </button>
+                <button 
+                  onClick={() => { setSelectedPayment('card_terminal'); setTenderAmount(total.toFixed(2)); }}
+                  className={`p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${selectedPayment === 'card_terminal' ? 'border-[#8b0000] bg-[#fef2f2] text-[#8b0000]' : 'border-[#e5e7eb] text-[#9ca3af] hover:bg-[#f9fafb]'}`}
+                >
+                  <Terminal className="w-8 h-8" />
+                  <span className="font-bold">Card Terminal</span>
+                </button>
+              </div>
+
+              {selectedPayment === 'cash' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-[#9ca3af] mb-1 uppercase tracking-wider">Amount Tendered</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-[#9ca3af]">$</span>
+                      <input 
+                        type="number" 
+                        value={tenderAmount} 
+                        onChange={(e) => setTenderAmount(e.target.value)}
+                        className="w-full pl-8 pr-4 py-3 text-2xl font-black border-2 border-[#e5e7eb] rounded-xl focus:border-[#8b0000] outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[10, 20, 50, 100].map(amt => (
+                      <button key={amt} onClick={() => setTenderAmount(amt.toString())} className="py-2 bg-[#f3f4f6] rounded-lg font-bold text-[#6b7280] hover:bg-[#e5e7eb] border border-[#e5e7eb]">
+                        ${amt}
+                      </button>
+                    ))}
+                    <button onClick={() => setTenderAmount(total.toFixed(2))} className="py-2 bg-[#f3f4f6] rounded-lg font-bold text-[#6b7280] hover:bg-[#e5e7eb] border border-[#e5e7eb] col-span-4">
+                      Exact Amount (${total.toFixed(2)})
+                    </button>
+                  </div>
+                  
+                  <div className="flex justify-between items-center bg-[#f9fafb] p-4 rounded-xl border border-[#e5e7eb]">
+                    <span className="font-bold text-[#6b7280]">Change Due</span>
+                    <span className={`text-2xl font-black ${parseFloat(tenderAmount) < total ? 'text-[#ef4444]' : 'text-[#16a34a]'}`}>
+                      ${getChangeDue()}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-5 border-t border-[#e5e7eb] bg-[#f9fafb]">
+              <Button 
+                className="w-full py-4 text-lg shadow-lg"
+                onClick={handleProcessPayment}
+                loading={processing}
+                disabled={selectedPayment === 'cash' && (parseFloat(tenderAmount) || 0) < total}
+              >
+                Confirm & Pay
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TRANSACTION COMPLETE MODAL */}
+      {showCompleteModal && completedOrder && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-[400px] overflow-hidden shadow-2xl flex flex-col items-center p-8 text-center">
+            <div className="w-20 h-20 bg-[#dcfce7] rounded-full flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-10 h-10 text-[#16a34a]" />
+            </div>
+            <h2 className="text-2xl font-black text-[#111827] mb-1">Payment Successful</h2>
+            <p className="text-[#9ca3af] font-medium mb-6">Order #{completedOrder.orderNumber || completedOrder._id?.slice(-6)}</p>
+            
+            <div className="w-full bg-[#f9fafb] rounded-xl p-4 mb-6 border border-[#e5e7eb]">
+              <div className="flex justify-between mb-2">
+                <span className="text-[#9ca3af] text-sm">Total Amount</span>
+                <span className="font-bold text-[#111827]">${completedOrder.total?.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#9ca3af] text-sm">Payment Method</span>
+                <span className="font-bold text-[#111827] capitalize">{selectedPayment.replace('_', ' ')}</span>
+              </div>
+              {selectedPayment === 'cash' && (
+                <div className="flex justify-between mt-2 pt-2 border-t border-[#e5e7eb]">
+                  <span className="text-[#9ca3af] text-sm font-bold">Change Due</span>
+                  <span className="font-black text-[#16a34a]">${getChangeDue()}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="w-full space-y-3">
+              <Button 
+                className="w-full py-4 bg-[#111827] hover:bg-black text-white" 
+                icon={Printer}
+                onClick={() => {
+                  window.open(`/api/orders/${completedOrder._id}/invoice`, '_blank');
+                }}
+              >
+                Print Receipt
+              </Button>
+              <Button 
+                variant="outline"
+                className="w-full py-4 border-2 border-[#e5e7eb] text-[#6b7280] hover:bg-[#f9fafb]" 
+                icon={RotateCcw}
+                onClick={() => {
+                  setShowCompleteModal(false);
+                  setCompletedOrder(null);
+                  setTenderAmount('');
+                }}
+              >
+                New Order
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CLOCK IN/OUT MODAL */}
       {showPinModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <GlassCard className="w-full max-w-sm space-y-6 text-center">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm space-y-6 text-center p-6 border border-[#e5e7eb]">
             <h2 className="text-2xl font-black text-[#111827]">
               {pinMode === 'in' ? 'Clock In' : 'Clock Out'}
             </h2>
             <p className="text-[#6b7280] text-sm">Enter your 4-digit POS PIN</p>
             
-            <div className="text-3xl font-mono tracking-[1em] font-black text-[#8b0000] bg-[#f3f4f6]/50 py-4 rounded-xl border border-[#e5e7eb]/50">
+            <div className="text-3xl font-mono tracking-[1em] font-black text-[#8b0000] bg-[#f3f4f6] py-4 rounded-xl border border-[#e5e7eb]">
               {pin.padEnd(4, '•')}
             </div>
             
@@ -339,7 +553,7 @@ function POSContent() {
                   }}
                   className={`py-4 rounded-xl text-xl font-bold transition-colors ${
                     btn === 'OK' ? 'bg-[#8b0000] text-white hover:bg-[#8b0000]/80' : 
-                    btn === 'C' ? 'bg-[#ef4444]/10 text-[#ef4444] hover:bg-[#ef4444]/20' : 
+                    btn === 'C' ? 'bg-[#fef2f2] text-[#ef4444] hover:bg-error/20' : 
                     'bg-white border border-[#e5e7eb] text-[#111827] hover:bg-[#f3f4f6]'
                   }`}
                 >
@@ -348,10 +562,10 @@ function POSContent() {
               ))}
             </div>
             
-            <button onClick={() => setShowPinModal(false)} className="text-sm text-[#6b7280] hover:text-[#111827] underline mt-4">
+            <button onClick={() => setShowPinModal(false)} className="text-sm text-[#6b7280] hover:text-[#111827] underline mt-4 block mx-auto">
               Cancel
             </button>
-          </GlassCard>
+          </div>
         </div>
       )}
     </div>

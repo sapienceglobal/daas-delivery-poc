@@ -1,5 +1,7 @@
 import Order from '../models/Order.js';
 import Restaurant from '../models/Restaurant.js';
+import CateringInquiry from '../models/CateringInquiry.js';
+import Reservation from '../models/Reservation.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
@@ -147,6 +149,16 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
   const totalOrders = filledStats.reduce((sum, day) => sum + day.orders, 0);
   const currentAov = totalOrders > 0 ? (totalRevenue / totalOrders) : 0;
 
+  const cateringCount = await CateringInquiry.countDocuments({
+    restaurantId: new mongoose.Types.ObjectId(restaurantId),
+    createdAt: { $gte: startDate, $lt: endOfToday }
+  });
+
+  const reservationsCount = await Reservation.countDocuments({
+    restaurantId: new mongoose.Types.ObjectId(restaurantId),
+    createdAt: { $gte: startDate, $lt: endOfToday }
+  });
+
   res.success(response, {
     data: {
       summary: {
@@ -158,7 +170,9 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
         prevAov,
         newCustomers,
         prevCustomers,
-        totalDiscounts
+        totalDiscounts,
+        cateringCount,
+        reservationsCount
       },
       dailyStats: filledStats,
       salesByChannel,

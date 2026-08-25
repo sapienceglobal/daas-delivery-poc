@@ -23,9 +23,8 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
   // ---------------------------------------------------------
   // 1. TOP STATS CALCULATIONS (Strictly real data)
   // ---------------------------------------------------------
-  const todayRevenue = stats?.todayRevenue || 0;
-  const todayOrdersList = (orders || []).filter(o => new Date(o.createdAt) >= today);
-  const totalOrders = todayOrdersList.length;
+  const totalRevenue = analyticsData?.summary?.totalRevenue || 0;
+  const totalOrders = analyticsData?.summary?.totalOrders || 0;
   
   const activeOrdersCount = (orders || []).filter(o => ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'picked_up'].includes((o.status || '').toLowerCase())).length;
   const newCustomers = analyticsData?.summary?.newCustomers || 0;
@@ -59,7 +58,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
     revenue: day.revenue,
     orders: day.orders
   }));
-  const salesData = fetchedSalesData.length > 0 ? fetchedSalesData : [{ name: 'Today', revenue: todayRevenue, orders: totalOrders }];
+  const salesData = fetchedSalesData.length > 0 ? fetchedSalesData : [{ name: 'Data', revenue: totalRevenue, orders: totalOrders }];
 
   const totalChannels = (analyticsData?.salesByChannel || []).reduce((sum, c) => sum + c.count, 0);
   const channelDataRaw = (analyticsData?.salesByChannel || []).map(c => {
@@ -138,8 +137,8 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
       {/* Top Stats Grid (6 Cards) */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard
-          title="Today's Revenue"
-          value={`$${todayRevenue.toFixed(2)}`}
+          title="Revenue"
+          value={`$${totalRevenue.toFixed(2)}`}
           icon={DollarSign}
           iconColor="text-[#991b1b]"
           iconBg="bg-[#fef2f2]"

@@ -10,7 +10,7 @@ const router = Router();
 router.post('/', protect, authorize('customer'), validate(createOrderSchema), orderController.createOrder);
 router.get('/merchant/all', protect, authorize('merchant'), orderController.getMerchantOrders);
 router.get('/my-orders', protect, authorize('customer'), orderController.getMyOrders);
-router.get('/:id', protect, authorize('customer'), orderController.getOrderById);
+router.get('/:id', protect, authorize('customer', 'merchant', 'admin'), orderController.getOrderById);
 router.post('/:id/cancel', protect, authorize('customer'), orderController.cancelOrder);
 router.post('/:id/rate', protect, authorize('customer'), validate(rateOrderSchema), orderController.rateOrder);
 router.post('/delivery-quote', protect, authorize('customer'), validate(deliveryQuoteSchema), orderController.getDeliveryQuote);

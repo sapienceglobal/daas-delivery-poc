@@ -342,7 +342,7 @@ const verifyCardPayment = async ({ paymentMethod, stripePaymentIntentId, expecte
   return { paymentStatus: 'paid' };
 };
 
-const createDoorDashDeliveryForOrder = async (order) => {
+const createShipdayDeliveryForOrder = async (order) => {
   if (order.orderType !== 'delivery' || order.deliveryId) return order;
 
   try {
@@ -355,10 +355,10 @@ const createDoorDashDeliveryForOrder = async (order) => {
   } catch (err) {
     order.statusUpdates.push({
       status: order.status,
-      description: `DoorDash delivery creation failed: ${err.message}`
+      description: `Shipday delivery creation failed: ${err.message}`
     });
     await order.save();
-    logger.warn('DoorDash delivery trigger failed after restaurant acceptance', {
+    logger.warn('Shipday delivery trigger failed after restaurant acceptance', {
       orderId: order._id,
       error: err.message
     });
@@ -428,7 +428,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     throw new AppError('Delivery address is required', 400);
   }
   // M4: Sanitize user-generated text fields
-  const sanitizedCourierNotes = courierNotes ? xss(String(courierNotes).slice(0, 500)) : '';
+  const sanitizedCourierNotes = courierNotes ? xss(String(courierNotes)).slice(0, 500) : '';
   const isMerchantPosCash =
     ['merchant', 'admin'].includes(req.user.role) &&
     ['pickup', 'dine_in'].includes(orderType) &&
@@ -582,7 +582,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     couponId: pricing.coupon?._id || null,
     couponCode: pricing.coupon?.code || null,
     courierNotes: sanitizedCourierNotes,
-    specialInstructions: specialInstructions ? xss(String(specialInstructions).slice(0, 500)) : '',
+    specialInstructions: specialInstructions ? xss(String(specialInstructions)).slice(0, 500) : '',
     scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
     stripePaymentIntentId: finalStripePaymentIntentId || null,
     deliveryProvider: deliveryQuote.quote?.provider || 'doordash',
@@ -702,20 +702,22 @@ export const createOrder = asyncHandler(async (req, response) => {
     });
   }
 
-    // Send confirmation emails to Account Owner and/or Customer Email provided at checkout
-    const emailsToNotify = new Set();
-    if (req.user.email && req.user.notificationPreferences?.email !== false) {
-      emailsToNotify.add(req.user.email);
-    }
-    if (order.customerEmail) {
-      emailsToNotify.add(order.customerEmail);
-    }
+    // Send confirmation emails ONLY if the order is auto-accepted. Otherwise, wait until merchant accepts.
+    if (order.status === 'accepted') {
+      const emailsToNotify = new Set();
+      if (req.user.email && req.user.notificationPreferences?.email !== false) {
+        emailsToNotify.add(req.user.email);
+      }
+      if (order.customerEmail) {
+        emailsToNotify.add(order.customerEmail);
+      }
 
-    emailsToNotify.forEach(email => {
-      sendOrderConfirmationEmail(email, order).catch((err) => {
-        logger.error(`Failed to send confirmation email to ${email}`, { error: err.message });
+      emailsToNotify.forEach(email => {
+        sendOrderConfirmationEmail(email, order).catch((err) => {
+          logger.error(`Failed to send confirmation email to ${email}`, { error: err.message });
+        });
       });
-    });
+    }
 
     // ── TRIGGER BACKGROUND NOTIFICATIONS ──────────────────────────────────────
     try {
@@ -725,6 +727,33 @@ export const createOrder = asyncHandler(async (req, response) => {
         url: `/merchant/live-orders`
       });
       await sendOrderAlert(restaurant, order);
+
+      // Trigger FCM for merchant app users
+      const UserModel = req.getModel ? req.getModel('User') : req.app.get('tenantModels')[req.tenantId]?.User;
+      if (UserModel) {
+        const merchantUsers = await UserModel.find({ 
+          restaurantId: restaurant._id, 
+          role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] },
+          fcmTokens: { $exists: true, $not: { $size: 0 } }
+        });
+        
+        console.log(`[FCM] Found ${merchantUsers.length} merchant users with FCM tokens for restaurant ${restaurant._id}`);
+        // Using a premium, vibrant image of Indian cuisine/restaurant atmosphere for a true "industry level" feel
+        const newOrderImageUrl = 'https://res.cloudinary.com/h2cylj8r/image/upload/v1787569372/restaurant-platform/notifications/ouwuhg99wjuxrfzksswe.png';
+        for (const mUser of merchantUsers) {
+          console.log(`[FCM] Sending notification to merchant user ${mUser._id} (role: ${mUser.role}, tokens: ${mUser.fcmTokens?.length})`);
+          await createNotification(
+            mUser._id,
+            'New Order Request 🛎️',
+            `${order.customerName} placed a new ${order.orderType} order! Total: $${order.total.toFixed(2)}`,
+            'new_order',
+            `/live-orders`,
+            io,
+            req.getModel,
+            newOrderImageUrl
+          );
+        }
+      }
     } catch (notifErr) {
       console.error('Error sending background notifications:', notifErr);
     }
@@ -984,6 +1013,35 @@ export const cancelOrder = asyncHandler(async (req, response) => {
     io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
   }
 
+  // Trigger FCM for merchant app users on Cancellation
+  try {
+    const UserModel = req.getModel ? req.getModel('User') : req.app.get('tenantModels')[req.tenantId]?.User;
+    if (UserModel) {
+      const merchantUsers = await UserModel.find({ 
+        restaurantId: order.restaurantId, 
+        role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] },
+        fcmTokens: { $exists: true, $not: { $size: 0 } }
+      });
+      
+      const cancelledImageUrl = 'https://images.unsplash.com/photo-1526367790999-0150786686a2?q=80&w=600&auto=format&fit=crop';
+      
+      for (const mUser of merchantUsers) {
+        await createNotification(
+          mUser._id,
+          'Order Cancelled 🚨',
+          `Order #${order.orderNumber} was cancelled by the customer. Please stop preparation.`,
+          'order_cancelled',
+          `/live-orders`,
+          io,
+          req.getModel,
+          cancelledImageUrl
+        );
+      }
+    }
+  } catch (notifErr) {
+    logger.error('Error sending cancel notifications:', notifErr);
+  }
+
   res.success(response, { data: order, message: 'Order cancelled' });
 });
 
@@ -993,13 +1051,14 @@ export const rateOrder = asyncHandler(async (req, response) => {
     throw new AppError('Rating must be between 1 and 5', 400);
   }
 
+  const Order = req.getModel('Order');
   const order = await Order.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
   if (order.userId?.toString() !== req.user._id.toString()) throw new AppError('Not authorized', 403);
   if (order.status !== 'delivered') throw new AppError('Can only rate delivered orders', 400);
 
   order.rating = rating;
-  order.review = review ? xss(String(review).slice(0, 1000)) : null;
+  order.review = review ? xss(String(review)).slice(0, 1000) : null;
   await order.save();
 
   res.success(response, { data: order, message: 'Thanks for your rating!' });
@@ -1142,13 +1201,13 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
   status = finalStatus;
   order = finalOrder;
   if (status === 'accepted') {
-    createDoorDashDeliveryForOrder(order).catch(err => logger.error('DoorDash background error', err));
+    createShipdayDeliveryForOrder(order).catch(err => logger.error('Shipday background error', err));
   } else if (status === 'cancelled') {
     rollbackLoyaltyPoints(order, 'status_update_cancel').catch(err => logger.error('Rollback points error', err));
     const io = req.app.get('io');
     processAutoRefund(order, 'Cancelled by restaurant', io, req.getModel).catch(err => logger.error('Auto refund error', err));
     if (order.deliveryId) {
-      cancelDelivery(order, 'Cancelled via status update').catch(err => logger.error('DoorDash cancel error', err));
+      cancelDelivery(order, 'Cancelled via status update').catch(err => logger.error('Shipday cancel error', err));
     }
   } else if (status === 'delivered' || status === 'picked_up') {
     awardLoyaltyPoints(order).catch(err => logger.error('Award points error', err));
@@ -1198,7 +1257,7 @@ export const acceptOrder = asyncHandler(async (req, response) => {
   order.status = 'accepted';
   order.statusUpdates.push({ status: 'accepted', description: 'Order accepted by restaurant' });
   await order.save();
-  createDoorDashDeliveryForOrder(order).catch(err => logger.error('DoorDash background error', err));
+  createShipdayDeliveryForOrder(order).catch(err => logger.error('Shipday background error', err));
 
   const io = req.app.get('io');
   if (io) {
@@ -1217,6 +1276,13 @@ export const acceptOrder = asyncHandler(async (req, response) => {
       io,
       req.getModel
     );
+  }
+
+  // Send confirmation emails to Customer Email when the order is accepted
+  if (order.customerEmail) {
+    sendOrderConfirmationEmail(order.customerEmail, order).catch((err) => {
+      logger.error(`Failed to send confirmation email to ${order.customerEmail}`, { error: err.message });
+    });
   }
 
   res.success(response, { data: order, message: 'Order accepted' });
@@ -1275,6 +1341,7 @@ export const rejectOrder = asyncHandler(async (req, response) => {
 // ── Admin ───────────────────────────────────────────────────────────────────
 
 export const getAllOrders = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(100, parseInt(req.query.limit) || 50);
   const skip = (page - 1) * limit;
@@ -1423,6 +1490,7 @@ export const replyToReview = asyncHandler(async (req, response) => {
   const { reply } = req.body;
   if (!reply) throw new AppError('Reply content is required', 400);
 
+  const Order = req.getModel('Order');
   const order = await Order.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
 
@@ -1432,7 +1500,7 @@ export const replyToReview = asyncHandler(async (req, response) => {
     throw new AppError('Order has not been rated yet', 400);
   }
 
-  order.restaurantReply = xss(String(reply).slice(0, 1000));
+  order.restaurantReply = xss(String(reply)).slice(0, 1000);
   await order.save();
 
   res.success(response, { data: order, message: 'Reply added successfully' });
@@ -1443,6 +1511,7 @@ export const replyToReview = asyncHandler(async (req, response) => {
 export const getAvailableDriverOrders = asyncHandler(async (req, response) => {
   // find orders that are ready for pickup and have no assigned driver, or orders that this driver just accepted.
   // actually, let's just find orders with status 'ready' and orderType 'delivery' and no deliveryId (DoorDash)
+  const Order = req.getModel('Order');
   const orders = await Order.find({
     orderType: 'delivery',
     status: 'ready',
@@ -1454,6 +1523,7 @@ export const getAvailableDriverOrders = asyncHandler(async (req, response) => {
 
 export const getActiveDriverOrder = asyncHandler(async (req, response) => {
   // an active order is one that the driver has accepted or picked up, but not delivered.
+  const Order = req.getModel('Order');
   const order = await Order.findOne({
     driverId: req.user._id,
     status: { $in: ['accepted_by_driver', 'picked_up'] }
@@ -1463,6 +1533,7 @@ export const getActiveDriverOrder = asyncHandler(async (req, response) => {
 });
 
 export const driverAcceptOrder = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
   const order = await Order.findById(req.params.id);
   if (!order) throw new AppError('Order not found', 404);
 
@@ -1487,6 +1558,7 @@ export const driverAcceptOrder = asyncHandler(async (req, response) => {
 });
 
 export const driverPickupOrder = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
   const order = await Order.findOne({ _id: req.params.id, driverId: req.user._id });
   if (!order) throw new AppError('Order not found or not assigned to you', 404);
 
@@ -1507,6 +1579,7 @@ export const driverPickupOrder = asyncHandler(async (req, response) => {
 });
 
 export const driverDeliverOrder = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
   const order = await Order.findOne({ _id: req.params.id, driverId: req.user._id });
   if (!order) throw new AppError('Order not found or not assigned to you', 404);
 

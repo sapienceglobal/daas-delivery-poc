@@ -5,7 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Search, Menu, ShoppingBag, Bell, HelpCircle, Settings, LogOut,
   ClipboardList, Utensils, CalendarCheck, Users, Ticket, BarChart3,
-  ChefHat, Store, X, ArrowRight, Loader2, UserCircle, MessageSquare
+  ChefHat, Store, X, ArrowRight, Loader2, UserCircle, MessageSquare,
+  Layout, Send, Activity
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMerchantContext } from '@/context/MerchantContext';
@@ -28,6 +29,9 @@ const NAV_ACTIONS = [
   { id: 'promotions', label: 'Promotions & Coupons', hint: 'Discount campaigns', href: '/merchant/promotions', icon: Ticket, keywords: 'coupon discount promo offer' },
   { id: 'analytics', label: 'Reports & Analytics', hint: 'Finance and performance', href: '/merchant/analytics', icon: BarChart3, keywords: 'reports revenue sales finance' },
   { id: 'settings', label: 'Restaurant Settings', hint: 'Business settings', href: '/merchant/settings', icon: Settings, keywords: 'profile hours tax payment setup' },
+  { id: 'cms', label: 'CMS Website Pages', hint: 'Manage website content', href: '/merchant/cms', icon: Layout, keywords: 'cms website pages content' },
+  { id: 'push-notifications', label: 'Push Notifications', hint: 'Send alerts to customers', href: '/merchant/push-notifications', icon: Send, keywords: 'push notifications alert send' },
+  { id: 'system-logs', label: 'System Logs', hint: 'Audit and error logs', href: '/merchant/system-logs', icon: Activity, keywords: 'system logs audit errors' },
 ];
 
 const normalize = (value = '') => value.toString().toLowerCase().trim();

@@ -75,7 +75,7 @@ export const deleteNotification = asyncHandler(async (req, response) => {
 export const createNotification = async (userId, title, body, type = 'system', actionUrl = null, io = null, getModel = null, imageUrl = null) => {
   try {
     const UserModel = getModel ? getModel('User') : User;
-    const user = await UserModel.findById(userId).select('notificationPreferences fcmTokens');
+    const user = await UserModel.findById(userId).select('notificationPreferences fcmTokens role');
     
     if (user && user.notificationPreferences) {
       if (type === 'promotion' || type === 'marketing') {
@@ -114,6 +114,8 @@ export const createNotification = async (userId, title, body, type = 'system', a
           );
         }
 
+        const isMerchantUser = ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'].includes(user.role);
+
         const message = {
           notification: {
             title,
@@ -123,7 +125,7 @@ export const createNotification = async (userId, title, body, type = 'system', a
           android: {
             notification: {
               color: '#006778',
-              icon: 'ic_notification',
+              ...(!isMerchantUser && { icon: 'ic_notification' }), // Only apply for customer apps
               channelId: 'high_importance_channel',
               sound: 'default',
               ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),

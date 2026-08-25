@@ -456,6 +456,9 @@ export const saveFcmToken = asyncHandler(async (req, response) => {
 
   if (!user.fcmTokens.includes(fcmToken)) {
     user.fcmTokens.push(fcmToken);
+    if (user.fcmTokens.length > 10) {
+      user.fcmTokens = user.fcmTokens.slice(-10);
+    }
     await user.save();
   }
 

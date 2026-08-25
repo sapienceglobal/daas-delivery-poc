@@ -6,75 +6,167 @@ import logger from '../utils/logger.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { applyDeliveryUpdate, buildOrderSocketPayload } from '../services/deliverySyncService.js';
 
-const DD_SECRET = process.env.DOORDASH_WEBHOOK_SECRET;
-if (!DD_SECRET) {
+// ── Shipday Webhook Token ───────────────────────────────────────────────────
+// Shipday allows configuring a validation token (max 32 chars) when setting up
+// webhooks. This token is sent in the webhook request header as "token".
+const SHIPDAY_WEBHOOK_TOKEN = process.env.SHIPDAY_WEBHOOK_TOKEN;
+if (!SHIPDAY_WEBHOOK_TOKEN) {
   if (process.env.NODE_ENV === 'production') {
-    console.error('[FATAL] DOORDASH_WEBHOOK_SECRET is not set. Refusing to start with insecure webhooks.');
+    console.error('[FATAL] SHIPDAY_WEBHOOK_TOKEN is not set. Refusing to start with insecure webhooks.');
     process.exit(1);
   } else {
-    console.warn('[WARNING] DOORDASH_WEBHOOK_SECRET is not set. Webhooks will fail in dev unless mocked properly.');
+    console.warn('[WARNING] SHIPDAY_WEBHOOK_TOKEN is not set. Webhooks will accept all requests in dev mode.');
   }
 }
 
 const router = Router();
 
+// ── Token Verification Middleware ───────────────────────────────────────────
+const verifyShipdayToken = (req, res, next) => {
+  // In development without token configured, skip verification
+  if (!SHIPDAY_WEBHOOK_TOKEN && process.env.NODE_ENV !== 'production') {
+    return next();
+  }
+
+  const token = req.headers['token'] || req.headers['Token'];
+  if (!token || !SHIPDAY_WEBHOOK_TOKEN) {
+    throw new AppError('Missing Shipday webhook token', 401);
+  }
+
+  // Use timing-safe comparison to prevent timing attacks
+  const tokenBuffer = Buffer.from(String(token));
+  const expectedBuffer = Buffer.from(SHIPDAY_WEBHOOK_TOKEN);
+
+  if (tokenBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(tokenBuffer, expectedBuffer)) {
+    logger.warn('Shipday webhook token mismatch', {
+      receivedLength: tokenBuffer.length,
+      expectedLength: expectedBuffer.length
+    });
+    throw new AppError('Invalid Shipday webhook token', 401);
+  }
+
+  next();
+};
+
+// ── Helper: Find order by Shipday order number ──────────────────────────────
+const findOrderByNumber = async (orderNumber, req) => {
+  if (!orderNumber) return null;
+
+  // Try the tenant-aware model first, fallback to global
+  try {
+    if (req.getModel) {
+      const TenantOrder = req.getModel('Order');
+      const order = await TenantOrder.findOne({ orderNumber: String(orderNumber) });
+      if (order) return order;
+    }
+  } catch {
+    // fallback below
+  }
+
+  // Fallback to the default Order model
+  return await Order.findOne({ orderNumber: String(orderNumber) });
+};
+
 /**
- * POST /api/delivery-webhook
- * Receives DoorDash Drive API webhook events for delivery status updates.
+ * POST /api/shipday-webhook
+ * Receives Shipday order status update webhook events.
+ *
+ * Shipday webhook payload format:
+ * {
+ *   "timestamp": 1684644196349,
+ *   "event": "ORDER_PIKEDUP",
+ *   "order_status": "PICKED_UP",
+ *   "order": { "id": 123456, "order_number": "808713698", ... },
+ *   "carrier": { "id": 134, "name": "Jane Doe", "phone": "45678432", ... },
+ *   "delivery_details": { ... },
+ *   "pickup_details": { ... },
+ *   "thirdPartyDeliveryOrder": { ... }
+ * }
  */
-router.post('/', asyncHandler(async (req, response) => {
-  const signature = req.headers['x-doordash-signature'] || req.headers['x-dd-signature'];
-  if (!signature || !req.rawBody) {
-    throw new AppError('Missing DoorDash webhook signature', 401);
-  }
-
-  const expected = crypto
-    .createHmac('sha256', DD_SECRET || 'DEV_MOCK_SECRET')
-    .update(req.rawBody)
-    .digest('hex');
-  const normalized = String(signature).replace(/^sha256=/, '');
-
-  const expectedBuffer = Buffer.from(expected, 'hex');
-  const actualBuffer = Buffer.from(normalized, 'hex');
-  if (expectedBuffer.length !== actualBuffer.length || !crypto.timingSafeEqual(expectedBuffer, actualBuffer)) {
-    throw new AppError('Invalid DoorDash webhook signature', 401);
-  }
-
+router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
   const event = req.body;
 
-  logger.info('DoorDash webhook received', {
-    eventType: event.event_type || event.delivery_status,
-    externalId: event.external_delivery_id
+  const eventType = event.event || 'unknown';
+  const orderData = event.order || {};
+  const orderNumber = orderData.order_number || orderData.orderNumber;
+  const shipdayOrderId = orderData.id || event.orderId;
+
+  logger.info('Shipday webhook received', {
+    event: eventType,
+    orderNumber,
+    shipdayOrderId,
+    orderStatus: event.order_status
   });
 
-  const externalId = event.external_delivery_id;
-  if (!externalId) {
-    logger.warn('Webhook missing external_delivery_id');
+  if (!orderNumber && !shipdayOrderId) {
+    logger.warn('Shipday webhook missing order_number and orderId');
     return response.status(200).json({ received: true });
   }
 
-  // externalId format: DD-dbName-timestamp-random
-  const parts = externalId.split('-');
-  const dbName = parts.length >= 2 ? parts[1] : 'daas_poc';
-  const targetDb = req.app.locals.mongoose ? req.app.locals.mongoose.connection.useDb(dbName, { useCache: true }) : Order.db.useDb(dbName, { useCache: true });
-  const TenantOrder = targetDb.model('Order', Order.schema);
+  // Find the order in our database
+  let order = null;
+  if (orderNumber) {
+    order = await findOrderByNumber(orderNumber, req);
+  }
+  if (!order && shipdayOrderId) {
+    // Try finding by deliveryId (which stores the Shipday orderId)
+    order = await Order.findOne({ deliveryId: String(shipdayOrderId) });
+  }
 
-  const order = await TenantOrder.findOne({ externalDeliveryId: externalId });
   if (!order) {
-    logger.warn(`Webhook: no order found for ${externalId} in db ${dbName}`);
+    logger.warn(`Shipday webhook: no order found for orderNumber=${orderNumber}, shipdayId=${shipdayOrderId}`);
     return response.status(200).json({ received: true });
   }
 
-  applyDeliveryUpdate(order, event);
+  // Build a normalized payload for applyDeliveryUpdate
+  const updatePayload = {
+    // Status info
+    event: eventType.toLowerCase(),
+    order_status: (event.order_status || '').toLowerCase(),
+    status: (event.order_status || '').toLowerCase()
+  };
+
+  // Carrier info from webhook
+  if (event.carrier) {
+    updatePayload.carrier = event.carrier;
+  }
+
+  // Third-party carrier info (when dispatched through 3rd party via Shipday)
+  if (event.thirdPartyDeliveryOrder) {
+    const tp = event.thirdPartyDeliveryOrder;
+    if (!updatePayload.carrier?.name && tp.driverName) {
+      updatePayload.carrier = {
+        name: tp.driverName,
+        phone: tp.driverPhone
+      };
+    }
+  }
+
+  // Tracking URL from Shipday order data
+  if (orderData.tracking_link) {
+    updatePayload.trackingUrl = orderData.tracking_link;
+  }
+
+  // Timing data
+  if (orderData.pickedup_time) updatePayload.pickupTime = new Date(orderData.pickedup_time);
+  if (orderData.delivery_time) updatePayload.deliveryTime = new Date(orderData.delivery_time);
+
+  // Apply the update
+  applyDeliveryUpdate(order, updatePayload);
   order.lastDeliverySyncAt = new Date();
+
+  // Store Shipday orderId as deliveryId if not already set
+  if (shipdayOrderId && !order.deliveryId) {
+    order.deliveryId = String(shipdayOrderId);
+  }
 
   try {
     await order.save();
   } catch (err) {
-    logger.error('Failed to save order in webhook', { orderId: order._id, error: err.message });
+    logger.error('Failed to save order in Shipday webhook', { orderId: order._id, error: err.message });
   }
 
-  // emit real-time update via Socket.io
+  // Emit real-time update via Socket.io
   const io = req.app.get('io');
   if (io) {
     const socketPayload = buildOrderSocketPayload(order);

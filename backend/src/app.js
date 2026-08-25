@@ -18,6 +18,7 @@ import reviewRoutes from './routes/reviewRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import webhookRoutes from './routes/webhookRoutes.js';
+import shipdayLocationWebhookRoutes from './routes/shipdayLocationWebhook.js';
 import adminRoutes from './routes/adminRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import tableRoutes from './routes/tableRoutes.js';
@@ -89,7 +90,7 @@ const apiLimiter = rateLimit({
   message: { success: false, message: 'Too many requests from this IP, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path.includes('/delivery-webhook')
+  skip: (req) => req.path.includes('/shipday-webhook') || req.path.includes('/shipday-location-webhook')
 });
 app.use('/api/', apiLimiter);
 
@@ -155,8 +156,7 @@ app.use('/api', (req, res, next) => {
   // same-origin GET requests often omit the Origin header, so we also check sec-fetch-mode or User-Agent
   const isBrowser = Boolean(
     req.headers.origin || 
-    req.headers['sec-fetch-mode'] || 
-    (req.headers['user-agent'] && req.headers['user-agent'].includes('Mozilla'))
+    req.headers['sec-fetch-mode']
   );
   if (isBrowser) return next();
   if (!APP_SECRET) return next();
@@ -204,7 +204,8 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/upload', uploadRoutes);
-app.use('/api/delivery-webhook', webhookRoutes);
+app.use('/api/shipday-webhook', webhookRoutes);
+app.use('/api/shipday-location-webhook', shipdayLocationWebhookRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/tables', tableRoutes);

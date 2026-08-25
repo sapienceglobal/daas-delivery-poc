@@ -22,7 +22,8 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
     endDate: '',
     maxUses: '',
     targetAudience: 'All Users',
-    targetGroup: 'Family'
+    targetGroup: 'Family',
+    firstOrderOnly: false
   });
 
   useEffect(() => {
@@ -43,21 +44,28 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
         minOrdersRequired: editPromo.minOrdersRequired || '',
         allowedPaymentMethods: editPromo.allowedPaymentMethods?.[0] || 'All',
         endDate: editPromo.endDate ? new Date(editPromo.endDate).toISOString().split('T')[0] : '',
-        maxUses: editPromo.maxUses || ''
+        maxUses: editPromo.maxUses || '',
+        firstOrderOnly: editPromo.firstOrderOnly || false
       });
     } else {
       setFormData({
         code: '', name: '', description: '', promoType: defaultPromoType,
         type: 'percentage', value: '', minCartValue: '', minOrdersRequired: '',
-        allowedPaymentMethods: 'All', endDate: '', maxUses: '', targetAudience: 'All Users', targetGroup: 'Family'
+        allowedPaymentMethods: 'All', endDate: '', maxUses: '', targetAudience: 'All Users', targetGroup: 'Family', firstOrderOnly: false
       });
       setErrors({});
     }
   }, [editPromo, isOpen, defaultPromoType]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => {
+      const newData = { ...prev, [name]: type === 'checkbox' ? checked : value };
+      if (name === 'firstOrderOnly' && checked) {
+        newData.minOrdersRequired = ''; // Reset min past orders when first time only is checked
+      }
+      return newData;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -210,8 +218,9 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
                   name="minOrdersRequired"
                   value={formData.minOrdersRequired}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-lg text-[13px] text-[#1f2937] outline-none focus:border-[#8b0000]"
-                  placeholder="e.g. 5 (0 for all)"
+                  disabled={formData.firstOrderOnly}
+                  className={`w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-lg text-[13px] text-[#1f2937] outline-none ${formData.firstOrderOnly ? 'bg-gray-100 cursor-not-allowed opacity-60' : 'focus:border-[#8b0000]'}`}
+                  placeholder={formData.firstOrderOnly ? "N/A" : "e.g. 5 (0 for all)"}
                 />
               </div>
             </div>
@@ -287,6 +296,19 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
                   placeholder="e.g. 100 (blank for unlimited)"
                   min="1"
                 />
+              </div>
+              <div className="flex items-center mt-6">
+                <input
+                  type="checkbox"
+                  name="firstOrderOnly"
+                  id="firstOrderOnly"
+                  checked={formData.firstOrderOnly}
+                  onChange={handleChange}
+                  className="w-4 h-4 text-[#8b0000] border-[#d1d5db] rounded focus:ring-[#8b0000]"
+                />
+                <label htmlFor="firstOrderOnly" className="ml-2 block text-[13px] font-bold text-[#374151]">
+                  First Time Customers Only
+                </label>
               </div>
             </div>
 

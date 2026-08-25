@@ -88,7 +88,7 @@ export default function DishGrid({
       }
     }, 100);
 
-  }, [currentCategory, searchQuery]);
+  }, [currentCategory?._id, searchQuery]);
 
   const displayedItems = useMemo(() => {
     return sortedItems.slice(0, visibleCount);

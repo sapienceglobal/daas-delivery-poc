@@ -498,7 +498,7 @@ export default function AdminLoginPage() {
 
             {/* Footer Links */}
             <div className="mt-2 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-[13px]">
-              <Link href="#" className="flex items-center gap-2 text-[#6b7280] hover:text-[#4a090b] transition-colors">
+              <Link href="/contact-us" className="flex items-center gap-2 text-[#6b7280] hover:text-[#4a090b] transition-colors">
                 <Headset size={16} />
                 <span>Need Help? <span className="font-bold text-[#4a090b]">Contact Support</span></span>
               </Link>

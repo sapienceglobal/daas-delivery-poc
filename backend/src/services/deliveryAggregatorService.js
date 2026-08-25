@@ -1,93 +1,82 @@
 import logger from '../utils/logger.js';
-import * as doordashProvider from './deliveryProviders/doordashProvider.js';
-import * as ubereatsProvider from './deliveryProviders/ubereatsProvider.js';
-import * as grubhubProvider from './deliveryProviders/grubhubProvider.js';
+import * as shipdayProvider from './deliveryProviders/shipdayProvider.js';
 
-const providers = {
-  doordash: doordashProvider,
-  ubereats: ubereatsProvider,
-  grubhub: grubhubProvider
-};
+// ── Delivery Aggregator Service ─────────────────────────────────────────────
+// Single-provider aggregator pointing to Shipday.
+// Previously supported DoorDash, UberEats, GrubHub — all replaced by Shipday.
 
-// fetches quotes from all enabled providers and returns the cheapest one.
-export const getBestDeliveryQuote = async (pickupAddress, dropoffAddress, subtotal, scheduledTime) => {
-  logger.info(`Aggregating quotes for delivery to ${dropoffAddress}`);
-  
-  const enabledProviders = ['doordash', 'ubereats'];
-  const quotes = [];
-  
-  // run all requests in parallel
-  const results = await Promise.allSettled(
-    enabledProviders.map(provider => 
-      providers[provider].getDeliveryQuoteAPI(pickupAddress, dropoffAddress, subtotal, scheduledTime)
-        .then(res => ({ provider, fee: res.fee }))
-    )
-  );
-  
-  results.forEach(result => {
-    if (result.status === 'fulfilled') {
-      quotes.push(result.value);
-    } else {
-      logger.warn(`Delivery provider quote failed: ${result.reason}`);
-    }
-  });
-  
-  if (quotes.length === 0) {
-    logger.error('All delivery providers failed to return a quote.');
-    throw new Error('Delivery is currently unavailable in this area.');
-  }
-  
-  // sort by lowest fee
-  quotes.sort((a, b) => a.fee - b.fee);
-  const bestQuote = quotes[0];
-  
-  logger.info(`Best quote selected: ${bestQuote.provider} at ${bestQuote.fee} cents`);
-  
-  return bestQuote;
-};
-
-// triggers the delivery creation API on the provider selected during quote.
+/**
+ * Triggers a delivery order creation via Shipday.
+ *
+ * @param {Object} order - Mongoose Order document
+ * @returns {Promise<{ deliveryId, trackingUrl, deliveryFee, pickupTime, deliveryTime }>}
+ */
 export const triggerDelivery = async (order) => {
-  const providerKey = order.deliveryProvider || 'doordash';
-  const provider = providers[providerKey];
-  
-  if (!provider) {
-    throw new Error(`Unknown delivery provider configured for order: ${providerKey}`);
-  }
-  
-  return await provider.triggerDeliveryAPI(order);
-};
+  logger.info(`Triggering delivery for order ${order.orderNumber} via Shipday`);
 
-// cancels a delivery on the active provider.
-export const cancelDelivery = async (order, reason) => {
-  if (!order.deliveryId && !order.externalDeliveryId) return true;
-  
-  const providerKey = order.deliveryProvider || 'doordash';
-  const provider = providers[providerKey];
-  
-  if (!provider) {
-    logger.warn(`Unknown provider ${providerKey} during cancellation`);
-    return false;
-  }
-  
-  return await provider.cancelDeliveryAPI(order.externalDeliveryId || order.deliveryId, reason);
-};
+  const result = await shipdayProvider.insertOrder(order);
 
-// gets real-time tracking payload for a delivery.
-export const getDeliveryTracking = async (order) => {
-  if (!order.deliveryId && !order.externalDeliveryId) throw new Error('No delivery ID');
-  
-  const providerKey = order.deliveryProvider || 'doordash';
-  const provider = providers[providerKey];
-  
-  // real API call for supported providers (DoorDash, UberEats)
-  if (provider && typeof provider.getDeliveryAPI === 'function') {
-    return await provider.getDeliveryAPI(order.externalDeliveryId || order.deliveryId);
-  }
-// note: For Grubhub simulation, we will just return mock status
   return {
-    status: order.status, // keep existing status
-    tracking_url: order.trackingUrl
+    deliveryId: result.deliveryId,
+    trackingUrl: result.trackingUrl,
+    deliveryFee: result.deliveryFee,
+    pickupTime: result.pickupTime,
+    deliveryTime: result.deliveryTime
   };
 };
 
+/**
+ * Cancels a delivery on Shipday.
+ *
+ * @param {Object} order  - Mongoose Order document
+ * @param {string} reason - Cancellation reason
+ * @returns {Promise<boolean>}
+ */
+export const cancelDelivery = async (order, reason) => {
+  if (!order.deliveryId && !order.externalDeliveryId) return true;
+
+  const shipdayOrderId = order.deliveryId || order.externalDeliveryId;
+  return await shipdayProvider.deleteOrder(shipdayOrderId, reason);
+};
+
+/**
+ * Gets real-time delivery tracking data from Shipday.
+ *
+ * @param {Object} order - Mongoose Order document
+ * @returns {Promise<Object>} - Tracking payload (status, courier info, location)
+ */
+export const getDeliveryTracking = async (order) => {
+  if (!order.deliveryId && !order.externalDeliveryId) {
+    throw new Error('No delivery ID on order');
+  }
+
+  const shipdayOrderId = order.deliveryId || order.externalDeliveryId;
+  const tracking = await shipdayProvider.getOrderTracking(shipdayOrderId);
+
+  if (!tracking) {
+    // Tracking endpoint unavailable (plan limitation or order not found)
+    return {
+      status: order.status,
+      trackingUrl: order.trackingUrl
+    };
+  }
+
+  return tracking;
+};
+
+/**
+ * Gets delivery fee for an order.
+ * Shipday does not have a quote/estimate API — uses restaurant's configured delivery fee.
+ *
+ * @param {string} pickupAddress  - Restaurant address (unused, kept for API compat)
+ * @param {string} dropoffAddress - Customer address (unused)
+ * @param {number} subtotal       - Order subtotal (unused)
+ * @param {Date}   scheduledTime  - Scheduled delivery time (unused)
+ * @returns {Promise<{ fee: number, provider: string }>}
+ */
+export const getBestDeliveryQuote = async (pickupAddress, dropoffAddress, subtotal, scheduledTime) => {
+  // Shipday doesn't have a delivery quote API.
+  // The delivery fee is configured on the restaurant model and calculated server-side.
+  // This function now throws so the caller falls back to restaurant.deliveryFee.
+  throw new Error('QUOTE_NOT_AVAILABLE');
+};
