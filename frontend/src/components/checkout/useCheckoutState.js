@@ -471,7 +471,7 @@ export function useCheckoutState() {
       return;
     }
 
-    if (!compiledAddress.trim()) {
+    if (!compiledAddress.trim() || !addressVerified) {
       setDeliveryQuote(null);
       if (!hasDeliveryAddressInput) setQuoteError(null);
       return;
@@ -510,6 +510,7 @@ export function useCheckoutState() {
         console.error('DEBUG CHECKOUT: getDeliveryQuote failed:', err);
         const errorMsg = err.response?.data?.message || err.message || 'Delivery quote failed';
         setQuoteError(errorMsg);
+        setDeliveryQuote(null);
 
         // auto-heal stale carts (e.g. after database resets)
         if (errorMsg === 'Restaurant not found' || errorMsg.includes('no longer available')) {
@@ -708,17 +709,9 @@ export function useCheckoutState() {
       let currentLat = addressLat;
       let currentLng = addressLng;
 
-      // geocode if not verified
       if (!addressVerified || currentLat === null || currentLng === null) {
-        setQuoteLoading(true);
-        const coords = await triggerGeocoding(compiledAddress);
-        if (!coords) {
-          setQuoteLoading(false);
-          showToast('Address could not be verified. Please check spelling or select from suggestions.', 'error');
-          return;
-        }
-        currentLat = coords.lat;
-        currentLng = coords.lng;
+        showToast('Please select a valid address from the Google dropdown suggestions.', 'error');
+        return;
       }
 
       // sync quote fetch if not already done

@@ -62,7 +62,7 @@ export default function CategorySidebar({
         <div className="hidden lg:block bg-[#7a0b10] text-[#ffffff] px-5 py-3 font-bold uppercase tracking-wider text-[11px]">
           CATEGORIES
         </div>
-        <nav ref={navRef} className="flex flex-row overflow-x-auto no-scrollbar lg:flex-col snap-x snap-mandatory px-4 lg:px-0 gap-2 lg:gap-0 pb-2 lg:pb-0">
+        <nav ref={navRef} className="flex flex-row overflow-x-auto no-scrollbar lg:flex-col lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto lg:scrollbar-thin snap-x snap-mandatory px-4 lg:px-0 gap-2 lg:gap-0 pb-2 lg:pb-0">
           <button
             key="all"
             data-category-id="all"
