@@ -828,6 +828,18 @@ export function useCheckoutState() {
       showToast('Delivery calculations not finalized. Please check address.', 'error');
       return;
     }
+    if (!isFullNameValid) {
+      showToast('Name contains restricted characters or emojis. Please use standard letters and numbers.', 'error');
+      return;
+    }
+    if (!isEmailValid) {
+      showToast('Please enter a valid email address.', 'error');
+      return;
+    }
+    if (!isPhoneValid) {
+      showToast('Please enter a valid phone number.', 'error');
+      return;
+    }
     if (ONLINE_PAYMENT_METHODS.includes(paymentMethod)) {
       setShowPaymentModal(true);
       return;

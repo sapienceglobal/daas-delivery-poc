@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../constants/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/notification_provider.dart';
+
 class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
   final PreferredSizeWidget? bottom;
 
@@ -11,25 +11,27 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width > 900;
-
     return AppBar(
-      toolbarHeight: 90,
-      backgroundColor: AppColors.surface,
+      toolbarHeight: 70,
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
       elevation: 0,
+      titleSpacing: 0,
       bottom: bottom,
       leading: Builder(
         builder: (context) => IconButton(
-          icon: const Icon(Icons.menu, color: AppColors.textPrimary, size: 28),
+          icon: const Icon(Icons.menu, color: Color(0xFF1F2937), size: 28),
           onPressed: () => Scaffold.of(context).openDrawer(),
         ),
       ),
       title: Image.asset(
         'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-        height: 80,
+        height: 85,
         fit: BoxFit.contain,
       ),
+      centerTitle: false,
       actions: [
+        // Notification bell with badge
         Consumer<NotificationProvider>(
           builder: (context, notificationProvider, child) {
             final unreadCount = notificationProvider.unreadCount;
@@ -37,25 +39,25 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
               alignment: Alignment.center,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.notifications_none, color: AppColors.textPrimary, size: 28),
+                  icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF1F2937), size: 28),
                   onPressed: () {
                     context.push('/notifications');
                   },
                 ),
                 if (unreadCount > 0)
                   Positioned(
-                    right: 12,
-                    top: 12,
+                    right: 8,
+                    top: 8,
                     child: Container(
-                      padding: const EdgeInsets.all(2),
+                      padding: const EdgeInsets.all(4),
                       decoration: const BoxDecoration(
-                        color: Colors.red,
+                        color: Color(0xFFDC2626),
                         shape: BoxShape.circle,
                       ),
-                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
                       child: Text(
                         unreadCount > 99 ? '99+' : unreadCount.toString(),
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -64,27 +66,38 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
             );
           },
         ),
+        // User avatar section
         Padding(
-          padding: const EdgeInsets.only(right: 16.0, left: 8.0),
-          child: Row(
-            children: [
-              const CircleAvatar(
-                radius: 20,
-                backgroundImage: AssetImage('assets/images/branded/lassi-lounge/splash-icon.png'),
-              ),
-              const SizedBox(width: 8),
-              if (isDesktop)
+          padding: const EdgeInsets.only(right: 12.0),
+          child: GestureDetector(
+            onTap: () => Scaffold.of(context).openDrawer(),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: const Color(0xFFFEE2E2),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/branded/lassi-lounge/splash-icon.png',
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) => const Icon(Icons.person, color: Color(0xFFDC2626), size: 24),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Lassi Lounge Admin', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                    Text('Lassi Lounge', style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary)),
+                    Text('Admin', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1F2937))),
+                    Text('Lassi Lounge', style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF6B7280))),
                   ],
                 ),
-              if (isDesktop) const SizedBox(width: 4),
-              const Icon(Icons.keyboard_arrow_down, color: AppColors.textPrimary, size: 24),
-            ],
+                const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF6B7280), size: 22),
+              ],
+            ),
           ),
         )
       ],
@@ -94,6 +107,6 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize {
     final bottomHeight = bottom?.preferredSize.height ?? 0;
-    return Size.fromHeight(90 + bottomHeight);
+    return Size.fromHeight(70 + bottomHeight);
   }
 }

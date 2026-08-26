@@ -7,6 +7,8 @@ import { getBestDeliveryQuote } from '../services/deliveryAggregatorService.js';
 import { validateDeliveryDistance } from '../utils/distance.js';
 import { AppError } from '../middleware/errorHandler.js';
 
+import { createOrderSchema } from '../middleware/schemas.js';
+
 const roundMoney = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
 const getTrustedDeliveryQuoteForPayment = async ({ restaurant, address, subtotal, scheduledTime }) => {
@@ -29,6 +31,14 @@ export const createIntent = asyncHandler(async (req, res) => {
   const body = req.body.checkoutData
     ? { ...req.body, ...req.body.checkoutData }
     : req.body;
+
+  // Rigorously validate the payload BEFORE creating a Stripe intent.
+  // This prevents charging the user for an order that will fail Joi validation during order creation.
+  const { error } = createOrderSchema.validate(body, { abortEarly: false, stripUnknown: true });
+  if (error) {
+    const errorMsg = error.details.map((x) => x.message).join(', ');
+    throw new AppError(errorMsg, 400);
+  }
 
   const { amount, orderId, restaurantId, items, orderType, tip, couponCode, useLoyaltyPoints, address, addressLat, addressLng, scheduledTime, paymentMethod, customerPhone, customerName, customerEmail } = body;
 

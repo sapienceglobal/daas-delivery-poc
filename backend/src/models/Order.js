@@ -190,7 +190,7 @@ const OrderSchema = new mongoose.Schema({
   statusUpdates: [StatusUpdateSchema],
 
   // ── Delivery (Multi-Provider) ─────────────────────────────────────────────
-  deliveryProvider: { type: String, enum: ['doordash', 'ubereats', 'grubhub'], default: 'doordash' },
+  deliveryProvider: { type: String, default: 'shipday' },
   deliveryId: { type: String, default: null },
   trackingUrl: { type: String, default: null },
   pickupTime: { type: Date, default: null },

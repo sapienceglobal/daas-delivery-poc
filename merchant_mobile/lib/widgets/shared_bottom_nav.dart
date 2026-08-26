@@ -11,50 +11,79 @@ class SharedBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.06),
             blurRadius: 20,
-            offset: const Offset(0, -5),
+            offset: const Offset(0, -4),
           )
         ],
       ),
-      child: BottomNavigationBar(
-        currentIndex: currentIndex,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        selectedItemColor: const Color(0xFFDC2626), // App Theme Maroon/Red
-        unselectedItemColor: const Color(0xFF94A3B8),
-        selectedLabelStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.2),
-        unselectedLabelStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.2),
-        items: const [
-          BottomNavigationBarItem(icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.dashboard_rounded)), label: 'Home'),
-          BottomNavigationBarItem(icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.receipt_long_rounded)), label: 'Orders'),
-          BottomNavigationBarItem(icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.kitchen_rounded)), label: 'Kitchen'),
-          BottomNavigationBarItem(icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.calendar_month_rounded)), label: 'Bookings'),
-          BottomNavigationBarItem(icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.more_horiz_rounded)), label: 'More'),
-        ],
-        onTap: (index) {
-          if (index == currentIndex) return; // Do nothing if already on this tab
-          switch (index) {
-            case 0:
-              context.go('/');
-              break;
-            case 1:
-              context.go('/live-orders');
-              break;
-            case 2:
-              context.go('/kds');
-              break;
-            case 3:
-              context.go('/reservations');
-              break;
-            case 4:
-              context.go('/more');
-              break;
-          }
-        },
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(context, 0, Icons.home_rounded, Icons.home_outlined, 'Dashboard'),
+              _buildNavItem(context, 1, Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'Live Orders'),
+              _buildNavItem(context, 2, Icons.kitchen_rounded, Icons.kitchen_outlined, 'Kitchen Display'),
+              _buildNavItem(context, 3, Icons.calendar_month_rounded, Icons.calendar_month_outlined, 'Reservations'),
+              _buildNavItem(context, 4, Icons.more_horiz_rounded, Icons.more_horiz_rounded, 'More'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(BuildContext context, int index, IconData activeIcon, IconData inactiveIcon, String label) {
+    final isActive = currentIndex == index;
+    final color = isActive ? const Color(0xFFDC2626) : const Color(0xFF94A3B8);
+
+    return GestureDetector(
+      onTap: () {
+        if (index == currentIndex) return;
+        switch (index) {
+          case 0:
+            context.go('/');
+            break;
+          case 1:
+            context.go('/live-orders');
+            break;
+          case 2:
+            context.go('/kds');
+            break;
+          case 3:
+            context.go('/reservations');
+            break;
+          case 4:
+            context.go('/more');
+            break;
+        }
+      },
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 76,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(isActive ? activeIcon : inactiveIcon, color: color, size: 26),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                color: color,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,7 +1,7 @@
 flutter_native_splash:
-  color: "#0A0A0A"
-  image: "assets/images/branded/lassi-lounge/splash-icon.png"
+  color: "#F5F0E8"
+  image: "assets/images/branded/lassi-lounge/Lassi-Lounge-logo-padded.png"
   android_12:
     image: "assets/images/branded/lassi-lounge/splash-icon-android12.png"
-    icon_background_color: "#0A0A0A"
-    color: "#0A0A0A"
+    icon_background_color: "#F5F0E8"
+    color: "#F5F0E8"
