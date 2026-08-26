@@ -147,13 +147,18 @@ export default function DeliveryInfoSection({
                   value={fullName} 
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter your full name"
-                  className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
+                  className={`w-full rounded-xl border bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a] ${
+                    fullName && !/^[a-zA-Z0-9\s\-'.]+$/.test(fullName) ? 'border-[#ef4444] focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]' : 'border-[#e5e7eb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10]'
+                  }`}
                 />
+                {fullName && !/^[a-zA-Z0-9\s\-'.]+$/.test(fullName) && (
+                  <p className="text-[#ef4444] text-xs mt-1.5 font-medium">Please use standard letters only. Emojis and special characters are not allowed.</p>
+                )}
               </div>
               <div>
                 <label className="block text-[13px] font-bold text-[#1a1a1a] mb-1.5">Phone Number*</label>
                 <div className={`phone-field-wrap h-[46px] rounded-xl border bg-[#ffffff] px-4 flex items-center transition-all ${
-                  phone && typeof isValidPhoneNumber === 'function' && !isValidPhoneNumber(phone) ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#7a0b10] focus-within:ring-1 focus-within:ring-[#7a0b10]'
+                  phone && typeof isValidPhoneNumber === 'function' && !isValidPhoneNumber(phone) ? 'border-[#ef4444] ring-1 ring-[#ef4444]' : 'border-[#e5e7eb] focus-within:border-[#7a0b10] focus-within:ring-1 focus-within:ring-[#7a0b10]'
                 }`}>
                   <PhoneInput
                     international
@@ -164,6 +169,9 @@ export default function DeliveryInfoSection({
                     className="w-full"
                   />
                 </div>
+                {phone && typeof isValidPhoneNumber === 'function' && !isValidPhoneNumber(phone) && (
+                  <p className="text-[#ef4444] text-xs mt-1.5 font-medium">Please enter a valid, complete phone number.</p>
+                )}
               </div>
             </div>
 
@@ -177,8 +185,13 @@ export default function DeliveryInfoSection({
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address"
-                className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
+                className={`w-full rounded-xl border bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a] ${
+                  email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? 'border-[#ef4444] focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]' : 'border-[#e5e7eb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10]'
+                }`}
               />
+              {email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && (
+                <p className="text-[#ef4444] text-xs mt-1.5 font-medium">Please enter a valid email address.</p>
+              )}
             </div>
 
             {orderType === 'delivery' && (

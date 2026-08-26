@@ -643,8 +643,30 @@ export function useCheckoutState() {
   };
 
   const handleContinueToPayment = async ({ fullName, phone, email, orderType, addressLine1, city, zipCode }) => {
+    // 1. Basic empty check
     if (!fullName.trim() || !phone.trim() || !email.trim() || (orderType === 'delivery' && (!addressLine1.trim() || !city.trim() || !zipCode.trim()))) {
       showToast('Please fill out all required fields marked with *', 'warning');
+      return;
+    }
+
+    // 2. Strict format validation
+    const nameRegex = /^[a-zA-Z0-9\s\-'.]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!nameRegex.test(fullName.trim())) {
+      showToast('Name contains restricted characters or emojis. Please use standard letters and numbers.', 'error');
+      return;
+    }
+    if (fullName.trim().length < 2 || fullName.trim().length > 50) {
+      showToast('Name must be between 2 and 50 characters.', 'error');
+      return;
+    }
+    if (!emailRegex.test(email.trim())) {
+      showToast('Please enter a valid email address.', 'error');
+      return;
+    }
+    if (!isValidPhoneNumber(phone)) {
+      showToast('Please enter a valid, complete phone number.', 'error');
       return;
     }
 
@@ -693,6 +715,8 @@ export function useCheckoutState() {
   };
 
   const isPhoneValid = phone ? isValidPhoneNumber(phone) : false;
+  const isFullNameValid = fullName ? /^[a-zA-Z0-9\s\-'.]+$/.test(fullName) : false;
+  const isEmailValid = email ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) : false;
 
   const handleContinueToReview = async () => {
     // 1. Validate Delivery Info if orderType is delivery
@@ -827,7 +851,7 @@ export function useCheckoutState() {
     suggestions, suggestionsLoading, addressVerified,
     items, restaurant, subtotal, itemCount, updateQuantity, removeItem, user,
     compiledAddress, checkoutPayload, tax, deliveryFee, platformFee, serviceFee, packagingFee, tip, setTip, total,
-    isPhoneValid,
+    isPhoneValid, isFullNameValid, isEmailValid,
     handleSelectSavedAddress, handleUseCurrentLocation,
     handleAddressLine1Change, handleSelectSuggestion,
     handleApplyCoupon, handleRemoveCoupon,

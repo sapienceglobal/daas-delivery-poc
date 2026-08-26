@@ -115,7 +115,15 @@ export const createOrderSchema = Joi.object({
   savedCardId: Joi.string().max(200).allow('', null).optional(),
   useLoyaltyPoints: Joi.boolean().default(false),
   customerPhone: Joi.string().max(30).allow('', null).optional(),
-  customerName: Joi.string().max(100).allow('', null).optional(),
+  customerName: Joi.string()
+    .max(50)
+    .pattern(/^[a-zA-Z0-9\s\-'.]+$/)
+    .allow('', null)
+    .optional()
+    .messages({
+      'string.pattern.base': 'Name contains restricted characters or emojis. Please use standard letters and numbers only.',
+      'string.max': 'Name cannot exceed 50 characters'
+    }),
   customerEmail: Joi.string().email().allow('', null).optional(),
   specialInstructions: Joi.string().max(1000).allow('', null).optional()
 });

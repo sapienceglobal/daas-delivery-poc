@@ -92,6 +92,8 @@ export default function CheckoutPage() {
               appliedCouponData={c.appliedCouponData}
               isPaymentMethodLockedByCoupon={c.isPaymentMethodLockedByCoupon}
               isPhoneValid={c.isPhoneValid}
+              isFullNameValid={c.isFullNameValid}
+              isEmailValid={c.isEmailValid}
             />
 
           </div>

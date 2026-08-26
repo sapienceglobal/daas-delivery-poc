@@ -9,8 +9,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Yahan apni download ki hui image ka naam/path daliye (e.g., 'new_order.png')
-const IMAGE_PATH_TO_UPLOAD = 'new_order.png'; 
+// Yahan apni download ki hui image ka naam/path daliye (e.g., 'cancel_order.png')
+const IMAGE_PATH_TO_UPLOAD = 'cancel_order.png';
 
 async function uploadImage() {
   try {

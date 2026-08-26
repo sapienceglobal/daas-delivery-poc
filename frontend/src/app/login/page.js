@@ -27,7 +27,10 @@ const loginSchema = z.object({
 // stay optional on the website, tell me and I'll relax this back to
 // `.optional()` — just flagging that mobile and web disagreed before.
 const registerSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z.string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(50, 'Name cannot exceed 50 characters')
+    .regex(/^[a-zA-Z0-9\s\-'.]+$/, 'Name contains restricted characters or emojis. Please use standard letters and numbers only.'),
   email: z.string().min(1, 'Email is required').email('Invalid email format'),
   phone: z
     .string()
@@ -378,7 +381,7 @@ function LoginPageContent() {
                       {/* Full Name */}
                       <div className="space-y-2.5">
                         <label className="text-[13px] font-bold text-[#1f2937] block">Full Name</label>
-                        <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.name ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
+                        <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.name ? 'border-[#ef4444] ring-1 ring-[#ef4444]' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
                           <div className="px-4 py-3 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
                             <User size={18} strokeWidth={2} />
                           </div>
@@ -390,13 +393,13 @@ function LoginPageContent() {
                             className="flex-1 bg-transparent border-none px-4 py-3 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
                           />
                         </div>
-                        {errors.name && <p className="text-xs text-red-500 font-medium mt-1 ml-1">{errors.name}</p>}
+                        {errors.name && <p className="text-xs font-medium mt-1 ml-1" style={{ color: '#ef4444' }}>{errors.name}</p>}
                       </div>
 
                       {/* Phone */}
                       <div className="space-y-2.5">
                         <label className="text-[13px] font-bold text-[#1f2937] block">Phone Number</label>
-                        <div className={`phone-field-wrap h-[52px] rounded-xl border px-4 flex items-center bg-white transition-all ${errors.phone ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
+                        <div className={`phone-field-wrap h-[52px] rounded-xl border px-4 flex items-center bg-white transition-all ${errors.phone ? 'border-[#ef4444] ring-1 ring-[#ef4444]' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
                           <PhoneInput
                             international
                             defaultCountry="IN"
@@ -414,7 +417,7 @@ function LoginPageContent() {
                   {/* Email */}
                   <div className="space-y-2.5">
                     <label className="text-[13px] font-bold text-[#1f2937] block">Email Address</label>
-                    <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.email ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
+                    <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.email ? 'border-[#ef4444] ring-1 ring-[#ef4444]' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
                       <div className="px-4 py-3 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
                         <Mail size={18} strokeWidth={2} />
                       </div>
@@ -434,7 +437,7 @@ function LoginPageContent() {
                     {/* Password */}
                     <div className="space-y-2.5">
                       <label className="text-[13px] font-bold text-[#1f2937] block">Password</label>
-                      <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.password ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
+                      <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.password ? 'border-[#ef4444] ring-1 ring-[#ef4444]' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
                         <div className="px-4 py-3 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
                           <Lock size={18} strokeWidth={2} />
                         </div>
@@ -461,7 +464,7 @@ function LoginPageContent() {
                     {isRegister && (
                       <div className="space-y-1.5">
                         <label className="text-[13px] font-bold text-[#1f2937] block">Confirm Password</label>
-                        <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.confirmPassword ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
+                        <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.confirmPassword ? 'border-[#ef4444] ring-1 ring-[#ef4444]' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
                           <div className="px-4 py-3 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
                             <Lock size={18} strokeWidth={2} />
                           </div>
@@ -701,7 +704,7 @@ function LoginPageContent() {
 
           {/* Generic error banner */}
           {formError && (
-            <div className="flex items-start gap-2 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 mb-4">
+            <div className="flex items-start gap-2 rounded-xl border border-[#ef4444]/30 bg-[#ef4444]/10 px-4 py-3 mb-4">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#f87171' }} />
               <p className="text-sm font-semibold leading-snug" style={{ color: '#f87171' }}>{formError}</p>
             </div>
@@ -723,7 +726,7 @@ function LoginPageContent() {
                 />
                 <div>
                   <label className="text-sm font-medium text-brand-muted">Phone Number</label>
-                  <div className={`phone-field-wrap h-11 mt-1.5 rounded-xl border px-3 flex items-center bg-brand-card/60 ${errors.phone ? 'border-red-400' : 'border-brand-border'}`}>
+                  <div className={`phone-field-wrap h-11 mt-1.5 rounded-xl border px-3 flex items-center bg-brand-card/60 ${errors.phone ? 'border-[#ef4444]' : 'border-brand-border'}`}>
                     <PhoneInput
                       international
                       defaultCountry="IN"
@@ -733,7 +736,7 @@ function LoginPageContent() {
                       className="w-full"
                     />
                   </div>
-                  {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone}</p>}
+                  {errors.phone && <p className="text-[#ef4444] text-xs mt-1">{errors.phone}</p>}
                 </div>
               </>
             )}
@@ -797,7 +800,7 @@ function LoginPageContent() {
                 </label>
               </div>
             )}
-            {errors.terms && <p className="text-red-500 text-xs font-bold">{errors.terms}</p>}
+            {errors.terms && <p className="text-[#ef4444] text-xs font-bold">{errors.terms}</p>}
 
             {!isRegister && (
               <div className="flex items-center gap-2">

@@ -1019,7 +1019,7 @@ export const cancelOrder = asyncHandler(async (req, response) => {
         fcmTokens: { $exists: true, $not: { $size: 0 } }
       });
 
-      const cancelledImageUrl = 'https://images.unsplash.com/photo-1526367790999-0150786686a2?q=80&w=600&auto=format&fit=crop';
+      const cancelledImageUrl = 'https://res.cloudinary.com/h2cylj8r/image/upload/v1787717732/restaurant-platform/notifications/f0fdu2yszonc5nwxewak.png';
 
       for (const mUser of merchantUsers) {
         await createNotification(
