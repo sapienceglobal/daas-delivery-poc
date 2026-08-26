@@ -66,30 +66,31 @@ export const getDeliveryTracking = async (order) => {
 };
 
 /**
- * Gets delivery fee for an order.
- * Shipday does not have a quote/estimate API — uses restaurant's configured delivery fee.
+ * Gets the best delivery fee quote from Shipday's Third-Party Network.
+ * Checks both DoorDash and Uber via Shipday's /third-party/availability endpoint.
+ * Returns the cheapest available option with exact fees (including regulatory).
  *
- * @param {string} pickupAddress  - Restaurant address (unused, kept for API compat)
- * @param {string} dropoffAddress - Customer address (unused)
- * @param {number} subtotal       - Order subtotal (unused)
+ * @param {string} pickupAddress  - Restaurant address
+ * @param {string} dropoffAddress - Customer address
+ * @param {number} subtotal       - Order subtotal (unused, kept for API compat)
  * @param {Date}   scheduledTime  - Scheduled delivery time (unused)
- * @returns {Promise<{ fee: number, provider: string }>}
+ * @returns {Promise<{ fee: number, provider: string, reference: string }>}
  */
 export const getBestDeliveryQuote = async (pickupAddress, dropoffAddress, subtotal, scheduledTime) => {
   try {
-    const quote = await doordashProvider.getDeliveryQuoteAPI(pickupAddress, dropoffAddress, subtotal, scheduledTime);
+    const quote = await shipdayProvider.getThirdPartyEstimate(pickupAddress, dropoffAddress);
     if (quote && quote.fee > 0) {
-      // DoorDash returns fee in cents. Convert to dollars for the rest of the system.
       return {
-        fee: quote.fee / 100,
-        provider: 'doordash',
-        reference: null
+        fee: quote.fee,
+        provider: quote.provider || 'shipday',
+        reference: quote.reference
       };
     }
   } catch (error) {
-    logger.warn('Error fetching DoorDash third-party estimate', { error: error.message });
+    logger.warn('Shipday third-party quote failed', { error: error.message });
+    // Re-throw with the actual error message (e.g. "Delivery address not within service area")
+    throw error;
   }
 
-  // Fallback if the API doesn't return a quote or errors out
   throw new Error('QUOTE_NOT_AVAILABLE');
 };

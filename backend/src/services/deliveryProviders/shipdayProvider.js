@@ -72,13 +72,19 @@ export const insertOrder = async (order) => {
   if (!pickupBusinessName || !pickupAddress) {
     throw new Error('Restaurant details (name, address) are missing for Shipday delivery.');
   }
+  // Sanitize customer name — DoorDash rejects names with special/non-ASCII characters
+  const sanitizeName = (name) => {
+    if (!name) return 'Customer';
+    // Keep only letters, numbers, spaces, hyphens, apostrophes, and periods
+    return name.replace(/[^a-zA-Z0-9\s\-'.]/g, '').trim() || 'Customer';
+  };
 
   logger.info(`Triggering Shipday delivery for order ${order.orderNumber}`);
 
   // Build the Shipday order payload
   const payload = {
     orderNumber: String(order.orderNumber),
-    customerName: order.customerName || 'Customer',
+    customerName: sanitizeName(order.customerName),
     customerAddress: order.address || '',
     customerEmail: order.customerEmail || undefined,
     customerPhoneNumber: formatPhone(order.customerPhone, 'Customer'),
@@ -244,40 +250,82 @@ export const deleteOrder = async (shipdayOrderId, reason = 'Order cancelled') =>
 
 /**
  * Gets a delivery fee estimate from Shipday's Third-Party Network (DoorDash, Uber, etc.).
- * @param {string} pickupAddress
- * @param {string} deliveryAddress
- * @returns {Promise<{ fee: number, provider: string, reference: string } | null>}
+ * Uses the correct endpoint: POST /third-party/availability
+ * Payload uses flat strings (confirmed by Shipday support, Aug 2026).
+ *
+ * @param {string} pickupAddress  - Full pickup address string
+ * @param {string} deliveryAddress - Full delivery address string
+ * @returns {Promise<{ fee: number, provider: string, reference: string, regulatoryFee: number, pickupTime: string, deliveryTime: string } | null>}
  */
 export const getThirdPartyEstimate = async (pickupAddress, deliveryAddress) => {
   try {
+    // Build a delivery time ~30 minutes from now (Shipday needs this for Uber quotes)
+    const deliveryTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
     const response = await shipdayRequest({
       method: 'post',
-      path: '/on-demand/availability',
+      path: '/third-party/availability',
       data: {
-        pickupAddress: { address: pickupAddress },
-        deliveryAddress: { address: deliveryAddress }
+        pickupAddress: pickupAddress,
+        deliveryAddress: deliveryAddress,
+        deliveryTime: deliveryTime
       }
     });
 
     const options = response.data;
-    if (Array.isArray(options) && options.length > 0) {
-      // Find the cheapest option
-      const bestOption = options.reduce((prev, curr) => {
-        return (Number(curr.fee) < Number(prev.fee)) ? curr : prev;
-      });
-
-      return {
-        fee: Number(bestOption.fee) || 0,
-        provider: bestOption.provider || 'Third Party',
-        reference: bestOption.estimateReference || null
-      };
+    if (!Array.isArray(options) || options.length === 0) {
+      logger.warn('Shipday third-party availability returned no options');
+      return null;
     }
-    return null;
+
+    // Filter out providers that returned errors (e.g. "Delivery address not within service area")
+    const validOptions = options.filter(opt => !opt.error && typeof opt.fee === 'number' && opt.fee > 0);
+
+    if (validOptions.length === 0) {
+      // All providers returned errors — extract the first error for logging
+      const firstError = options.find(opt => opt.error);
+      const errorMsg = firstError?.errorMessage || firstError?.errorDescription || 'No available delivery providers';
+      logger.warn('Shipday third-party: all providers returned errors', { errorMsg });
+      throw new Error(errorMsg);
+    }
+
+    // Find the cheapest valid option
+    const bestOption = validOptions.reduce((prev, curr) => {
+      const prevTotal = (Number(prev.fee) || 0) + (Number(prev.regulatoryFee) || 0);
+      const currTotal = (Number(curr.fee) || 0) + (Number(curr.regulatoryFee) || 0);
+      return currTotal < prevTotal ? curr : prev;
+    });
+
+    const fee = Number(bestOption.fee) || 0;
+    const regulatoryFee = Number(bestOption.regulatoryFee) || 0;
+
+    logger.info('Shipday third-party quote received', {
+      provider: bestOption.name,
+      fee,
+      regulatoryFee,
+      totalFee: fee + regulatoryFee,
+      pickupTime: bestOption.pickupTime,
+      deliveryTime: bestOption.deliveryTime,
+      allProviders: options.map(o => ({ name: o.name, fee: o.fee, error: o.error, errorMessage: o.errorMessage }))
+    });
+
+    return {
+      fee: fee + regulatoryFee,  // Total fee including regulatory
+      provider: bestOption.name || 'Third Party',
+      reference: bestOption.id || null,
+      regulatoryFee,
+      pickupTime: bestOption.pickupTime || null,
+      deliveryTime: bestOption.deliveryTime || null
+    };
   } catch (error) {
+    // Re-throw user-facing errors (like "not within service area")
+    if (error.message && !error.response) {
+      throw error;
+    }
     logger.warn('Failed to fetch Shipday third-party estimate', { 
       error: error.message,
       data: error.response?.data
     });
-    return null;
+    throw error;
   }
 };
