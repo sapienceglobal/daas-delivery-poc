@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { protect, authorize } from '../middleware/auth.js';
+import { protect, authorize, optionalAuth } from '../middleware/auth.js';
 import * as couponController from '../controllers/couponController.js';
 
 const router = Router();
 
 // customer
 router.post('/validate', protect, couponController.validateCoupon);
-router.get('/active', couponController.getActiveCoupons); // Public route for apps to fetch banners
+router.get('/active', optionalAuth, couponController.getActiveCoupons); // Public route for apps to fetch banners
 
 // admin / Merchant
 router.get('/stats', protect, authorize('admin', 'merchant'), couponController.getCouponStats);

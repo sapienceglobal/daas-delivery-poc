@@ -23,7 +23,7 @@ const customerSchema = new mongoose.Schema({
   },
   group: {
     type: String,
-    enum: ['Family', 'Friends', 'Corporate', 'Others'],
+    enum: ['Family', 'Friends', 'Corporate', 'Others', 'App User', 'Guest'],
     default: 'Others'
   },
   loyaltyTier: {

@@ -79,7 +79,8 @@ export const getActiveCoupons = asyncHandler(async (req, response) => {
       {
         $or: [
           { applicableUsers: { $exists: false } },
-          { applicableUsers: { $size: 0 } }
+          { applicableUsers: { $size: 0 } },
+          ...(req.user ? [{ applicableUsers: req.user._id }] : [])
         ]
       }
     ]

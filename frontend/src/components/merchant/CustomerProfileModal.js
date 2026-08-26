@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ShoppingBag, Star, Mail, Phone, Calendar, Clock, MapPin, Gift, TrendingUp, RefreshCw, ChevronRight, MessageSquare, Tag, Globe } from 'lucide-react';
 import { crmAPI } from '@/lib/api';
 
-export default function CustomerProfileModal({ customer, restaurantId, onClose }) {
+export default function CustomerProfileModal({ customer, restaurantId, onClose, onTriggerPromo }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
@@ -127,7 +127,7 @@ export default function CustomerProfileModal({ customer, restaurantId, onClose }
 
           {!loading && !error && profileData && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
-              {activeTab === 'overview' && <OverviewTab data={profileData} customer={customer} />}
+              {activeTab === 'overview' && <OverviewTab data={profileData} customer={customer} onTriggerPromo={onTriggerPromo} />}
               {activeTab === 'orders' && <OrdersTab data={profileData} />}
               {activeTab === 'loyalty' && <LoyaltyTab data={profileData} />}
             </div>
@@ -140,7 +140,7 @@ export default function CustomerProfileModal({ customer, restaurantId, onClose }
 
 // ── TAB COMPONENTS ──────────────────────────────────────────────────────────
 
-function OverviewTab({ data, customer }) {
+function OverviewTab({ data, customer, onTriggerPromo }) {
   const { stats } = data;
   
   return (
@@ -259,7 +259,7 @@ function OverviewTab({ data, customer }) {
           <p className="text-sm text-white/80 mb-5 px-4 font-medium leading-relaxed">
             Boost retention by sending a personalized promo code directly to this customer via Email/SMS.
           </p>
-          <button className="px-6 py-2.5 bg-white text-[#8B0000] rounded-xl font-bold transition-all shadow-md active:scale-95 hover:bg-[#f9fafb] w-full max-w-xs">
+          <button onClick={onTriggerPromo} className="px-6 py-2.5 bg-white text-[#8B0000] rounded-xl font-bold transition-all shadow-md active:scale-95 hover:bg-[#f9fafb] w-full max-w-xs">
             Create Promo Code
           </button>
         </div>

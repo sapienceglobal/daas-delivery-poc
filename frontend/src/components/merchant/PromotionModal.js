@@ -318,10 +318,14 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
+                maxLength={60}
                 rows={2}
                 className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-lg text-[13px] text-[#1f2937] outline-none focus:border-[#8b0000]"
                 placeholder="Brief details about the offer..."
               />
+              <p className="text-[10px] text-gray-500 mt-1 text-right">
+                {formData.description?.length || 0}/60 characters
+              </p>
             </div>
 
           </form>

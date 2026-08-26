@@ -8,6 +8,7 @@ import Coupon from '../models/Coupon.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
+import { createNotification } from './notificationController.js';
 import mongoose from 'mongoose';
 
 const ensureCanManageRestaurant = (user, restaurantId) => {
@@ -338,14 +339,49 @@ export const updateCustomer = asyncHandler(async (req, response) => {
   }
 
   const CustomerModel = req.getModel?.('Customer') || Customer;
+  const UserModel = req.getModel?.('User') || User;
   
-  const customer = await CustomerModel.findOneAndUpdate(
-    { _id: customerId, restaurantId },
-    req.body,
-    { new: true, runValidators: true }
-  );
+  let customer = null;
+  try {
+    customer = await CustomerModel.findOneAndUpdate(
+      { _id: customerId, restaurantId },
+      req.body,
+      { new: true, runValidators: true }
+    );
+  } catch (err) {
+    // Ignore CastError if customerId is not a valid ObjectId (e.g. an email or phone number)
+  }
 
-  if (!customer) throw new AppError('Customer not found', 404);
+  if (!customer) {
+    // Customer document doesn't exist yet (was dynamically aggregated from User or Order)
+    // Let's create it!
+    let user = null;
+    const isValidId = mongoose.Types.ObjectId.isValid(customerId);
+    if (isValidId) {
+      user = await UserModel.findById(customerId);
+    }
+    
+    const count = await CustomerModel.countDocuments({ restaurantId });
+    const generatedCustId = `#CUST${1000 + count + 1}`;
+    
+    const newCustomerData = {
+      restaurantId,
+      customerId: generatedCustId,
+      name: req.body.name || (user ? user.name : 'Guest'),
+      email: req.body.email || (user ? user.email : (customerId.includes('@') ? customerId : '')),
+      phone: req.body.phone || (user ? user.phone : (!customerId.includes('@') ? customerId : '')),
+      group: req.body.group || (user ? 'App User' : 'Guest'),
+      loyaltyTier: req.body.loyaltyTier || 'Bronze',
+      status: req.body.status || 'Active',
+      ...req.body
+    };
+    
+    if (isValidId) {
+      newCustomerData._id = customerId;
+    }
+    
+    customer = await CustomerModel.create(newCustomerData);
+  }
 
   res.success(response, customer);
 });
@@ -447,16 +483,20 @@ export const sendPromo = asyncHandler(async (req, response) => {
       channels: ['Mobile', 'Web'],
       startDate: new Date(),
       endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      usageLimit: 1,
+      maxUses: 1,
+      applicableUsers: [uid],
     });
 
-    notifications.push({
-      userId: uid,
-      title: title || 'Special Offer from Restaurant',
-      message: `${message}\n\nUse Code: ${uniqueCode}`,
-      type: 'promo',
-      isRead: false
-    });
+    const notificationPromise = createNotification(
+      uid,
+      title || 'Special Offer from Restaurant',
+      `${message}\n\nUse Code: ${uniqueCode}`,
+      'promotion',
+      null,
+      req.app.get('io'),
+      req.getModel
+    );
+    notifications.push(notificationPromise);
   }
 
   if (coupons.length > 0) {
@@ -464,7 +504,7 @@ export const sendPromo = asyncHandler(async (req, response) => {
   }
   
   if (notifications.length > 0) {
-    await NotificationModel.insertMany(notifications);
+    await Promise.all(notifications);
   }
 
   res.success(response, { message: `Promotion and coupons sent to ${userIds.length} customers` });

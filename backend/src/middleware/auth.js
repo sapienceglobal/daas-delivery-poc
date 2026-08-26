@@ -72,6 +72,34 @@ export const protect = async (req, _res, next) => {
 };
 
 /**
+ * Optional Auth - if a valid token is provided, req.user will be populated,
+ * else it will just proceed to the next middleware without throwing 401.
+ */
+export const optionalAuth = async (req, res, next) => {
+  let token;
+  if (req.cookies?.token || req.cookies?.marketplace_token) {
+    token = req.cookies.token || req.cookies.marketplace_token;
+  } else if (req.headers.authorization?.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  if (!token) return next();
+
+  try {
+    const decoded = jwt.verify(token, resolvedJwtSecret);
+    const forcedTenant = process.env.FORCE_TENANT_ID;
+    bindTenantContext(req, forcedTenant || decoded.tenantId || 'marketplace');
+    const user = await req.getModel('User').findById(decoded.id).select('-password -salt');
+    if (user && user.isActive && (decoded.tokenVersion || 0) === (user.tokenVersion || 0)) {
+      req.user = user;
+    }
+  } catch (error) {
+    // Ignore invalid tokens for optional auth
+  }
+  return next();
+};
+
+/**
  * Role-based authorization middleware.
  * Must be used AFTER protect().
  *

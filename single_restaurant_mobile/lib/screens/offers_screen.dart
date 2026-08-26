@@ -22,6 +22,8 @@ class OffersScreen extends StatefulWidget {
 class _OffersScreenState extends State<OffersScreen> {
   final PageController _pageController = PageController();
   int _currentHeroIndex = 0;
+  List<dynamic> _globalCoupons = [];
+  List<dynamic> _personalizedCoupons = [];
   List<dynamic> _coupons = [];
   bool _isLoading = true;
   final TextEditingController _promoController = TextEditingController();
@@ -46,6 +48,8 @@ class _OffersScreenState extends State<OffersScreen> {
     if (mounted) {
       setState(() {
         _coupons = coupons;
+        _globalCoupons = coupons.where((c) => c['applicableUsers'] == null || (c['applicableUsers'] as List).isEmpty).toList();
+        _personalizedCoupons = coupons.where((c) => c['applicableUsers'] != null && (c['applicableUsers'] as List).isNotEmpty).toList();
         _ordersCount = ordersCount;
         _isLoading = false;
       });
@@ -222,21 +226,51 @@ class _OffersScreenState extends State<OffersScreen> {
                 }),
               ),
             const SizedBox(height: 24),
-            
-            // Best Offers For You
-            _buildSectionHeader('BEST OFFERS FOR YOU'),
-            const SizedBox(height: 12),
-            if (_coupons.isEmpty)
-               const Padding(padding: EdgeInsets.all(16), child: Text("No offers available at the moment.")),
-            if (_coupons.isNotEmpty)
+            // Personalized Offers
+            if (_personalizedCoupons.isNotEmpty) ...[
+              _buildSectionHeader('SPECIAL OFFER ONLY FOR YOU'),
+              const SizedBox(height: 12),
               SizedBox(
                 height: 190,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _coupons.length,
+                  itemCount: _personalizedCoupons.length,
                   itemBuilder: (context, index) {
-                    final coupon = _coupons[index];
+                    final coupon = _personalizedCoupons[index];
+                    IconData iData = Icons.star;
+                    
+                    return OfferCardWidget(
+                      coupon: coupon,
+                      iconData: iData,
+                      iconColor: const Color(0xFFD4AF37), // Gold color for special offer
+                      title: coupon['type'] == 'percentage' ? '${coupon['value']}% OFF' : '\$${coupon['value']} OFF',
+                      titleColor: const Color(0xFF8B0000), // Dark Red
+                      subtitle: coupon['minCartValue'] > 0 ? 'on orders above \$${coupon['minCartValue']}' : coupon['description'] ?? 'Exclusive offer for you!',
+                      code: coupon['code'],
+                      codeColor: const Color(0xFF8B0000),
+                      onInfoTap: () => _showCouponTerms(context, coupon),
+                    );
+                  }
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+
+            // Best Offers For You
+            _buildSectionHeader('BEST OFFERS FOR YOU'),
+            const SizedBox(height: 12),
+            if (_globalCoupons.isEmpty)
+               const Padding(padding: EdgeInsets.all(16), child: Text("No offers available at the moment.")),
+            if (_globalCoupons.isNotEmpty)
+              SizedBox(
+                height: 190,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _globalCoupons.length,
+                  itemBuilder: (context, index) {
+                    final coupon = _globalCoupons[index];
                     IconData iData = Icons.local_offer;
                     if (coupon['type'] == 'percentage') {
                       iData = Icons.percent;

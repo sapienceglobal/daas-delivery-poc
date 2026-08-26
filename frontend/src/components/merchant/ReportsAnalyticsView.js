@@ -88,7 +88,7 @@ export default function ReportsAnalyticsView({ analyticsData, restaurant, startD
     const d = new Date(day.date);
     const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
     return { name: dayName, Revenue: day.revenue, Orders: day.orders };
-  }).slice(-7); // take last 7 days for "This Week" view
+  });
 
   // donut Charts
   const COLORS = ['#b91c1c', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#6b7280'];

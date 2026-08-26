@@ -16,9 +16,9 @@ export default function MessagesView() {
   const fetchMessages = async () => {
     setLoading(true);
     try {
-      let url = '/api/merchant/messages';
+      let url = '/api/contact/merchant/messages';
       if (statusFilter !== 'all') {
-        url += `?status=${statusFilter}`;
+        url += `${url.includes('?') ? '&' : '?'}status=${statusFilter}`;
       }
       
       const res = await fetch(url, {
@@ -40,7 +40,7 @@ export default function MessagesView() {
 
   const markAsStatus = async (id, status) => {
     try {
-      const res = await fetch(`/api/merchant/messages/${id}`, {
+      const res = await fetch(`/api/contact/merchant/messages/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })

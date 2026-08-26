@@ -836,6 +836,10 @@ export default function CustomersCRMView({
           customer={selectedProfileCustomer}
           restaurantId={roomId}
           onClose={() => setSelectedProfileCustomer(null)}
+          onTriggerPromo={() => {
+            setSelectedProfileCustomer(null);
+            setTimeout(() => triggerBulkAction("promo", [selectedProfileCustomer._id]), 300);
+          }}
         />
       )}
 
@@ -1141,6 +1145,8 @@ function GroupModal({ roomId, targetIds, onClose, onSuccess }) {
             onChange={(e) => setGroup(e.target.value)}
             className="w-full border border-[#d1d5db] rounded-lg px-3 py-2 text-sm text-[#111827] outline-none focus:border-[#8B0000] bg-white cursor-pointer"
           >
+            <option value="App User">App User</option>
+            <option value="Guest">Guest</option>
             <option value="Family">Family</option>
             <option value="Friends">Friends</option>
             <option value="Corporate">Corporate</option>

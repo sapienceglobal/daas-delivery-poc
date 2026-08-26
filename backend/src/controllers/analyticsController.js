@@ -32,10 +32,15 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
   } else if (days && !isNaN(parseInt(days))) {
     numDays = parseInt(days);
     startDate = new Date(endOfToday);
-    startDate.setDate(startDate.getDate() - numDays);
+    if (numDays === 1) {
+      startDate.setHours(0, 0, 0, 0);
+    } else {
+      startDate.setDate(startDate.getDate() - numDays);
+      startDate.setHours(0, 0, 0, 0);
+    }
   } else {
     // all-time default
-    const firstOrder = await Order.findOne({ restaurantId }).sort({ createdAt: 1 }).select('createdAt');
+    const firstOrder = await Order.findOne({ restaurantId: new mongoose.Types.ObjectId(restaurantId) }).sort({ createdAt: 1 }).select('createdAt');
     startDate = firstOrder ? new Date(firstOrder.createdAt) : new Date(endOfToday);
     startDate.setHours(0,0,0,0);
   }

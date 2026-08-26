@@ -1,0 +1,4 @@
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png"

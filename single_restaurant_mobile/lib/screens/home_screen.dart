@@ -1246,7 +1246,12 @@ class _WelcomeOfferCardState extends State<WelcomeOfferCard> with SingleTickerPr
           const Spacer(),
           Text(discountStr, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, fontFamily: 'serif')),
           const SizedBox(height: 4),
-          Text(coupon['description'] ?? (coupon['firstOrderOnly'] == true ? 'On Your First Order' : 'Limited Time Offer'), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+          Text(
+            coupon['description'] ?? (coupon['firstOrderOnly'] == true ? 'On Your First Order' : 'Limited Time Offer'), 
+            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
           const Spacer(),
           GestureDetector(
             onTap: _copyCode,

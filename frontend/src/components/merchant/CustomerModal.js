@@ -141,6 +141,8 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer, resta
                       onChange={(e) => setFormData({...formData, group: e.target.value})}
                       className="w-full border border-[#e5e7eb] rounded-lg !pl-10 pr-3 py-2 text-sm text-[#111827] outline-none focus:border-[#8B0000] bg-white"
                     >
+                      <option value="App User">App User</option>
+                      <option value="Guest">Guest</option>
                       <option value="Family">Family</option>
                       <option value="Friends">Friends</option>
                       <option value="Corporate">Corporate</option>

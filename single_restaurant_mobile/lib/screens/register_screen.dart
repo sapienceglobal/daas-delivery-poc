@@ -427,7 +427,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               children: [
                                 TextSpan(text: 'I agree to the '),
                                 TextSpan(
-                                  text: 'Terms & Conditions',
+                                  text: 'Terms, Cancellation & Refund Policy',
                                   style: TextStyle(
                                     color: AppColors.secondary,
                                     fontWeight: FontWeight.bold,

@@ -13,7 +13,9 @@ import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/utils/formatters.dart';
-
+import 'package:flutter/gestures.dart';
+import 'package:single_restaurant_mobile/screens/terms_screen.dart';
+import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
 
@@ -68,18 +70,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFF7A0B10)),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.headset_mic_outlined, color: Color(0xFF7A0B10), size: 16),
-                    SizedBox(width: 4),
-                    Text('Support', style: TextStyle(color: Color(0xFF7A0B10), fontSize: 12, fontWeight: FontWeight.bold)),
-                  ],
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpSupportScreen()));
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFF7A0B10)),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.headset_mic_outlined, color: Color(0xFF7A0B10), size: 16),
+                      SizedBox(width: 4),
+                      Text('Support', style: TextStyle(color: Color(0xFF7A0B10), fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -675,10 +682,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ],
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Row(
-        children: [
-            Expanded(
-              child: Column(
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -739,8 +750,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   : const Text('Place Order', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.5)),
               ),
             ),
+            ],
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600, height: 1.4),
+                  children: [
+                    const TextSpan(text: 'By placing this order, you agree to our\n'),
+                    TextSpan(
+                      text: 'Terms, Cancellation & Refund Policy.',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF7A0B10), decoration: TextDecoration.underline),
+                      recognizer: TapGestureRecognizer()..onTap = () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsScreen()));
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
+      ),
     );
   }
 }

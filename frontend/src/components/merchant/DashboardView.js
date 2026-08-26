@@ -20,23 +20,38 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
   const today = new Date();
   today.setHours(0,0,0,0);
 
+  const cutoffDate = new Date();
+  if (timeframe === 1) {
+    cutoffDate.setHours(0, 0, 0, 0);
+  } else if (timeframe) {
+    cutoffDate.setDate(cutoffDate.getDate() - timeframe);
+    cutoffDate.setHours(0, 0, 0, 0);
+  } else {
+    // default to epoch if no timeframe (shouldn't happen)
+    cutoffDate.setTime(0);
+  }
+
+  const filteredOrders = (orders || []).filter(o => new Date(o.createdAt) >= cutoffDate);
+  const filteredReservations = (reservations || []).filter(r => new Date(r.createdAt || r.date) >= cutoffDate);
+  const filteredCatering = (cateringInquiries || []).filter(c => new Date(c.createdAt || c.eventDate) >= cutoffDate);
+
   // ---------------------------------------------------------
   // 1. TOP STATS CALCULATIONS (Strictly real data)
   // ---------------------------------------------------------
   const totalRevenue = analyticsData?.summary?.totalRevenue || 0;
   const totalOrders = analyticsData?.summary?.totalOrders || 0;
   
-  const activeOrdersCount = (orders || []).filter(o => ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'picked_up'].includes((o.status || '').toLowerCase())).length;
+  const activeOrdersCount = filteredOrders.filter(o => ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'picked_up'].includes((o.status || '').toLowerCase())).length;
   const newCustomers = analyticsData?.summary?.newCustomers || 0;
   
   // pending Catering
-  const pendingCateringCount = (cateringInquiries || []).filter(c => (c.status || '').toLowerCase() === 'pending').length;
+  const pendingCateringCount = filteredCatering.filter(c => (c.status || '').toLowerCase() === 'pending').length;
 
   // ---------------------------------------------------------
   // 2. LIVE ORDER TRACKER
   // ---------------------------------------------------------
   const orderCounts = { new: 0, accepted: 0, preparing: 0, ready: 0, delivery: 0 };
-  (orders || []).forEach(o => {
+  filteredOrders.forEach(o => {
     const s = (o.status || '').toLowerCase();
     if (['new', 'pending'].includes(s)) orderCounts.new++;
     else if (s === 'accepted') orderCounts.accepted++;
@@ -45,7 +60,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
     else if (s === 'out_for_delivery' || (s === 'picked_up' && o.orderType === 'delivery')) orderCounts.delivery++;
   });
 
-  const recentActiveOrders = (orders || [])
+  const recentActiveOrders = filteredOrders
     .filter(o => ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'picked_up'].includes((o.status || '').toLowerCase()))
     .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 5);
@@ -101,12 +116,12 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
     };
   });
 
-  const upcomingReservations = (reservations || [])
+  const upcomingReservations = filteredReservations
     .filter(r => new Date(r.date) >= today)
     .sort((a,b) => new Date(a.date) - new Date(b.date))
     .slice(0, 4);
 
-  const upcomingCatering = (cateringInquiries || [])
+  const upcomingCatering = filteredCatering
     .filter(c => new Date(c.eventDate || c.date || Date.now()) >= today)
     .sort((a,b) => new Date(a.eventDate || a.date || Date.now()) - new Date(b.eventDate || b.date || Date.now()))
     .slice(0, 3);
@@ -126,6 +141,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
             onChange={(e) => onTimeframeChange(Number(e.target.value))}
             className="text-sm font-bold text-[#374151] border-2 border-[#e5e7eb] rounded-xl bg-white px-4 py-2.5 outline-none hover:border-[#d1d5db] transition-colors focus:border-[#991b1b] focus:ring-2 focus:ring-[#991b1b]/20"
           >
+            <option value={1}>Today</option>
             <option value={7}>Last 7 Days</option>
             <option value={30}>Last 30 Days</option>
             <option value={90}>Last 90 Days</option>
@@ -152,7 +168,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
         />
         <StatCard
           title="Reservations"
-          value={reservations?.length || 0}
+          value={filteredReservations.length}
           icon={Calendar}
           iconColor="text-[#7c3aed]"
           iconBg="bg-[#faf5ff]"
@@ -179,7 +195,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
         />
         <StatCard
           title="Catering Requests"
-          value={cateringInquiries?.length || 0}
+          value={filteredCatering.length}
           icon={Gift}
           iconColor="text-[#ca8a04]"
           iconBg="bg-[#fefce8]"

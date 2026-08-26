@@ -11,7 +11,7 @@ export default function MerchantOverview() {
   const router = useRouter();
   const { user, restaurant, roomId, globalLoading } = useMerchantContext();
   const [loading, setLoading] = useState(true);
-  const [timeframe, setTimeframe] = useState(30);
+  const [timeframe, setTimeframe] = useState(1);
   
   // data for the dashboard view
   const [orders, setOrders] = useState([]);
