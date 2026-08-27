@@ -599,9 +599,9 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Powered by ${(_order!['deliveryProvider']?.toString() == 'doordash') ? 'DoorDash' : (_order!['deliveryProvider']?.toString() == 'ubereats') ? 'UberEats' : (_order!['deliveryProvider']?.toString() == 'grubhub') ? 'Grubhub' : 'Delivery Partner'}', 
-                  style: const TextStyle(color: Colors.grey, fontSize: 11)
+                const Text(
+                  'Driver Details', 
+                  style: TextStyle(color: Colors.grey, fontSize: 11)
                 ),
                 const SizedBox(height: 2),
                 Row(

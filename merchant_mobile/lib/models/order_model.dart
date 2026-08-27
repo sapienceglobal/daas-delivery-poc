@@ -107,6 +107,15 @@ class OrderModel {
   final bool hasAutoRefund;
   final bool autoRefundSucceeded;
   final bool autoRefundFailed;
+  
+  // Delivery & Tracking Fields
+  final String? deliveryProvider;
+  final String? deliveryId;
+  final String? trackingUrl;
+  final DateTime? pickupTime;
+  final DateTime? deliveryTime;
+  final String? courierNotes;
+  final double? rating;
 
   OrderModel({
     required this.id,
@@ -143,6 +152,13 @@ class OrderModel {
     this.hasAutoRefund = false,
     this.autoRefundSucceeded = false,
     this.autoRefundFailed = false,
+    this.deliveryProvider,
+    this.deliveryId,
+    this.trackingUrl,
+    this.pickupTime,
+    this.deliveryTime,
+    this.courierNotes,
+    this.rating,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -203,6 +219,13 @@ class OrderModel {
       hasAutoRefund: hasAutoRefund,
       autoRefundSucceeded: autoRefundSucceeded,
       autoRefundFailed: autoRefundFailed,
+      deliveryProvider: json['deliveryProvider'],
+      deliveryId: json['deliveryId'],
+      trackingUrl: json['trackingUrl'],
+      pickupTime: json['pickupTime'] != null ? DateTime.parse(json['pickupTime']) : null,
+      deliveryTime: json['deliveryTime'] != null ? DateTime.parse(json['deliveryTime']) : null,
+      courierNotes: json['courierNotes'],
+      rating: json['rating'] != null ? (json['rating'] as num).toDouble() : null,
     );
   }
 
@@ -244,6 +267,13 @@ class OrderModel {
       hasAutoRefund: hasAutoRefund,
       autoRefundSucceeded: autoRefundSucceeded,
       autoRefundFailed: autoRefundFailed,
+      deliveryProvider: deliveryProvider,
+      deliveryId: deliveryId,
+      trackingUrl: trackingUrl,
+      pickupTime: pickupTime,
+      deliveryTime: deliveryTime,
+      courierNotes: courierNotes,
+      rating: rating,
     );
   }
 }

@@ -151,7 +151,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 label: 'Full Name',
                 controller: _nameController,
                 icon: Icons.person_outline,
-                validator: (value) => value == null || value.trim().isEmpty ? 'Name is required' : null,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) return 'Name is required';
+                  if (!RegExp(r"^[a-zA-Z\s\-'.]+$").hasMatch(value)) {
+                    return 'Standard letters and numbers only';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               

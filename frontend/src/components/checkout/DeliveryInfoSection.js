@@ -148,10 +148,10 @@ export default function DeliveryInfoSection({
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter your full name"
                   className={`w-full rounded-xl border bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a] ${
-                    fullName && !/^[a-zA-Z0-9\s\-'.]+$/.test(fullName) ? 'border-[#ef4444] focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]' : 'border-[#e5e7eb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10]'
+                    fullName && !/^[a-zA-Z\s\-'.]+$/.test(fullName) ? 'border-[#ef4444] focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]' : 'border-[#e5e7eb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10]'
                   }`}
                 />
-                {fullName && !/^[a-zA-Z0-9\s\-'.]+$/.test(fullName) && (
+                {fullName && !/^[a-zA-Z\s\-'.]+$/.test(fullName) && (
                   <p className="text-[#ef4444] text-xs mt-1.5 font-medium">Please use standard letters only. Emojis and special characters are not allowed.</p>
                 )}
               </div>

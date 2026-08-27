@@ -650,7 +650,7 @@ export function useCheckoutState() {
     }
 
     // 2. Strict format validation
-    const nameRegex = /^[a-zA-Z0-9\s\-'.]+$/;
+    const nameRegex = /^[a-zA-Z\s\-'.]+$/;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!nameRegex.test(fullName.trim())) {
@@ -715,7 +715,7 @@ export function useCheckoutState() {
   };
 
   const isPhoneValid = phone ? isValidPhoneNumber(phone) : false;
-  const isFullNameValid = fullName ? /^[a-zA-Z0-9\s\-'.]+$/.test(fullName) : false;
+  const isFullNameValid = fullName ? /^[a-zA-Z\s\-'.]+$/.test(fullName) : false;
   const isEmailValid = email ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) : false;
 
   const handleContinueToReview = async () => {

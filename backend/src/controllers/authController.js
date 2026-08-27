@@ -89,6 +89,14 @@ export const register = asyncHandler(async (req, response) => {
     throw new AppError('Please provide name, email, and password.', 400);
   }
 
+  if (!/^[a-zA-Z\s\-'.]+$/.test(name)) {
+    throw new AppError('Name contains restricted characters or emojis. Please use standard letters and numbers only.', 400);
+  }
+
+  if (phone && !/^[0-9+\-\s()]+$/.test(phone)) {
+    throw new AppError('Phone contains restricted characters. Please use numbers only.', 400);
+  }
+
   // M3 FIX: ALLOW_PUBLIC_MERCHANT_SIGNUP defaults to false for security.
   // in production, merchants should be onboarded by an admin, not self-registered.
   const publicMerchantSignup = process.env.ALLOW_PUBLIC_MERCHANT_SIGNUP === 'true';
@@ -430,6 +438,14 @@ export const updateProfile = asyncHandler(async (req, response) => {
   for (const key of allowed) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
   }
+
+  if (updates.name && !/^[a-zA-Z\s\-'.]+$/.test(updates.name)) {
+    throw new AppError('Name contains restricted characters or emojis. Please use standard letters and numbers only.', 400);
+  }
+  if (updates.phone && !/^[0-9+\-\s()]+$/.test(updates.phone)) {
+    throw new AppError('Phone contains restricted characters. Please use numbers only.', 400);
+  }
+
 
   const user = await req.getModel('User').findByIdAndUpdate(req.user._id, updates, {
     new: true,

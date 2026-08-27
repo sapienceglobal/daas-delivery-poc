@@ -536,18 +536,23 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         ),
         child: Row(
           children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('\$${_calculateTotal(displayQuantity).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
-                      Row(
-                        children: [
-                          Text('View Details', style: TextStyle(color: Colors.red.shade900, fontSize: 12, fontWeight: FontWeight.bold)),
-                          Icon(Icons.keyboard_arrow_up, color: Colors.red.shade900, size: 16),
-                        ],
-                      )
-                    ],
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen()));
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('\$${_calculateTotal(displayQuantity).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
+                        Row(
+                          children: [
+                            Text('View Details', style: TextStyle(color: Colors.red.shade900, fontSize: 12, fontWeight: FontWeight.bold)),
+                            Icon(Icons.keyboard_arrow_up, color: Colors.red.shade900, size: 16),
+                          ],
+                        )
+                      ],
+                    ),
                   ),
                   const Spacer(),
                   if (inCart)

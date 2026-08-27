@@ -181,6 +181,41 @@ class CheckoutProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Auto-populate contact details from the authenticated user.
+  /// Called once when the checkout screen opens.
+  void initFromUser({String? name, String? email, String? phone}) {
+    if (_fullName.isEmpty && name != null && name.isNotEmpty) _fullName = name;
+    if (_email.isEmpty && email != null && email.isNotEmpty) _email = email;
+    if (_phone.isEmpty) {
+      final p = phone ?? '';
+      // Don't treat placeholder '0000000000' as a real phone number
+      if (p.isNotEmpty && p != '0000000000') _phone = p;
+    }
+    notifyListeners();
+  }
+
+  /// Checks if the name is valid (no emojis/special chars/numbers, just letters, spaces, hyphens, apostrophes)
+  bool get hasValidName {
+    final n = _fullName.trim();
+    if (n.isEmpty) return false;
+    return RegExp(r"^[a-zA-Z\s\-'.]+$").hasMatch(n);
+  }
+
+  /// Checks if the phone is valid (optional leading +, 7-15 digits)
+  bool get hasValidPhone {
+    final p = _phone.trim();
+    if (p.isEmpty) return false;
+    final numbersOnly = p.replaceAll(RegExp(r'\D'), '');
+    // Ensure it matches country code format loosely and has enough digits
+    return RegExp(r"^\+?[0-9\s\-()]+$").hasMatch(p) && numbersOnly.length >= 7 && numbersOnly.length <= 15;
+  }
+
+  /// Whether the contact info is complete and valid enough to place an order
+  bool get isContactComplete => hasValidName && hasValidPhone;
+
+  /// Whether the user's phone was missing and they need to fill it in
+  bool get isPhoneMissing => _phone.trim().isEmpty;
+
   void setTip(double val) {
     _tip = val;
     notifyListeners();
@@ -569,6 +604,12 @@ class CheckoutProvider with ChangeNotifier {
     if (_isDelivery && _quoteError != null) {
       throw Exception(_quoteError);
     }
+    if (!hasValidName) {
+      throw Exception('Please enter a valid name (no emojis or special characters)');
+    }
+    if (!hasValidPhone) {
+      throw Exception('Please enter a valid phone number with country code (e.g. +1234567890)');
+    }
     
     _isPlacingOrder = true;
     notifyListeners();
@@ -598,6 +639,9 @@ class CheckoutProvider with ChangeNotifier {
         'addressLng': _addressLng,
         'specialInstructions': _deliveryInstructions,
         'paymentMethod': finalPaymentMethod,
+        'customerName': _fullName.trim(),
+        'customerPhone': _phone.trim(),
+        'customerEmail': _email.trim(),
       };
 
       if (_paymentMethod == 'credit_card') {

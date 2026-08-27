@@ -423,33 +423,117 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                             ),
                           )
                         ],
-                        if (order.orderType == 'delivery') ...[
-                          const SizedBox(height: 16),
-                          const Divider(height: 1, color: Colors.black12),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('ASSIGNED RIDER', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
-                                  const SizedBox(height: 4),
-                                  Text(order.courierName ?? 'Pending Assignment', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13)),
-                                ],
-                              ),
-                              if (order.courierPhone != null)
-                                IconButton(
-                                  icon: const Icon(Icons.phone, size: 20),
-                                  onPressed: () => launchUrl(Uri.parse('tel:\${order.courierPhone}')),
-                                ),
-                            ],
-                          ),
                         ]
                       ],
                     ),
                   ),
                 ),
+                if (order.orderType == 'delivery') ...[
+                  const SizedBox(height: 16),
+                  _buildSectionHeader('Delivery & Tracking Details'),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (order.trackingUrl != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(color: const Color(0xFFFCFAF5), borderRadius: const BorderRadius.vertical(top: Radius.circular(12)), border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.local_shipping, size: 16, color: Color(0xFF8B0000)),
+                                    const SizedBox(width: 8),
+                                    Text('TRACKING ACTIVE', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF8B0000))),
+                                  ],
+                                ),
+                                InkWell(
+                                  onTap: () => launchUrl(Uri.parse(order.trackingUrl!)),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(color: const Color(0xFF8B0000), borderRadius: BorderRadius.circular(6)),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.open_in_new, size: 14, color: Colors.white),
+                                        const SizedBox(width: 6),
+                                        Text('Track Order', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildDeliveryRow('Placement Time', _formatDT(order.createdAt)),
+                              _buildDeliveryRow('Accepted Time', _formatDT(order.statusUpdates.where((u) => u.status == 'accepted').isNotEmpty ? order.statusUpdates.firstWhere((u) => u.status == 'accepted').timestamp : null)),
+                              _buildDeliveryRow('Pickup Time', _formatDT(order.pickupTime)),
+                              _buildDeliveryRow('Delivery Time', _formatDT(order.deliveryTime)),
+                              const SizedBox(height: 12),
+                              const Divider(height: 1, color: Colors.black12),
+                              const SizedBox(height: 12),
+                              _buildDeliveryRow('Delivery Provider', order.deliveryProvider == 'shipday' ? 'In-House' : (order.deliveryProvider != null ? order.deliveryProvider![0].toUpperCase() + order.deliveryProvider!.substring(1) : 'N/A')),
+                              if (order.deliveryId != null) _buildDeliveryRow('Shipday Order ID', order.deliveryId!),
+                              _buildDeliveryRow('Assigned Rider', order.courierName ?? 'Pending'),
+                              if (order.courierPhone != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('Rider Phone', style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                                      Row(
+                                        children: [
+                                          Text(order.courierPhone!, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold)),
+                                          const SizedBox(width: 8),
+                                          InkWell(
+                                            onTap: () => launchUrl(Uri.parse('tel:\${order.courierPhone}')),
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(color: Colors.grey.shade100, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade300)),
+                                              child: const Icon(Icons.phone, size: 14, color: Colors.black87),
+                                            ),
+                                          )
+                                        ],
+                                      )
+                                    ],
+                                  ),
+                                )
+                              else
+                                _buildDeliveryRow('Rider Phone', 'N/A'),
+                              if (order.rating != null) ...[
+                                const SizedBox(height: 12),
+                                const Divider(height: 1, color: Colors.black12),
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Customer Feedback', style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                                    Row(
+                                      children: [
+                                        ...List.generate(5, (i) => Icon(Icons.star, size: 14, color: i < (order.rating ?? 0).floor() ? Colors.amber : Colors.grey.shade300)),
+                                        const SizedBox(width: 4),
+                                        Text(order.rating!.toStringAsFixed(1), style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold)),
+                                      ],
+                                    )
+                                  ],
+                                )
+                              ]
+                            ],
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
 
                 // Order Items
@@ -704,6 +788,24 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
       child: Text(status.toUpperCase().replaceAll('_', ' '), style: GoogleFonts.inter(color: fg, fontSize: 10, fontWeight: FontWeight.bold)),
+    );
+  }
+
+  String _formatDT(DateTime? t) {
+    if (t == null) return 'N/A';
+    return '${t.month}/${t.day}/${t.year}  ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildDeliveryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+          Text(value, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 }

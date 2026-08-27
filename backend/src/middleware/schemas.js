@@ -117,7 +117,7 @@ export const createOrderSchema = Joi.object({
   customerPhone: Joi.string().max(30).allow('', null).optional(),
   customerName: Joi.string()
     .max(50)
-    .pattern(/^[a-zA-Z0-9\s\-'.]+$/)
+    .pattern(/^[a-zA-Z\s\-'.]+$/)
     .allow('', null)
     .optional()
     .messages({

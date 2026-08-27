@@ -1,5 +1,8 @@
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:country_picker/country_picker.dart';
+import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
@@ -25,6 +28,67 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isSummaryExpanded = true;
+  bool _userDetailsInitialized = false;
+  bool _isEditingContact = false;
+  late TextEditingController _nameController;
+  late TextEditingController _phoneController;
+  
+  String _selectedCountryCode = '+1';
+  String _selectedCountryFlag = '🇺🇸';
+  int _phoneMaxLength = 10;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _phoneController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  void _initUserDetailsOnce(CheckoutProvider checkout, AuthProvider auth) {
+    if (_userDetailsInitialized) return;
+    _userDetailsInitialized = true;
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = auth.user;
+      checkout.initFromUser(
+        name: user?.name,
+        email: user?.email,
+        phone: user?.phone,
+      );
+      
+      setState(() {
+        _nameController.text = checkout.fullName;
+        
+        // Attempt to extract country code if present
+        String p = checkout.phone;
+        if (p.startsWith('+1') && p.length > 2) {
+          _selectedCountryCode = '+1';
+          _selectedCountryFlag = '🇺🇸';
+          _phoneMaxLength = 10;
+          _phoneController.text = p.substring(2);
+        } else if (p.startsWith('+91') && p.length > 3) {
+          _selectedCountryCode = '+91';
+          _selectedCountryFlag = '🇮🇳';
+          _phoneMaxLength = 10;
+          _phoneController.text = p.substring(3);
+        } else {
+          _phoneController.text = p;
+        }
+        
+        // Auto-open the contact editing section if phone is missing
+        if (checkout.isPhoneMissing) {
+          _isEditingContact = true;
+        }
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +118,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       );
     }
+
+    // Auto-populate contact details from the logged-in user (once)
+    _initUserDetailsOnce(checkout, auth);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFCF9F2), // Light cream background
@@ -103,6 +170,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 children: [
                   _buildOrderSummary(cart, restaurant),
                   const SizedBox(height: 16),
+                  _buildContactInfoSection(checkout, auth),
+                  const SizedBox(height: 16),
                   _buildFulfillmentEstimate(checkout),
                   const SizedBox(height: 24),
                   const Text('PAYMENT METHOD', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.black87)),
@@ -128,6 +197,259 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         },
       ),
       bottomNavigationBar: _buildBottomAction(cart, checkout, auth, restaurant),
+    );
+  }
+
+  // ── Contact Info Section ─────────────────────────────────────────────────
+  Widget _buildContactInfoSection(CheckoutProvider checkout, AuthProvider auth) {
+    final hasPhone = checkout.hasValidPhone;
+    final hasName = checkout.hasValidName;
+    final isComplete = checkout.isContactComplete;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: !isComplete ? const Color(0xFFEF4444).withOpacity(0.4) : Colors.grey.shade200,
+          width: !isComplete ? 1.5 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          InkWell(
+            onTap: () => setState(() => _isEditingContact = !_isEditingContact),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: isComplete ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      isComplete ? Icons.person_outline : Icons.person_off_outlined,
+                      size: 18,
+                      color: isComplete ? const Color(0xFF16A34A) : const Color(0xFFEF4444),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'CONTACT DETAILS',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.black54),
+                        ),
+                        const SizedBox(height: 3),
+                        if (isComplete && !_isEditingContact)
+                          Text(
+                            '${checkout.fullName} • ${checkout.phone}',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87),
+                            overflow: TextOverflow.ellipsis,
+                          )
+                        else if (!isComplete)
+                          const Text(
+                            'Phone number required for delivery updates',
+                            style: TextStyle(fontSize: 12, color: Color(0xFFEF4444), fontWeight: FontWeight.w500),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (isComplete)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: _isEditingContact ? Colors.grey.shade100 : const Color(0xFFF5F0ED),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        _isEditingContact ? 'Done' : 'Edit',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: _isEditingContact ? Colors.grey.shade700 : const Color(0xFF7A0B10),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+
+          // Editable Fields (expanded when editing or phone missing)
+          if (_isEditingContact || !isComplete) ...[
+            Divider(height: 1, color: Colors.grey.shade100),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                children: [
+                  // Name Field
+                  _buildContactField(
+                    label: 'Full Name',
+                    controller: _nameController,
+                    icon: Icons.person_outline,
+                    keyboardType: TextInputType.name,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r"^[a-zA-Z\s\-'.]*")),
+                    ],
+                    hasError: !hasName,
+                    errorText: 'Valid Name is required',
+                    onChanged: (val) {
+                      checkout.setUserDetails(val, checkout.phone, checkout.email);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // Phone Field
+                  _buildContactField(
+                    label: 'Phone Number',
+                    controller: _phoneController,
+                    icon: Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                    prefixWidget: _buildCountryPicker(),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^[0-9\s\-()]*')), // removed + since it's in the country code now
+                      LengthLimitingTextInputFormatter(_phoneMaxLength),
+                    ],
+                    hasError: !hasPhone,
+                    errorText: 'Enter a valid phone number (min 7 digits)',
+                    onChanged: (val) {
+                      checkout.setUserDetails(checkout.fullName, '$_selectedCountryCode${val.trim()}', checkout.email);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  // Info text
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 13, color: Colors.grey.shade400),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'The restaurant and driver will use this number to reach you',
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    required TextInputType keyboardType,
+    required bool hasError,
+    required String errorText,
+    required ValueChanged<String> onChanged,
+    List<TextInputFormatter>? inputFormatters,
+    Widget? prefixWidget,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: hasError ? const Color(0xFFEF4444) : Colors.grey.shade600,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9F9F9),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: hasError ? const Color(0xFFEF4444).withOpacity(0.5) : Colors.grey.shade300,
+            ),
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            inputFormatters: inputFormatters,
+            onChanged: onChanged,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            decoration: InputDecoration(
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              prefixIcon: prefixWidget ?? Icon(icon, size: 18, color: hasError ? const Color(0xFFEF4444) : Colors.grey.shade500),
+              border: InputBorder.none,
+              hintText: 'Enter $label',
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+            ),
+          ),
+        ),
+        if (hasError) ...[
+          const SizedBox(height: 4),
+          Text(
+            errorText,
+            style: const TextStyle(fontSize: 11, color: Color(0xFFEF4444), fontWeight: FontWeight.w500),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCountryPicker() {
+    return InkWell(
+      onTap: () {
+        showCountryPicker(
+          context: context,
+          showPhoneCode: true,
+          countryListTheme: CountryListThemeData(
+            bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            inputDecoration: InputDecoration(
+              labelText: 'Search Country',
+              hintText: 'Start typing to search',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300)),
+            ),
+          ),
+          onSelect: (Country country) {
+            setState(() {
+              _selectedCountryCode = '+${country.phoneCode}';
+              _selectedCountryFlag = country.flagEmoji;
+              _phoneMaxLength = country.example.isNotEmpty ? country.example.length : 15;
+              
+              if (_phoneController.text.length > _phoneMaxLength) {
+                _phoneController.text = _phoneController.text.substring(0, _phoneMaxLength);
+              }
+            });
+            // Update provider with new country code
+            final checkout = context.read<CheckoutProvider>();
+            checkout.setUserDetails(checkout.fullName, '$_selectedCountryCode${_phoneController.text.trim()}', checkout.email);
+          },
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('$_selectedCountryCode $_selectedCountryFlag', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+            const SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade500, size: 16),
+            const SizedBox(width: 8),
+            Container(width: 1, height: 20, color: Colors.grey.shade300),
+            const SizedBox(width: 8),
+          ],
+        ),
+      ),
     );
   }
 
@@ -590,11 +912,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Column(
         children: [
           _buildBillRow('Subtotal (${cart.items.length} items)', subtotal, restaurant?['currency']),
-          if (checkout.isDelivery) _buildBillRow('Delivery Fee', deliveryFee, restaurant?['currency'], isInfo: true),
-          if (platformFee > 0) _buildBillRow('Platform Fee', platformFee, restaurant?['currency'], isInfo: true),
-          if (serviceFee > 0) _buildBillRow('Service Fee', serviceFee, restaurant?['currency'], isInfo: true),
-          if (packagingFee > 0) _buildBillRow('Packaging Fee', packagingFee, restaurant?['currency'], isInfo: true),
-          _buildBillRow(restaurant?['taxType'] ?? 'Taxes', tax, restaurant?['currency'], isInfo: true),
+          if (checkout.isDelivery) _buildBillRow('Delivery Fee', deliveryFee, restaurant?['currency'], isInfo: true, tooltipMessage: 'Fee charged for delivery based on distance and local market conditions.'),
+          if (platformFee > 0) _buildBillRow('Platform Fee', platformFee, restaurant?['currency'], isInfo: true, tooltipMessage: 'Fee to maintain the platform and operations.'),
+          if (serviceFee > 0) _buildBillRow('Service Fee', serviceFee, restaurant?['currency'], isInfo: true, tooltipMessage: 'Fee for the restaurant service.'),
+          if (packagingFee > 0) _buildBillRow('Packaging Fee', packagingFee, restaurant?['currency'], isInfo: true, tooltipMessage: 'Fee for safe packaging of your order.'),
+          _buildBillRow(restaurant?['taxType'] ?? 'Taxes', tax, restaurant?['currency'], isInfo: true, tooltipMessage: 'Estimated state and local sales taxes applied to your order.'),
           if (checkout.tip > 0) _buildBillRow('Tip', checkout.tip, restaurant?['currency']),
           if (couponDiscount > 0)
             Padding(
@@ -642,22 +964,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildBillRow(String title, double amount, String? currencySetting, {bool isInfo = false}) {
+  Widget _buildBillRow(String title, double amount, String? currencySetting, {bool isInfo = false, String? tooltipMessage}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              Text(title, style: TextStyle(color: Colors.grey.shade800, fontSize: 14)),
+              Text(title, style: const TextStyle(fontSize: 14, color: Colors.black87)),
               if (isInfo) ...[
                 const SizedBox(width: 4),
-                Icon(Icons.info_outline, size: 14, color: Colors.grey.shade500),
-              ]
+                JustTheTooltip(
+                  content: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      tooltipMessage ?? '',
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      softWrap: true,
+                    ),
+                  ),
+                  backgroundColor: const Color(0xFF1A1A1A),
+                  triggerMode: TooltipTriggerMode.tap,
+                  tailLength: 6.0,
+                  tailBaseWidth: 12.0,
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Icon(Icons.info_outline, size: 14, color: Colors.grey),
+                ),
+              ],
             ],
           ),
-          Text(Formatters.formatCurrency(amount, currencySetting), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+          Text(
+            Formatters.formatCurrency(amount, currencySetting),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+          ),
         ],
       ),
     );
@@ -666,7 +1007,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildBottomAction(CartProvider cart, CheckoutProvider checkout, AuthProvider auth, Map<String, dynamic>? restaurant) {
     final total = checkout.getTotal(cart, restaurant);
     final isCartEmpty = cart.items.isEmpty;
-    final canProceed = !isCartEmpty && checkout.couponPaymentError == null;
+    final canProceed = !isCartEmpty && checkout.couponPaymentError == null && checkout.isContactComplete;
 
     return Container(
       padding: EdgeInsets.only(
@@ -747,7 +1088,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         Text('Processing...', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       ],
                     )
-                  : const Text('Place Order', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.5)),
+                  : !checkout.isContactComplete
+                    ? const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.phone_outlined, size: 16),
+                          SizedBox(width: 6),
+                          Text('Add Phone to Order', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 0.3)),
+                        ],
+                      )
+                    : const Text('Place Order', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.5)),
               ),
             ),
             ],

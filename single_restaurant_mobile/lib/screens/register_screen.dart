@@ -316,8 +316,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       controller: _nameController,
                       hintText: 'Enter your full name',
                       icon: Icons.person_outline,
-                      validator: (value) =>
-                          value!.isEmpty ? 'Name is required' : null,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return 'Name is required';
+                        if (!RegExp(r"^[a-zA-Z\s\-'.]+$").hasMatch(value)) {
+                          return 'Standard letters and numbers only';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 

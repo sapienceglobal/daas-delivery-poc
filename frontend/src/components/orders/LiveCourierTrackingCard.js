@@ -83,7 +83,7 @@ export default function LiveCourierTrackingCard({ order, isNaked = false, classN
                 rel="noopener noreferrer"
                 className="text-[13px] font-bold text-[#7a0b10] hover:underline flex items-center gap-1"
               >
-                Track via {getProviderName(order.deliveryProvider)} <span>&rarr;</span>
+                Track Live Order <span>&rarr;</span>
               </a>
             )}
           </div>
@@ -95,7 +95,7 @@ export default function LiveCourierTrackingCard({ order, isNaked = false, classN
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px] pt-2">
             <div className="rounded-xl border border-[#e5e7eb] bg-[#ffffff] p-3 shadow-sm flex items-center justify-between">
               <div>
-                <span className="font-bold text-[#6b7280] block mb-1">Courier Partner</span>
+                <span className="font-bold text-[#6b7280] block mb-1">Driver Name</span>
                 <span className="font-bold text-[#1a1a1a]">{order.courierName || 'Awaiting Assignment'}</span>
               </div>
             </div>

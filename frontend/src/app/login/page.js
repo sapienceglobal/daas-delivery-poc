@@ -30,7 +30,7 @@ const registerSchema = z.object({
   name: z.string()
     .min(2, 'Name must be at least 2 characters')
     .max(50, 'Name cannot exceed 50 characters')
-    .regex(/^[a-zA-Z0-9\s\-'.]+$/, 'Name contains restricted characters or emojis. Please use standard letters and numbers only.'),
+    .regex(/^[a-zA-Z\s\-'.]+$/, 'Name contains restricted characters or emojis. Please use standard letters only.'),
   email: z.string().min(1, 'Email is required').email('Invalid email format'),
   phone: z
     .string()

@@ -5,7 +5,7 @@ import {
   CheckCircle, XCircle, FileClock, RefreshCcw,
   AlertTriangle, ShieldAlert, Zap, ArrowDownLeft,
   CreditCard, Info, Activity, Eye,
-  Globe, Smartphone
+  Globe, Smartphone, Truck, Star, ExternalLink
 } from 'lucide-react';
 import { orderAPI } from '@/lib/api';
 import { showToast, ConfirmModal } from '@/components/ui';
@@ -420,19 +420,95 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                   </div>
                 )}
               </div>
-              {order.orderType === 'delivery' && (
-                <div className="mt-4 pt-4 border-t border-[#f3f4f6] flex justify-between items-center">
-                  <div>
-                    <p className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">Assigned Rider</p>
-                    <p className="text-[13px] font-bold text-[#111827] mt-0.5">{order.courierName || 'Pending Assignment'}</p>
-                  </div>
-                  {order.courierPhone && (
-                    <a href={`tel:${order.courierPhone}`} className="w-8 h-8 rounded-full bg-[#f3f4f6] flex items-center justify-center text-[#374151] hover:bg-[#e5e7eb] transition-colors"><Phone className="w-3.5 h-3.5" /></a>
-                  )}
-                </div>
-              )}
             </div>
           </div>
+
+          {/* Logistics & Tracking Card */}
+          {order.orderType === 'delivery' && (
+            <div className="bg-white border border-[#e5e7eb] rounded-[16px] shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-[#f3f4f6] flex justify-between items-center bg-[#fcfaf5]">
+                <h3 className="text-[11px] font-black text-[#8b0000] uppercase tracking-wider flex items-center gap-2">
+                  <Truck className="w-4 h-4" /> Delivery & Tracking Details
+                </h3>
+                {order.trackingUrl && (
+                  <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#8b0000] hover:bg-[#6b0000] px-3 py-1.5 rounded-lg transition-colors shadow-sm">
+                    <ExternalLink className="w-3.5 h-3.5" /> Track Order
+                  </a>
+                )}
+              </div>
+              <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-8">
+                
+                {/* Left Column: Timing */}
+                <div className="space-y-3.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-[#6b7280]">Placement Time</span>
+                    <span className="text-xs font-bold text-[#111827] text-right">{formatDate(order.createdAt)}<br/><span className="text-[#6b7280]">{formatTime(order.createdAt)}</span></span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-[#6b7280]">Accepted Time</span>
+                    <span className="text-xs font-bold text-[#111827] text-right">
+                      {order.statusUpdates?.find(u => u.status === 'accepted')?.timestamp 
+                        ? <>{formatDate(order.statusUpdates.find(u => u.status === 'accepted').timestamp)}<br/><span className="text-[#6b7280]">{formatTime(order.statusUpdates.find(u => u.status === 'accepted').timestamp)}</span></> 
+                        : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-[#6b7280]">Pickup Time</span>
+                    <span className="text-xs font-bold text-[#111827] text-right">
+                      {order.pickupTime ? <>{formatDate(order.pickupTime)}<br/><span className="text-[#6b7280]">{formatTime(order.pickupTime)}</span></> : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-[#6b7280]">Delivery Time</span>
+                    <span className="text-xs font-bold text-[#111827] text-right">
+                      {order.deliveryTime ? <>{formatDate(order.deliveryTime)}<br/><span className="text-[#6b7280]">{formatTime(order.deliveryTime)}</span></> : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right Column: Driver Details */}
+                <div className="space-y-3.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-[#6b7280]">Delivery Provider</span>
+                    <span className="text-[13px] font-black text-[#111827] capitalize">{order.deliveryProvider === 'shipday' ? 'In-House' : order.deliveryProvider || 'N/A'}</span>
+                  </div>
+                  {order.deliveryId && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-[#6b7280]">Shipday Order ID</span>
+                      <span className="text-xs font-bold text-[#111827]">{order.deliveryId}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center mt-2 pt-3 border-t border-dashed border-[#e5e7eb]">
+                    <span className="text-xs font-bold text-[#6b7280]">Assigned Rider</span>
+                    <span className="text-[13px] font-black text-[#111827]">{order.courierName || 'Pending'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-[#6b7280]">Rider Phone</span>
+                    {order.courierPhone ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-[#111827]">{order.courierPhone}</span>
+                        <a href={`tel:${order.courierPhone}`} className="w-7 h-7 rounded-full bg-[#f3f4f6] flex items-center justify-center text-[#374151] hover:bg-[#e5e7eb] border border-[#e5e7eb] transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
+                      </div>
+                    ) : (
+                      <span className="text-xs font-bold text-[#111827]">N/A</span>
+                    )}
+                  </div>
+                </div>
+
+                {order.rating && (
+                  <div className="col-span-1 md:col-span-2 mt-1 pt-4 border-t border-[#e5e7eb] flex items-center gap-4">
+                    <span className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">Customer Feedback</span>
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className={`w-4 h-4 ${i < Math.floor(order.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`} />
+                      ))}
+                      <span className="text-xs font-bold text-[#111827] ml-1">{order.rating.toFixed(1)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Order Items */}
           <div className="bg-white border border-[#e5e7eb] rounded-[16px] shadow-sm flex flex-col overflow-hidden">

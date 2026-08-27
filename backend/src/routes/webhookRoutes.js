@@ -132,12 +132,13 @@ router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
   }
 
   // Third-party carrier info (when dispatched through 3rd party via Shipday)
+  // We prioritize this over event.carrier because event.carrier contains generic aggregator info (e.g. "DoorDash" and their generic support number)
   if (event.thirdPartyDeliveryOrder) {
     const tp = event.thirdPartyDeliveryOrder;
-    if (!updatePayload.carrier?.name && tp.driverName) {
+    if (tp.driverName) {
       updatePayload.carrier = {
         name: tp.driverName,
-        phone: tp.driverPhone
+        phone: tp.driverPhone || updatePayload.carrier?.phone
       };
     }
   }

@@ -1,7 +1,9 @@
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
+import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
@@ -87,7 +89,10 @@ class _CartScreenState extends State<CartScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        automaticallyImplyLeading: false, // Hide back button for tab
+        leading: Navigator.canPop(context) ? IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF7A0B10)),
+          onPressed: () => Navigator.pop(context),
+        ) : null,
         titleSpacing: 16,
         title: Consumer<CartProvider>(
           builder: (context, cart, _) {
@@ -651,15 +656,15 @@ class _CartScreenState extends State<CartScreen> {
           _buildBillRow('Item Total (${cart.items.length} items)', subtotal),
           const SizedBox(height: 10),
           if (!checkout.isDelivery)
-            _buildBillRow('Delivery Fee', 0, info: true, textValue: '\$0.00')
+            _buildBillRow('Delivery Fee', 0, info: true, tooltipMessage: 'Fee charged for delivery based on distance and local market conditions.', textValue: '\$0.00')
           else if (checkout.quoteLoading)
-            _buildBillRow('Delivery Fee', 0, info: true, textValue: 'Calculating...', color: Colors.grey)
+            _buildBillRow('Delivery Fee', 0, info: true, tooltipMessage: 'Fee charged for delivery based on distance and local market conditions.', textValue: 'Calculating...', color: Colors.grey)
           else if (checkout.quoteError != null)
-            _buildBillRow('Delivery Fee', 0, info: true, textValue: 'Unavailable', color: Colors.red)
+            _buildBillRow('Delivery Fee', 0, info: true, tooltipMessage: 'Fee charged for delivery based on distance and local market conditions.', textValue: 'Unavailable', color: Colors.red)
           else
-            _buildBillRow('Delivery Fee', deliveryFee, info: true),
+            _buildBillRow('Delivery Fee', deliveryFee, info: true, tooltipMessage: 'Fee charged for delivery based on distance and local market conditions.'),
           const SizedBox(height: 10),
-          _buildBillRow('Taxes & Fees', combinedTaxesAndFees, info: true),
+          _buildBillRow('Taxes & Fees', combinedTaxesAndFees, info: true, tooltipMessage: 'Estimated state and local sales taxes applied to your order.'),
           
           if (saved > 0) ...[
              const SizedBox(height: 10),
@@ -693,7 +698,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildBillRow(String label, double value, {bool info = false, Color? color, String? textValue}) {
+  Widget _buildBillRow(String label, double value, {bool info = false, String? tooltipMessage, Color? color, String? textValue}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -702,7 +707,23 @@ class _CartScreenState extends State<CartScreen> {
             Text(label, style: const TextStyle(color: Color(0xFF4B5563), fontSize: 14)),
             if (info) ...[
               const SizedBox(width: 4),
-              const Icon(Icons.info_outline, size: 14, color: Colors.grey),
+              JustTheTooltip(
+                content: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    tooltipMessage ?? '',
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                    softWrap: true,
+                  ),
+                ),
+                backgroundColor: const Color(0xFF1A1A1A),
+                triggerMode: TooltipTriggerMode.tap,
+                tailLength: 6.0,
+                tailBaseWidth: 12.0,
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                borderRadius: BorderRadius.circular(8),
+                child: const Icon(Icons.info_outline, size: 14, color: Colors.grey),
+              ),
             ]
           ],
         ),
@@ -734,8 +755,6 @@ class _CartScreenState extends State<CartScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(Formatters.formatCurrency(total, Provider.of<RestaurantProvider>(context, listen: false).restaurant?['currency']), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                const SizedBox(height: 2),
-                const Text('View Details ^', style: TextStyle(color: Colors.white70, fontSize: 12)),
               ],
             ),
             Container(width: 1, height: 30, color: Colors.white24, margin: const EdgeInsets.symmetric(horizontal: 16)),

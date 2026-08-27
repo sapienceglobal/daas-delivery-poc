@@ -22,6 +22,16 @@ export default function MyProfileTab({ user, updateUser }) {
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
+
+    if (!/^[a-zA-Z\s\-'.]+$/.test(formData.name)) {
+      showToast('Name contains restricted characters or emojis. Please use standard letters and numbers only.', 'error');
+      return;
+    }
+    if (!/^[0-9+\-\s()]+$/.test(formData.phone)) {
+      showToast('Phone contains restricted characters. Please use numbers only.', 'error');
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await authAPI.updateProfile(formData);
