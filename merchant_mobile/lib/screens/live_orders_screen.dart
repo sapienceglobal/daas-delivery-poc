@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
 import '../providers/order_provider.dart';
 import '../models/order_model.dart';
@@ -308,7 +309,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                 Text('\$${order.total.toStringAsFixed(2)}', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
               ],
             ),
-            if (_hasQuickActions(order.status)) ...[
+            if (_hasQuickActions(order)) ...[
               Divider(color: Colors.grey.shade200, height: 24),
               _buildQuickActions(context, order),
             ],
@@ -318,11 +319,31 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
     );
   }
 
-  bool _hasQuickActions(String status) {
-    return ['pending', 'accepted', 'preparing', 'ready_for_pickup'].contains(status);
+  bool _hasQuickActions(OrderModel order) {
+    if (order.status == 'out_for_delivery' && order.trackingUrl != null) return true;
+    return ['pending', 'accepted', 'preparing', 'ready_for_pickup', 'ready'].contains(order.status);
   }
 
   Widget _buildQuickActions(BuildContext context, OrderModel order) {
+    if (order.status == 'out_for_delivery' && order.trackingUrl != null) {
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () => launchUrl(Uri.parse(order.trackingUrl!)),
+              icon: const Icon(Icons.location_on, size: 16, color: Color(0xFF8B0000)),
+              label: Text('Track Live Order', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: const Color(0xFF8B0000))),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF8B0000)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     String buttonText = '';
     String nextStatus = '';
     Color buttonColor = AppColors.primary;

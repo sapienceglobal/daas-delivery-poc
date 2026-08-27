@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShoppingBag, Star, Mail, Phone, Calendar, Clock, MapPin, Gift, TrendingUp, RefreshCw, ChevronRight, MessageSquare, Tag, Globe } from 'lucide-react';
+import { X, ShoppingBag, Star, Mail, Phone, Calendar, Clock, MapPin, Gift, TrendingUp, RefreshCw, ChevronRight, MessageSquare, Tag, Globe, Smartphone } from 'lucide-react';
 import { crmAPI } from '@/lib/api';
 
 export default function CustomerProfileModal({ customer, restaurantId, onClose, onTriggerPromo }) {
@@ -141,7 +141,7 @@ export default function CustomerProfileModal({ customer, restaurantId, onClose, 
 // ── TAB COMPONENTS ──────────────────────────────────────────────────────────
 
 function OverviewTab({ data, customer, onTriggerPromo }) {
-  const { stats } = data;
+  const { stats, promos } = data;
   
   return (
     <div className="space-y-6">
@@ -247,22 +247,56 @@ function OverviewTab({ data, customer, onTriggerPromo }) {
         </div>
       </div>
       
-      {/* Quick Action Card */}
-      <div className="bg-gradient-to-br from-[#8B0000] to-[#5a0000] p-6 rounded-2xl shadow-lg text-center relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all"></div>
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all"></div>
-        <div className="relative z-10 flex flex-col items-center">
-          <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-4">
-            <Gift className="w-6 h-6 text-white" />
+      {/* Quick Action Card & Promo History */}
+      <div className="space-y-6">
+        <div className="bg-gradient-to-br from-[#8B0000] to-[#5a0000] p-6 rounded-2xl shadow-lg text-center relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all"></div>
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all"></div>
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-4">
+              <Gift className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Send Special Offer</h3>
+            <p className="text-sm text-white/80 mb-5 px-4 font-medium leading-relaxed">
+              Boost retention by sending a personalized promo code directly to this customer via Email/SMS.
+            </p>
+            <button onClick={onTriggerPromo} className="px-6 py-2.5 bg-white text-[#8B0000] rounded-xl font-bold transition-all shadow-md active:scale-95 hover:bg-[#f9fafb] w-full max-w-xs">
+              Create Promo Code
+            </button>
           </div>
-          <h3 className="text-lg font-bold text-white mb-2">Send Special Offer</h3>
-          <p className="text-sm text-white/80 mb-5 px-4 font-medium leading-relaxed">
-            Boost retention by sending a personalized promo code directly to this customer via Email/SMS.
-          </p>
-          <button onClick={onTriggerPromo} className="px-6 py-2.5 bg-white text-[#8B0000] rounded-xl font-bold transition-all shadow-md active:scale-95 hover:bg-[#f9fafb] w-full max-w-xs">
-            Create Promo Code
-          </button>
         </div>
+
+        {/* Promo History */}
+        {promos && promos.length > 0 && (
+          <div className="bg-white p-6 rounded-2xl border border-[#e5e7eb] shadow-sm">
+            <h3 className="text-base font-bold text-[#111827] mb-4 flex items-center gap-2">
+              <Tag className="w-5 h-5 text-[#8B0000]" />
+              Promo History
+            </h3>
+            <div className="space-y-3">
+              {promos.map((promo, idx) => (
+                <div key={idx} className="flex justify-between items-center p-3 rounded-xl border border-[#f3f4f6] bg-[#f9fafb]">
+                  <div>
+                    <div className="font-bold text-[#111827] text-sm flex items-center gap-2">
+                      {promo.code}
+                      {promo.isActive ? (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-[#ecfdf5] text-[#059669] rounded-full uppercase tracking-wider font-bold">Active</span>
+                      ) : (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-[#f3f4f6] text-[#6b7280] rounded-full uppercase tracking-wider font-bold">Expired</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-[#6b7280] mt-1 font-medium">
+                      {promo.type === 'percentage' ? `${promo.value}% OFF` : `$${promo.value} OFF`} • {new Date(promo.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs font-bold text-[#4b5563]">Max Uses: {promo.maxUses || 1}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

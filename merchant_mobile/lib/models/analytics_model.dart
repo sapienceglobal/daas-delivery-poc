@@ -9,7 +9,9 @@ class AnalyticsSummary {
   final int prevCustomers;
   final double totalDiscounts;
   final int cateringCount;
+  final int prevCateringCount;
   final int reservationsCount;
+  final int prevReservationsCount;
 
   AnalyticsSummary({
     required this.totalRevenue,
@@ -22,7 +24,9 @@ class AnalyticsSummary {
     required this.prevCustomers,
     required this.totalDiscounts,
     required this.cateringCount,
+    required this.prevCateringCount,
     required this.reservationsCount,
+    required this.prevReservationsCount,
   });
 
   factory AnalyticsSummary.fromJson(Map<String, dynamic> json) {
@@ -37,7 +41,9 @@ class AnalyticsSummary {
       prevCustomers: json['prevCustomers'] ?? 0,
       totalDiscounts: (json['totalDiscounts'] ?? 0).toDouble(),
       cateringCount: json['cateringCount'] ?? 0,
+      prevCateringCount: json['prevCateringCount'] ?? 0,
       reservationsCount: json['reservationsCount'] ?? 0,
+      prevReservationsCount: json['prevReservationsCount'] ?? 0,
     );
   }
 }

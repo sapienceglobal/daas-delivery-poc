@@ -66,16 +66,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           ),
         ),
-        title: Image.asset(
-          'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-          height: 40,
-          fit: BoxFit.contain,
-        ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-          child: _isSuccess ? _buildSuccessView() : _buildFormView(),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+            child: _isSuccess ? _buildSuccessView() : _buildFormView(),
+          ),
         ),
       ),
     );
@@ -90,26 +87,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           child: Container(
             width: 140,
             height: 140,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF0F0),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFF0F0),
               shape: BoxShape.circle,
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                const Icon(Icons.mail, color: Color(0xFFE53935), size: 70),
-                Positioned(
-                  top: 30,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.lock, color: Color(0xFFD32F2F), size: 20),
-                  ),
-                ),
-              ],
+            child: Center(
+              child: Image.asset(
+                'assets/images/branded/lassi-lounge/Lassi-Lounge-icon.png',
+                width: 70,
+                height: 70,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
         ),

@@ -171,6 +171,7 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
   const OrderModel = req.getModel?.('Order') || Order;
   const CustomerModel = req.getModel?.('Customer') || Customer;
   const UserModel = req.getModel?.('User') || User;
+  const CouponModel = req.getModel?.('Coupon') || Coupon;
 
   if (!isObjectIdRest) {
     const restaurant = await RestaurantModel.findOne({ 
@@ -194,6 +195,16 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
   if (isObjectId) {
     customer = await CustomerModel.findOne({ _id: customerId, restaurantId: actualRestaurantId }).lean();
     user = await UserModel.findById(customerId).lean();
+  }
+
+  // If user not found by ID, try finding by customer email or phone
+  if (!user && customer) {
+    const orConditions = [];
+    if (customer.email) orConditions.push({ email: { $regex: new RegExp(`^${customer.email}$`, 'i') } });
+    if (customer.phone) orConditions.push({ phone: customer.phone });
+    if (orConditions.length > 0) {
+      user = await UserModel.findOne({ $or: orConditions }).lean();
+    }
   }
 
   // if customer is neither in Customer nor User, they are a pure Guest.
@@ -287,6 +298,23 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
   // sort history newest first
   loyaltyHistory.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
+  // promo history
+  let promoHistory = [];
+  const searchIds = [
+    user ? user._id : null,
+    customer ? customer._id : null
+  ].filter(Boolean);
+
+  if (searchIds.length > 0) {
+    promoHistory = await CouponModel.find({
+      $or: [
+        { specificRestaurant: new mongoose.Types.ObjectId(actualRestaurantId) },
+        { specificRestaurant: null }
+      ],
+      applicableUsers: { $in: searchIds }
+    }).sort({ createdAt: -1 }).lean();
+  }
+
   const profileData = {
     customer,
     stats: {
@@ -303,7 +331,8 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
       tier: customer.loyaltyTier || 'Bronze',
       points: currentPoints,
       history: loyaltyHistory
-    }
+    },
+    promos: promoHistory
   };
 
   res.success(response, { data: profileData });
@@ -472,7 +501,7 @@ export const sendPromo = asyncHandler(async (req, response) => {
     const uniqueCode = `PROMO${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     
     coupons.push({
-      restaurantId,
+      specificRestaurant: restaurantId,
       code: uniqueCode,
       name: title || 'Special Offer',
       promoType: 'Offer',

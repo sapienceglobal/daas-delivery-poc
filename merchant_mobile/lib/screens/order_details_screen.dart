@@ -39,17 +39,105 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     }
   }
 
-  void _handleRemake(OrderModel order) async {
-    setState(() => _isRemakingOrder = true);
-    try {
-      await ApiService.post('/api/orders/${order.id}/remake', {});
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Remake order sent to kitchen')));
-      if (mounted) context.read<OrderProvider>().fetchOrderById(widget.orderId);
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to create remake order: $e')));
-    } finally {
-      if (mounted) setState(() => _isRemakingOrder = false);
-    }
+  void _showPremiumDialog({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required String confirmText,
+    required VoidCallback onConfirm,
+  }) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 10))],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: iconColor.withOpacity(0.1), shape: BoxShape.circle),
+                child: Icon(icon, color: iconColor, size: 36),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF111827)),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF6B7280), height: 1.5),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text('Cancel', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: const Color(0xFF6B7280))),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        onConfirm();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: iconColor,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(confirmText, style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmRemake(OrderModel order) {
+    _showPremiumDialog(
+      title: 'Remake Order',
+      subtitle: 'Send this order back to the kitchen to be prepared again?',
+      icon: Icons.refresh,
+      iconColor: Colors.orange,
+      confirmText: 'Yes, Remake',
+      onConfirm: () async {
+        setState(() => _isRemakingOrder = true);
+        try {
+          await ApiService.post('/api/orders/${order.id}/remake', {});
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Remake order sent to kitchen')));
+          if (mounted) context.read<OrderProvider>().fetchOrderById(widget.orderId);
+        } catch (e) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to create remake order: $e')));
+        } finally {
+          if (mounted) setState(() => _isRemakingOrder = false);
+        }
+      },
+    );
   }
 
   void _handleSendInvoice(OrderModel order) async {
@@ -69,31 +157,23 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   void _confirmCancel(OrderModel order) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Cancel Order'),
-        content: const Text('Are you sure you want to cancel this order? If paid, an auto-refund will be initiated.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('No, Go Back')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              setState(() => _isLoadingAction = true);
-              try {
-                await context.read<OrderProvider>().cancelOrder(order.id);
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order Cancelled')));
-              } catch (e) {
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-              } finally {
-                if (mounted) setState(() => _isLoadingAction = false);
-              }
-            },
-            child: const Text('Yes, Cancel', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+    _showPremiumDialog(
+      title: 'Cancel Order',
+      subtitle: 'Are you sure you want to cancel this order? If paid, an auto-refund will be initiated.',
+      icon: Icons.cancel_outlined,
+      iconColor: Colors.red,
+      confirmText: 'Yes, Cancel',
+      onConfirm: () async {
+        setState(() => _isLoadingAction = true);
+        try {
+          await context.read<OrderProvider>().cancelOrder(order.id);
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order Cancelled')));
+        } catch (e) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        } finally {
+          if (mounted) setState(() => _isLoadingAction = false);
+        }
+      },
     );
   }
 
@@ -102,31 +182,23 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order cannot be refunded again.')));
       return;
     }
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Refund Order'),
-        content: Text('Refund \$${order.total.toStringAsFixed(2)} to the customer?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('No')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              setState(() => _isLoadingAction = true);
-              try {
-                await context.read<OrderProvider>().refundOrder(order.id);
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order Refunded')));
-              } catch (e) {
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-              } finally {
-                if (mounted) setState(() => _isLoadingAction = false);
-              }
-            },
-            child: const Text('Yes, Refund', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+    _showPremiumDialog(
+      title: 'Refund Order',
+      subtitle: 'Refund \$${order.total.toStringAsFixed(2)} to the customer? This action cannot be undone.',
+      icon: Icons.history,
+      iconColor: Colors.blue,
+      confirmText: 'Yes, Refund',
+      onConfirm: () async {
+        setState(() => _isLoadingAction = true);
+        try {
+          await context.read<OrderProvider>().refundOrder(order.id);
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order Refunded')));
+        } catch (e) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        } finally {
+          if (mounted) setState(() => _isLoadingAction = false);
+        }
+      },
     );
   }
 
@@ -258,18 +330,24 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: _isRemakingOrder ? null : () => _handleRemake(order),
-                                icon: _isRemakingOrder ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh, size: 16, color: Colors.green),
-                                label: Text('Remake', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black87)),
+                              child: Opacity(
+                                opacity: _isRemakingOrder ? 0.4 : 1.0,
+                                child: OutlinedButton.icon(
+                                  onPressed: _isRemakingOrder ? null : () => _confirmRemake(order),
+                                  icon: _isRemakingOrder ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh, size: 16, color: Colors.green),
+                                  label: Text('Remake', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black87)),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: (_isSendingInvoice || order.customerEmail == null) ? null : () => _handleSendInvoice(order),
-                                icon: _isSendingInvoice ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send, size: 16),
-                                label: Text('Email Invoice', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black87)),
+                              child: Opacity(
+                                opacity: (_isSendingInvoice || order.customerEmail == null) ? 0.4 : 1.0,
+                                child: OutlinedButton.icon(
+                                  onPressed: (_isSendingInvoice || order.customerEmail == null) ? null : () => _handleSendInvoice(order),
+                                  icon: _isSendingInvoice ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send, size: 16),
+                                  label: Text('Email Invoice', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black87)),
+                                ),
                               ),
                             ),
                           ],
@@ -278,19 +356,25 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: (!canRefund) ? null : () => _confirmRefund(order),
-                                icon: const Icon(Icons.history, size: 16),
-                                label: Text('Refund', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black87)),
+                              child: Opacity(
+                                opacity: (!canRefund) ? 0.4 : 1.0,
+                                child: OutlinedButton.icon(
+                                  onPressed: (!canRefund) ? null : () => _confirmRefund(order),
+                                  icon: const Icon(Icons.history, size: 16),
+                                  label: Text('Refund', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black87)),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: isTerminal ? null : () => _confirmCancel(order),
-                                icon: const Icon(Icons.cancel, size: 16, color: Colors.red),
-                                style: OutlinedButton.styleFrom(side: BorderSide(color: Colors.red.shade200), backgroundColor: Colors.red.shade50),
-                                label: Text('Cancel', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.red.shade700)),
+                              child: Opacity(
+                                opacity: isTerminal ? 0.4 : 1.0,
+                                child: OutlinedButton.icon(
+                                  onPressed: isTerminal ? null : () => _confirmCancel(order),
+                                  icon: const Icon(Icons.cancel, size: 16, color: Colors.red),
+                                  style: OutlinedButton.styleFrom(side: BorderSide(color: Colors.red.shade200), backgroundColor: Colors.red.shade50),
+                                  label: Text('Cancel', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.red.shade700)),
+                                ),
                               ),
                             ),
                           ],
@@ -423,7 +507,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                             ),
                           )
                         ],
-                        ]
                       ],
                     ),
                   ),

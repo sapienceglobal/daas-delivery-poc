@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/notification_provider.dart';
+import 'global_search_delegate.dart';
 
 class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
   final PreferredSizeWidget? bottom;
@@ -31,6 +32,16 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       centerTitle: false,
       actions: [
+        // Global Search
+        IconButton(
+          icon: const Icon(Icons.search, color: Color(0xFF1F2937), size: 28),
+          onPressed: () {
+            showSearch(
+              context: context,
+              delegate: GlobalSearchDelegate(),
+            );
+          },
+        ),
         // Notification bell with badge
         Consumer<NotificationProvider>(
           builder: (context, notificationProvider, child) {
@@ -66,40 +77,7 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
             );
           },
         ),
-        // User avatar section
-        Padding(
-          padding: const EdgeInsets.only(right: 12.0),
-          child: GestureDetector(
-            onTap: () => Scaffold.of(context).openDrawer(),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: const Color(0xFFFEE2E2),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/branded/lassi-lounge/splash-icon.png',
-                      width: 44,
-                      height: 44,
-                      fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) => const Icon(Icons.person, color: Color(0xFFDC2626), size: 24),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Admin', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1F2937))),
-                    Text('Lassi Lounge', style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF6B7280))),
-                  ],
-                ),
-                const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF6B7280), size: 22),
-              ],
-            ),
-          ),
-        )
+        const SizedBox(width: 12),
       ],
     );
   }

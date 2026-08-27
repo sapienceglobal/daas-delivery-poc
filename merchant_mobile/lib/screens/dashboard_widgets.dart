@@ -8,64 +8,58 @@ import 'package:shimmer/shimmer.dart';
 import '../providers/analytics_provider.dart';
 import '../providers/auth_provider.dart';
 
-// ─────────────────────────────────────────────
-// WELCOME BANNER — Red gradient, collapsible
-// ─────────────────────────────────────────────
-class WelcomeBanner extends StatelessWidget {
-  const WelcomeBanner({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      child: Stack(
-        children: [
-          // 1. Full-screen textured background (revealed when over-scrolling down)
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/branded/lassi-lounge/splash-bg.jpg',
-              fit: BoxFit.cover,
-            ),
-          ),
-          // 2. The main hero image at the top (with the Lassi glass)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 190,
-            child: Image.asset(
-              'assets/images/branded/lassi-lounge/hero-spread.jpg',
-              fit: BoxFit.cover,
-            ),
-          ),
-          // 3. Gradient overlay to blend the hero image and make text readable
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 190,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF991B1B), // Solid dark red on left
-                    const Color(0xFFB91C1C).withValues(alpha: 0.95), // Mostly solid red
-                    const Color(0xFFDC2626).withValues(alpha: 0.6), // Fading red
-                    Colors.transparent, // Fully transparent on the far right
-                  ],
-                  stops: const [0.0, 0.4, 0.75, 1.0],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+double _calculateTrend(num current, num previous) {
+  if (previous == 0) {
+    return current > 0 ? 100.0 : 0.0;
   }
+  return ((current - previous) / previous) * 100.0;
 }
 
+Widget _buildTrendWidget(double trend, int selectedDays, {bool isDarkBg = false}) {
+  final isPositive = trend > 0;
+  final isNegative = trend < 0;
+  
+  Color color;
+  if (isDarkBg) {
+    color = Colors.white.withOpacity(0.9);
+  } else {
+    color = isPositive ? const Color(0xFF22C55E) : (isNegative ? const Color(0xFFEF4444) : const Color(0xFF9CA3AF));
+  }
+
+  final icon = isPositive ? '↑' : (isNegative ? '↓' : '→');
+  final absVal = trend.abs().toStringAsFixed(1);
+  
+  String timeText = 'vs prev';
+  if (selectedDays == 1) timeText = 'vs yesterday';
+  else if (selectedDays == 7) timeText = 'vs prev 7 days';
+  else if (selectedDays == 30) timeText = 'vs prev 30 days';
+  else if (selectedDays == 90) timeText = 'vs prev 90 days';
+  else if (selectedDays == 365) timeText = 'vs last year';
+  
+  return Wrap(
+    crossAxisAlignment: WrapCrossAlignment.center,
+    spacing: 4,
+    runSpacing: 2,
+    children: [
+      Text(
+        '$icon $absVal%',
+        style: GoogleFonts.inter(color: color, fontSize: 11, fontWeight: FontWeight.w600),
+      ),
+      Text(
+        timeText,
+        style: GoogleFonts.inter(
+          color: isDarkBg ? Colors.white.withOpacity(0.7) : const Color(0xFF9CA3AF), 
+          fontSize: 10, 
+          fontWeight: FontWeight.w400
+        ),
+      ),
+    ],
+  );
+}
+
+// ─────────────────────────────────────────────
+// WELCOME TEXT & TIMEFRAME
+// ─────────────────────────────────────────────
 class WelcomeBannerText extends StatelessWidget {
   const WelcomeBannerText({Key? key}) : super(key: key);
 
@@ -111,10 +105,10 @@ class WelcomeBannerText extends StatelessWidget {
         style: GoogleFonts.inter(
           fontSize: 16,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? const Color(0xFFDC2626) : AppColors.textPrimary,
+          color: isSelected ? const Color(0xFFFF5722) : AppColors.textPrimary,
         ),
       ),
-      trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFFDC2626)) : null,
+      trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFFFF5722)) : null,
       onTap: () {
         final auth = context.read<AuthProvider>();
         if (auth.user?['restaurantId'] != null) {
@@ -131,54 +125,56 @@ class WelcomeBannerText extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 36),
+      padding: const EdgeInsets.only(top: 8, bottom: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Welcome back,',
             style: GoogleFonts.inter(
-              color: Colors.white.withValues(alpha: 0.9),
+              color: const Color(0xFF6B7280),
               fontSize: 14,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             'Lassi Lounge Admin! 👋',
             style: GoogleFonts.inter(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
+              color: const Color(0xFF1E3A8A), // Dark blue/indigo
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             "Let's make today outstanding.",
             style: GoogleFonts.inter(
-              color: Colors.white.withValues(alpha: 0.8),
-              fontSize: 13,
+              color: const Color(0xFF6B7280),
+              fontSize: 14,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           GestureDetector(
             onTap: () => _showTimeframeSheet(context),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFFF5722).withOpacity(0.4)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const Icon(Icons.calendar_today, color: Color(0xFFFF5722), size: 16),
+                  const SizedBox(width: 8),
                   Text(
                     selectedDays == 1 ? 'Today' : 'Last $selectedDays Days',
-                    style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.inter(color: const Color(0xFFFF5722), fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 16),
+                  const Icon(Icons.keyboard_arrow_down, color: Color(0xFFFF5722), size: 18),
                 ],
               ),
             ),
@@ -190,7 +186,116 @@ class WelcomeBannerText extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// DASHBOARD STATS GRID — 6 cards matching web dashboard
+// REVENUE & ORDERS CARD — Orange Gradient
+// ─────────────────────────────────────────────
+class RevenueOrdersCard extends StatelessWidget {
+  const RevenueOrdersCard({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<AnalyticsProvider>();
+    final data = provider.data?.summary;
+    final rev = data?.totalRevenue ?? 0.0;
+    final orders = data?.totalOrders ?? 0;
+    final selectedDays = provider.selectedDays;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF9800), Color(0xFFFF3D00)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF5722).withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Revenue Half
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  child: const Icon(Icons.attach_money, color: Color(0xFFFF5722), size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Revenue',
+                        style: GoogleFonts.inter(color: Colors.white.withOpacity(0.9), fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '\$${rev.toStringAsFixed(2)}',
+                        style: GoogleFonts.outfit(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      _buildTrendWidget(_calculateTrend(rev, data?.prevRevenue ?? 0), selectedDays, isDarkBg: true),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Divider
+          Container(
+            height: 50,
+            width: 1,
+            color: Colors.white.withOpacity(0.3),
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+          ),
+          // Orders Half
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFFFF5722), size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Total Orders',
+                        style: GoogleFonts.inter(color: Colors.white.withOpacity(0.9), fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$orders',
+                        style: GoogleFonts.outfit(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      _buildTrendWidget(_calculateTrend(orders, data?.prevOrders ?? 0), selectedDays, isDarkBg: true),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// DASHBOARD STATS GRID — 6 white cards
 // ─────────────────────────────────────────────
 class DashboardStatsGrid extends StatelessWidget {
   const DashboardStatsGrid({Key? key}) : super(key: key);
@@ -200,6 +305,7 @@ class DashboardStatsGrid extends StatelessWidget {
     final provider = context.watch<AnalyticsProvider>();
     final data = provider.data?.summary;
     final isLoading = provider.isLoading;
+    final selectedDays = provider.selectedDays;
 
     if (isLoading && data == null) {
       return Shimmer.fromColors(
@@ -207,14 +313,14 @@ class DashboardStatsGrid extends StatelessWidget {
         highlightColor: Colors.white,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final itemWidth = (constraints.maxWidth - 12) / 2;
-            final itemHeight = 155.0; // Increased to 155.0 to prevent 5px overflow
+            final itemWidth = (constraints.maxWidth - 32) / 3; // 2 spaces of 16 = 32
+            final itemHeight = 190.0; // Increased height to prevent vertical overflow
             return GridView.count(
-              crossAxisCount: 2,
+              crossAxisCount: 3,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
               childAspectRatio: itemWidth / itemHeight,
               children: List.generate(6, (_) => Container(
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
@@ -225,100 +331,109 @@ class DashboardStatsGrid extends StatelessWidget {
       );
     }
 
-    final rev = data?.totalRevenue ?? 0.0;
-    final orders = data?.totalOrders ?? 0;
     final reservations = data?.reservationsCount ?? 0;
     final customers = data?.newCustomers ?? 0;
     final catering = data?.cateringCount ?? 0;
+    final aov = data?.aov ?? 0.0;
     final liveOrders = 0; // Replace with actual live orders when available
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final itemWidth = (constraints.maxWidth - 12) / 2;
-        final itemHeight = 155.0; // Increased to 155.0 to prevent 5px overflow
+        final itemWidth = (constraints.maxWidth - 32) / 3; // 2 spaces of 16 = 32
+        final itemHeight = 190.0; // Increased height to prevent vertical overflow
         
         return GridView.count(
-          crossAxisCount: 2,
+          crossAxisCount: 3,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
           childAspectRatio: itemWidth / itemHeight,
           children: [
-        // 1. Revenue
-        _StatCard(
-          icon: Icons.attach_money,
-          iconBgColor: const Color(0xFFFEF2F2),
-          iconColor: const Color(0xFF991B1B),
-          title: 'Revenue',
-          value: '\$${rev.toStringAsFixed(2)}',
-        ),
-        // 2. Total Orders
-        _StatCard(
-          icon: Icons.shopping_cart_outlined,
-          iconBgColor: const Color(0xFFFFF7ED),
-          iconColor: const Color(0xFFEA580C),
-          title: 'Total Orders',
-          value: '$orders',
-        ),
-        // 3. Reservations
-        _StatCard(
-          icon: Icons.calendar_today_outlined,
-          iconBgColor: const Color(0xFFFAF5FF),
-          iconColor: const Color(0xFF7C3AED),
-          title: 'Reservations',
-          value: '$reservations',
-        ),
-        // 4. Live Orders
-        _StatCard(
-          icon: Icons.restaurant_outlined,
-          iconBgColor: const Color(0xFFEFF6FF),
-          iconColor: const Color(0xFF2563EB),
-          title: 'Live Orders',
-          value: '$liveOrders',
-          footer: _buildStatusFooter('In Progress', const Color(0xFFDCFCE7), const Color(0xFF166534), const Color(0xFF16A34A)),
-        ),
-        // 5. New Customers
-        _StatCard(
-          icon: Icons.people_outline,
-          iconBgColor: const Color(0xFFDCFCE7),
-          iconColor: const Color(0xFF16A34A),
-          title: 'New Customers',
-          value: '$customers',
-        ),
-        // 6. Catering Requests
-        _StatCard(
-          icon: Icons.card_giftcard_outlined,
-          iconBgColor: const Color(0xFFFEFCE8),
-          iconColor: const Color(0xFFCA8A04),
-          title: 'Catering Requests',
-          value: '$catering',
-          footer: _buildStatusFooter('Pending', const Color(0xFFFFF7ED), const Color(0xFFEA580C), const Color(0xFFEA580C)),
-        ),
+            // 1. Reservations (Orange)
+            _StatCard(
+              icon: Icons.calendar_today,
+              watermarkIcon: Icons.calendar_today_outlined,
+              iconColor: const Color(0xFFF97316), // Orange
+              title: 'Reservations',
+              value: '$reservations',
+              trendValue: _calculateTrend(reservations, data?.prevReservationsCount ?? 0),
+              selectedDays: selectedDays,
+            ),
+            // 2. Live Orders (Green)
+            _StatCard(
+              icon: Icons.restaurant_menu,
+              watermarkIcon: Icons.room_service_outlined,
+              iconColor: const Color(0xFF22C55E), // Green
+              title: 'Live Orders',
+              value: '$liveOrders',
+              badge: _buildBadge('In Progress', const Color(0xFF22C55E)),
+              selectedDays: selectedDays,
+            ),
+            // 3. New Customers (Yellow)
+            _StatCard(
+              icon: Icons.people_alt,
+              watermarkIcon: Icons.people_outline,
+              iconColor: const Color(0xFFEAB308), // Yellow
+              title: 'New Customers',
+              value: '$customers',
+              trendValue: _calculateTrend(customers, data?.prevCustomers ?? 0),
+              selectedDays: selectedDays,
+            ),
+            // 4. Catering Requests (Purple)
+            _StatCard(
+              icon: Icons.room_service,
+              watermarkIcon: Icons.room_service_outlined,
+              iconColor: const Color(0xFFA855F7), // Purple
+              title: 'Catering Requests',
+              value: '$catering',
+              trendValue: _calculateTrend(catering, data?.prevCateringCount ?? 0),
+              badge: _buildBadge('Pending', const Color(0xFFF97316)),
+              selectedDays: selectedDays,
+            ),
+            // 5. Average Order Value (Pink)
+            _StatCard(
+              icon: Icons.bar_chart,
+              watermarkIcon: Icons.trending_up,
+              iconColor: const Color(0xFFEC4899), // Pink
+              title: 'Average Order Value',
+              value: '\$${aov.toStringAsFixed(2)}',
+              trendValue: _calculateTrend(aov, data?.prevAov ?? 0),
+              selectedDays: selectedDays,
+            ),
+            // 6. Customer Rating (Blue)
+            _StatCard(
+              icon: Icons.star_border,
+              watermarkIcon: Icons.star_border,
+              iconColor: const Color(0xFF3B82F6), // Blue
+              title: 'Customer Rating',
+              value: '0.0', // Backend needs to supply rating
+              trendValue: 0.0, 
+              selectedDays: selectedDays,
+            ),
           ],
         );
       },
     );
   }
 
-  Widget _buildStatusFooter(String text, Color bg, Color textColor, Color dotColor) {
+  Widget _buildBadge(String text, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: bg.withValues(alpha: 0.8)),
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 4,
         children: [
           Container(
             width: 6,
             height: 6,
-            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          const SizedBox(width: 4),
-          Text(text, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: textColor)),
+          Text(text, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
         ],
       ),
     );
@@ -327,19 +442,23 @@ class DashboardStatsGrid extends StatelessWidget {
 
 class _StatCard extends StatelessWidget {
   final IconData icon;
-  final Color iconBgColor;
+  final IconData watermarkIcon;
   final Color iconColor;
   final String title;
   final String value;
-  final Widget? footer;
+  final double? trendValue;
+  final int selectedDays;
+  final Widget? badge;
 
   const _StatCard({
     required this.icon,
-    required this.iconBgColor,
+    required this.watermarkIcon,
     required this.iconColor,
     required this.title,
     required this.value,
-    this.footer,
+    this.trendValue,
+    this.selectedDays = 1,
+    this.badge,
   });
 
   @override
@@ -347,74 +466,153 @@ class _StatCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
+          // Watermark Icon
           Positioned(
-            right: -20,
-            bottom: -20,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.04),
-                shape: BoxShape.circle,
-              ),
+            right: -10,
+            bottom: -10,
+            child: Icon(
+              watermarkIcon,
+              size: 80,
+              color: iconColor.withOpacity(0.08),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12), // Reduced padding to give more internal space
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Colored Icon
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: iconBgColor,
+                    color: iconColor,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, color: iconColor, size: 26),
+                  child: Icon(icon, color: Colors.white, size: 20),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFF1E293B), 
-                    fontSize: 13, 
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                // Texts
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(
-                      child: Text(
-                        value,
-                        style: GoogleFonts.outfit(color: const Color(0xFF0F172A), fontSize: 24, fontWeight: FontWeight.w800),
-                        overflow: TextOverflow.ellipsis,
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF4B5563), 
+                        fontSize: 12, 
+                        fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    if (footer != null) ...[
-                      const SizedBox(width: 4),
-                      footer!,
-                    ],
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      style: GoogleFonts.outfit(color: const Color(0xFF111827), fontSize: 22, fontWeight: FontWeight.w700),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    if (trendValue != null)
+                      _buildTrendWidget(trendValue!, selectedDays)
+                    else if (badge != null)
+                      badge!,
                   ],
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// MOMENTUM CARD
+// ─────────────────────────────────────────────
+class MomentumCard extends StatelessWidget {
+  const MomentumCard({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7ED), // Light orange background
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          // Left Icon/Image
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
+              ],
+            ),
+            child: const Icon(Icons.assignment_turned_in, color: Color(0xFFF97316), size: 36),
+          ),
+          const SizedBox(width: 16),
+          // Middle Text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Keep the momentum going! 🚀',
+                  style: GoogleFonts.inter(color: const Color(0xFF111827), fontSize: 14, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "You're all set to deliver an amazing\nexperience today.",
+                  style: GoogleFonts.inter(color: const Color(0xFF6B7280), fontSize: 12, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Right Button
+          OutlinedButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Please login to the website dashboard to view detailed reports.', style: GoogleFonts.inter()),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: const Color(0xFF1E3A8A),
+                ),
+              );
+            },
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFFF97316)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              backgroundColor: Colors.white,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'View Reports',
+                  style: GoogleFonts.inter(color: const Color(0xFFF97316), fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.arrow_forward, color: Color(0xFFF97316), size: 14),
               ],
             ),
           ),
@@ -784,6 +982,19 @@ class ChartsSection extends StatelessWidget {
         gridData: FlGridData(show: false),
         titlesData: FlTitlesData(show: false),
         borderData: FlBorderData(show: false),
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (touchedSpot) => const Color(0xFF111827).withOpacity(0.9),
+            getTooltipItems: (touchedSpots) {
+              return touchedSpots.map((spot) {
+                return LineTooltipItem(
+                  '\$${spot.y.toStringAsFixed(0)}',
+                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                );
+              }).toList();
+            },
+          ),
+        ),
         lineBarsData: [
           LineChartBarData(
             spots: spots,
@@ -812,20 +1023,35 @@ class ChartsSection extends StatelessWidget {
     final colors = [const Color(0xFFDC2626), const Color(0xFFF97316), const Color(0xFF10B981), const Color(0xFF3B82F6)];
     final labels = ['Dine-in', 'Takeaway', 'Delivery', 'Catering'];
 
-    if (channels.isEmpty) {
-      sections = [PieChartSectionData(color: Colors.grey.shade300, value: 100, showTitle: false, radius: 18)];
-    } else {
-      for (int i = 0; i < channels.length; i++) {
-        sections.add(PieChartSectionData(
-          color: colors[i % colors.length],
-          value: channels[i].count.toDouble(),
-          showTitle: false,
-          radius: 18,
-        ));
-      }
+    final Map<String, int> channelCounts = {};
+    for (var c in channels) {
+      // Backend might return slightly different cases, so we map them safely
+      String name = c.channel;
+      if (name.toLowerCase().contains('dine')) name = 'Dine-in';
+      else if (name.toLowerCase().contains('take') || name.toLowerCase().contains('pick')) name = 'Takeaway';
+      else if (name.toLowerCase().contains('deliver')) name = 'Delivery';
+      else if (name.toLowerCase().contains('cater')) name = 'Catering';
+      
+      channelCounts[name] = (channelCounts[name] ?? 0) + c.count;
     }
 
-    double total = channels.fold(0, (sum, c) => sum + c.count);
+    int total = channelCounts.values.fold(0, (sum, count) => sum + count);
+
+    if (total == 0) {
+      sections = [PieChartSectionData(color: Colors.grey.shade300, value: 100, showTitle: false, radius: 18)];
+    } else {
+      for (int i = 0; i < labels.length; i++) {
+        final count = channelCounts[labels[i]] ?? 0;
+        if (count > 0) {
+          sections.add(PieChartSectionData(
+            color: colors[i % colors.length],
+            value: count.toDouble(),
+            showTitle: false,
+            radius: 18,
+          ));
+        }
+      }
+    }
 
     return _buildChartCard(
       title: 'Orders by Channel',
@@ -856,12 +1082,11 @@ class ChartsSection extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: List.generate(
-                channels.isEmpty ? labels.length : channels.length.clamp(0, 4),
+                labels.length,
                 (i) {
-                  final pct = channels.isNotEmpty && total > 0
-                      ? ((channels[i].count / total) * 100).toStringAsFixed(0)
-                      : '0';
-                  final label = channels.isNotEmpty ? channels[i].channel : labels[i];
+                  final count = channelCounts[labels[i]] ?? 0;
+                  final pct = total > 0 ? ((count / total) * 100).toStringAsFixed(0) : '0';
+                  
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Row(
@@ -870,7 +1095,7 @@ class ChartsSection extends StatelessWidget {
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            '$label  $pct%',
+                            '${labels[i]}  $pct%',
                             style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF6B7280)),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -943,6 +1168,19 @@ class ChartsSection extends StatelessWidget {
                       gridData: FlGridData(show: false),
                       titlesData: FlTitlesData(show: false),
                       borderData: FlBorderData(show: false),
+                      barTouchData: BarTouchData(
+                        touchTooltipData: BarTouchTooltipData(
+                          getTooltipColor: (group) => const Color(0xFF111827).withOpacity(0.9),
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            final hour = group.x.toInt();
+                            String hourStr = '${hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour)} ${hour >= 12 ? 'PM' : 'AM'}';
+                            return BarTooltipItem(
+                              '$hourStr\n${rod.toY.toInt()} orders',
+                              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                            );
+                          },
+                        ),
+                      ),
                       barGroups: barGroups,
                     ),
                   ),
