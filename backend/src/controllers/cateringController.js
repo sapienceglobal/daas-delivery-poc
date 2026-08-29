@@ -1,5 +1,7 @@
 import CateringInquiry from '../models/CateringInquiry.js';
 import Restaurant from '../models/Restaurant.js';
+import { createNotification } from './notificationController.js';
+import { sendPushNotification } from '../services/webPushService.js';
 
 const getModels = (req) => ({
   CateringInquiry: req.getModel?.('CateringInquiry') || CateringInquiry,
@@ -41,6 +43,40 @@ export const createInquiry = async (req, res) => {
       packagePreference: packagePreference || 'Custom / Unsure',
       additionalNotes
     });
+
+    // -- Background Notifications --
+    try {
+      const io = req.app?.get('io');
+      const User = req.getModel?.('User') || (await import('../models/User.js')).default;
+      const merchantUsers = await User.find({
+        role: 'merchant',
+        'managedRestaurants.restaurantId': restaurant._id
+      });
+      
+      const imageUrl = 'https://res.cloudinary.com/h2cylj8r/image/upload/v1787569372/restaurant-platform/notifications/ouwuhg99wjuxrfzksswe.png';
+      
+      for (const mUser of merchantUsers) {
+        await createNotification(
+          mUser._id,
+          'New Catering Inquiry',
+          `${customerName} inquired for a ${eventType} event for ${guestCount} guests.`,
+          'catering_new',
+          `/merchant/catering/${inquiry._id}`,
+          io,
+          req.getModel,
+          imageUrl,
+          { entityType: 'catering', entityId: inquiry._id.toString() }
+        );
+      }
+
+      await sendPushNotification(restaurant, {
+        title: 'New Catering Inquiry',
+        body: `${customerName} inquired for a ${eventType} event for ${guestCount} guests.`,
+        data: { url: `/merchant/catering/${inquiry._id}` }
+      });
+    } catch (notifErr) {
+      console.error('Error sending background notifications for catering:', notifErr);
+    }
 
     res.status(201).json({
       success: true,

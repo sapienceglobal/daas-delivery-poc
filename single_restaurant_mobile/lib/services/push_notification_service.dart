@@ -7,6 +7,7 @@ import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
+import 'package:single_restaurant_mobile/screens/track_order_screen.dart';
 import 'package:single_restaurant_mobile/services/navigation_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
@@ -187,10 +188,18 @@ class PushNotificationService {
     switch (type) {
       case 'order_update':
       case 'delivery_update':
-        navigator.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 3)), // Orders tab
-          (route) => false,
-        );
+      case 'order_cancelled':
+        final orderId = data['orderId']?.toString();
+        if (orderId != null && orderId.isNotEmpty) {
+          navigator.push(
+            MaterialPageRoute(builder: (_) => TrackOrderScreen(orderId: orderId)),
+          );
+        } else {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 3)), // Orders tab
+            (route) => false,
+          );
+        }
         break;
       case 'promotion':
       case 'marketing':

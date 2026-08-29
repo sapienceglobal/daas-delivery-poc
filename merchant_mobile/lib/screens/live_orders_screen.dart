@@ -68,14 +68,17 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                           ),
                         ],
                       ),
-                      ElevatedButton.icon(
-                        onPressed: () => context.read<OrderProvider>().fetchOrders(),
-                        icon: const Icon(Icons.refresh, size: 16, color: Colors.white),
-                        label: Text('Refresh', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF991B1B),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF991B1B),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: IconButton(
+                          onPressed: () => context.read<OrderProvider>().fetchOrders(),
+                          icon: const Icon(Icons.refresh, color: Colors.white, size: 20),
+                          tooltip: 'Refresh',
+                          padding: const EdgeInsets.all(10),
+                          constraints: const BoxConstraints(),
                         ),
                       )
                     ],

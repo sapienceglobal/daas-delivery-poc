@@ -1,5 +1,7 @@
 import Reservation from '../models/Reservation.js';
 import Restaurant from '../models/Restaurant.js';
+import { createNotification } from './notificationController.js';
+import { sendPushNotification } from '../services/webPushService.js';
 
 const getModels = (req) => ({
   Reservation: req.getModel?.('Reservation') || Reservation,
@@ -49,6 +51,40 @@ export const createReservation = async (req, res) => {
     };
 
     const reservation = await Reservation.create(reservationData);
+
+    // -- Background Notifications --
+    try {
+      const io = req.app?.get('io');
+      const User = req.getModel?.('User') || (await import('../models/User.js')).default;
+      const merchantUsers = await User.find({
+        role: 'merchant',
+        'managedRestaurants.restaurantId': restaurant._id
+      });
+      
+      const imageUrl = 'https://res.cloudinary.com/h2cylj8r/image/upload/v1787569372/restaurant-platform/notifications/ouwuhg99wjuxrfzksswe.png'; // Using generic new order/reservation image
+      
+      for (const mUser of merchantUsers) {
+        await createNotification(
+          mUser._id,
+          'New Reservation Request',
+          `${customerName} requested a table for ${partySize} on ${date} at ${time}.`,
+          'reservation_new',
+          `/merchant/reservations/${reservation._id}`,
+          io,
+          req.getModel,
+          imageUrl,
+          { entityType: 'reservation', entityId: reservation._id.toString() }
+        );
+      }
+
+      await sendPushNotification(restaurant, {
+        title: 'New Reservation Request',
+        body: `${customerName} requested a table for ${partySize} on ${date} at ${time}.`,
+        data: { url: `/merchant/reservations/${reservation._id}` }
+      });
+    } catch (notifErr) {
+      console.error('Error sending background notifications for reservation:', notifErr);
+    }
 
     res.status(201).json({
       success: true,

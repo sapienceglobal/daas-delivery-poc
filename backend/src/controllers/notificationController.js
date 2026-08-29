@@ -72,7 +72,7 @@ export const deleteNotification = asyncHandler(async (req, response) => {
 });
 
 // create and emit a notification (used internally by other controllers)
-export const createNotification = async (userId, title, body, type = 'system', actionUrl = null, io = null, getModel = null, imageUrl = null) => {
+export const createNotification = async (userId, title, body, type = 'system', actionUrl = null, io = null, getModel = null, imageUrl = null, extraData = {}) => {
   try {
     const UserModel = getModel ? getModel('User') : User;
     const user = await UserModel.findById(userId).select('notificationPreferences fcmTokens role');
@@ -136,6 +136,7 @@ export const createNotification = async (userId, title, body, type = 'system', a
             actionUrl: actionUrl || '',
             ...(optimizedImageUrl && { image: optimizedImageUrl }),
             ...(actionUrl && actionUrl.startsWith('/orders/') && { orderId: actionUrl.split('/').pop() }),
+            ...extraData
           },
           tokens: user.fcmTokens
         };

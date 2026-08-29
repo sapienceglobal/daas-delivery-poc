@@ -9,6 +9,7 @@ import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/screens/cart_screen.dart';
 import 'package:single_restaurant_mobile/screens/loyalty_rewards_screen.dart';
 import 'package:single_restaurant_mobile/screens/referral_screen.dart';
+import 'package:single_restaurant_mobile/screens/search_screen.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
@@ -86,28 +87,38 @@ class _OffersScreenState extends State<OffersScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.search, color: Colors.black87),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const SearchScreen()));
+            },
           ),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87),
-                onPressed: () {},
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: AppColors.secondary,
-                    shape: BoxShape.circle,
+          Consumer<CartProvider>(
+            builder: (context, cart, child) {
+              final itemCount = cart.items.fold(0, (sum, item) => sum + (item['quantity'] as int));
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87),
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const CartScreen()));
+                    },
                   ),
-                  child: const Text('3', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
+                  if (itemCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(color: Colors.red.shade900, shape: BoxShape.circle),
+                        child: Text(
+                          '$itemCount',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           const SizedBox(width: 8),
         ],

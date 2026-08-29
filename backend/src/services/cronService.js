@@ -22,6 +22,9 @@ export const initCronJobs = (io, getModel) => {
       // 3. Auto-Complete: 4 hours ago for 'picked_up'
       const deliveryCutoff = new Date(now - 4 * 60 * 60 * 1000);
 
+      // 4. Auto-Complete: 8 hours ago for pickup/dine-in 'ready' orders
+      const pickupReadyCutoff = new Date(now - 8 * 60 * 60 * 1000);
+
       // --- Rule 1: Pending Timeout (5 mins) ---
       const stalePendingOrders = await Order.find({
         status: 'pending',
@@ -39,8 +42,9 @@ export const initCronJobs = (io, getModel) => {
       }
 
       // --- Rule 2: Preparation Neglect (2 hours) ---
+      // 2a. Auto-cancel accepted/preparing orders (all types) stuck for 2+ hours
       const stalePrepOrders = await Order.find({
-        status: { $in: ['accepted', 'preparing', 'ready'] },
+        status: { $in: ['accepted', 'preparing'] },
         updatedAt: { $lt: prepCutoff }
       });
 
@@ -49,6 +53,24 @@ export const initCronJobs = (io, getModel) => {
           order, 
           'Auto-cancelled: Order stuck in preparation for too long',
           `We're sorry, your order at ${order.restaurantName} seems to be stuck and has been auto-cancelled. Any eligible charges and loyalty points have been reversed.`,
+          io, 
+          getModel
+        );
+      }
+
+      // 2b. Auto-cancel 'ready' orders ONLY for delivery orders (not pickup/dine-in)
+      // Pickup customers may come later to collect; they should not be auto-cancelled.
+      const staleReadyDeliveryOrders = await Order.find({
+        status: 'ready',
+        orderType: { $nin: ['pickup', 'dine-in', 'dine_in'] },
+        updatedAt: { $lt: prepCutoff }
+      });
+
+      for (const order of staleReadyDeliveryOrders) {
+        await processAutoCancel(
+          order, 
+          'Auto-cancelled: Ready order not picked up by delivery driver for too long',
+          `We're sorry, your order at ${order.restaurantName} could not be delivered and has been auto-cancelled. Any eligible charges and loyalty points have been reversed.`,
           io, 
           getModel
         );
@@ -90,6 +112,37 @@ export const initCronJobs = (io, getModel) => {
           logger.info(`Successfully auto-completed order ${order._id}`);
         } catch (err) {
           logger.error(`Error auto-completing order ${order._id}:`, err);
+        }
+      }
+
+      // --- Rule 4: Auto-complete stale pickup/dine-in 'ready' orders (8 hours) ---
+      // If a pickup order was marked 'ready' and merchant forgot to mark it 'picked_up',
+      // assume customer already collected the food and auto-complete it.
+      const stalePickupReadyOrders = await Order.find({
+        status: { $in: ['ready', 'ready_for_pickup'] },
+        orderType: { $in: ['pickup', 'dine_in'] },
+        updatedAt: { $lt: pickupReadyCutoff }
+      });
+
+      for (const order of stalePickupReadyOrders) {
+        try {
+          order.status = 'picked_up';
+          order.statusUpdates.push({
+            status: 'picked_up',
+            description: 'Auto-completed: Pickup order assumed collected after 8 hours'
+          });
+          await order.save();
+          await awardLoyaltyPoints(order);
+
+          if (io) {
+            const payload = buildOrderSocketPayload(order);
+            io.to(order.restaurantId.toString()).emit('order_updated', payload);
+            io.to(`order_${order._id}`).emit('order_status_changed', payload);
+          }
+
+          logger.info(`Auto-completed pickup order ${order._id} (assumed collected)`);
+        } catch (err) {
+          logger.error(`Error auto-completing pickup order ${order._id}:`, err);
         }
       }
 

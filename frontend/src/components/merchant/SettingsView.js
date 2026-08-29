@@ -99,9 +99,10 @@ export default function SettingsView({ restaurant, onRefresh }) {
         phone: restaurant.phone || '',
         address: restaurant.address || '',
         website: restaurant.website || '',
-
+        
         acceptsOnlineOrders: restaurant.acceptsOnlineOrders !== false,
         autoAcceptOrders: restaurant.autoAcceptOrders || false,
+        autoRefundEnabled: restaurant.autoRefundEnabled !== false,
         preparationTime: restaurant.preparationTime ?? 20,
         minimumOrder: restaurant.minimumOrder ?? 15.00,
 
@@ -609,6 +610,18 @@ export default function SettingsView({ restaurant, onRefresh }) {
                     checked={formData.autoAcceptOrders}
                     onChange={(val) => handleChange('autoAcceptOrders', val)}
                     label="Auto accept orders"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
+                  <div>
+                    <p className="text-sm font-bold text-[#111827]">Auto Refund on Cancellation</p>
+                    <p className="text-xs text-[#6b7280] mt-1">Automatically refund customer when order is cancelled or failed</p>
+                  </div>
+                  <Toggle
+                    checked={formData.autoRefundEnabled}
+                    onChange={(val) => handleChange('autoRefundEnabled', val)}
+                    label="Auto refund enabled"
                   />
                 </div>
 

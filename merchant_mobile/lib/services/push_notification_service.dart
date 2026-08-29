@@ -208,8 +208,32 @@ class PushNotificationService {
     final context = rootNavigatorKey.currentContext;
     if (context == null) return;
     
-    // As per user requirement, tapping new order notification opens live orders
-    context.go('/live-orders');
+    final type = (data['type'] ?? '').toString().toLowerCase();
+    final url = (data['actionUrl'] ?? '').toString();
+    final orderId = data['orderId']?.toString() ?? '';
+
+    // Extract ID from URL if orderId not provided directly
+    String id = orderId;
+    if (id.isEmpty && url.isNotEmpty) {
+      final segments = url.split('/');
+      if (segments.isNotEmpty) {
+        id = segments.last;
+      }
+    }
+
+    if (type.contains('order')) {
+      if (id.isNotEmpty && id.length == 24) {
+        context.push('/order-details/$id');
+      } else {
+        context.push('/live-orders');
+      }
+    } else if (type.contains('reservation')) {
+      context.push('/reservations');
+    } else if (type.contains('catering')) {
+      context.push('/catering');
+    } else {
+      context.push('/live-orders'); // fallback
+    }
   }
 
   void _syncTokenWithBackend(BuildContext context, String token) {

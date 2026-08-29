@@ -178,8 +178,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   void _confirmRefund(OrderModel order) {
-    if (order.refunded || ['refunded', 'cancelled', 'failed'].contains(order.status.toLowerCase())) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order cannot be refunded again.')));
+    if (order.refunded) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order has already been refunded.')));
+      return;
+    }
+    if (!['paid', 'partially_refunded'].contains(order.paymentStatus.toLowerCase())) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Only paid orders can be refunded.')));
       return;
     }
     _showPremiumDialog(
@@ -315,6 +319,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Order Status Progression Button
+                if (!isTerminal) ...[
+                  _buildStatusProgressionButton(order),
                   const SizedBox(height: 16),
                 ],
 
@@ -888,6 +898,90 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           Text(label, style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
           Text(value, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatusProgressionButton(OrderModel order) {
+    String buttonText = '';
+    String nextStatus = '';
+    Color buttonColor = const Color(0xFF8B0000);
+    IconData buttonIcon = Icons.check_circle_outline;
+    
+    final status = order.status.toLowerCase();
+    final orderType = order.orderType.toLowerCase();
+
+    switch (status) {
+      case 'pending':
+        buttonText = 'Accept Order';
+        nextStatus = 'accepted';
+        buttonColor = const Color(0xFF8B0000);
+        buttonIcon = Icons.check;
+        break;
+      case 'accepted':
+        buttonText = 'Start Preparing';
+        nextStatus = 'preparing';
+        buttonColor = Colors.orange;
+        buttonIcon = Icons.soup_kitchen;
+        break;
+      case 'preparing':
+        buttonText = 'Mark Ready';
+        nextStatus = 'ready_for_pickup';
+        buttonColor = Colors.green;
+        buttonIcon = Icons.room_service;
+        break;
+      case 'ready_for_pickup':
+      case 'ready':
+        if (orderType == 'delivery') {
+          // Delivery orders: driver handles pickup, show waiting indicator
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.shade200, width: 1.5, style: BorderStyle.solid),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 16, height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.green.shade700),
+                ),
+                const SizedBox(width: 10),
+                Text('Waiting for Rider...', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.green.shade700, fontSize: 14)),
+              ],
+            ),
+          );
+        } else {
+          // Pickup / Dine-in: merchant confirms customer picked up
+          buttonText = 'Handed to Customer ✓';
+          nextStatus = 'picked_up';
+          buttonColor = Colors.blue;
+          buttonIcon = Icons.handshake;
+        }
+        break;
+      default:
+        return const SizedBox.shrink();
+    }
+
+    if (buttonText.isEmpty) return const SizedBox.shrink();
+
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton.icon(
+        onPressed: () {
+          context.read<OrderProvider>().updateOrderStatus(order.id, nextStatus);
+        },
+        icon: Icon(buttonIcon, size: 20, color: Colors.white),
+        label: Text(buttonText, style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: buttonColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 2,
+        ),
       ),
     );
   }

@@ -89,8 +89,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         if (isUnread) {
           provider.markAsRead(notification.id);
         }
-        if (notification.actionUrl != null && notification.actionUrl!.isNotEmpty) {
-          context.push(notification.actionUrl!);
+        
+        final type = notification.type.toLowerCase();
+        final url = notification.actionUrl ?? '';
+        
+        // Extract ID from URL if present (e.g. /orders/123 or /merchant/reservations/123)
+        final segments = url.split('/');
+        final id = segments.isNotEmpty ? segments.last : '';
+
+        if (type.contains('order')) {
+          if (id.isNotEmpty && id.length == 24) { // check for valid mongo id length
+            context.push('/order-details/$id');
+          } else {
+            context.push('/live-orders');
+          }
+        } else if (type.contains('reservation')) {
+          context.push('/reservations');
+        } else if (type.contains('catering')) {
+          context.push('/catering');
+        } else if (url.isNotEmpty) {
+          try {
+            context.push(url);
+          } catch (e) {
+            debugPrint('Route not found: $url');
+          }
         }
       },
       borderRadius: BorderRadius.circular(16),

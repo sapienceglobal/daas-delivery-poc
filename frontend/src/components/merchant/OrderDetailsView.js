@@ -214,6 +214,39 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
+  // ─── Status Progression ──────────────────────────────────────────────────
+  const getNextStatusInfo = () => {
+    const orderType = (order.orderType || '').toLowerCase();
+    switch (oStatus) {
+      case 'pending': case 'new':
+        return { label: 'Accept Order', next: 'accepted', color: '#8b0000', icon: CheckCircle };
+      case 'accepted':
+        return { label: 'Start Preparing', next: 'preparing', color: '#ea580c', icon: Clock };
+      case 'preparing':
+        return { label: 'Mark Ready', next: 'ready', color: '#16a34a', icon: CheckCircle };
+      case 'ready': case 'ready_for_pickup':
+        if (orderType === 'delivery') {
+          return { label: 'Waiting for Rider...', next: null, color: '#16a34a', icon: Truck, waiting: true };
+        }
+        return { label: 'Handed to Customer ✓', next: 'picked_up', color: '#2563eb', icon: CheckCircle };
+      default:
+        return null;
+    }
+  };
+
+  const nextStatusInfo = getNextStatusInfo();
+
+  const handleStatusProgression = async () => {
+    if (!nextStatusInfo || !nextStatusInfo.next || !onUpdateStatus) return;
+    try {
+      await onUpdateStatus(order._id, nextStatusInfo.next);
+      await fetchFreshOrder();
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      showToast(err.message || 'Failed to update status', 'error');
+    }
+  };
+
   // ─── Badges ───────────────────────────────────────────────────────────────
   const getStatusBadge = (status) => {
     const s = (status || '').toLowerCase();
@@ -617,6 +650,25 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
 
         {/* RIGHT COLUMN: 35% width */}
         <div className="lg:col-span-1 flex flex-col gap-6">
+
+          {/* Status Progression Button */}
+          {nextStatusInfo && !isTerminal && (
+            nextStatusInfo.waiting ? (
+              <div className="w-full py-3.5 rounded-xl border-2 border-dashed border-[#bbf7d0] bg-[#f0fdf4] flex items-center justify-center gap-2.5">
+                <div className="w-4 h-4 border-2 border-[#16a34a] border-t-transparent rounded-full animate-spin" />
+                <span className="text-[14px] font-bold text-[#166534]">{nextStatusInfo.label}</span>
+              </div>
+            ) : (
+              <button
+                onClick={handleStatusProgression}
+                className="w-full py-3.5 rounded-xl text-white font-bold text-[14px] flex items-center justify-center gap-2.5 shadow-md hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: nextStatusInfo.color }}
+              >
+                {React.createElement(nextStatusInfo.icon, { className: 'w-5 h-5' })}
+                {nextStatusInfo.label}
+              </button>
+            )
+          )}
 
           {/* Action Center */}
           <div className="bg-white border border-[#e5e7eb] rounded-[16px] p-5 shadow-sm">

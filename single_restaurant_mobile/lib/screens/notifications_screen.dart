@@ -6,6 +6,8 @@ import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
 import 'package:single_restaurant_mobile/screens/notification_settings_screen.dart';
+import 'package:single_restaurant_mobile/screens/track_order_screen.dart';
+import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:intl/intl.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -140,14 +142,43 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               padding: const EdgeInsets.only(right: 20),
                               child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
                             ),
-                            child: GestureDetector(
-                              onTap: () {
-                                if (!notification.isRead) {
-                                  notificationProvider.markAsRead(notification.id);
-                                }
-                              },
-                              child: _buildDynamicNotificationItem(notification),
-                            ),
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (!notification.isRead) {
+                                    notificationProvider.markAsRead(notification.id);
+                                  }
+
+                                  final type = notification.type;
+                                  final url = notification.actionUrl ?? '';
+                                  String orderId = '';
+                                  if (url.isNotEmpty && url.contains('/orders/')) {
+                                    final segments = url.split('/');
+                                    if (segments.isNotEmpty) {
+                                      orderId = segments.last;
+                                    }
+                                  }
+
+                                  if ((type == 'order_update' || type == 'delivery_update' || type == 'order_cancelled') && orderId.isNotEmpty) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => TrackOrderScreen(orderId: orderId)),
+                                    );
+                                  } else if (type == 'promotion' || type == 'marketing') {
+                                    Navigator.pushAndRemoveUntil(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 2)), // Offers tab
+                                      (route) => false,
+                                    );
+                                  } else if (type == 'order_update' || type == 'delivery_update' || type == 'order_cancelled') {
+                                    Navigator.pushAndRemoveUntil(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 3)), // Orders tab
+                                      (route) => false,
+                                    );
+                                  }
+                                },
+                                child: _buildDynamicNotificationItem(notification),
+                              ),
                           );
                         },
                       ),
@@ -215,7 +246,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     switch (notification.type) {
       case 'order_update':
       case 'delivery_update':
+      case 'order_cancelled':
         icon = Icons.electric_moped_outlined;
+        if (notification.type == 'order_cancelled') {
+           icon = Icons.cancel_outlined;
+        }
         iconColor = Colors.red;
         break;
       case 'promotion':

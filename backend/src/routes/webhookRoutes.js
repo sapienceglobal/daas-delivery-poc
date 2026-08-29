@@ -5,6 +5,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import logger from '../utils/logger.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { applyDeliveryUpdate, buildOrderSocketPayload } from '../services/deliverySyncService.js';
+import { createNotification } from '../controllers/notificationController.js';
 
 // ── Shipday Webhook Token ───────────────────────────────────────────────────
 // Shipday allows configuring a validation token (max 32 chars) when setting up
@@ -153,8 +154,10 @@ router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
   if (orderData.delivery_time) updatePayload.deliveryTime = new Date(orderData.delivery_time);
 
   // Apply the update
+  const oldStatus = order.status;
   applyDeliveryUpdate(order, updatePayload);
   order.lastDeliverySyncAt = new Date();
+  const newStatus = order.status;
 
   // Store Shipday orderId as deliveryId if not already set
   if (shipdayOrderId && !order.deliveryId) {
@@ -173,6 +176,23 @@ router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
     const socketPayload = buildOrderSocketPayload(order);
     io.to(order.restaurantId.toString()).emit('order_updated', socketPayload);
     io.to(`order_${order._id}`).emit('order_status_changed', socketPayload);
+  }
+
+  // Trigger customer push notification if status progressed
+  if (oldStatus !== newStatus && order.userId) {
+    try {
+      await createNotification(
+        order.userId,
+        `Order ${newStatus}`,
+        `Your order from ${order.restaurantName} is now ${newStatus.replace('_', ' ')}.`,
+        'delivery_update',
+        `/orders/${order._id}`,
+        io,
+        req.getModel
+      );
+    } catch (notifErr) {
+      logger.error('Failed to send webhook customer notification', { error: notifErr.message });
+    }
   }
 
   response.status(200).json({ received: true });

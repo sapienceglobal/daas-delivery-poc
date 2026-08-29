@@ -115,7 +115,7 @@ class AppDrawer extends StatelessWidget {
                 ),
                 _buildDrawerItem(
                   icon: Icons.room_service_outlined,
-                  title: 'Live Orders', // Formerly All Orders
+                  title: 'All Orders',
                   iconColor: const Color(0xFF22C55E), // Green
                   isActive: location == '/all-orders',
                   onTap: () {

@@ -236,6 +236,23 @@ export const processAutoRefund = async (order, reason, io, getModel) => {
     return { processed: false, skipped: true, reason: 'not_paid' };
   }
 
+  const Restaurant = getModel('Restaurant');
+  const restaurant = await Restaurant.findById(order.restaurantId).select('autoRefundEnabled');
+  
+  if (restaurant && restaurant.autoRefundEnabled === false) {
+    logger.info(`Auto-refund skipped for order ${order._id}: autoRefundEnabled is false for restaurant`);
+    
+    // log skipped event
+    pushPaymentEvent(order, 'auto_refund_failed', {
+      error: 'Auto-refund is disabled in restaurant settings',
+      reason,
+      triggeredBy: 'system'
+    });
+    await order.save();
+    return { processed: false, skipped: true, reason: 'disabled_by_merchant' };
+  }
+
+
   const remainingAmount = roundMoney((order.total || 0) - (order.refundAmount || 0));
   if (remainingAmount <= 0) {
     order.refunded = true;
@@ -743,7 +760,7 @@ export const createOrder = asyncHandler(async (req, response) => {
             'New Order Request 🛎️',
             `${order.customerName} placed a new ${order.orderType} order! Total: $${order.total.toFixed(2)}`,
             'new_order',
-            `/live-orders`,
+            `/orders/${order._id}`,
             io,
             req.getModel,
             newOrderImageUrl
@@ -1027,7 +1044,7 @@ export const cancelOrder = asyncHandler(async (req, response) => {
           'Order Cancelled 🚨',
           `Order #${order.orderNumber} was cancelled by the customer. Please stop preparation.`,
           'order_cancelled',
-          `/live-orders`,
+          `/orders/${order._id}`,
           io,
           req.getModel,
           cancelledImageUrl

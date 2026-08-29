@@ -6,6 +6,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
+import 'package:flutter/services.dart';
+import 'package:country_picker/country_picker.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -23,14 +25,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   bool _isSaving = false;
-
-  @override
+  
+  String _selectedCountryCode = '+1';
+  String _selectedCountryFlag = '🇺🇸';
+  int _phoneMaxLength = 10;
   void initState() {
     super.initState();
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     _nameController = TextEditingController(text: user?.name ?? '');
-    _phoneController = TextEditingController(text: user?.phone ?? '');
     _emailController = TextEditingController(text: user?.email ?? '');
+    
+    String p = user?.phone ?? '';
+    if (p.startsWith('+1') && p.length > 2) {
+      _selectedCountryCode = '+1';
+      _selectedCountryFlag = '🇺🇸';
+      _phoneMaxLength = 10;
+      p = p.substring(2);
+    } else if (p.startsWith('+91') && p.length > 3) {
+      _selectedCountryCode = '+91';
+      _selectedCountryFlag = '🇮🇳';
+      _phoneMaxLength = 10;
+      p = p.substring(3);
+    }
+    _phoneController = TextEditingController(text: p);
   }
 
   @override
@@ -60,7 +77,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final success = await authProvider.updateProfile(
       name: _nameController.text.trim(),
-      phone: _phoneController.text.trim(),
+      phone: '$_selectedCountryCode${_phoneController.text.trim()}',
       imagePath: _imageFile?.path,
     );
     
@@ -151,11 +168,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 label: 'Full Name',
                 controller: _nameController,
                 icon: Icons.person_outline,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r"^[a-zA-Z\s\-'.]*")),
+                ],
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) return 'Name is required';
-                  if (!RegExp(r"^[a-zA-Z\s\-'.]+$").hasMatch(value)) {
-                    return 'Standard letters and numbers only';
-                  }
+                  if (value.trim().length < 2) return 'Enter a valid name';
                   return null;
                 },
               ),
@@ -174,6 +192,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 controller: _phoneController,
                 icon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
+                prefixWidget: _buildCountryPicker(),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^[0-9\s\-()]*')),
+                  LengthLimitingTextInputFormatter(_phoneMaxLength),
+                ],
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) return 'Phone number is required';
+                  final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+                  if (digits.length < 7) return 'Enter a valid phone number';
+                  return null;
+                },
               ),
               const SizedBox(height: 40),
               
@@ -207,6 +236,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     bool readOnly = false,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    List<TextInputFormatter>? inputFormatters,
+    Widget? prefixWidget,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,6 +248,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           controller: controller,
           readOnly: readOnly,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           validator: validator,
           onTap: () {
             if (controller.selection.baseOffset != controller.selection.extentOffset) {
@@ -228,7 +260,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           },
           style: TextStyle(color: readOnly ? Colors.grey.shade600 : Colors.black87),
           decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: readOnly ? Colors.grey.shade400 : AppColors.secondary),
+            prefixIcon: prefixWidget ?? Icon(icon, color: readOnly ? Colors.grey.shade400 : AppColors.secondary),
             filled: true,
             fillColor: readOnly ? Colors.grey.shade100 : Colors.grey.shade50,
             border: OutlineInputBorder(
@@ -247,6 +279,52 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCountryPicker() {
+    return InkWell(
+      onTap: () {
+        showCountryPicker(
+          context: context,
+          showPhoneCode: true,
+          countryListTheme: CountryListThemeData(
+            bottomSheetHeight: MediaQuery.of(context).size.height * 0.7,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            inputDecoration: InputDecoration(
+              labelText: 'Search Country',
+              hintText: 'Start typing to search',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300)),
+            ),
+          ),
+          onSelect: (Country country) {
+            setState(() {
+              _selectedCountryCode = '+${country.phoneCode}';
+              _selectedCountryFlag = country.flagEmoji;
+              _phoneMaxLength = country.example.isNotEmpty ? country.example.length : 15;
+              
+              if (_phoneController.text.length > _phoneMaxLength) {
+                _phoneController.text = _phoneController.text.substring(0, _phoneMaxLength);
+              }
+            });
+          },
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('$_selectedCountryCode $_selectedCountryFlag', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, size: 20, color: Colors.black54),
+            const SizedBox(width: 8),
+            Container(width: 1, height: 20, color: Colors.grey.shade300),
+            const SizedBox(width: 12),
+          ],
+        ),
+      ),
     );
   }
 }
