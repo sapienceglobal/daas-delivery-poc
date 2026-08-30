@@ -4,6 +4,7 @@ class OrderItem {
   final String? size;
   final List<String> addOns;
   final String? specialInstructions;
+  final double lineTotal;
 
   OrderItem({
     required this.name,
@@ -11,6 +12,7 @@ class OrderItem {
     this.size,
     this.addOns = const [],
     this.specialInstructions,
+    this.lineTotal = 0.0,
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class OrderItem {
       size: json['selectedSize'] != null ? json['selectedSize']['name'] : null,
       addOns: addOnsList,
       specialInstructions: json['specialInstructions'],
+      lineTotal: (json['lineTotal'] ?? 0.0).toDouble(),
     );
   }
 }
@@ -90,6 +93,7 @@ class OrderModel {
   final String? tableNumber;
   final String paymentStatus;
   final String paymentMethod;
+  final String? paymentLinkUrl;
   final bool refunded;
   final String? refundReason;
   final List<StatusUpdate> statusUpdates;
@@ -107,6 +111,7 @@ class OrderModel {
   final bool hasAutoRefund;
   final bool autoRefundSucceeded;
   final bool autoRefundFailed;
+  final bool autoRefundSkipped;
   
   // Delivery & Tracking Fields
   final String? deliveryProvider;
@@ -135,6 +140,7 @@ class OrderModel {
     this.tableNumber,
     this.paymentStatus = 'unpaid',
     this.paymentMethod = 'cash',
+    this.paymentLinkUrl,
     this.refunded = false,
     this.refundReason,
     this.statusUpdates = const [],
@@ -152,6 +158,7 @@ class OrderModel {
     this.hasAutoRefund = false,
     this.autoRefundSucceeded = false,
     this.autoRefundFailed = false,
+    this.autoRefundSkipped = false,
     this.deliveryProvider,
     this.deliveryId,
     this.trackingUrl,
@@ -175,6 +182,7 @@ class OrderModel {
     bool hasAutoRefund = false;
     bool autoRefundSucceeded = false;
     bool autoRefundFailed = false;
+    bool autoRefundSkipped = false;
     var paymentEventsList = <PaymentEvent>[];
     
     if (json['paymentEvents'] != null) {
@@ -183,6 +191,7 @@ class OrderModel {
       hasAutoRefund = evts.any((e) => e['event'] == 'auto_refund_triggered');
       autoRefundSucceeded = json['refunded'] == true || evts.any((e) => e['event'] == 'auto_refund_succeeded');
       autoRefundFailed = !autoRefundSucceeded && evts.any((e) => e['event'] == 'auto_refund_failed');
+      autoRefundSkipped = evts.any((e) => e['event'] == 'auto_refund_skipped');
     }
     return OrderModel(
       id: json['_id'] ?? '',
@@ -199,6 +208,7 @@ class OrderModel {
       courierPhone: json['courierPhone'],
       paymentStatus: json['paymentStatus']?.toString().toLowerCase() ?? 'unpaid',
       paymentMethod: json['paymentMethod']?.toString().toLowerCase() ?? 'cash',
+      paymentLinkUrl: json['paymentLinkUrl']?.toString(),
       refunded: json['refunded'] ?? false,
       refundReason: json['refundReason'],
       customerEmail: json['customerEmail'],
@@ -219,6 +229,7 @@ class OrderModel {
       hasAutoRefund: hasAutoRefund,
       autoRefundSucceeded: autoRefundSucceeded,
       autoRefundFailed: autoRefundFailed,
+      autoRefundSkipped: autoRefundSkipped,
       deliveryProvider: json['deliveryProvider'],
       deliveryId: json['deliveryId'],
       trackingUrl: json['trackingUrl'],
@@ -247,6 +258,7 @@ class OrderModel {
       courierPhone: courierPhone,
       paymentStatus: paymentStatus,
       paymentMethod: paymentMethod,
+      paymentLinkUrl: paymentLinkUrl,
       refunded: refunded,
       refundReason: refundReason,
       customerEmail: customerEmail,
@@ -277,3 +289,5 @@ class OrderModel {
     );
   }
 }
+
+

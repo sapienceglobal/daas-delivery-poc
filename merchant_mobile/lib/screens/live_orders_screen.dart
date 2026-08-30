@@ -4,6 +4,14 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'dart:ui' as ui;
+import 'dart:async';
+import '../services/api_service.dart';
 import '../constants/app_colors.dart';
 import '../providers/order_provider.dart';
 import '../models/order_model.dart';
@@ -214,6 +222,16 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
     );
   }
 
+  void _showPaymentModal(String paymentUrl, DateTime createdAt) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _PaymentModalContent(
+        paymentUrl: paymentUrl,
+        createdAt: createdAt,
+      ),
+    );
+  }
+
   Widget _buildOrderCard(OrderModel order, Color themeColor) {
     return GestureDetector(
       onTap: () {
@@ -386,14 +404,93 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
 
     if (buttonText.isEmpty) return const SizedBox.shrink();
 
+    final isUnpaid = order.paymentStatus != 'paid';
+
+    if (order.status == 'pending' && isUnpaid) {
+      return Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF2F2),
+              border: Border.all(color: const Color(0xFFFCA5A5)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle)),
+                const SizedBox(width: 8),
+                Text('Awaiting Payment...', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final url = '${ApiService.baseUrl}/api/orders/${order.id}/pay';
+                    _showPaymentModal(url, order.createdAt);
+                  },
+                  icon: const Icon(Icons.qr_code, size: 16, color: Colors.black87),
+                  label: Text('Show QR Code', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black87)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey.shade300),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    try {
+                      await context.read<OrderProvider>().updateOrderStatus(order.id, 'cancelled');
+                    } catch (e) {
+                      print('Error cancelling order: $e');
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.close, size: 16, color: Colors.red),
+                  label: Text('Cancel Order', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.red)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         Row(
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () {
-                  context.read<OrderProvider>().updateOrderStatus(order.id, nextStatus);
+                onPressed: () async {
+                  try {
+                    await context.read<OrderProvider>().updateOrderStatus(order.id, nextStatus);
+                  } catch (e) {
+                    print('Error updating order status: $e');
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                    }
+                  }
                 },
                 icon: Icon(buttonIcon, size: 16, color: Colors.white),
                 label: Text(buttonText, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white)),
@@ -413,8 +510,14 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    context.read<OrderProvider>().updateOrderStatus(order.id, 'cancelled');
+                  onPressed: () async {
+                    try {
+                      await context.read<OrderProvider>().updateOrderStatus(order.id, 'cancelled');
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                      }
+                    }
                   },
                   icon: const Icon(Icons.close, size: 16, color: Colors.red),
                   label: Text('Reject Order', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.red)),
@@ -521,6 +624,124 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
             ),
           )
         ],
+      ),
+    );
+  }
+}
+
+class _PaymentModalContent extends StatefulWidget {
+  final String paymentUrl;
+  final DateTime createdAt;
+
+  const _PaymentModalContent({Key? key, required this.paymentUrl, required this.createdAt}) : super(key: key);
+
+  @override
+  State<_PaymentModalContent> createState() => _PaymentModalContentState();
+}
+
+class _PaymentModalContentState extends State<_PaymentModalContent> {
+  int _modalTimeLeft = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateTimeLeft();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _calculateTimeLeft();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _calculateTimeLeft() {
+    final expiresAtTime = widget.createdAt.add(const Duration(minutes: 10));
+    final now = DateTime.now();
+    final diff = expiresAtTime.difference(now).inSeconds;
+    if (mounted) {
+      setState(() {
+        _modalTimeLeft = diff > 0 ? diff : 0;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Waiting for Payment', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text('Have the customer scan the QR code to pay.', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.grey.shade600, fontSize: 14)),
+            const SizedBox(height: 24),
+            QrImageView(
+              data: widget.paymentUrl,
+              version: QrVersions.auto,
+              size: 200.0,
+              backgroundColor: Colors.white,
+            ),
+            const SizedBox(height: 24),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(8)),
+              child: Text(
+                'Time Remaining: ${(_modalTimeLeft ~/ 60).toString().padLeft(2, '0')}:${(_modalTimeLeft % 60).toString().padLeft(2, '0')}',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.red),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF3F4F6), foregroundColor: Colors.black),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: widget.paymentUrl));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link Copied!')));
+                    },
+                    icon: const Icon(Icons.copy, size: 16),
+                    label: const Text('Copy'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.white),
+                    onPressed: () async {
+                      final url = Uri.parse('https://wa.me/?text=${Uri.encodeComponent("Please pay for your order here: ${widget.paymentUrl}")}');
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp')));
+                      }
+                    },
+                    icon: const Icon(Icons.chat, size: 16),
+                    label: const Text('WhatsApp'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ChevronLeft, Printer, Send, Calendar, Clock, 
   MapPin, Phone, Mail, FileText,
   CheckCircle, XCircle, FileClock, RefreshCcw,
   AlertTriangle, ShieldAlert, Zap, ArrowDownLeft,
   CreditCard, Info, Activity, Eye,
-  Globe, Smartphone, Truck, Star, ExternalLink
+  Globe, Smartphone, Truck, Star, ExternalLink, Settings,
+  QrCode, Copy
 } from 'lucide-react';
-import { orderAPI } from '@/lib/api';
+import { orderAPI, paymentAPI } from '@/lib/api';
+import { QRCodeSVG } from 'qrcode.react';
 import { showToast, ConfirmModal } from '@/components/ui';
 import { useMerchantContext } from '@/context/MerchantContext';
 import { useSocket } from '@/context/SocketContext';
@@ -47,6 +50,14 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   const [paymentAudit, setPaymentAudit] = useState(null);
   const [auditLoading, setAuditLoading] = useState(false);
   const [showAudit, setShowAudit] = useState(false);
+
+  // QR Modal state
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [paymentLinkUrl, setPaymentLinkUrl] = useState('');
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [isSendingLink, setIsSendingLink] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [showRemakeModal, setShowRemakeModal] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -115,9 +126,10 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   const isTerminal = ['delivered', 'cancelled', 'failed', 'refunded'].includes(oStatus);
   const isRefunded = order.refunded === true || order.paymentStatus === 'refunded';
   const isPartialRefund = order.paymentStatus === 'partially_refunded';
-  const hasAutoRefund = (order.paymentEvents || []).some(e => e.event === 'auto_refund_triggered');
+  const hasAutoRefund = (order.paymentEvents || []).some(e => ['auto_refund_triggered', 'auto_refund_skipped'].includes(e.event));
   const autoRefundSucceeded = isRefunded || (order.paymentEvents || []).some(e => e.event === 'auto_refund_succeeded');
   const autoRefundFailed = !autoRefundSucceeded && (order.paymentEvents || []).some(e => e.event === 'auto_refund_failed');
+  const autoRefundSkipped = !autoRefundSucceeded && (order.paymentEvents || []).some(e => e.event === 'auto_refund_skipped');
   const canRefund = !isRefunded && ['paid', 'partially_refunded'].includes(order.paymentStatus);
   const canCancel = !isTerminal;
   const totalItems = (order.items || []).reduce((acc, it) => acc + it.quantity, 0);
@@ -175,11 +187,16 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
     });
   };
 
-  const handleRemake = async () => {
+  const handleRemake = () => {
+    setShowRemakeModal(true);
+  };
+
+  const executeRemake = async (chargeCustomer) => {
+    setShowRemakeModal(false);
     setIsRemakingOrder(true);
     try {
-      await orderAPI.remake(order._id);
-      showToast('Remake order sent to kitchen ($0 charge)', 'success');
+      await orderAPI.remake(order._id, chargeCustomer);
+      showToast(`Remake order sent to kitchen (${chargeCustomer ? 'Paid' : '$0 charge'})`, 'success');
       if (onRefresh) onRefresh();
     } catch (err) {
       showToast('Failed to create remake order', 'error');
@@ -201,6 +218,62 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
       showToast('Failed to send invoice email', 'error');
     } finally {
       setIsSendingInvoice(false);
+    }
+  };
+
+  const handleShowQR = async () => {
+    if (paymentLinkUrl) {
+      setShowQRModal(true);
+      return;
+    }
+    
+    setIsGeneratingLink(true);
+    try {
+      const linkRes = await paymentAPI.createLink({
+        orderId: order._id,
+        amount: order.total.toFixed(2),
+        restaurantId: order.restaurantId,
+        items: order.items,
+        customerPhone: order.customerPhone || undefined,
+        customerEmail: order.customerEmail || undefined,
+      });
+      setPaymentLinkUrl(linkRes.data?.url || linkRes.url);
+      if (order.customerEmail) {
+        showToast(`Payment link generated and emailed to ${order.customerEmail}`, 'success');
+      }
+      setShowQRModal(true);
+    } catch (err) {
+      showToast('Failed to generate payment link', 'error');
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const handleSendPaymentLinkEmail = async () => {
+    if (!order.customerEmail) {
+      showToast('No customer email on file', 'error');
+      return;
+    }
+    setIsSendingLink(true);
+    try {
+      await orderAPI.sendPaymentLink(order._id);
+      showToast(`Payment link emailed to ${order.customerEmail}`, 'success');
+    } catch (err) {
+      showToast('Failed to send payment link email', 'error');
+    } finally {
+      setIsSendingLink(false);
+    }
+  };
+
+  const copyToClipboard = async () => {
+    if (!paymentLinkUrl) return;
+    try {
+      await navigator.clipboard.writeText(paymentLinkUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+      showToast('Payment link copied!', 'success');
+    } catch (err) {
+      showToast('Failed to copy', 'error');
     }
   };
 
@@ -355,24 +428,39 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
       
       {hasAutoRefund && (
         <div className={`border rounded-xl p-4 flex items-start gap-3 shadow-sm ${
-          autoRefundFailed ? 'bg-[#fef2f2] border-[#fecaca]' : autoRefundSucceeded ? 'bg-[#fffbeb] border-[#fde68a]' : 'bg-[#eff6ff] border-[#bfdbfe]'
+          autoRefundFailed ? 'bg-[#fef2f2] border-[#fecaca]' : 
+          autoRefundSkipped ? 'bg-[#f8fafc] border-[#cbd5e1]' :
+          autoRefundSucceeded ? 'bg-[#fffbeb] border-[#fde68a]' : 'bg-[#eff6ff] border-[#bfdbfe]'
         }`}>
           <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-            autoRefundFailed ? 'bg-[#fee2e2]' : autoRefundSucceeded ? 'bg-[#fef3c7]' : 'bg-[#dbeafe]'
+            autoRefundFailed ? 'bg-[#fee2e2]' : 
+            autoRefundSkipped ? 'bg-[#e2e8f0]' :
+            autoRefundSucceeded ? 'bg-[#fef3c7]' : 'bg-[#dbeafe]'
           }`}>
-            {autoRefundFailed ? <ShieldAlert className="w-5 h-5 text-[#dc2626]" /> : autoRefundSucceeded ? <Zap className="w-5 h-5 text-[#d97706]" /> : <Info className="w-5 h-5 text-[#2563eb]" />}
+            {autoRefundFailed ? <ShieldAlert className="w-5 h-5 text-[#dc2626]" /> : 
+             autoRefundSkipped ? <Settings className="w-5 h-5 text-[#475569]" /> :
+             autoRefundSucceeded ? <Zap className="w-5 h-5 text-[#d97706]" /> : <Info className="w-5 h-5 text-[#2563eb]" />}
           </div>
           <div>
-            <p className={`text-sm font-bold ${autoRefundFailed ? 'text-[#991b1b]' : autoRefundSucceeded ? 'text-[#92400e]' : 'text-[#1e40af]'}`}>
-              {autoRefundFailed ? '⚠️ Auto-Refund Failed — Manual action required' : autoRefundSucceeded ? `⚡ Auto-Refund Processed — ${formatCurrency(order.refundAmount || order.total, currency)} was automatically returned to customer's card` : '🔄 Auto-Refund Initiated — Processing...'}
+            <p className={`text-sm font-bold ${
+              autoRefundFailed ? 'text-[#991b1b]' : 
+              autoRefundSkipped ? 'text-[#334155]' :
+              autoRefundSucceeded ? 'text-[#92400e]' : 'text-[#1e40af]'
+            }`}>
+              {autoRefundFailed ? '⚠️ Auto-Refund Failed — Manual action required' : 
+               autoRefundSkipped ? 'Auto-Refund Disabled in Settings' :
+               autoRefundSucceeded ? `⚡ Auto-Refund Processed — ${formatCurrency(order.refundAmount || order.total, currency)} was automatically returned to customer's card` : '🔄 Auto-Refund Initiated — Processing...'}
             </p>
-            {order.refundReason && (
+            {order.refundReason && !autoRefundSkipped && (
               <p className={`text-xs mt-1 ${autoRefundFailed ? 'text-[#dc2626]' : autoRefundSucceeded ? 'text-[#b45309]' : 'text-[#3b82f6]'}`}>
                 Reason: <span className="font-semibold">{order.refundReason.replace(/_/g, ' ')}</span>
               </p>
             )}
             {autoRefundFailed && (
               <p className="text-xs text-[#dc2626] mt-1 font-medium">Contact Stripe dashboard or initiate a manual refund below.</p>
+            )}
+            {autoRefundSkipped && (
+              <p className="text-xs text-[#475569] mt-1 font-medium">You have turned off automatic refunds. Please initiate a manual refund below if required.</p>
             )}
           </div>
         </div>
@@ -583,7 +671,7 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-[13px] font-bold text-[#374151] text-right">{formatCurrency(item.price, currency)}</td>
+                      <td className="px-5 py-4 text-[13px] font-bold text-[#374151] text-right">{formatCurrency((item.lineTotal || (item.price * item.quantity)) / item.quantity, currency)}</td>
                       <td className="px-5 py-4 text-[14px] font-black text-[#111827] text-center">{item.quantity}</td>
                       <td className="px-5 py-4 text-[14px] font-black text-[#111827] text-right">{formatCurrency(item.lineTotal || (item.price * item.quantity), currency)}</td>
                     </tr>
@@ -674,6 +762,18 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
           <div className="bg-white border border-[#e5e7eb] rounded-[16px] p-5 shadow-sm">
             <h3 className="text-[11px] font-black text-[#8b0000] uppercase tracking-wider mb-4">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-3">
+              {order.paymentStatus !== 'paid' && !['cancelled', 'rejected', 'expired'].includes(order.status) && (
+                <button onClick={handleShowQR} disabled={isGeneratingLink}
+                  className="col-span-2 border border-[#8b0000] bg-[#fff0f0] rounded-lg py-2.5 flex items-center justify-center gap-2 hover:bg-[#ffe4e4] transition-colors font-bold text-[13px] text-[#8b0000] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                  {isGeneratingLink ? (
+                    <div className="w-4 h-4 border-2 border-[#8b0000] border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <QrCode className="w-4 h-4" />
+                  )}
+                  {isGeneratingLink ? 'Generating...' : (paymentLinkUrl ? 'Show Payment QR Code' : 'Generate Payment QR Code')}
+                </button>
+              )}
+
               <button onClick={handleRemake} disabled={isRemakingOrder}
                 className="col-span-2 border border-[#e5e7eb] rounded-lg py-2.5 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors font-bold text-[13px] text-[#111827] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                 {isRemakingOrder ? (
@@ -876,6 +976,117 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
         {...confirmConfig}
         onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
       />
+
+      {/* QR Code Modal for Payment Link Orders */}
+      {showQRModal && mounted && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <h2 className="text-xl font-black text-[#111827] mb-2">Payment Required</h2>
+              <p className="text-[13px] font-bold text-[#6b7280] mb-6">Scan QR code to complete payment for Order #{order.orderNumber || order._id.toString().slice(-6)}</p>
+              
+              <div className="bg-[#f9fafb] p-6 rounded-xl border border-[#e5e7eb] flex items-center justify-center mb-6">
+                {paymentLinkUrl ? (
+                  <QRCodeSVG 
+                    value={paymentLinkUrl}
+                    size={200}
+                    bgColor={"#f9fafb"}
+                    fgColor={"#111827"}
+                    level={"Q"}
+                    includeMargin={false}
+                  />
+                ) : (
+                  <div className="w-[200px] h-[200px] flex items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-[#e5e7eb] border-t-[#8b0000] rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-[#f9fafb] rounded-lg p-3 flex items-center justify-between border border-[#e5e7eb] mb-4">
+                <p className="text-[12px] font-mono text-[#6b7280] font-bold truncate mr-3 flex-1 text-left">
+                  {paymentLinkUrl || 'Generating...'}
+                </p>
+                <button
+                  onClick={copyToClipboard}
+                  disabled={!paymentLinkUrl}
+                  className="shrink-0 p-2 bg-white rounded shadow-sm border border-[#e5e7eb] hover:bg-[#f3f4f6] transition-colors text-[#374151] disabled:opacity-50"
+                  title="Copy link"
+                >
+                  {copiedLink ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {paymentLinkUrl && (
+                <button
+                  onClick={() => {
+                    window.open(`https://wa.me/?text=${encodeURIComponent(`Please pay for your order here: ${paymentLinkUrl}`)}`, '_blank');
+                  }}
+                  className="w-full py-3 mb-2 rounded-xl border border-[#25D366] text-[#25D366] font-bold text-[14px] hover:bg-[#25D366]/10 transition-colors shadow-sm"
+                >
+                  Share via WhatsApp
+                </button>
+              )}
+
+              {paymentLinkUrl && order.customerEmail && (
+                <button
+                  onClick={handleSendPaymentLinkEmail}
+                  disabled={isSendingLink}
+                  className="w-full py-3 mb-2 rounded-xl border border-[#d1d5db] text-[#374151] font-bold text-[14px] hover:bg-[#f3f4f6] transition-colors shadow-sm disabled:opacity-50"
+                >
+                  {isSendingLink ? 'Sending...' : 'Email QR Code & Link'}
+                </button>
+              )}
+            </div>
+            
+            <div className="p-4 border-t border-[#e5e7eb] bg-[#f9fafb]">
+              <button
+                onClick={() => setShowQRModal(false)}
+                className="w-full py-3 bg-white border border-[#e5e7eb] rounded-xl text-[14px] font-bold text-[#111827] hover:bg-[#f3f4f6] transition-colors shadow-sm"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Remake Options Modal */}
+      {showRemakeModal && mounted && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <h2 className="text-xl font-black text-[#111827] mb-2">Remake Order</h2>
+              <p className="text-[13px] font-bold text-[#6b7280] mb-6">Do you want to remake this order for free or charge the customer the full amount?</p>
+              
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => executeRemake(false)}
+                  className="w-full py-3 bg-[#16a34a] text-white rounded-xl text-[14px] font-bold hover:bg-[#15803d] transition-colors shadow-sm flex items-center justify-center gap-2"
+                >
+                  Free Remake ($0)
+                </button>
+                <button
+                  onClick={() => executeRemake(true)}
+                  className="w-full py-3 bg-white border-2 border-[#8b0000] text-[#8b0000] rounded-xl text-[14px] font-bold hover:bg-[#fff0f0] transition-colors shadow-sm flex items-center justify-center gap-2"
+                >
+                  Charge Customer ({formatCurrency(order.total, currency)})
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-[#e5e7eb] bg-[#f9fafb]">
+              <button
+                onClick={() => setShowRemakeModal(false)}
+                className="w-full py-3 bg-white border border-[#e5e7eb] rounded-xl text-[14px] font-bold text-[#111827] hover:bg-[#f3f4f6] transition-colors shadow-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

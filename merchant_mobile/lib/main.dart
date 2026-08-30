@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:toastification/toastification.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,6 +14,7 @@ import 'screens/promotions_screen.dart';
 import 'screens/kds_screen.dart';
 import 'screens/reservations_screen.dart';
 import 'screens/catering_screen.dart';
+import 'screens/pos_screen.dart';
 import 'screens/more_settings_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/auth/splash_screen.dart';
@@ -35,6 +37,8 @@ import 'providers/catering_provider.dart';
 import 'providers/analytics_provider.dart';
 import 'providers/notification_provider.dart';
 
+import 'package:flutter_stripe/flutter_stripe.dart';
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -43,6 +47,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  Stripe.publishableKey = 'pk_test_51Tqvb7HxSFxyqGbKxYaqXnfCOCEDuxSoZyxrMA46oSFzNJ9PGhAu9ggeOOUMKotyx1iblp3dG77GX879vnUBqjiI00SX1sCKi7';
   
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -133,6 +139,10 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => const PromotionsScreen(),
     ),
     GoRoute(
+      path: '/pos',
+      pageBuilder: (context, state) => const NoTransitionPage(child: PosScreen()),
+    ),
+    GoRoute(
       path: '/kds',
       pageBuilder: (context, state) => const NoTransitionPage(child: KdsScreen()),
     ),
@@ -160,7 +170,8 @@ class MerchantApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
+    return ToastificationWrapper(
+      child: MaterialApp.router(
       title: 'Merchant Dashboard',
       theme: AppTheme.lightTheme,
       routerConfig: _router,
@@ -176,6 +187,9 @@ class MerchantApp extends StatelessWidget {
           ),
         );
       },
+    ),
     );
   }
 }
+
+

@@ -15,9 +15,9 @@ import { withOptimisticRetry } from '../utils/optimisticRetry.js';
 import { triggerDelivery, getBestDeliveryQuote, cancelDelivery } from '../services/deliveryAggregatorService.js';
 import { validateDeliveryDistance } from '../utils/distance.js';
 import { buildOrderSocketPayload, syncDeliveryTracking } from '../services/deliverySyncService.js';
-import { retrievePaymentIntent, refundPayment as refundStripePayment, chargeSavedCard } from '../services/stripeService.js';
+import { retrievePaymentIntent, refundPayment as refundStripePayment, chargeSavedCard, createCheckoutSession } from '../services/stripeService.js';
 import { calculateOrderPricing, roundMoney } from '../services/orderPricing.js';
-import { sendOrderConfirmationEmail, sendInvoiceEmail } from '../services/emailService.js';
+import { sendOrderConfirmationEmail, sendInvoiceEmail, sendPaymentLinkEmail } from '../services/emailService.js';
 import { generateInvoiceHTML, generateKOTHTML } from '../services/documentService.js';
 import { createNotification } from './notificationController.js';
 import { sendPushNotification } from '../services/webPushService.js';
@@ -328,7 +328,7 @@ export const processAutoRefund = async (order, reason, io, getModel) => {
 
 const verifyCardPayment = async ({ paymentMethod, stripePaymentIntentId, expectedTotal, userId }) => {
   if (!['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(paymentMethod)) {
-    return { paymentStatus: paymentMethod === 'cash' ? 'pending' : 'paid' };
+    return { paymentStatus: ['cash', 'payment_link'].includes(paymentMethod) ? 'pending' : 'paid' };
   }
 
   if (!stripePaymentIntentId) {
@@ -401,6 +401,71 @@ const getTrustedDeliveryQuote = async ({ restaurant, address, subtotal, schedule
 
 // ── Customer ────────────────────────────────────────────────────────────────
 
+// ─── Payment Link Redirection ───────────────────────────────────────────────
+
+export const redirectToPayment = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const OrderModel = req.getModel('Order');
+
+  const order = await OrderModel.findById(id);
+  if (!order) {
+    return res.status(404).send('Order not found');
+  }
+
+  if (order.paymentStatus === 'paid') {
+    return res.status(400).send('Order is already paid');
+  }
+
+  if (order.paymentLinkUrl) {
+    return res.redirect(order.paymentLinkUrl);
+  }
+
+  // If no link exists, generate one
+  const session = await createCheckoutSession(order, req.tenantId || 'lassi-lounge');
+  order.paymentLinkUrl = session.url;
+  await order.save();
+
+  return res.redirect(session.url);
+});
+
+export const handleStripeWebhookSuccess = async (orderId, paymentIntentId, dbName, io) => {
+  const targetDb = mongoose.connection.useDb(dbName, { useCache: true });
+  const OrderModel = targetDb.model('Order', Order.schema);
+  const RestaurantModel = targetDb.model('Restaurant', Restaurant.schema);
+
+  const order = await OrderModel.findById(orderId);
+  if (!order || order.status !== 'pending') return;
+
+  const restaurant = await RestaurantModel.findById(order.restaurantId);
+  const shouldAutoAccept = restaurant?.autoAcceptOrders || order.orderSource === 'merchant_app' || order.paymentMethod === 'payment_link';
+
+  order.paymentStatus = 'paid';
+  if (paymentIntentId) {
+    order.stripePaymentIntentId = paymentIntentId;
+  }
+
+  if (shouldAutoAccept) {
+    order.status = 'accepted';
+    order.statusUpdates.push({
+      status: 'accepted',
+      description: 'Order auto-accepted after successful payment link checkout',
+      timestamp: new Date()
+    });
+  }
+
+  await order.save();
+
+  if (io) {
+    io.to(order.restaurantId.toString()).emit('order_updated', order);
+    io.to(order.restaurantId.toString()).emit('new_order', {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      items: order.items.length,
+      total: order.total
+    });
+  }
+};
+
 export const createOrder = asyncHandler(async (req, response) => {
   const Order = req.getModel('Order');
   const Restaurant = req.getModel('Restaurant');
@@ -442,12 +507,11 @@ export const createOrder = asyncHandler(async (req, response) => {
   }
   // M4: Sanitize user-generated text fields
   const sanitizedCourierNotes = courierNotes ? xss(String(courierNotes)).slice(0, 500) : '';
-  const isMerchantPosCash =
+  const isMerchantPosManualPayment =
     ['merchant', 'admin'].includes(req.user.role) &&
-    ['pickup', 'dine_in'].includes(orderType) &&
-    paymentMethod === 'cash';
+    ['cash', 'payment_link'].includes(paymentMethod);
 
-  if (!CUSTOMER_PAYMENT_METHODS.includes(paymentMethod) && !isMerchantPosCash) {
+  if (!CUSTOMER_PAYMENT_METHODS.includes(paymentMethod) && !isMerchantPosManualPayment) {
     throw new AppError('Unsupported payment method for US customer checkout. Please use card, Apple Pay, or Google Pay.', 400);
   }
 
@@ -599,10 +663,10 @@ export const createOrder = asyncHandler(async (req, response) => {
       scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
       stripePaymentIntentId: finalStripePaymentIntentId || null,
       deliveryProvider: deliveryQuote.quote?.provider || 'doordash',
-      status: restaurant.autoAcceptOrders ? 'accepted' : 'pending',
+      status: (paymentMethod === 'payment_link' || !restaurant.autoAcceptOrders) ? 'pending' : 'accepted',
       statusUpdates: [
-        { status: 'pending', description: 'Order placed by customer', timestamp: new Date() },
-        ...(restaurant.autoAcceptOrders ? [{ status: 'accepted', description: 'Order auto-accepted by restaurant', timestamp: new Date() }] : [])
+        { status: 'pending', description: 'Order placed', timestamp: new Date() },
+        ...((restaurant.autoAcceptOrders && paymentMethod !== 'payment_link') ? [{ status: 'accepted', description: 'Order auto-accepted by restaurant', timestamp: new Date() }] : [])
       ]
     });
 
@@ -715,6 +779,30 @@ export const createOrder = asyncHandler(async (req, response) => {
       });
     }
 
+    // Auto-generate payment link and email it if paymentMethod is payment_link
+    if (order.paymentMethod === 'payment_link' && order.customerEmail) {
+      try {
+        const metadata = { orderId: order._id.toString() };
+        if (req.user?._id) metadata.userId = req.user._id.toString();
+        if (req.tenantDb?.name) metadata.tenantDbName = req.tenantDb.name;
+        if (!metadata.tenantDbName) metadata.tenantDbName = process.env.FORCE_TENANT_DB_NAME || 'daas_poc_lassi_lounge';
+
+        const session = await createCheckoutSession(order.total, metadata, null, order.items);
+        
+        // update order with the URL
+        const OrderModel = req.getModel('Order');
+        await OrderModel.findByIdAndUpdate(order._id, { paymentLinkUrl: session.url });
+        order.paymentLinkUrl = session.url;
+
+        // send email
+        sendPaymentLinkEmail(order.customerEmail, order, session.url).catch(err => {
+          logger.error(`Failed to send payment link email: ${err.message}`);
+        });
+      } catch (err) {
+        logger.error(`Failed to generate payment link during order creation: ${err.message}`);
+      }
+    }
+
     // Send confirmation emails ONLY if the order is auto-accepted. Otherwise, wait until merchant accepts.
     if (order.status === 'accepted') {
       const emailsToNotify = new Set();
@@ -733,42 +821,44 @@ export const createOrder = asyncHandler(async (req, response) => {
     }
 
     // ── TRIGGER BACKGROUND NOTIFICATIONS ──────────────────────────────────────
-    try {
-      await sendPushNotification(restaurant, {
-        title: 'New Order Request',
-        body: `${order.customerName} placed a new ${order.orderType} order! Total: $${order.total.toFixed(2)}`,
-        url: `/merchant/live-orders`
-      });
-      await sendOrderAlert(restaurant, order);
-
-      // Trigger FCM for merchant app users
-      const UserModel = req.getModel ? req.getModel('User') : req.app.get('tenantModels')[req.tenantId]?.User;
-      if (UserModel) {
-        const merchantUsers = await UserModel.find({
-          restaurantId: restaurant._id,
-          role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] },
-          fcmTokens: { $exists: true, $not: { $size: 0 } }
+    if (!['merchant', 'admin', 'staff', 'manager', 'restaurant_owner'].includes(req.user.role)) {
+      try {
+        await sendPushNotification(restaurant, {
+          title: 'New Order Request',
+          body: `${order.customerName} placed a new ${order.orderType} order! Total: $${order.total.toFixed(2)}`,
+          url: `/merchant/live-orders`
         });
+        await sendOrderAlert(restaurant, order);
 
-        console.log(`[FCM] Found ${merchantUsers.length} merchant users with FCM tokens for restaurant ${restaurant._id}`);
-        // Using a premium, vibrant image of Indian cuisine/restaurant atmosphere for a true "industry level" feel
-        const newOrderImageUrl = 'https://res.cloudinary.com/h2cylj8r/image/upload/v1787569372/restaurant-platform/notifications/ouwuhg99wjuxrfzksswe.png';
-        for (const mUser of merchantUsers) {
-          console.log(`[FCM] Sending notification to merchant user ${mUser._id} (role: ${mUser.role}, tokens: ${mUser.fcmTokens?.length})`);
-          await createNotification(
-            mUser._id,
-            'New Order Request 🛎️',
-            `${order.customerName} placed a new ${order.orderType} order! Total: $${order.total.toFixed(2)}`,
-            'new_order',
-            `/orders/${order._id}`,
-            io,
-            req.getModel,
-            newOrderImageUrl
-          );
+        // Trigger FCM for merchant app users
+        const UserModel = req.getModel ? req.getModel('User') : req.app.get('tenantModels')[req.tenantId]?.User;
+        if (UserModel) {
+          const merchantUsers = await UserModel.find({
+            restaurantId: restaurant._id,
+            role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] },
+            fcmTokens: { $exists: true, $not: { $size: 0 } }
+          });
+
+          console.log(`[FCM] Found ${merchantUsers.length} merchant users with FCM tokens for restaurant ${restaurant._id}`);
+          // Using a premium, vibrant image of Indian cuisine/restaurant atmosphere for a true "industry level" feel
+          const newOrderImageUrl = 'https://res.cloudinary.com/h2cylj8r/image/upload/v1787569372/restaurant-platform/notifications/ouwuhg99wjuxrfzksswe.png';
+          for (const mUser of merchantUsers) {
+            console.log(`[FCM] Sending notification to merchant user ${mUser._id} (role: ${mUser.role}, tokens: ${mUser.fcmTokens?.length})`);
+            await createNotification(
+              mUser._id,
+              'New Order Request 🛎️',
+              `${order.customerName} placed a new ${order.orderType} order! Total: $${order.total.toFixed(2)}`,
+              'new_order',
+              `/orders/${order._id}`,
+              io,
+              req.getModel,
+              newOrderImageUrl
+            );
+          }
         }
+      } catch (notifErr) {
+        console.error('Error sending background notifications:', notifErr);
       }
-    } catch (notifErr) {
-      console.error('Error sending background notifications:', notifErr);
     }
 
     res.created(response, { data: order });
@@ -1263,8 +1353,8 @@ export const acceptOrder = asyncHandler(async (req, response) => {
   if (order.status !== 'pending') {
     throw new AppError(`Only pending orders can be accepted. Current status: ${order.status}`, 400);
   }
-  if (['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(order.paymentMethod) && order.paymentStatus !== 'paid') {
-    throw new AppError('Card orders must be paid before acceptance', 400);
+  if (['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online', 'payment_link'].includes(order.paymentMethod) && order.paymentStatus !== 'paid') {
+    throw new AppError('Digital orders must be paid before acceptance', 400);
   }
 
   order.status = 'accepted';
@@ -1717,6 +1807,31 @@ export const sendInvoice = asyncHandler(async (req, response) => {
   }
 
   res.success(response, { data: null, message: 'Invoice sent successfully' });
+});
+
+export const sendPaymentLink = asyncHandler(async (req, response) => {
+  const tenantId = req.user.tenantId || req.user.restaurantId?.toString();
+  const OrderModel = getTenantModel(tenantId, 'Order');
+  const order = await OrderModel.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+
+  if (!order.paymentLinkUrl) {
+    throw new AppError('No payment link available for this order', 400);
+  }
+
+  if (order.customerEmail) {
+    try {
+      await sendPaymentLinkEmail(order.customerEmail, order, order.paymentLinkUrl);
+    } catch (err) {
+      logger.error(`Failed to send payment link email for order ${order._id}:`, err);
+      throw new AppError('Failed to send email', 500);
+    }
+  } else {
+    throw new AppError('No customer email on file', 400);
+  }
+
+  res.success(response, { data: null, message: `Payment link emailed to ${order.customerEmail}` });
 });
 
 // ── Payment Events Audit Trail ───────────────────────────────────────────────

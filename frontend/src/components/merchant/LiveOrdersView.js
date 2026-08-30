@@ -7,6 +7,9 @@ import {
 import { useMerchantContext } from '@/context/MerchantContext';
 import { useRouter } from 'next/navigation';
 import { formatTime } from '@/lib/formatters';
+import { QRCodeSVG } from 'qrcode.react';
+import { createPortal } from 'react-dom';
+import { QrCode } from 'lucide-react';
 
 export default function LiveOrdersView({ 
   orders = [], 
@@ -19,6 +22,24 @@ export default function LiveOrdersView({
   const { restaurant } = useMerchantContext();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [qrModalOrder, setQrModalOrder] = useState(null);
+  const [modalTimeLeft, setModalTimeLeft] = useState(0);
+
+  useEffect(() => {
+    let interval;
+    if (qrModalOrder && qrModalOrder.createdAt) {
+      const calculateTimeLeft = () => {
+        const createdAtTime = new Date(qrModalOrder.createdAt).getTime();
+        const expiresAtTime = createdAtTime + 10 * 60 * 1000;
+        const now = Date.now();
+        const diff = Math.floor((expiresAtTime - now) / 1000);
+        setModalTimeLeft(diff > 0 ? diff : 0);
+      };
+      calculateTimeLeft();
+      interval = setInterval(calculateTimeLeft, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [qrModalOrder]);
   
   // ─── LOAD MORE STATE ───
   const ITEMS_PER_LOAD = 10;
@@ -140,6 +161,7 @@ export default function LiveOrdersView({
   };
 
   const renderCard = (order, col) => {
+    const isDigitalPayment = ['credit_card', 'digital_wallet', 'payment_link'].includes(order.paymentMethod);
     return (
       <div 
         key={order._id} 
@@ -207,12 +229,30 @@ export default function LiveOrdersView({
         )}
 
         <div className="mt-auto flex flex-col gap-2">
-          {col.id === 'new' && (
-            <>
-              <button onClick={() => onAcceptOrder && onAcceptOrder(order._id)} className={`w-full text-white text-xs font-bold py-2 rounded-lg transition-colors ${col.theme.buttonBg} ${col.theme.buttonHover}`}>Accept</button>
-              <button onClick={() => onRejectOrder && onRejectOrder(order._id)} className="w-full bg-white border border-[#fca5a5] text-[#dc2626] text-xs font-bold py-2 rounded-lg hover:bg-[#fef2f2] transition-colors">Reject</button>
-            </>
-          )}
+            {col.id === 'new' && (
+              <div className="flex flex-col gap-2 mt-2">
+                {order.paymentStatus !== 'paid' ? (
+                  <>
+                    <div className="w-full flex items-center justify-center gap-2 bg-[#fef2f2] border border-[#fca5a5] py-2 rounded-lg text-[#dc2626]">
+                      <div className="w-2 h-2 bg-[#dc2626] rounded-full animate-pulse" />
+                      <span className="text-xs font-bold">Awaiting Payment...</span>
+                    </div>
+                    <button 
+                      onClick={() => setQrModalOrder(order)} 
+                      className="w-full bg-white border-2 border-[#e5e7eb] text-[#374151] text-xs font-bold py-2 rounded-lg hover:bg-[#f9fafb] transition-colors flex items-center justify-center gap-1"
+                    >
+                      <QrCode className="w-3.5 h-3.5" /> Show QR Code
+                    </button>
+                    <button onClick={() => onRejectOrder && onRejectOrder(order._id)} className="w-full bg-white border border-[#fca5a5] text-[#dc2626] text-xs font-bold py-2 rounded-lg hover:bg-[#fef2f2] transition-colors mt-1">Cancel Order</button>
+                  </>
+                ) : (
+                  <div className="flex gap-2 w-full">
+                    <button onClick={() => onAcceptOrder && onAcceptOrder(order._id)} className={`w-full text-white text-xs font-bold py-2 rounded-lg transition-colors ${col.theme.buttonBg} ${col.theme.buttonHover}`}>Accept</button>
+                    <button onClick={() => onRejectOrder && onRejectOrder(order._id)} className="w-full bg-white border border-[#fca5a5] text-[#dc2626] text-xs font-bold py-2 rounded-lg hover:bg-[#fef2f2] transition-colors">Reject</button>
+                  </div>
+                )}
+              </div>
+            )}
           {col.id === 'accepted' && (
             <button onClick={() => onUpdateStatus && onUpdateStatus(order._id, 'preparing')} className={`w-full text-white text-xs font-bold py-2 rounded-lg transition-colors ${col.theme.buttonBg} ${col.theme.buttonHover}`}>Start Preparing</button>
           )}
@@ -327,6 +367,86 @@ export default function LiveOrdersView({
                         </button>
                       )}
 
+          {/* QR Code Modal */}
+          {mounted && qrModalOrder && createPortal(
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl w-full max-w-[450px] overflow-hidden shadow-2xl flex flex-col p-8 text-center relative">
+                <button 
+                  onClick={() => setQrModalOrder(null)} 
+                  className="absolute top-4 right-4 text-[#9ca3af] hover:text-[#4b5563] bg-[#f9fafb] rounded-full p-2 transition-colors"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+                
+                <h2 className="text-2xl font-black text-[#111827] mb-2">Pending Payment</h2>
+                <p className="text-[#6b7280] mb-6">Order #{qrModalOrder._id.slice(-6).toUpperCase()}</p>
+  
+                <div className="flex justify-center bg-white p-4 border-2 border-[#e5e7eb] rounded-xl mb-6 shadow-inner mx-auto w-fit">
+                  <QRCodeSVG value={`${window.location.origin}/api/orders/${qrModalOrder._id}/pay`} size={200} level="H" />
+                </div>
+  
+                <div className="text-center font-bold text-[#ef4444] mb-4 bg-[#fef2f2] rounded-lg py-2 mt-4">
+                  Time Remaining: {Math.floor(modalTimeLeft / 60).toString().padStart(2, '0')}:{(modalTimeLeft % 60).toString().padStart(2, '0')}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    className="w-full py-2 bg-white border border-[#e5e7eb] rounded-lg font-bold text-[#374151] hover:bg-[#f9fafb] transition-colors text-[13px]"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/api/orders/${qrModalOrder._id}/pay`);
+                      alert('Link copied to clipboard!');
+                    }}
+                  >
+                    Copy Link
+                  </button>
+                  <button
+                    className="w-full py-2 text-[#25D366] border border-[#25D366] rounded-lg font-bold hover:bg-[#25D366]/10 transition-colors text-[13px]"
+                    onClick={() => {
+                      window.open(`https://wa.me/?text=${encodeURIComponent(`Please pay for your order here: ${window.location.origin}/api/orders/${qrModalOrder._id}/pay`)}`, '_blank');
+                    }}
+                  >
+                    WhatsApp
+                  </button>
+                  <button
+                    className="w-full py-2 bg-white border border-[#3b82f6] text-[#3b82f6] rounded-lg font-bold hover:bg-[#eff6ff] transition-colors text-[13px]"
+                    onClick={() => {
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'Payment Link',
+                          url: `${window.location.origin}/api/orders/${qrModalOrder._id}/pay`
+                        }).catch(console.error);
+                      } else {
+                        navigator.clipboard.writeText(`${window.location.origin}/api/orders/${qrModalOrder._id}/pay`);
+                        alert('Link copied to clipboard!');
+                      }
+                    }}
+                  >
+                    Share
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-2 mt-6">
+                  <button
+                    className="w-full py-3 bg-white border border-[#e5e7eb] text-[#374151] font-bold rounded-xl hover:bg-[#f9fafb] transition-colors"
+                    onClick={() => {
+                      setQrModalOrder(null);
+                    }}
+                  >
+                    Run in Background
+                  </button>
+                  <button
+                    className="w-full py-3 bg-white border border-[#fecaca] text-[#ef4444] font-bold rounded-xl hover:bg-[#fef2f2] transition-colors"
+                    onClick={async () => {
+                      if (onRejectOrder) onRejectOrder(qrModalOrder._id);
+                      setQrModalOrder(null);
+                    }}
+                  >
+                    Cancel Order
+                  </button>
+                </div>
+              </div>
+            </div>
+          , document.body)}
                       {/* Empty State */}
                       {col.orders.length === 0 && (
                         <div className="h-24 flex items-center justify-center text-xs text-[#9ca3af] font-medium py-10 text-center px-4 border-2 border-dashed border-[#d1d5db] rounded-xl bg-white/40">

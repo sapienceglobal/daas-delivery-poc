@@ -105,7 +105,7 @@ export const createOrderSchema = Joi.object({
   addressLat: Joi.number().min(-90).max(90).allow(null).optional(),
   addressLng: Joi.number().min(-180).max(180).allow(null).optional(),
   orderType: Joi.string().valid('delivery', 'pickup', 'dine_in').default('delivery'),
-  paymentMethod: Joi.string().valid('credit_card', 'debit_card', 'apple_pay', 'google_pay', 'cash').default('credit_card'),
+  paymentMethod: Joi.string().valid('credit_card', 'debit_card', 'apple_pay', 'google_pay', 'cash', 'payment_link').default('credit_card'),
   tip: Joi.number().min(0).max(10000).default(0),
   couponCode: Joi.string().max(50).allow('', null).optional(),
   courierNotes: Joi.string().max(500).allow('', null).optional(),

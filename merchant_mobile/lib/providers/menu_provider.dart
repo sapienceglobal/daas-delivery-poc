@@ -14,6 +14,7 @@ class MenuProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
   String? get error => _error;
+  String? get restaurantId => _restaurantId;
 
   MenuProvider() {
     _initRestaurantId();

@@ -13,8 +13,8 @@ export const initCronJobs = (io, getModel) => {
       const Order = getModel('Order');
       const now = Date.now();
       
-      // 1. Auto-Cancel: 5 minutes ago for 'pending'
-      const pendingCutoff = new Date(now - 5 * 60 * 1000);
+      // 1. Auto-Cancel: 10 minutes ago for 'pending'
+      const pendingCutoff = new Date(now - 10 * 60 * 1000);
       
       // 2. Auto-Cancel: 2 hours ago for 'accepted', 'preparing', 'ready'
       const prepCutoff = new Date(now - 2 * 60 * 60 * 1000);

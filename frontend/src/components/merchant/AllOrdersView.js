@@ -244,7 +244,8 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
     const isOnline = ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(method?.toLowerCase());
     if (ps === 'paid') return <span className="text-[#16a34a] font-bold text-xs bg-[#dcfce7] px-2 py-0.5 rounded border border-[#bbf7d0]">Paid</span>;
     if (isOnline) return <span className="text-[#2563eb] font-bold text-xs bg-[#dbeafe] px-2 py-0.5 rounded border border-[#bfdbfe]">Online</span>;
-    if (method?.toLowerCase() === 'cash' || ps === 'pending') return <span className="text-[#ea580c] font-bold text-xs bg-[#ffedd5] px-2 py-0.5 rounded border border-[#fed7aa]">COD</span>;
+    if (method?.toLowerCase() === 'payment_link') return <span className="text-[#8b0000] font-bold text-xs bg-[#fef2f2] px-2 py-0.5 rounded border border-[#fecaca]">{ps === 'paid' ? 'Link Paid' : 'Link Pending'}</span>;
+    if (method?.toLowerCase() === 'cash' || (ps === 'pending' && !isOnline)) return <span className="text-[#ea580c] font-bold text-xs bg-[#ffedd5] px-2 py-0.5 rounded border border-[#fed7aa]">Cash / COD</span>;
     return <span className="text-[#6b7280] font-bold text-xs bg-[#f3f4f6] px-2 py-0.5 rounded capitalize border border-[#e5e7eb]">{pStatus || 'Unknown'}</span>;
   };
 

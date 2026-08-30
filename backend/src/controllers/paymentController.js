@@ -1,4 +1,4 @@
-import { createPaymentIntent, createSetupIntent as createStripeSetupIntent, handleWebhook, createCustomer, updateCustomer, createEphemeralKey } from '../services/stripeService.js';
+import { createPaymentIntent, createSetupIntent as createStripeSetupIntent, handleWebhook, createCustomer, updateCustomer, createEphemeralKey, createCheckoutSession } from '../services/stripeService.js';
 import Order from '../models/Order.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import logger from '../utils/logger.js';
@@ -6,6 +6,7 @@ import { calculateOrderPricing } from '../services/orderPricing.js';
 import { getBestDeliveryQuote } from '../services/deliveryAggregatorService.js';
 import { validateDeliveryDistance } from '../utils/distance.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { sendPaymentLinkEmail } from '../services/emailService.js';
 
 import { createOrderSchema } from '../middleware/schemas.js';
 
@@ -17,6 +18,10 @@ const getTrustedDeliveryQuoteForPayment = async ({ restaurant, address, subtotal
     const quote = await getBestDeliveryQuote(restaurant.address, address, subtotal || 10, scheduledTime);
     return { fee: roundMoney(quote.fee || 0), provider: quote.provider };
   } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      logger.warn('Failed to get delivery quote, returning $5.00 mock quote for local dev in paymentController');
+      return { fee: 5.00, provider: 'mock_local_dev' };
+    }
     throw new AppError('Unable to calculate delivery fee for this address. Please check the address and try again, or contact support.', 400);
   }
 };
@@ -245,6 +250,63 @@ export const createSetupIntent = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    create a Stripe Payment Link (Checkout Session)
+ * @route   POST /api/payments/create-link
+ * @access  Private
+ */
+export const createPaymentLink = asyncHandler(async (req, res) => {
+  const { amount, orderId, restaurantId, items, customerPhone, customerEmail } = req.body;
+
+  if (!orderId) {
+    throw new AppError('orderId is required', 400);
+  }
+
+  const metadata = { orderId: orderId.toString() };
+  if (req.user?._id) metadata.userId = req.user._id.toString();
+  if (req.tenantDb?.name) metadata.tenantDbName = req.tenantDb.name;
+  if (!metadata.tenantDbName) {
+    metadata.tenantDbName = process.env.FORCE_TENANT_DB_NAME || 'daas_poc_lassi_lounge';
+  }
+
+  let stripeCustomerId = req.user?.stripeCustomerId || null;
+
+  try {
+    const Order = req.getModel('Order');
+    const order = await Order.findById(orderId);
+    if (!order) {
+      throw new AppError('Order not found', 404);
+    }
+
+    const session = await createCheckoutSession(amount, metadata, stripeCustomerId, order.items || items || []);
+    
+    order.paymentLinkUrl = session.url;
+    await order.save();
+
+    // TODO: Send SMS via Twilio if customerPhone is provided
+    if (customerPhone && customerPhone !== '0000000000') {
+      logger.info(`Sending Payment Link via SMS to ${customerPhone}: ${session.url}`);
+      // await sendSMS(customerPhone, `Please pay for your order here: ${session.url}`);
+    }
+
+    // Send Email if customerEmail is provided
+    if (customerEmail) {
+      logger.info(`Sending Payment Link via Email to ${customerEmail}: ${session.url}`);
+      sendPaymentLinkEmail(customerEmail, order, session.url).catch(err => {
+        logger.error(`Failed to send payment link email: ${err.message}`);
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      url: session.url
+    });
+  } catch (err) {
+    logger.error(`Failed to create checkout session: ${err.message}`);
+    throw new AppError('Failed to create payment link', 500);
+  }
+});
+
+/**
  * @desc    handle Stripe Webhooks
  * @route   POST /api/payments/webhook
  * @access  Public (Stripe only)
@@ -261,7 +323,7 @@ export const stripeWebhook = asyncHandler(async (req, res) => {
 
   try {
     // we use req.rawBody which was added by express.json() verify function in app.js
-    await handleWebhook(req.rawBody, signature, secret);
+    await handleWebhook(req.rawBody, signature, secret, req.app.get('io'));
     res.status(200).json({ received: true });
   } catch (err) {
     logger.error(`Webhook error: ${err.message}`);

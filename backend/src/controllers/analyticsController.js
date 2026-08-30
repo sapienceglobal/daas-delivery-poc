@@ -21,28 +21,79 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
     await verifyRestaurantOwnership(restaurantId, req.user);
   }
 
+  const Restaurant = req.getModel('Restaurant');
+  const restaurant = await Restaurant.findById(restaurantId).select('timezone');
+  const rawTz = restaurant?.timezone || '';
+  let tz = 'America/New_York';
+  if (rawTz.includes('Eastern Time')) tz = 'America/New_York';
+  else if (rawTz.includes('Pacific Time')) tz = 'America/Los_Angeles';
+  else if (rawTz.includes('Indian Standard Time')) tz = 'Asia/Kolkata';
+  else if (rawTz) {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: rawTz });
+      tz = rawTz; // Valid IANA timezone
+    } catch (e) {
+      tz = 'America/New_York'; // Fallback
+    }
+  }
+
+  const getTzMidnightUTC = (timezone, daysAgo = 0) => {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone, year: 'numeric', month: 'numeric', day: 'numeric'
+    }).formatToParts(now);
+    
+    const y = parts.find(p => p.type === 'year').value;
+    const m = parts.find(p => p.type === 'month').value;
+    const d = parts.find(p => p.type === 'day').value;
+    
+    const baseUtc = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
+    
+    const utcStr = baseUtc.toLocaleString('en-US', { timeZone: 'UTC' });
+    const tzStr = baseUtc.toLocaleString('en-US', { timeZone: timezone });
+    const offsetMs = new Date(utcStr).getTime() - new Date(tzStr).getTime();
+    
+    const tzMidnight = new Date(baseUtc.getTime() + offsetMs);
+    tzMidnight.setDate(tzMidnight.getDate() - daysAgo);
+    
+    return tzMidnight;
+  };
+
   let endOfToday = new Date();
+  const getTzDateBoundaryUTC = (dateStr, timezone, isEnd = false) => {
+    const parts = dateStr.split('-');
+    const y = parseInt(parts[0]);
+    const m = parseInt(parts[1]);
+    const d = parseInt(parts[2].split('T')[0]); 
+    const baseUtc = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
+    const utcStr = baseUtc.toLocaleString('en-US', { timeZone: 'UTC' });
+    const tzStr = baseUtc.toLocaleString('en-US', { timeZone: timezone });
+    const offsetMs = new Date(utcStr).getTime() - new Date(tzStr).getTime();
+    const boundary = new Date(baseUtc.getTime() + offsetMs);
+    if (isEnd) return new Date(boundary.getTime() + 24 * 60 * 60 * 1000 - 1);
+    return boundary;
+  };
+
   let startDate;
   let numDays = null;
   
   if (queryStart && queryEnd) {
-    startDate = new Date(queryStart);
-    endOfToday = new Date(queryEnd);
-    endOfToday.setHours(23, 59, 59, 999);
+    startDate = getTzDateBoundaryUTC(queryStart, tz, false);
+    endOfToday = getTzDateBoundaryUTC(queryEnd, tz, true);
+  } else if (days === 'yesterday') {
+    startDate = getTzMidnightUTC(tz, 1);
+    endOfToday = new Date(getTzMidnightUTC(tz, 0).getTime() - 1);
   } else if (days && !isNaN(parseInt(days))) {
     numDays = parseInt(days);
-    startDate = new Date(endOfToday);
     if (numDays === 1) {
-      startDate.setHours(0, 0, 0, 0);
+      startDate = getTzMidnightUTC(tz, 0);
     } else {
-      startDate.setDate(startDate.getDate() - numDays);
-      startDate.setHours(0, 0, 0, 0);
+      startDate = getTzMidnightUTC(tz, numDays);
     }
   } else {
     // all-time default
     const firstOrder = await Order.findOne({ restaurantId: new mongoose.Types.ObjectId(restaurantId) }).sort({ createdAt: 1 }).select('createdAt');
-    startDate = firstOrder ? new Date(firstOrder.createdAt) : new Date(endOfToday);
-    startDate.setHours(0,0,0,0);
+    startDate = firstOrder ? new Date(firstOrder.createdAt) : getTzMidnightUTC(tz, 0);
   }
 
   const diffTime = Math.abs(endOfToday - startDate);
@@ -69,17 +120,25 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
   // 1. Daily Stats
   const dailyStats = await Order.aggregate([
     { $match: currentMatch },
-    { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, revenue: { $sum: "$total" }, orders: { $sum: 1 } } },
+    { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: tz } }, revenue: { $sum: "$total" }, orders: { $sum: 1 } } },
     { $sort: { _id: 1 } }
   ]);
 
-  // fill in missing days
+  // fill in missing days based on target timezone
   const filledStats = [];
   const curr = new Date(startDate);
   while (curr <= endOfToday) {
-    const dateStr = curr.toISOString().split('T')[0];
-    const stat = dailyStats.find(s => s._id === dateStr);
-    filledStats.push({ date: dateStr, revenue: stat ? stat.revenue : 0, orders: stat ? stat.orders : 0 });
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(curr);
+    const y = parts.find(p => p.type === 'year').value;
+    const m = parts.find(p => p.type === 'month').value.padStart(2, '0');
+    const d = parts.find(p => p.type === 'day').value.padStart(2, '0');
+    const dateStr = `${y}-${m}-${d}`;
+    
+    // Make sure we only add unique dates (curr increments by 24h, timezone rules might cause dupes if we aren't careful, but fine for now)
+    if (!filledStats.some(s => s.date === dateStr)) {
+      const stat = dailyStats.find(s => s._id === dateStr);
+      filledStats.push({ date: dateStr, revenue: stat ? stat.revenue : 0, orders: stat ? stat.orders : 0 });
+    }
     curr.setDate(curr.getDate() + 1);
   }
 
@@ -101,8 +160,8 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
     { 
       $group: { 
         _id: { 
-          dayOfWeek: { $dayOfWeek: "$createdAt" }, 
-          hour: { $hour: "$createdAt" } 
+          dayOfWeek: { $dayOfWeek: { date: "$createdAt", timezone: tz } }, 
+          hour: { $hour: { date: "$createdAt", timezone: tz } } 
         }, 
         orders: { $sum: 1 } 
       } 
@@ -149,6 +208,16 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
   ]);
   const prevCustomers = prevCustomerStats.length > 0 ? prevCustomerStats[0].count : 0;
 
+  const prevCateringCount = await CateringInquiry.countDocuments({
+    restaurantId: new mongoose.Types.ObjectId(restaurantId),
+    createdAt: { $gte: prevStartDate, $lt: startDate }
+  });
+
+  const prevReservationsCount = await Reservation.countDocuments({
+    restaurantId: new mongoose.Types.ObjectId(restaurantId),
+    createdAt: { $gte: prevStartDate, $lt: startDate }
+  });
+
   // aggregate current summary
   const totalRevenue = filledStats.reduce((sum, day) => sum + day.revenue, 0);
   const totalOrders = filledStats.reduce((sum, day) => sum + day.orders, 0);
@@ -177,7 +246,9 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
         prevCustomers,
         totalDiscounts,
         cateringCount,
-        reservationsCount
+        prevCateringCount,
+        reservationsCount,
+        prevReservationsCount
       },
       dailyStats: filledStats,
       salesByChannel,
@@ -187,3 +258,4 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
     }
   });
 });
+

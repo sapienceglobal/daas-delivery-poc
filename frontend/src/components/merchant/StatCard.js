@@ -22,10 +22,14 @@ export default function StatCard({
   iconColor = "text-[#6b7280]", 
   iconBg = "bg-[#f3f4f6]", 
   trend,
-  footer
+  footer,
+  onClick
 }) {
   return (
-    <div className="bg-white p-4 rounded-xl border border-[#e5e7eb] shadow-sm flex flex-col justify-center relative overflow-hidden group hover:shadow-md transition-shadow">
+    <div 
+      onClick={onClick}
+      className={`bg-white p-4 rounded-xl border border-[#e5e7eb] shadow-sm flex flex-col justify-center relative overflow-hidden group hover:shadow-md transition-shadow ${onClick ? 'cursor-pointer hover:border-[#d1d5db]' : ''}`}
+    >
       {/* Background decorative circle */}
       <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-16 h-16 ${iconBg} rounded-full translate-x-1/2 opacity-70 group-hover:scale-110 transition-transform duration-500`}></div>
       

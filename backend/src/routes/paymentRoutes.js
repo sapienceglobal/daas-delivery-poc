@@ -1,5 +1,5 @@
 import express from 'express';
-import { createIntent, createSetupIntent, stripeWebhook } from '../controllers/paymentController.js';
+import { createIntent, createSetupIntent, createPaymentLink, stripeWebhook } from '../controllers/paymentController.js';
 import { protect } from '../middleware/auth.js';
 import expressRaw from 'express';
 
@@ -15,5 +15,6 @@ router.post('/webhook', stripeWebhook);
 // protected routes
 router.post('/create-intent', protect, createIntent);
 router.post('/create-setup-intent', protect, createSetupIntent);
+router.post('/create-link', protect, createPaymentLink);
 
 export default router;

@@ -11,29 +11,68 @@ import {
   Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell 
 } from 'recharts';
 import { notificationAPI } from '@/lib/api';
+import { mapTimezone } from '@/lib/formatters';
+import PremiumDatePicker from '@/components/ui/PremiumDatePicker';
 import StatCard from './StatCard';
 
-export default function DashboardView({ stats, orders, reservations, cateringInquiries, restaurant, user, analyticsData, menu, timeframe, onTimeframeChange, onViewAll }) {
+export default function DashboardView({ stats, orders, reservations, cateringInquiries, restaurant, user, analyticsData, menu, timeframe, onTimeframeChange, customStartDate, customEndDate, setCustomStartDate, setCustomEndDate, onViewAll }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const today = new Date();
-  today.setHours(0,0,0,0);
+  const rawTz = restaurant?.timezone || '(UTC-05:00) Eastern Time (ET)';
+  const tz = mapTimezone(rawTz);
 
-  const cutoffDate = new Date();
+  const getTzSimulatedDate = (dateInput) => {
+    const d = new Date(dateInput);
+    const tzStr = d.toLocaleString('en-US', { timeZone: tz });
+    return new Date(tzStr);
+  };
+
+  const cutoffDate = getTzSimulatedDate(new Date());
+  let endCutoffDate = getTzSimulatedDate(new Date());
+
   if (timeframe === 1) {
     cutoffDate.setHours(0, 0, 0, 0);
-  } else if (timeframe) {
-    cutoffDate.setDate(cutoffDate.getDate() - timeframe);
+    endCutoffDate.setHours(23, 59, 59, 999);
+  } else if (timeframe === 'yesterday') {
+    cutoffDate.setDate(cutoffDate.getDate() - 1);
     cutoffDate.setHours(0, 0, 0, 0);
+    endCutoffDate.setDate(endCutoffDate.getDate() - 1);
+    endCutoffDate.setHours(23, 59, 59, 999);
+  } else if (timeframe === 'custom') {
+    if (customStartDate) {
+      cutoffDate.setTime(getTzSimulatedDate(customStartDate).getTime());
+      cutoffDate.setHours(0, 0, 0, 0);
+    } else {
+      cutoffDate.setTime(0);
+    }
+    if (customEndDate) {
+      endCutoffDate.setTime(getTzSimulatedDate(customEndDate).getTime());
+      endCutoffDate.setHours(23, 59, 59, 999);
+    } else {
+      endCutoffDate.setFullYear(2100);
+    }
+  } else if (timeframe) {
+    cutoffDate.setDate(cutoffDate.getDate() - Number(timeframe));
+    cutoffDate.setHours(0, 0, 0, 0);
+    endCutoffDate.setHours(23, 59, 59, 999);
   } else {
-    // default to epoch if no timeframe (shouldn't happen)
     cutoffDate.setTime(0);
+    endCutoffDate.setFullYear(2100);
   }
 
-  const filteredOrders = (orders || []).filter(o => new Date(o.createdAt) >= cutoffDate);
-  const filteredReservations = (reservations || []).filter(r => new Date(r.createdAt || r.date) >= cutoffDate);
-  const filteredCatering = (cateringInquiries || []).filter(c => new Date(c.createdAt || c.eventDate) >= cutoffDate);
+  const filteredOrders = (orders || []).filter(o => {
+    const d = getTzSimulatedDate(o.createdAt);
+    return d >= cutoffDate && d <= endCutoffDate;
+  });
+  const filteredReservations = (reservations || []).filter(r => {
+    const d = getTzSimulatedDate(r.createdAt || r.date);
+    return d >= cutoffDate && d <= endCutoffDate;
+  });
+  const filteredCatering = (cateringInquiries || []).filter(c => {
+    const d = getTzSimulatedDate(c.createdAt || c.eventDate);
+    return d >= cutoffDate && d <= endCutoffDate;
+  });
 
   // ---------------------------------------------------------
   // 1. TOP STATS CALCULATIONS (Strictly real data)
@@ -117,12 +156,12 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
   });
 
   const upcomingReservations = filteredReservations
-    .filter(r => new Date(r.date) >= today)
+    .filter(r => getTzSimulatedDate(r.date) >= getTzSimulatedDate(new Date()).setHours(0,0,0,0))
     .sort((a,b) => new Date(a.date) - new Date(b.date))
     .slice(0, 4);
 
   const upcomingCatering = filteredCatering
-    .filter(c => new Date(c.eventDate || c.date || Date.now()) >= today)
+    .filter(c => getTzSimulatedDate(c.eventDate || c.date || Date.now()) >= getTzSimulatedDate(new Date()).setHours(0,0,0,0))
     .sort((a,b) => new Date(a.eventDate || a.date || Date.now()) - new Date(b.eventDate || b.date || Date.now()))
     .slice(0, 3);
 
@@ -135,18 +174,65 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
           <h1 className="text-2xl font-bold text-[#111827]">Dashboard</h1>
           <p className="text-sm text-[#6b7280] mt-1">Welcome back, {user?.name || 'Admin'}! Let's make today outstanding.</p>
         </div>
-        <div>
-          <select 
-            value={timeframe} 
-            onChange={(e) => onTimeframeChange(Number(e.target.value))}
-            className="text-sm font-bold text-[#374151] border-2 border-[#e5e7eb] rounded-xl bg-white px-4 py-2.5 outline-none hover:border-[#d1d5db] transition-colors focus:border-[#991b1b] focus:ring-2 focus:ring-[#991b1b]/20"
-          >
-            <option value={1}>Today</option>
-            <option value={7}>Last 7 Days</option>
-            <option value={30}>Last 30 Days</option>
-            <option value={90}>Last 90 Days</option>
-            <option value={365}>Last 365 Days</option>
-          </select>
+        <div className="flex items-center gap-3">
+          {timeframe === 'custom' ? (
+            <div className="w-64 relative z-50">
+              <PremiumDatePicker 
+                selectsRange={true}
+                startDate={customStartDate}
+                endDate={customEndDate}
+                onChange={(update) => {
+                  const [start, end] = update;
+                  setCustomStartDate(start);
+                  setCustomEndDate(end);
+                  if (!start && !end) {
+                    onTimeframeChange(1);
+                  }
+                }}
+                isClearable={true}
+                placeholderText="Select Date Range"
+              />
+            </div>
+          ) : (
+            <div className="relative z-50">
+              <PremiumDatePicker 
+                selectsRange={true}
+                startDate={customStartDate}
+                endDate={customEndDate}
+                onChange={(update) => {
+                  const [start, end] = update;
+                  setCustomStartDate(start);
+                  setCustomEndDate(end);
+                  if (start && end) {
+                    onTimeframeChange('custom');
+                  }
+                }}
+                customInput={
+                  <button className="flex items-center justify-center w-11 h-11 border-2 border-[#e5e7eb] rounded-xl bg-white hover:border-[#d1d5db] transition-colors cursor-pointer text-[#6b7280] hover:text-[#991b1b] shadow-sm">
+                    <Calendar className="w-5 h-5" />
+                  </button>
+                }
+              />
+            </div>
+          )}
+
+          <div className="flex items-center bg-white border-2 border-[#e5e7eb] rounded-xl hover:border-[#d1d5db] transition-colors focus-within:border-[#991b1b] focus-within:ring-2 focus-within:ring-[#991b1b]/20 shadow-sm">
+            <select 
+              value={timeframe} 
+              onChange={(e) => onTimeframeChange(e.target.value === 'custom' || e.target.value === 'yesterday' ? e.target.value : Number(e.target.value))}
+              className="text-sm font-bold text-[#374151] bg-transparent px-4 py-2.5 outline-none cursor-pointer"
+            >
+              <option value={1}>Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value={7}>Last 7 Days</option>
+              <option value={30}>Last 30 Days</option>
+              <option value={90}>Last 90 Days</option>
+              <option value={365}>Last 365 Days</option>
+              {timeframe === 'custom' && (
+                <option value="custom" hidden>Custom Date Range</option>
+              )}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -158,6 +244,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
           icon={DollarSign}
           iconColor="text-[#991b1b]"
           iconBg="bg-[#fef2f2]"
+          onClick={() => onViewAll && onViewAll('analytics')}
         />
         <StatCard
           title="Total Orders"
@@ -165,13 +252,15 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
           icon={ShoppingCart}
           iconColor="text-[#ea580c]"
           iconBg="bg-[#fff7ed]"
+          onClick={() => onViewAll && onViewAll('all-orders')}
         />
         <StatCard
           title="Reservations"
-          value={filteredReservations.length}
+          value={analyticsData?.summary?.reservationsCount || 0}
           icon={Calendar}
           iconColor="text-[#7c3aed]"
           iconBg="bg-[#faf5ff]"
+          onClick={() => onViewAll && onViewAll('reservations')}
         />
         <StatCard
           title="Live Orders"
@@ -179,6 +268,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
           icon={UtensilsCrossed}
           iconColor="text-[#2563eb]"
           iconBg="bg-[#eff6ff]"
+          onClick={() => onViewAll && onViewAll('live-orders')}
           footer={
             <div className="inline-flex items-center gap-1.5 bg-[#dcfce7] text-[#166534] px-2 py-0.5 rounded-md border border-[#bbf7d0]">
               <span className="w-1.5 h-1.5 bg-[#16a34a] rounded-full"></span>
@@ -192,13 +282,15 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
           icon={Users}
           iconColor="text-[#16a34a]"
           iconBg="bg-[#dcfce7]"
+          onClick={() => onViewAll && onViewAll('crm')}
         />
         <StatCard
           title="Catering Requests"
-          value={filteredCatering.length}
+          value={analyticsData?.summary?.cateringCount || 0}
           icon={Gift}
           iconColor="text-[#ca8a04]"
           iconBg="bg-[#fefce8]"
+          onClick={() => onViewAll && onViewAll('catering')}
           footer={
             <div className="inline-flex items-center justify-center bg-[#fff7ed] text-[#ea580c] px-2 py-0.5 rounded-md border border-[#ffedd5]">
               <span className="text-[10px] font-bold">{pendingCateringCount} Pending</span>
@@ -500,3 +592,5 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
     </div>
   );
 }
+
+

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, Trash2, X, Info } from 'lucide-react';
 
 export default function ConfirmModal({ 
@@ -12,15 +13,20 @@ export default function ConfirmModal({
   isDestructive = true,
   icon = 'trash' // 'trash', 'alert', or 'info'
 }) {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const IconComponent = icon === 'trash' ? Trash2 : icon === 'alert' ? AlertTriangle : Info;
   const iconBgColor = isDestructive ? 'bg-[#fef2f2] text-[#dc2626]' : 'bg-[#e0f2fe] text-[#0284c7]';
   const confirmBtnClass = isDestructive 
     ? 'bg-[#dc2626] hover:bg-[#b91c1c] focus:ring-[#fca5a5]' 
     : 'bg-[#8B0000] hover:bg-[#7f1d1d] focus:ring-[#fca5a5]';
-
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#111827]/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="p-6">
@@ -61,6 +67,7 @@ export default function ConfirmModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

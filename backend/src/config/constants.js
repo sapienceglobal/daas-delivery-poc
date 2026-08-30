@@ -44,7 +44,8 @@ export const PAYMENT_METHODS = {
   GOOGLE_PAY: 'google_pay',
   WALLET: 'wallet',
   GIFT_CARD: 'gift_card',
-  CASH: 'cash'
+  CASH: 'cash',
+  PAYMENT_LINK: 'payment_link'
 };
 
 export const PAYMENT_METHOD_VALUES = Object.values(PAYMENT_METHODS);

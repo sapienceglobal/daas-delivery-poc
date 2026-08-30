@@ -55,7 +55,7 @@ const PaymentEventSchema = new mongoose.Schema({
     enum: [
       'payment_initiated', 'payment_confirmed', 'payment_failed',
       'order_saved', 'order_creation_failed',
-      'auto_refund_triggered', 'auto_refund_succeeded', 'auto_refund_failed',
+      'auto_refund_triggered', 'auto_refund_succeeded', 'auto_refund_failed', 'auto_refund_skipped',
       'manual_refund', 'loyalty_rollback'
     ]
   },
@@ -140,7 +140,7 @@ const OrderSchema = new mongoose.Schema({
   // ── Pricing ───────────────────────────────────────────────────────────
   orderSource: {
     type: String,
-    enum: ['web', 'app'],
+    enum: ['web', 'app', 'merchant_app', 'merchant_web'],
     default: 'web'
   },
   subtotal: { type: Number, required: true, default: 0 },
@@ -179,6 +179,7 @@ const OrderSchema = new mongoose.Schema({
     default: 'pending'
   },
   stripePaymentIntentId: { type: String, default: null },
+  paymentLinkUrl: { type: String, default: null },
 
   // ── Order Status ──────────────────────────────────────────────────────
   status: {

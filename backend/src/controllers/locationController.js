@@ -52,6 +52,17 @@ export const getAutocompleteSuggestions = async (req, res) => {
 
     res.json(suggestions);
   } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      logger.warn('Google Places API failed, returning mock suggestions for local testing.');
+      return res.json([
+        {
+          place_id: 'mock_local_place_1',
+          display_name: 'Test Address (Local Mock)',
+          main_text: 'Test Address',
+          secondary_text: 'Local Mock'
+        }
+      ]);
+    }
     const errorMsg = err.response?.data?.error?.message || err.message;
     logger.error(`Autocomplete error: ${errorMsg}`, { 
       details: err.response?.data || null 
@@ -102,6 +113,22 @@ export const getPlaceDetails = async (req, res) => {
       address
     });
   } catch (err) {
+    if (process.env.NODE_ENV !== 'production' && req.query.place_id === 'mock_local_place_1') {
+      logger.warn('Google Places API failed, returning mock details for local testing.');
+      return res.json({
+        place_id: 'mock_local_place_1',
+        lat: 37.7885,
+        lng: -122.4087,
+        display_name: '450 Powell Street (Local Mock)',
+        address: {
+          house_number: '450',
+          road: 'Powell Street',
+          city: 'San Francisco',
+          state: 'CA',
+          postcode: '94102'
+        }
+      });
+    }
     const errorMsg = err.response?.data?.error?.message || err.message;
     logger.error(`Place details error: ${errorMsg}`, { 
       details: err.response?.data || null 

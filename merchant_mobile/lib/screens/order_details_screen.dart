@@ -294,15 +294,23 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: order.autoRefundFailed ? Colors.red.shade50 : (order.autoRefundSucceeded ? Colors.amber.shade50 : Colors.blue.shade50),
-                      border: Border.all(color: order.autoRefundFailed ? Colors.red.shade200 : (order.autoRefundSucceeded ? Colors.amber.shade200 : Colors.blue.shade200)),
+                      color: order.autoRefundFailed ? Colors.red.shade50 : 
+                             order.autoRefundSkipped ? Colors.blueGrey.shade50 :
+                             (order.autoRefundSucceeded ? Colors.amber.shade50 : Colors.blue.shade50),
+                      border: Border.all(color: order.autoRefundFailed ? Colors.red.shade200 : 
+                                                order.autoRefundSkipped ? Colors.blueGrey.shade200 :
+                                                (order.autoRefundSucceeded ? Colors.amber.shade200 : Colors.blue.shade200)),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          order.autoRefundFailed ? Icons.error_outline : (order.autoRefundSucceeded ? Icons.flash_on : Icons.info_outline),
-                          color: order.autoRefundFailed ? Colors.red.shade700 : (order.autoRefundSucceeded ? Colors.amber.shade700 : Colors.blue.shade700),
+                          order.autoRefundFailed ? Icons.error_outline : 
+                          order.autoRefundSkipped ? Icons.settings_outlined :
+                          (order.autoRefundSucceeded ? Icons.flash_on : Icons.info_outline),
+                          color: order.autoRefundFailed ? Colors.red.shade700 : 
+                                 order.autoRefundSkipped ? Colors.blueGrey.shade700 :
+                                 (order.autoRefundSucceeded ? Colors.amber.shade700 : Colors.blue.shade700),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -310,9 +318,25 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                order.autoRefundFailed ? 'Auto-Refund Failed — Manual action required' : (order.autoRefundSucceeded ? 'Auto-Refund Processed' : 'Auto-Refund Initiated'),
-                                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: order.autoRefundFailed ? Colors.red.shade900 : (order.autoRefundSucceeded ? Colors.amber.shade900 : Colors.blue.shade900)),
+                                order.autoRefundFailed ? 'Auto-Refund Failed — Manual action required' : 
+                                order.autoRefundSkipped ? 'Auto-Refund Disabled in Settings' :
+                                (order.autoRefundSucceeded ? 'Auto-Refund Processed' : 'Auto-Refund Initiated'),
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold, 
+                                  fontSize: 13, 
+                                  color: order.autoRefundFailed ? Colors.red.shade900 : 
+                                         order.autoRefundSkipped ? Colors.blueGrey.shade900 :
+                                         (order.autoRefundSucceeded ? Colors.amber.shade900 : Colors.blue.shade900)
+                                ),
                               ),
+                              if (order.autoRefundSkipped)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    'Please initiate a manual refund below if required.',
+                                    style: GoogleFonts.inter(fontSize: 12, color: Colors.blueGrey.shade700),
+                                  ),
+                                ),
                             ],
                           ),
                         )
@@ -662,8 +686,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                 ],
                               ),
                             ),
-                            // Basic per item price logic for display
-                            Text('\$${((item.quantity > 0 ? (order.subtotal / order.items.length) / item.quantity : 0) * item.quantity).toStringAsFixed(2)}', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
+                            // Use actual calculated item line total from backend
+                            Text('\$${item.lineTotal.toStringAsFixed(2)}', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
                           ],
                         ),
                       );
@@ -972,8 +996,18 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       width: double.infinity,
       height: 50,
       child: ElevatedButton.icon(
-        onPressed: () {
-          context.read<OrderProvider>().updateOrderStatus(order.id, nextStatus);
+        onPressed: () async {
+          try {
+            await context.read<OrderProvider>().updateOrderStatus(order.id, nextStatus);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order status updated successfully'), backgroundColor: Colors.green));
+            }
+          } catch (e) {
+            print('Error updating order status: $e');
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString(), style: const TextStyle(color: Colors.white)), backgroundColor: Colors.red));
+            }
+          }
         },
         icon: Icon(buttonIcon, size: 20, color: Colors.white),
         label: Text(buttonText, style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15)),

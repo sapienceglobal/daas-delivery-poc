@@ -6,8 +6,10 @@ import { orderAPI } from '@/lib/api';
 import LiveOrdersView from '@/components/merchant/LiveOrdersView';
 import { PageLoader, showToast } from '@/components/ui';
 import { useSocket } from '@/context/SocketContext';
+import { useRouter } from 'next/navigation';
 
 export default function MerchantLiveOrdersPage() {
+  const router = useRouter();
   const { restaurant, roomId, globalLoading } = useMerchantContext();
   const { joinRoom, on, off } = useSocket();
   const [loading, setLoading] = useState(true);
@@ -78,6 +80,7 @@ export default function MerchantLiveOrdersPage() {
       onAcceptOrder={handleAcceptOrder}
       onRejectOrder={handleRejectOrder}
       onRefresh={loadData}
+      onViewAll={(tab) => router.push(`/merchant/${tab}`)}
     />
   );
 }

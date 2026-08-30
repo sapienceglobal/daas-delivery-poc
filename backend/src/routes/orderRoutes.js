@@ -6,8 +6,11 @@ import * as orderController from '../controllers/orderController.js';
 
 const router = Router();
 
+// ── Public Routes ───────────────────────────────────────────────────────────
+router.get('/:id/pay', orderController.redirectToPayment);
+
 // ── Customer Routes ─────────────────────────────────────────────────────────
-router.post('/', protect, authorize('customer'), validate(createOrderSchema), orderController.createOrder);
+router.post('/', protect, authorize('customer', 'merchant', 'admin'), validate(createOrderSchema), orderController.createOrder);
 router.get('/merchant/all', protect, authorize('merchant'), orderController.getMerchantOrders);
 router.get('/my-orders', protect, authorize('customer'), orderController.getMyOrders);
 router.get('/:id', protect, authorize('customer', 'merchant', 'admin'), orderController.getOrderById);
@@ -25,6 +28,7 @@ router.post('/:id/reply', protect, authorize('merchant'), validate(replyToReview
 router.post('/:id/note', protect, authorize('merchant', 'admin'), orderController.addAdminNote);
 router.post('/:id/remake', protect, authorize('merchant'), orderController.remakeOrder);
 router.post('/:id/send-invoice', protect, authorize('merchant'), orderController.sendInvoice);
+router.post('/:id/send-payment-link', protect, authorize('merchant'), orderController.sendPaymentLink);
 
 // ── Payment Audit & Document Generation ────────────────────────────────────
 // payment events audit trail (JSON)
@@ -50,3 +54,4 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export default router;
+

@@ -182,8 +182,9 @@ export const orderAPI = {
   accept: (id) => api.put(`/api/orders/${id}/accept`),
   reject: (id, reason) => api.put(`/api/orders/${id}/reject`, { reason }),
   addNote: (id, text) => api.post(`/api/orders/${id}/note`, { text }),
-  remake: (id) => api.post(`/api/orders/${id}/remake`),
+  remake: (id, chargeCustomer = false) => api.post(`/api/orders/${id}/remake`, { chargeCustomer }),
   sendInvoice: (id) => api.post(`/api/orders/${id}/send-invoice`),
+  sendPaymentLink: (id) => api.post(`/api/orders/${id}/send-payment-link`),
   // payment Audit Trail
   getPaymentEvents: (id) => api.get(`/api/orders/${id}/payment-events`),
   // document Generation — returns URL string; caller uses window.open(url, '_blank')
@@ -249,6 +250,7 @@ export const paymentAPI = {
     checkout || { amount, orderId }
   ),
   createSetupIntent: () => api.post('/api/payments/create-setup-intent'),
+  createLink: (data) => api.post('/api/payments/create-link', data),
 };
 
 // ── Analytics API ───────────────────────────────────────────────────────────

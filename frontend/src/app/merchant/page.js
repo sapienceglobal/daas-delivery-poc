@@ -12,6 +12,8 @@ export default function MerchantOverview() {
   const { user, restaurant, roomId, globalLoading } = useMerchantContext();
   const [loading, setLoading] = useState(true);
   const [timeframe, setTimeframe] = useState(1);
+  const [customStartDate, setCustomStartDate] = useState(null);
+  const [customEndDate, setCustomEndDate] = useState(null);
   
   // data for the dashboard view
   const [orders, setOrders] = useState([]);
@@ -35,7 +37,14 @@ export default function MerchantOverview() {
           orderAPI.getRestaurantOrders(roomId).catch(() => ({ data: [] })),
           reservationAPI.getRestaurantReservations ? reservationAPI.getRestaurantReservations(roomId).catch(() => ({ data: [] })) : { data: [] },
           cateringAPI.getRestaurantInquiries ? cateringAPI.getRestaurantInquiries(roomId).catch(() => ({ data: [] })) : { data: [] },
-          analyticsAPI.getSalesAnalytics ? analyticsAPI.getSalesAnalytics(roomId, timeframe).catch(() => ({ data: null })) : { data: null },
+          analyticsAPI.getSalesAnalytics 
+            ? analyticsAPI.getSalesAnalytics(
+                roomId, 
+                timeframe === 'custom' ? null : timeframe, 
+                timeframe === 'custom' && customStartDate ? customStartDate.toISOString().split('T')[0] : null, 
+                timeframe === 'custom' && customEndDate ? customEndDate.toISOString().split('T')[0] : null
+              ).catch(() => ({ data: null })) 
+            : { data: null },
         ]);
 
         const fetchedOrders = ordersData.data || [];
@@ -64,7 +73,7 @@ export default function MerchantOverview() {
     };
     
     loadData();
-  }, [roomId, globalLoading, restaurant, timeframe]);
+  }, [roomId, globalLoading, restaurant, timeframe, customStartDate, customEndDate]);
 
   if (globalLoading || loading || !restaurant) return <PageLoader text="Loading Dashboard..." />;
 
@@ -80,6 +89,10 @@ export default function MerchantOverview() {
       menu={menu}
       timeframe={timeframe}
       onTimeframeChange={setTimeframe}
+      customStartDate={customStartDate}
+      customEndDate={customEndDate}
+      setCustomStartDate={setCustomStartDate}
+      setCustomEndDate={setCustomEndDate}
       onViewAll={(route) => router.push(`/merchant/${route}`)}
     />
   );

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import '../providers/analytics_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/order_provider.dart';
 
 double _calculateTrend(num current, num previous) {
   if (previous == 0) {
@@ -63,14 +64,14 @@ Widget _buildTrendWidget(double trend, int selectedDays, {bool isDarkBg = false}
 class WelcomeBannerText extends StatelessWidget {
   const WelcomeBannerText({Key? key}) : super(key: key);
 
-  void _showTimeframeSheet(BuildContext context) {
+  void _showTimeframeSheet(BuildContext parentContext) {
     showModalBottomSheet(
-      context: context,
+      context: parentContext,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (BuildContext context) {
+      builder: (BuildContext sheetContext) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
           child: Column(
@@ -82,11 +83,13 @@ class WelcomeBannerText extends StatelessWidget {
                 style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 16),
-              _buildTimeframeOption(context, 'Today', 1),
-              _buildTimeframeOption(context, 'Last 7 Days', 7),
-              _buildTimeframeOption(context, 'Last 30 Days', 30),
-              _buildTimeframeOption(context, 'Last 90 Days', 90),
-              _buildTimeframeOption(context, 'Last 365 Days', 365),
+              _buildTimeframeOption(sheetContext, 'Today', 1),
+              _buildSpecialTimeframeOption(sheetContext, 'Yesterday', 'yesterday'),
+              _buildTimeframeOption(sheetContext, 'Last 7 Days', 7),
+              _buildTimeframeOption(sheetContext, 'Last 30 Days', 30),
+              _buildTimeframeOption(sheetContext, 'Last 90 Days', 90),
+              _buildTimeframeOption(sheetContext, 'Last 365 Days', 365),
+              _buildCustomTimeframeOption(sheetContext, parentContext),
             ],
           ),
         );
@@ -96,7 +99,7 @@ class WelcomeBannerText extends StatelessWidget {
 
   Widget _buildTimeframeOption(BuildContext context, String label, int days) {
     final provider = context.watch<AnalyticsProvider>();
-    final isSelected = provider.selectedDays == days;
+    final isSelected = provider.specialTimeframe == null && provider.selectedDays == days;
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
@@ -119,9 +122,100 @@ class WelcomeBannerText extends StatelessWidget {
     );
   }
 
+  Widget _buildSpecialTimeframeOption(BuildContext context, String label, String specialType) {
+    final provider = context.watch<AnalyticsProvider>();
+    final isSelected = provider.specialTimeframe == specialType;
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        label,
+        style: GoogleFonts.inter(
+          fontSize: 16,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? const Color(0xFFFF5722) : AppColors.textPrimary,
+        ),
+      ),
+      trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFFFF5722)) : null,
+      onTap: () {
+        final auth = context.read<AuthProvider>();
+        if (auth.user?['restaurantId'] != null) {
+          context.read<AnalyticsProvider>().setSpecialTimeframe(specialType, auth.user!['restaurantId']);
+        }
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  Widget _buildCustomTimeframeOption(BuildContext sheetContext, BuildContext parentContext) {
+    final provider = sheetContext.watch<AnalyticsProvider>();
+    final isSelected = provider.specialTimeframe == 'custom';
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        'Custom Date Range',
+        style: GoogleFonts.inter(
+          fontSize: 16,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? const Color(0xFFFF5722) : AppColors.textPrimary,
+        ),
+      ),
+      trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFFFF5722)) : const Icon(Icons.date_range, color: Colors.grey),
+      onTap: () async {
+        Navigator.pop(sheetContext); // Close bottom sheet
+        final DateTimeRange? picked = await showDateRangePicker(
+          context: parentContext,
+          firstDate: DateTime(2020),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: const ColorScheme.light(
+                  primary: Color(0xFFFF5722), // header background color
+                  onPrimary: Colors.white, // header text color
+                  onSurface: Colors.black, // body text color
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (picked != null) {
+          if (parentContext.mounted) {
+            final auth = parentContext.read<AuthProvider>();
+            if (auth.user?['restaurantId'] != null) {
+              parentContext.read<AnalyticsProvider>().setSpecialTimeframe(
+                'custom', 
+                auth.user!['restaurantId'],
+                startDate: picked.start,
+                endDate: picked.end
+              );
+            }
+          }
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final selectedDays = context.watch<AnalyticsProvider>().selectedDays;
+    final provider = context.watch<AnalyticsProvider>();
+    final selectedDays = provider.selectedDays;
+    
+    String getFilterText() {
+      if (provider.specialTimeframe == 'yesterday') return 'Yesterday';
+      if (provider.specialTimeframe == 'custom' && provider.customStartDate != null && provider.customEndDate != null) {
+        final s = provider.customStartDate!;
+        final e = provider.customEndDate!;
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        final sStr = '${months[s.month - 1]} ${s.day}';
+        final eStr = '${months[e.month - 1]} ${e.day}';
+        if (sStr == eStr) return sStr;
+        return '$sStr - $eStr';
+      }
+      return selectedDays == 1 ? 'Today' : 'Last $selectedDays Days';
+    }
 
     return Container(
       width: double.infinity,
@@ -155,29 +249,44 @@ class WelcomeBannerText extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          GestureDetector(
-            onTap: () => _showTimeframeSheet(context),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFFF5722).withOpacity(0.4)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.calendar_today, color: Color(0xFFFF5722), size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    selectedDays == 1 ? 'Today' : 'Last $selectedDays Days',
-                    style: GoogleFonts.inter(color: const Color(0xFFFF5722), fontSize: 13, fontWeight: FontWeight.w600),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => _showTimeframeSheet(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFFFF5722).withOpacity(0.4)),
                   ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.keyboard_arrow_down, color: Color(0xFFFF5722), size: 18),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.calendar_today, color: Color(0xFFFF5722), size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        getFilterText(),
+                        style: GoogleFonts.inter(color: const Color(0xFFFF5722), fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 4),
+                      if (provider.specialTimeframe == 'custom')
+                        GestureDetector(
+                          onTap: () {
+                            final auth = context.read<AuthProvider>();
+                            if (auth.user?['restaurantId'] != null) {
+                              provider.setSelectedDays(1, auth.user!['restaurantId']);
+                            }
+                          },
+                          child: const Icon(Icons.close, color: Color(0xFFFF5722), size: 18),
+                        )
+                      else
+                        const Icon(Icons.keyboard_arrow_down, color: Color(0xFFFF5722), size: 18),
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -335,7 +444,9 @@ class DashboardStatsGrid extends StatelessWidget {
     final customers = data?.newCustomers ?? 0;
     final catering = data?.cateringCount ?? 0;
     final aov = data?.aov ?? 0.0;
-    final liveOrders = 0; // Replace with actual live orders when available
+      
+    final orderProvider = context.watch<OrderProvider>();
+    final liveOrders = orderProvider.orders.where((o) => ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'picked_up'].contains((o.status).toLowerCase())).length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -359,6 +470,7 @@ class DashboardStatsGrid extends StatelessWidget {
               value: '$reservations',
               trendValue: _calculateTrend(reservations, data?.prevReservationsCount ?? 0),
               selectedDays: selectedDays,
+              onTap: () => context.push('/reservations'),
             ),
             // 2. Live Orders (Green)
             _StatCard(
@@ -369,6 +481,7 @@ class DashboardStatsGrid extends StatelessWidget {
               value: '$liveOrders',
               badge: _buildBadge('In Progress', const Color(0xFF22C55E)),
               selectedDays: selectedDays,
+              onTap: () => context.push('/live-orders'),
             ),
             // 3. New Customers (Yellow)
             _StatCard(
@@ -379,6 +492,16 @@ class DashboardStatsGrid extends StatelessWidget {
               value: '$customers',
               trendValue: _calculateTrend(customers, data?.prevCustomers ?? 0),
               selectedDays: selectedDays,
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Please login to the website portal to use this feature.'),
+                    backgroundColor: const Color(0xFF111827),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
             ),
             // 4. Catering Requests (Purple)
             _StatCard(
@@ -390,6 +513,7 @@ class DashboardStatsGrid extends StatelessWidget {
               trendValue: _calculateTrend(catering, data?.prevCateringCount ?? 0),
               badge: _buildBadge('Pending', const Color(0xFFF97316)),
               selectedDays: selectedDays,
+              onTap: () => context.push('/catering'),
             ),
             // 5. Average Order Value (Pink)
             _StatCard(
@@ -400,6 +524,16 @@ class DashboardStatsGrid extends StatelessWidget {
               value: '\$${aov.toStringAsFixed(2)}',
               trendValue: _calculateTrend(aov, data?.prevAov ?? 0),
               selectedDays: selectedDays,
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Please login to the website portal to use this feature.'),
+                    backgroundColor: const Color(0xFF111827),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
             ),
             // 6. Customer Rating (Blue)
             _StatCard(
@@ -410,6 +544,16 @@ class DashboardStatsGrid extends StatelessWidget {
               value: '0.0', // Backend needs to supply rating
               trendValue: 0.0, 
               selectedDays: selectedDays,
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Please login to the website portal to use this feature.'),
+                    backgroundColor: const Color(0xFF111827),
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
             ),
           ],
         );
@@ -449,6 +593,7 @@ class _StatCard extends StatelessWidget {
   final double? trendValue;
   final int selectedDays;
   final Widget? badge;
+  final VoidCallback? onTap;
 
   const _StatCard({
     required this.icon,
@@ -459,50 +604,53 @@ class _StatCard extends StatelessWidget {
     this.trendValue,
     this.selectedDays = 1,
     this.badge,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          // Watermark Icon
-          Positioned(
-            right: -10,
-            bottom: -10,
-            child: Icon(
-              watermarkIcon,
-              size: 80,
-              color: iconColor.withOpacity(0.08),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12), // Reduced padding to give more internal space
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Colored Icon
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: iconColor,
-                    shape: BoxShape.circle,
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            // Watermark Icon
+            Positioned(
+              right: -10,
+              bottom: -10,
+              child: Icon(
+                watermarkIcon,
+                size: 80,
+                color: iconColor.withOpacity(0.08),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12), // Reduced padding to give more internal space
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Colored Icon
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: iconColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: Colors.white, size: 20),
                   ),
-                  child: Icon(icon, color: Colors.white, size: 20),
-                ),
                 // Texts
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -535,8 +683,9 @@ class _StatCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // ─────────────────────────────────────────────
@@ -790,7 +939,7 @@ class QuickActionsGrid extends StatelessWidget {
           children: [
             _buildAction(context, Icons.restaurant_menu, 'Manage Menu', const Color(0xFFF97316), '/menu-management'),
             _buildAction(context, Icons.calendar_today, 'Table Reservation', const Color(0xFF8B5CF6), '/reservations'),
-            _buildAction(context, Icons.people, 'Manage Customers', const Color(0xFF10B981), null, websiteOnly: true),
+            _buildAction(context, Icons.point_of_sale, 'Point of Sale', const Color(0xFF10B981), '/pos'),
             _buildAction(context, Icons.local_offer, 'Create Coupon', const Color(0xFFDC2626), '/promotions'),
             _buildAction(context, Icons.bar_chart, 'View Reports', const Color(0xFF3B82F6), null, websiteOnly: true),
             _buildAction(context, Icons.settings, 'Settings', const Color(0xFF6B7280), null, websiteOnly: true),

@@ -257,6 +257,41 @@ export const sendOtpEmail = async (email, userName, otp) => {
   });
 };
 
+export const sendPaymentLinkEmail = async (email, order, paymentLinkUrl) => {
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(paymentLinkUrl)}`;
+  const orderRef = order.orderNumber || order._id.toString().slice(-6);
+
+  const bodyHtml = `
+    <h2 style="margin:0 0 16px;font-size:20px;color:${BRAND_TEXT};text-align:center;">Payment Required</h2>
+    <p style="margin:0 0 8px;text-align:center;">Hi ${order.customerName || 'Customer'},</p>
+    <p style="margin:0 0 24px;text-align:center;">
+      Your order #${orderRef} is waiting for payment. Please use the link or scan the QR code below to complete your payment of <strong>$${order.total.toFixed(2)}</strong>.
+    </p>
+    
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 28px;">
+      <tr>
+        <td align="center" style="background-color:${BRAND_CREAM};border:1px solid ${BRAND_BORDER};border-radius:12px;padding:24px;">
+          <img src="${qrCodeUrl}" alt="Payment QR Code" width="200" height="200" style="display:block;border:0;border-radius:8px;background-color:#fff;" />
+        </td>
+      </tr>
+    </table>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td>
+      ${emailButton('Pay Now', paymentLinkUrl)}
+    </td></tr></table>
+    <p style="margin:24px 0 0;font-size:12px;color:${BRAND_MUTED};text-align:center;">
+      If you have already paid or if this is a mistake, you can ignore this email.
+    </p>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `Payment required for Order #${orderRef}`,
+    text: `Hi ${order.customerName || 'Customer'},\n\nPlease complete your payment of $${order.total.toFixed(2)} for Order #${orderRef} using this link:\n\n${paymentLinkUrl}\n\nThank you!`,
+    html: emailShell({ preheader: `Payment required for Order #${orderRef}`, bodyHtml })
+  });
+};
+
 import { generatePdfFromHtml } from './pdfService.js';
 import { generateInvoiceHTML } from './documentService.js';
 
