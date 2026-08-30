@@ -16,7 +16,7 @@ router.get('/my-orders', protect, authorize('customer'), orderController.getMyOr
 router.get('/:id', protect, authorize('customer', 'merchant', 'admin'), orderController.getOrderById);
 router.post('/:id/cancel', protect, authorize('customer'), orderController.cancelOrder);
 router.post('/:id/rate', protect, authorize('customer'), validate(rateOrderSchema), orderController.rateOrder);
-router.post('/delivery-quote', protect, authorize('customer'), validate(deliveryQuoteSchema), orderController.getDeliveryQuote);
+router.post('/delivery-quote', protect, authorize('customer', 'merchant', 'admin', 'restaurant_owner', 'manager', 'staff'), validate(deliveryQuoteSchema), orderController.getDeliveryQuote);
 
 // ── Merchant Routes ─────────────────────────────────────────────────────────
 router.get('/restaurant/:restaurantId', protect, authorize('merchant'), orderController.getRestaurantOrders);
