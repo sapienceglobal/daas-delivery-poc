@@ -103,6 +103,8 @@ function POSContent() {
   const [city, setCity] = useState('');
   const [addressState, setAddressState] = useState('');
   const [zipCode, setZipCode] = useState('');
+  const [addressLat, setAddressLat] = useState(null);
+  const [addressLng, setAddressLng] = useState(null);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
   // Delivery State
@@ -201,6 +203,8 @@ function POSContent() {
           setCity(data.address?.city || data.address?.town || data.address?.village || '');
           setAddressState(data.address?.state || '');
           setZipCode(data.address?.postcode || '');
+          setAddressLat(data.lat || suggestion.lat || null);
+          setAddressLng(data.lng || suggestion.lon || null);
           setAddressVerified(true);
           sessionTokenRef.current = null;
         }
@@ -216,6 +220,8 @@ function POSContent() {
       setCity(addr.city || addr.town || addr.village || parts[1] || '');
       setAddressState(addr.state || parts[2] || '');
       setZipCode(addr.postcode || '');
+      setAddressLat(suggestion.lat || null);
+      setAddressLng(suggestion.lon || null);
       setAddressVerified(true);
       setSuggestions([]);
       sessionTokenRef.current = null;
@@ -230,7 +236,9 @@ function POSContent() {
       const fullAddr = `${addressLine1}, ${city}, ${addressState} ${zipCode}`;
       const data = await orderAPI.getDeliveryQuote({
         restaurantId: user.restaurantId,
-        address: fullAddr
+        address: fullAddr,
+        addressLat,
+        addressLng
       });
       if (data.success && data.data) {
         setDeliveryQuote(data.data);
@@ -673,6 +681,8 @@ function POSContent() {
       city,
       addressState,
       zipCode,
+      addressLat,
+      addressLng,
       deliveryInstructions,
       addressVerified,
       deliveryQuote,
