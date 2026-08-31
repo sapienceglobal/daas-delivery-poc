@@ -1,6 +1,8 @@
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
+import sharp from 'sharp';
 import logger from '../utils/logger.js';
+import { AppError } from './errorHandler.js';
 
 // ── Configure Cloudinary ────────────────────────────────────────────────────
 cloudinary.config({
@@ -25,7 +27,7 @@ export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024  // 10 MB max
+    fileSize: 50 * 1024 * 1024  // 50 MB max
   }
 });
 
@@ -39,7 +41,23 @@ export const upload = multer({
  * @param {String} [options.resourceType] - 'image' | 'raw' | 'auto'
  * @returns {Promise<{ url: String, publicId: String, width: Number, height: Number }>}
  */
-export const uploadToCloudinary = (buffer, { folder = 'restaurant-platform', publicId, resourceType = 'image' } = {}) => {
+export const uploadToCloudinary = async (buffer, { folder = 'restaurant-platform', publicId, resourceType = 'image' } = {}) => {
+  let finalBuffer = buffer;
+
+  // Compress if it's an image and larger than 5MB
+  if (resourceType === 'image' && buffer.length > 5 * 1024 * 1024) {
+    try {
+      finalBuffer = await sharp(buffer)
+        .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+      logger.info(`Compressed image from ${(buffer.length / 1024 / 1024).toFixed(2)}MB to ${(finalBuffer.length / 1024 / 1024).toFixed(2)}MB`);
+    } catch (e) {
+      logger.error('Sharp compression failed', { error: e.message });
+      // Proceed with original buffer if compression fails
+    }
+  }
+
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
@@ -53,6 +71,9 @@ export const uploadToCloudinary = (buffer, { folder = 'restaurant-platform', pub
       (error, result) => {
         if (error) {
           logger.error('Cloudinary upload failed', { error: error.message });
+          if (error.message && error.message.toLowerCase().includes('file size too large')) {
+            return reject(new AppError('The selected file is too large (maximum allowed is 10MB). Please choose a smaller file.', 400));
+          }
           return reject(error);
         }
         resolve({
@@ -65,7 +86,7 @@ export const uploadToCloudinary = (buffer, { folder = 'restaurant-platform', pub
         });
       }
     );
-    uploadStream.end(buffer);
+    uploadStream.end(finalBuffer);
   });
 };
 

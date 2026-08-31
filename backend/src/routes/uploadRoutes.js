@@ -23,9 +23,7 @@ router.post('/', protect, upload.single('image'), asyncHandler(async (req, respo
   if (!req.file) throw new AppError('No file uploaded', 400);
 
   const folder = validateFolder(req.body.folder);
-  const b64 = Buffer.from(req.file.buffer).toString('base64');
-  const dataURI = 'data:' + req.file.mimetype + ';base64,' + b64;
-  const result = await uploadBase64ToCloudinary(dataURI, { folder });
+  const result = await uploadToCloudinary(req.file.buffer, { folder });
 
   res.success(response, {
     data: { url: result.url, publicId: result.publicId },
@@ -43,9 +41,7 @@ router.post('/multiple', protect, upload.array('images', 5), asyncHandler(async 
   const folder = validateFolder(req.body.folder);
   const results = await Promise.all(
     req.files.map(file => {
-      const b64 = Buffer.from(file.buffer).toString('base64');
-      const dataURI = 'data:' + file.mimetype + ';base64,' + b64;
-      return uploadBase64ToCloudinary(dataURI, { folder });
+      return uploadToCloudinary(file.buffer, { folder });
     })
   );
 
