@@ -402,7 +402,7 @@ function LoginPageContent() {
                         <div className={`phone-field-wrap h-[52px] rounded-xl border px-4 flex items-center bg-white transition-all ${errors.phone ? 'border-[#ef4444] ring-1 ring-[#ef4444]' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
                           <PhoneInput
                             international
-                            defaultCountry="IN"
+                            defaultCountry="US"
                             placeholder="Enter phone number"
                             value={form.phone}
                             onChange={handlePhoneChange}
@@ -729,7 +729,7 @@ function LoginPageContent() {
                   <div className={`phone-field-wrap h-11 mt-1.5 rounded-xl border px-3 flex items-center bg-brand-card/60 ${errors.phone ? 'border-[#ef4444]' : 'border-brand-border'}`}>
                     <PhoneInput
                       international
-                      defaultCountry="IN"
+                      defaultCountry="US"
                       placeholder="Enter phone number"
                       value={form.phone}
                       onChange={handlePhoneChange}

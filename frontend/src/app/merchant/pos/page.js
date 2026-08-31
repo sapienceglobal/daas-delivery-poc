@@ -419,14 +419,14 @@ function POSContent() {
 
   const subtotal = ticket.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  const rawTaxRate = restaurant?.taxRate ?? 8.875;
+  const rawTaxRate = restaurant?.taxRate ?? 0;
   const taxRateMultiplier = rawTaxRate < 1 ? rawTaxRate : (rawTaxRate / 100);
   const tax = Math.round(subtotal * taxRateMultiplier * 100) / 100;
 
   const deliveryFee = (orderType === 'delivery' && savedCustomerDetails.deliveryQuote) ? (savedCustomerDetails.deliveryQuote.fee || 0) : 0;
 
   const platformFee = 0;
-  const rawServiceCharge = restaurant?.serviceCharge ?? 3.0;
+  const rawServiceCharge = restaurant?.serviceCharge ?? 0;
   const serviceChargeMultiplier = rawServiceCharge < 1 ? rawServiceCharge : (rawServiceCharge / 100);
   const serviceFee = Math.round(subtotal * serviceChargeMultiplier * 100) / 100;
 
@@ -841,26 +841,18 @@ function POSContent() {
 
         {/* Order Type & Customer Details */}
         <div className="bg-[#f3f4f6] border-b border-[#e5e7eb] p-4 flex flex-col gap-3">
-          <div className="flex bg-white rounded-lg border border-[#e5e7eb] overflow-hidden p-1">
+          <div className="flex gap-2">
             <button
               className={`flex-1 py-1.5 text-[11px] font-bold rounded-md transition-colors ${orderType === 'takeout' ? 'bg-[#8b0000] text-white' : 'text-[#6b7280] hover:bg-[#f9fafb]'}`}
-              onClick={() => !tableNumber && setOrderType('takeout')}
-              disabled={!!tableNumber}
+              onClick={() => setOrderType('takeout')}
             >
               Pickup
             </button>
             <button
               className={`flex-1 py-1.5 text-[11px] font-bold rounded-md transition-colors ${orderType === 'delivery' ? 'bg-[#8b0000] text-white' : 'text-[#6b7280] hover:bg-[#f9fafb]'}`}
-              onClick={() => !tableNumber && setOrderType('delivery')}
-              disabled={!!tableNumber}
+              onClick={() => setOrderType('delivery')}
             >
               Delivery
-            </button>
-            <button
-              className={`flex-1 py-1.5 text-[11px] font-bold rounded-md transition-colors ${orderType === 'dine_in' ? 'bg-[#8b0000] text-white' : 'text-[#6b7280] hover:bg-[#f9fafb]'}`}
-              onClick={() => setOrderType('dine_in')}
-            >
-              Dine-In {tableNumber ? `(T${tableNumber})` : ''}
             </button>
           </div>
 
@@ -1151,9 +1143,7 @@ function POSContent() {
                 className="w-full py-3 bg-white border border-[#fecaca] text-[#ef4444] font-bold rounded-xl hover:bg-[#fef2f2] transition-colors"
                 onClick={async () => {
                   try {
-                    await axios.put(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/orders/${paymentLinkOrderId}/reject`, { reason: 'Cancelled by merchant at POS' }, {
-                      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                    });
+                    await orderAPI.reject(paymentLinkOrderId, 'Cancelled by merchant at POS');
                     setIsPolling(false);
                     setShowPaymentLinkModal(false);
                     showToast('Order cancelled successfully.', 'success');
@@ -1509,11 +1499,5 @@ export default function POSPage() {
       <POSContent />
     </Suspense>
   );
+  
 }
-
-
-
-
-
-
-

@@ -280,6 +280,7 @@ export const createPaymentLink = asyncHandler(async (req, res) => {
     const session = await createCheckoutSession(amount, metadata, stripeCustomerId, order.items || items || []);
     
     order.paymentLinkUrl = session.url;
+    order.stripeCheckoutSessionId = session.id;
     await order.save();
 
     // TODO: Send SMS via Twilio if customerPhone is provided

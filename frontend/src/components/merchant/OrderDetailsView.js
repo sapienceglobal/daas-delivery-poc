@@ -126,10 +126,11 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   const isTerminal = ['delivered', 'cancelled', 'failed', 'refunded'].includes(oStatus);
   const isRefunded = order.refunded === true || order.paymentStatus === 'refunded';
   const isPartialRefund = order.paymentStatus === 'partially_refunded';
-  const hasAutoRefund = (order.paymentEvents || []).some(e => ['auto_refund_triggered', 'auto_refund_skipped'].includes(e.event));
+  const hasAutoRefund = (order.paymentEvents || []).some(e => ['auto_refund_triggered', 'auto_refund_skipped', 'auto_refund_failed'].includes(e.event));
   const autoRefundSucceeded = isRefunded || (order.paymentEvents || []).some(e => e.event === 'auto_refund_succeeded');
-  const autoRefundFailed = !autoRefundSucceeded && (order.paymentEvents || []).some(e => e.event === 'auto_refund_failed');
-  const autoRefundSkipped = !autoRefundSucceeded && (order.paymentEvents || []).some(e => e.event === 'auto_refund_skipped');
+  const isSkippedEvent = (e) => e.event === 'auto_refund_skipped' || (e.event === 'auto_refund_failed' && e.details?.error === 'Auto-refund is disabled in restaurant settings');
+  const autoRefundSkipped = !autoRefundSucceeded && (order.paymentEvents || []).some(isSkippedEvent);
+  const autoRefundFailed = !autoRefundSucceeded && !autoRefundSkipped && (order.paymentEvents || []).some(e => e.event === 'auto_refund_failed');
   const canRefund = !isRefunded && ['paid', 'partially_refunded'].includes(order.paymentStatus);
   const canCancel = !isTerminal;
   const totalItems = (order.items || []).reduce((acc, it) => acc + it.quantity, 0);

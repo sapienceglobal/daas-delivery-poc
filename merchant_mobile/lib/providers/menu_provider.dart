@@ -9,12 +9,22 @@ class MenuProvider extends ChangeNotifier {
   bool _isInitialized = false;
   String? _error;
   String? _restaurantId;
+  double _taxRate = 0.0;
+  String _taxType = 'Taxes & Charges';
+  double _serviceCharge = 0.0;
+  double _packagingCharge = 0.0;
+  bool _roundOff = false;
 
   List<CategoryModel> get categories => _categories;
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
   String? get error => _error;
   String? get restaurantId => _restaurantId;
+  double get taxRate => _taxRate;
+  String get taxType => _taxType;
+  double get serviceCharge => _serviceCharge;
+  double get packagingCharge => _packagingCharge;
+  bool get roundOff => _roundOff;
 
   MenuProvider() {
     _initRestaurantId();
@@ -26,6 +36,11 @@ class MenuProvider extends ChangeNotifier {
       final decoded = jsonDecode(res.body);
       if (decoded != null && decoded['data'] != null) {
         _restaurantId = decoded['data']['_id'];
+        _taxRate = (decoded['data']['taxRate'] ?? 0.0).toDouble();
+        _taxType = decoded['data']['taxType'] ?? 'Taxes & Charges';
+        _serviceCharge = (decoded['data']['serviceCharge'] ?? 0.0).toDouble();
+        _packagingCharge = (decoded['data']['packagingCharge'] ?? 0.0).toDouble();
+        _roundOff = decoded['data']['roundOff'] ?? false;
         fetchMenu();
       }
     } catch (e) {

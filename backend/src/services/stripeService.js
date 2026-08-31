@@ -155,6 +155,17 @@ export const retrievePaymentIntent = async (paymentIntentId) => {
   return stripe.paymentIntents.retrieve(paymentIntentId);
 };
 
+export const expireCheckoutSession = async (sessionId) => {
+  if (!stripe) throw new Error('Stripe is not configured');
+  try {
+    const session = await stripe.checkout.sessions.expire(sessionId);
+    return session;
+  } catch (err) {
+    logger.error(`Failed to expire checkout session ${sessionId}: ${err.message}`);
+    throw err;
+  }
+};
+
 // handle Stripe Webhook
 export const handleWebhook = async (rawBody, signature, secret, io = null) => {
   if (!stripe) throw new Error('Stripe is not configured');
@@ -270,6 +281,7 @@ export default {
   chargeSavedCard,
   retrievePaymentIntent,
   createCheckoutSession,
+  expireCheckoutSession,
   handleWebhook,
   refundPayment
 };

@@ -85,6 +85,18 @@ class _PosScreenState extends State<PosScreen> {
   bool _isPhoneTouched = false;
   bool _isEmailTouched = false;
 
+  double? _addressLat;
+  double? _addressLng;
+
+  final TextEditingController _couponController = TextEditingController();
+  String _appliedCouponCode = '';
+  double _couponDiscount = 0.0;
+  bool _isApplyingCoupon = false;
+
+  double _deliveryFee = 0.0;
+  bool _isFetchingQuote = false;
+  String? _deliveryQuoteError;
+
   @override
   void initState() {
     super.initState();
@@ -100,6 +112,7 @@ class _PosScreenState extends State<PosScreen> {
     _emailController.dispose();
     _tableController.dispose();
     _addressController.dispose();
+    _couponController.dispose();
     super.dispose();
   }
 
@@ -110,9 +123,18 @@ class _PosScreenState extends State<PosScreen> {
   
   bool get _canCheckout {
     if (_cartItems.isEmpty) return false;
-    if (_nameController.text.isNotEmpty && !_isNameValid) return false;
-    if (_fullPhoneNumber.isNotEmpty && !_isPhoneValid) return false;
+    if (_nameController.text.isEmpty || !_isNameValid) return false;
+    if (_fullPhoneNumber.isEmpty || !_isPhoneValid) return false;
     if (_emailController.text.isNotEmpty && !_isEmailValid) return false;
+    return true;
+  }
+
+  bool get _isPaymentValid {
+    if (_orderType == 'delivery') {
+      if (_addressLat == null || _addressLng == null) return false;
+      if (_isFetchingQuote) return false;
+      if (_deliveryQuoteError != null) return false;
+    }
     return true;
   }
 
@@ -120,6 +142,35 @@ class _PosScreenState extends State<PosScreen> {
   int get _cartItemCount => _cartItems.fold(0, (sum, item) => sum + item.quantity);
   
   double get _cartTotal => _cartItems.fold(0.0, (sum, item) => sum + item.totalPrice);
+
+  Map<String, double> _calculateSummary(MenuProvider menuProvider) {
+    final subtotal = _cartTotal;
+    
+    final taxRateMultiplier = menuProvider.taxRate < 1 ? menuProvider.taxRate : (menuProvider.taxRate / 100);
+    final tax = (subtotal * taxRateMultiplier * 100).round() / 100;
+    
+    final serviceChargeMultiplier = menuProvider.serviceCharge < 1 ? menuProvider.serviceCharge : (menuProvider.serviceCharge / 100);
+    final serviceFee = (subtotal * serviceChargeMultiplier * 100).round() / 100;
+    
+    final packagingFee = menuProvider.packagingCharge;
+    
+    final deliveryFee = _orderType == 'delivery' ? _deliveryFee : 0.0;
+    
+    double rawTotal = subtotal + tax + deliveryFee + serviceFee + packagingFee - _couponDiscount;
+    if (rawTotal < 0) rawTotal = 0;
+    
+    final total = menuProvider.roundOff ? rawTotal.roundToDouble() : rawTotal;
+    
+    return {
+      'subtotal': subtotal,
+      'tax': tax,
+      'serviceFee': serviceFee,
+      'packagingFee': packagingFee,
+      'deliveryFee': deliveryFee,
+      'discount': _couponDiscount,
+      'total': total,
+    };
+  }
 
   void _addConfigurationToCart(CartItem newItem) {
     setState(() {
@@ -565,6 +616,67 @@ class _PosScreenState extends State<PosScreen> {
     return const Iterable.empty();
   }
 
+  Future<void> _fetchDeliveryQuote(StateSetter setPaymentState) async {
+    if (_addressLat == null || _addressLng == null || _cartItems.isEmpty) return;
+    setPaymentState(() { _isFetchingQuote = true; _deliveryQuoteError = null; _deliveryFee = 0.0; });
+    try {
+      final payload = {
+        'restaurantId': context.read<MenuProvider>().restaurantId,
+        'addressLat': _addressLat,
+        'addressLng': _addressLng,
+        'address': _addressController.text,
+        'items': _cartItems.map((c) => {'menuItemId': c.item.id, 'quantity': c.quantity, 'price': c.item.price}).toList(),
+      };
+      final res = await ApiService.post('/api/orders/delivery-quote', payload);
+      final data = jsonDecode(res.body);
+      if (data['success'] && data['data'] != null) {
+        setPaymentState(() {
+          _deliveryFee = (data['data']['fee'] as num).toDouble();
+        });
+      } else {
+        setPaymentState(() {
+          _deliveryQuoteError = data['message'] ?? 'Failed to get delivery quote';
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to get delivery quote: $e');
+      setPaymentState(() {
+        _deliveryQuoteError = 'Delivery unavailable. Address may be too far.';
+      });
+    } finally {
+      setPaymentState(() { _isFetchingQuote = false; });
+    }
+  }
+
+  Future<void> _applyCoupon(StateSetter setPaymentState) async {
+    final code = _couponController.text.trim();
+    if (code.isEmpty) return;
+    setPaymentState(() => _isApplyingCoupon = true);
+    try {
+      final payload = {
+        'code': code,
+        'cartValue': _cartTotal,
+        'restaurantId': context.read<MenuProvider>().restaurantId,
+      };
+      final res = await ApiService.post('/api/coupons/validate', payload);
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200 && data['success']) {
+        setPaymentState(() {
+          _appliedCouponCode = code;
+          _couponDiscount = (data['data']['discountAmount'] as num).toDouble();
+        });
+        toastification.show(context: context, title: const Text('Coupon Applied!'), type: ToastificationType.success, autoCloseDuration: const Duration(seconds: 3));
+      } else {
+        throw Exception(data['message'] ?? 'Invalid coupon');
+      }
+    } catch (e) {
+      toastification.show(context: context, title: const Text('Failed to apply coupon'), description: Text(e.toString()), type: ToastificationType.error, autoCloseDuration: const Duration(seconds: 3));
+      setPaymentState(() { _appliedCouponCode = ''; _couponDiscount = 0.0; });
+    } finally {
+      setPaymentState(() => _isApplyingCoupon = false);
+    }
+  }
+
   void _showPaymentSelectionModal() {
     showModalBottomSheet(
       context: context,
@@ -605,6 +717,9 @@ class _PosScreenState extends State<PosScreen> {
               child: InkWell(
                 onTap: () {
                   setState(() => _orderType = value);
+                  if (value != 'delivery') {
+                    _deliveryFee = 0.0; // reset
+                  }
                   setPaymentState(() {});
                 },
                 child: Container(
@@ -652,8 +767,6 @@ class _PosScreenState extends State<PosScreen> {
                           orderTypeButton('pickup', 'Pickup'),
                           const SizedBox(width: 8),
                           orderTypeButton('delivery', 'Delivery'),
-                          const SizedBox(width: 8),
-                          orderTypeButton('dine_in', 'Dine-in'),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -673,14 +786,36 @@ class _PosScreenState extends State<PosScreen> {
                             return _fetchAddressSuggestions(textEditingValue.text);
                           },
                           displayStringForOption: (option) => option['display_name'] ?? option['main_text'] ?? '',
-                          onSelected: (option) {
+                          onSelected: (option) async {
                             _addressController.text = option['display_name'] ?? option['main_text'] ?? '';
+                            if (option['place_id'] != null) {
+                              try {
+                                final res = await ApiService.get('/api/location/place?place_id=${option['place_id']}');
+                                final data = jsonDecode(res.body);
+                                if (data['lat'] != null && data['lng'] != null) {
+                                  setState(() {
+                                    _addressLat = (data['lat'] as num).toDouble();
+                                    _addressLng = (data['lng'] as num).toDouble();
+                                  });
+                                  _fetchDeliveryQuote(setPaymentState);
+                                }
+                              } catch (e) {
+                                debugPrint('Failed to get place details: $e');
+                              }
+                            }
                           },
                           fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
                             // Link controller changes to our _addressController
                             controller.addListener(() {
                               if (_addressController.text != controller.text) {
                                 _addressController.text = controller.text;
+                                if (_addressLat != null || _addressLng != null || _deliveryQuoteError != null || _deliveryFee != 0.0) {
+                                  _addressLat = null;
+                                  _addressLng = null;
+                                  _deliveryQuoteError = null;
+                                  _deliveryFee = 0.0;
+                                  setPaymentState(() {});
+                                }
                               }
                             });
                             // Make sure initial value matches if any
@@ -726,6 +861,11 @@ class _PosScreenState extends State<PosScreen> {
                             );
                           },
                         ),
+                        if (_deliveryQuoteError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(_deliveryQuoteError!, style: GoogleFonts.inter(color: Colors.red, fontSize: 12)),
+                          ),
                         const SizedBox(height: 16),
                       ],
                       const Divider(),
@@ -736,11 +876,79 @@ class _PosScreenState extends State<PosScreen> {
                         children: [
                           paymentButton('cash', 'Cash', Icons.attach_money),
                           const SizedBox(width: 12),
-                          paymentButton('card_terminal', 'Terminal', Icons.credit_card),
+                          paymentButton('card_terminal', 'Card', Icons.credit_card),
                           const SizedBox(width: 12),
                           paymentButton('payment_link', 'QR Link', Icons.qr_code),
                         ],
                       ),
+                      const SizedBox(height: 32),
+                      
+                      // Coupon and Order Summary
+                      Text('Coupon', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _couponController,
+                              decoration: InputDecoration(
+                                labelText: 'Coupon Code',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                suffixIcon: _appliedCouponCode.isNotEmpty ? const Icon(Icons.check_circle, color: Colors.green) : null,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: _isApplyingCoupon ? null : () => _applyCoupon(setPaymentState),
+                            child: _isApplyingCoupon 
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
+                                : Text('Apply', style: GoogleFonts.inter(color: Colors.white)),
+                          )
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Text('Order Summary', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      
+                      Builder(builder: (context) {
+                        final summary = _calculateSummary(context.read<MenuProvider>());
+                        Widget row(String title, double value, {bool bold = false, bool isDiscount = false}) {
+                          if (value == 0 && title != 'Subtotal' && title != 'Total') return const SizedBox();
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(title, style: GoogleFonts.inter(fontWeight: bold ? FontWeight.bold : FontWeight.normal, fontSize: bold ? 18 : 14)),
+                                Text(isDiscount ? '-\$${value.toStringAsFixed(2)}' : '\$${value.toStringAsFixed(2)}', 
+                                     style: GoogleFonts.inter(fontWeight: bold ? FontWeight.bold : FontWeight.normal, fontSize: bold ? 18 : 14, color: isDiscount ? Colors.green : Colors.black)),
+                              ],
+                            ),
+                          );
+                        }
+                        
+                        return Column(
+                          children: [
+                            row('Subtotal', summary['subtotal']!),
+                            row(context.read<MenuProvider>().taxType, summary['tax']!),
+                            if (summary['serviceFee']! > 0) row('Service Fee', summary['serviceFee']!),
+                            if (summary['packagingFee']! > 0) row('Packaging Fee', summary['packagingFee']!),
+                            if (_orderType == 'delivery') 
+                              _isFetchingQuote 
+                                ? Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Delivery Fee'), const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))])
+                                : row('Delivery Fee', summary['deliveryFee']!),
+                            row('Discount', summary['discount']!, isDiscount: true),
+                            const Divider(height: 24),
+                            row('Total', summary['total']!, bold: true),
+                          ],
+                        );
+                      }),
                       const SizedBox(height: 32),
                     ],
                   ),
@@ -756,10 +964,10 @@ class _PosScreenState extends State<PosScreen> {
                     height: 56,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
+                        backgroundColor: _isPaymentValid ? const Color(0xFF10B981) : Colors.grey.shade400,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      onPressed: _isGeneratingOrder ? null : () {
+                      onPressed: (!_isPaymentValid || _isGeneratingOrder) ? null : () {
                         setPaymentState(() => _isGeneratingOrder = true);
                         _placeOrder().then((_) {
                           setPaymentState(() => _isGeneratingOrder = false);
@@ -767,7 +975,7 @@ class _PosScreenState extends State<PosScreen> {
                       },
                       child: _isGeneratingOrder
                           ? const CircularProgressIndicator(color: Colors.white)
-                          : Text('Charge \$$_cartTotal', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                          : Text('Charge \$${_calculateSummary(context.read<MenuProvider>())['total']!.toStringAsFixed(2)}', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                     ),
                   ),
                 )
@@ -970,16 +1178,21 @@ class _PosScreenState extends State<PosScreen> {
         'customerEmail': _emailController.text.trim(),
         if (_orderType == 'dine_in') 'tableNumber': _tableController.text.trim(),
         if (_orderType == 'delivery') 'address': _addressController.text.trim(),
+        if (_orderType == 'delivery' && _addressLat != null) 'addressLat': _addressLat,
+        if (_orderType == 'delivery' && _addressLng != null) 'addressLng': _addressLng,
+        if (_appliedCouponCode.isNotEmpty) 'couponCode': _appliedCouponCode,
         'items': orderItems,
       };
       
+      final total = _calculateSummary(menuProvider)['total']!;
+
       String? stripePaymentIntentId;
 
       if (_paymentMethod == 'card_terminal') {
         // Real Stripe Checkout via Payment Sheet
         final intentPayload = {
           ...payload,
-          'amount': _cartTotal.toStringAsFixed(2),
+          'amount': total.toStringAsFixed(2),
         };
         final intentRes = await ApiService.post('/api/payments/create-intent', intentPayload);
         final intentData = jsonDecode(intentRes.body);
@@ -1021,7 +1234,7 @@ class _PosScreenState extends State<PosScreen> {
           // Call payment API to generate Stripe link
           final linkPayload = {
             'orderId': orderId,
-            'amount': _cartTotal.toStringAsFixed(2),
+            'amount': total.toStringAsFixed(2),
             if (_emailController.text.trim().isNotEmpty) 'customerEmail': _emailController.text.trim(),
           };
 
@@ -1046,6 +1259,13 @@ class _PosScreenState extends State<PosScreen> {
             _emailController.clear();
             _tableController.clear();
             _addressController.clear();
+            _couponController.clear();
+            _appliedCouponCode = '';
+            _couponDiscount = 0.0;
+            _deliveryFee = 0.0;
+            _addressLat = null;
+            _addressLng = null;
+            _deliveryQuoteError = null;
             _isNameTouched = false;
             _isPhoneTouched = false;
             _isEmailTouched = false;
@@ -1061,9 +1281,20 @@ class _PosScreenState extends State<PosScreen> {
         throw Exception(data['message'] ?? 'Unknown error');
       }
     } catch (e) {
+      final errorStr = e.toString().toLowerCase();
+      if ((e is StripeException && e.error.code == FailureCode.Canceled) || errorStr.contains('cancel')) {
+        toastification.show(
+          context: context,
+          title: const Text('Payment Cancelled'),
+          type: ToastificationType.info,
+          autoCloseDuration: const Duration(seconds: 3),
+        );
+        return;
+      }
+
       toastification.show(
         context: context,
-        title: Text('Failed to generate order'),
+        title: const Text('Failed to generate order'),
         description: Text(e.toString()),
         type: ToastificationType.error,
         autoCloseDuration: const Duration(seconds: 4),
@@ -1111,8 +1342,9 @@ class _PosScreenState extends State<PosScreen> {
       ),
       body: menuProvider.isLoading && !menuProvider.isInitialized
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
+          : SafeArea(
+              child: Column(
+                children: [
                 // Search bar
                 Container(
                   color: Colors.white,
@@ -1309,6 +1541,7 @@ class _PosScreenState extends State<PosScreen> {
                   )
               ],
             ),
+          ),
     );
   }
 }

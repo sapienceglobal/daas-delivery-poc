@@ -330,11 +330,10 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
           child: Container(color: Colors.grey.shade200, height: 1),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/pos'),
         backgroundColor: const Color(0xFFDC2626),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: Text('New Order', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white)),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       body: RefreshIndicator(
         onRefresh: () => orderProvider.fetchOrders(force: true),
@@ -367,16 +366,16 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                                 ],
                               ),
                             ),
-                            ElevatedButton.icon(
+                            ElevatedButton(
                               onPressed: () => context.push('/pos'),
-                              icon: const Icon(Icons.add, size: 16),
-                              label: Text('New Order', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFDC2626),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                padding: const EdgeInsets.all(12),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                minimumSize: Size.zero,
                               ),
+                              child: const Icon(Icons.add, size: 24),
                             ),
                           ],
                         ),

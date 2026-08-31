@@ -15,7 +15,7 @@ import { withOptimisticRetry } from '../utils/optimisticRetry.js';
 import { triggerDelivery, getBestDeliveryQuote, cancelDelivery } from '../services/deliveryAggregatorService.js';
 import { validateDeliveryDistance } from '../utils/distance.js';
 import { buildOrderSocketPayload, syncDeliveryTracking } from '../services/deliverySyncService.js';
-import { retrievePaymentIntent, refundPayment as refundStripePayment, chargeSavedCard, createCheckoutSession } from '../services/stripeService.js';
+import { retrievePaymentIntent, refundPayment as refundStripePayment, chargeSavedCard, createCheckoutSession, expireCheckoutSession } from '../services/stripeService.js';
 import { calculateOrderPricing, roundMoney } from '../services/orderPricing.js';
 import { sendOrderConfirmationEmail, sendInvoiceEmail, sendPaymentLinkEmail } from '../services/emailService.js';
 import { generateInvoiceHTML, generateKOTHTML } from '../services/documentService.js';
@@ -243,13 +243,13 @@ export const processAutoRefund = async (order, reason, io, getModel) => {
     logger.info(`Auto-refund skipped for order ${order._id}: autoRefundEnabled is false for restaurant`);
     
     // log skipped event
-    pushPaymentEvent(order, 'auto_refund_failed', {
+    pushPaymentEvent(order, 'auto_refund_skipped', {
       error: 'Auto-refund is disabled in restaurant settings',
       reason,
       triggeredBy: 'system'
     });
-    await order.save();
-    return { processed: false, skipped: true, reason: 'disabled_by_merchant' };
+    
+    return { processed: false, skipped: true, reason: 'disabled_in_settings' };
   }
 
 
@@ -1312,6 +1312,9 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
     if (order.deliveryId) {
       cancelDelivery(order, 'Cancelled via status update').catch(err => logger.error('Shipday cancel error', err));
     }
+    if (order.stripeCheckoutSessionId && order.paymentStatus === 'pending') {
+      expireCheckoutSession(order.stripeCheckoutSessionId).catch(err => logger.error('Stripe checkout expire error', err));
+    }
   } else if (status === 'delivered' || status === 'picked_up') {
     awardLoyaltyPoints(order).catch(err => logger.error('Award points error', err));
     if (order.customerEmail) {
@@ -1413,6 +1416,15 @@ export const rejectOrder = asyncHandler(async (req, response) => {
       });
     }
   }
+  
+  if (order.stripeCheckoutSessionId && order.paymentStatus === 'pending') {
+    try {
+      await expireCheckoutSession(order.stripeCheckoutSessionId);
+    } catch (e) {
+      logger.warn(`Failed to expire checkout session on reject: ${e.message}`);
+    }
+  }
+  
   await order.save();
 
   const io = req.app.get('io');

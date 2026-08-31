@@ -162,7 +162,7 @@ export default function DeliveryInfoSection({
                 }`}>
                   <PhoneInput
                     international
-                    defaultCountry="IN"
+                    defaultCountry="US"
                     placeholder="Enter phone number"
                     value={phone}
                     onChange={(val) => setPhone(val || '')}
