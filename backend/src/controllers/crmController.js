@@ -157,7 +157,19 @@ export const getCustomers = asyncHandler(async (req, response) => {
   });
 
   const uniqueCustomers = Array.from(uniqueCustomersMap.values());
-  res.success(response, { data: uniqueCustomers });
+
+  // Compute stats
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const stats = {
+    totalCustomers: uniqueCustomers.length,
+    newCustomers: uniqueCustomers.filter(c => new Date(c.createdAt) >= startOfMonth).length,
+    loyaltyMembers: uniqueCustomers.filter(c => c.loyaltyTier && c.loyaltyTier !== 'Bronze').length,
+    repeatCustomers: uniqueCustomers.filter(c => (c.totalOrders || 0) > 1).length
+  };
+
+  res.success(response, { data: uniqueCustomers, stats });
 });
 
 export const getCustomerProfile = asyncHandler(async (req, response) => {

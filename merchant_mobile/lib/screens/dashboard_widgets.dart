@@ -941,6 +941,7 @@ class QuickActionsGrid extends StatelessWidget {
             _buildAction(context, Icons.calendar_today, 'Table Reservation', const Color(0xFF8B5CF6), '/reservations'),
             _buildAction(context, Icons.point_of_sale, 'Point of Sale', const Color(0xFF10B981), '/pos'),
             _buildAction(context, Icons.local_offer, 'Create Coupon', const Color(0xFFDC2626), '/promotions'),
+            _buildAction(context, Icons.people_alt, 'Customers & CRM', const Color(0xFFEC4899), '/crm'),
             _buildAction(context, Icons.bar_chart, 'View Reports', const Color(0xFF3B82F6), null, websiteOnly: true),
             _buildAction(context, Icons.settings, 'Settings', const Color(0xFF6B7280), null, websiteOnly: true),
           ],

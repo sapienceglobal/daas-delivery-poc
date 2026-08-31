@@ -16,6 +16,7 @@ import 'screens/reservations_screen.dart';
 import 'screens/catering_screen.dart';
 import 'screens/pos_screen.dart';
 import 'screens/more_settings_screen.dart';
+import 'screens/crm_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -118,6 +119,10 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/',
       pageBuilder: (context, state) => const NoTransitionPage(child: DashboardScreen()),
+    ),
+    GoRoute(
+      path: '/crm',
+      builder: (context, state) => const CrmScreen(),
     ),
     GoRoute(
       path: '/live-orders',

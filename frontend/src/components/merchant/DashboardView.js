@@ -306,7 +306,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
         <div className="bg-white border border-[#e5e7eb] rounded-xl p-5 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-[13px] font-extrabold text-[#111827] uppercase tracking-wider">Live Order Tracker</h3>
-            <button onClick={() => onViewAll && onViewAll('live_orders')} className="text-xs font-extrabold text-[#991b1b] hover:underline flex items-center gap-1">View All Orders <ArrowRight className="w-3 h-3"/></button>
+            <button onClick={() => onViewAll && onViewAll('live-orders')} className="text-xs font-extrabold text-[#991b1b] hover:underline flex items-center gap-1">View All Orders <ArrowRight className="w-3 h-3"/></button>
           </div>
           
           {/* Timeline Graphic */}
@@ -366,7 +366,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
                 <p>No active orders currently</p>
               </div>
             )}
-            <button onClick={() => onViewAll && onViewAll('live-orders')} className="text-xs font-extrabold text-[#991b1b] flex items-center gap-1 mt-4 hover:underline">
+            <button onClick={() => onViewAll && onViewAll('pos')} className="text-xs font-extrabold text-[#991b1b] flex items-center gap-1 mt-4 hover:underline">
               <div className="w-3 h-3 rounded-full border border-[#991b1b] flex items-center justify-center text-[8px]">+</div> New Order
             </button>
           </div>
@@ -377,8 +377,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
           <h3 className="text-[13px] font-extrabold text-[#111827] uppercase tracking-wider mb-5">Quick Actions</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 h-[calc(100%-2.5rem)]">
             {[
-              { icon: ShoppingBag, label: 'Add New Order', color: 'text-[#991b1b]', onClick: () => onViewAll && onViewAll('all-orders') },
-              { icon: FileText, label: 'Manage Menu', color: 'text-[#991b1b]', onClick: () => onViewAll && onViewAll('menu') },
+              { icon: ShoppingBag, label: 'Add New Order', color: 'text-[#991b1b]', onClick: () => onViewAll && onViewAll('pos') },
               { icon: Tag, label: 'Create Coupon', color: 'text-[#991b1b]', onClick: () => onViewAll && onViewAll('promotions') },
               { icon: Calendar, label: 'Table Reservation', color: 'text-[#7c3aed]', onClick: () => onViewAll && onViewAll('reservations') },
               { icon: Users, label: 'Manage Customers', color: 'text-[#16a34a]', onClick: () => onViewAll && onViewAll('crm') },

@@ -153,6 +153,16 @@ class AppDrawer extends StatelessWidget {
                     context.push('/promotions');
                   },
                 ),
+                _buildDrawerItem(
+                  icon: Icons.people_alt_outlined,
+                  title: 'Customers & CRM',
+                  iconColor: const Color(0xFFEC4899), // Pink
+                  isActive: location == '/crm',
+                  onTap: () {
+                    context.pop();
+                    context.push('/crm');
+                  },
+                ),
               ],
             ),
           ),

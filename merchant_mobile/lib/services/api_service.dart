@@ -82,9 +82,42 @@ class ApiService {
     return _send(() => http.patch(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
 
-  static Future<http.Response> delete(String endpoint, {Map<String, String>? headers}) async {
+  static Future<http.Response> delete(String endpoint, {dynamic body, Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.delete(uri, headers: buildHeaders(headers)));
+    return _send(() => http.delete(uri, headers: buildHeaders(headers), body: body != null ? json.encode(body) : null));
+  }
+
+  // --- CRM & Customers ---
+  static Future<http.Response> getCustomers(String restaurantId) async {
+    return get('/api/crm/restaurant/$restaurantId/customers');
+  }
+
+  static Future<http.Response> getCustomerProfile(String restaurantId, String customerId) async {
+    return get('/api/crm/restaurant/$restaurantId/customers/$customerId/profile');
+  }
+
+  static Future<http.Response> createCustomer(String restaurantId, Map<String, dynamic> data) async {
+    return post('/api/crm/restaurant/$restaurantId/customers', data);
+  }
+
+  static Future<http.Response> updateCustomer(String restaurantId, String customerId, Map<String, dynamic> data) async {
+    return put('/api/crm/restaurant/$restaurantId/customers/$customerId', data);
+  }
+
+  static Future<http.Response> deleteCustomer(String restaurantId, String customerId) async {
+    return delete('/api/crm/restaurant/$restaurantId/customers/$customerId');
+  }
+
+  static Future<http.Response> bulkUpdateCustomers(String restaurantId, Map<String, dynamic> data) async {
+    return put('/api/crm/restaurant/$restaurantId/customers/bulk', data);
+  }
+
+  static Future<http.Response> bulkDeleteCustomers(String restaurantId, List<String> customerIds) async {
+    return delete('/api/crm/restaurant/$restaurantId/customers/bulk', body: {'customerIds': customerIds});
+  }
+
+  static Future<http.Response> sendPromo(String restaurantId, Map<String, dynamic> data) async {
+    return post('/api/crm/restaurant/$restaurantId/promo', data);
   }
 
   // --- Notifications ---
