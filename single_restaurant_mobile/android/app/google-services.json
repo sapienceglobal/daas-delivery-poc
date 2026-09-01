@@ -41,6 +41,64 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:960808501824:android:90a9fc8ba59929cae415a5",
+        "android_client_info": {
+          "package_name": "com.lassilounge.customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFAW_DKJaqoB_q9Xx9o5JY8-Zu0MwKBCo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:960808501824:android:083a2a3c36f2202ae415a5",
+        "android_client_info": {
+          "package_name": "com.lassilounge.merchant_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFAW_DKJaqoB_q9Xx9o5JY8-Zu0MwKBCo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

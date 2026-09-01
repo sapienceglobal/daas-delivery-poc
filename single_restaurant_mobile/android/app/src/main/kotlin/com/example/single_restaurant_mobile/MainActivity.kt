@@ -1,4 +1,4 @@
-package com.example.single_restaurant_mobile
+package com.lassilounge.customer
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

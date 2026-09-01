@@ -87,14 +87,10 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/
     - assets/images/branded/lassi-lounge/
     - assets/images/branded/lassi-lounge/about/
     - assets/images/branded/lassi-lounge/categories/
-    - assets/images/branded/lassi-lounge/catering/
     - assets/images/branded/lassi-lounge/dishes/
-    - assets/images/branded/lassi-lounge/footer/
-    - assets/images/branded/lassi-lounge/partners/
     - assets/images/branded/lassi-lounge/reviews/
     - assets/images/branded/lassi-lounge/story/
 

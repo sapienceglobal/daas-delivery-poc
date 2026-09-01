@@ -1,4 +1,5 @@
 import './globals.css';
+import Script from 'next/script';
 import { Providers } from '@/components/shared/Providers';
 import SiteChrome from '@/components/shared/SiteChrome';
 import ScrollToTop from '@/components/shared/ScrollToTop';
@@ -92,6 +93,19 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" data-brand={brand} suppressHydrationWarning>
       <head>
+        {/* Google Ads (gtag.js) */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-16715555638"
+          strategy="afterInteractive"
+        />
+        <Script id="google-gtag" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-16715555638');
+          `}
+        </Script>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
