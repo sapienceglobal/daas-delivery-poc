@@ -110,6 +110,43 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Dancing+Script:wght@400..700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet" />
+
+        {/* JSON-LD Structured Data for Google Rich Results */}
+        {isLassiLounge && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'Restaurant',
+                name: 'Lassi Lounge NY',
+                image: `${siteUrl}/assets/images/branded/lassi-lounge/og-image.png`,
+                url: siteUrl,
+                telephone: '+1 347-233-3733',
+                address: {
+                  '@type': 'PostalAddress',
+                  streetAddress: '9408 118th St',
+                  addressLocality: 'South Richmond Hill',
+                  addressRegion: 'NY',
+                  postalCode: '11419',
+                  addressCountry: 'US',
+                },
+                servesCuisine: 'Indian',
+                priceRange: '$$',
+                acceptsReservations: 'True',
+                menu: `${siteUrl}/menu`,
+                openingHoursSpecification: [
+                  {
+                    '@type': 'OpeningHoursSpecification',
+                    dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+                    opens: '11:00',
+                    closes: '22:00',
+                  },
+                ],
+              }),
+            }}
+          />
+        )}
       </head>
       <body className="grid-bg min-h-screen bg-brand-bg text-brand-text antialiased selection:bg-brand-cyan selection:text-brand-bg"
         style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }} suppressHydrationWarning>
