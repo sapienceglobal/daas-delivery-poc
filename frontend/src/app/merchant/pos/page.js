@@ -125,6 +125,8 @@ function POSContent() {
     city: '',
     addressState: '',
     zipCode: '',
+    addressLat: null,
+    addressLng: null,
     deliveryInstructions: '',
     addressVerified: false,
     deliveryQuote: null,
@@ -639,20 +641,7 @@ function POSContent() {
     setCouponDiscount(0);
     setDeliveryQuote(null);
     setAddressVerified(false);
-    setSavedCustomerDetails({
-      customerName: '',
-      customerPhone: '',
-      customerEmail: '',
-      addressLine1: '',
-      addressLine2: '',
-      city: '',
-      addressState: '',
-      zipCode: '',
-      deliveryInstructions: '',
-      addressVerified: false,
-      deliveryQuote: null,
-      quoteError: null
-    });
+    setSavedCustomerDetails({ customerName: '', customerPhone: '', customerEmail: '', addressLine1: '', addressLine2: '', city: '', addressState: '', zipCode: '', addressLat: null, addressLng: null, deliveryInstructions: '', addressVerified: false, deliveryQuote: null, quoteError: null });
   };
 
   const openCustomerModal = () => {
@@ -1494,3 +1483,4 @@ export default function POSPage() {
   );
   
 }
+
