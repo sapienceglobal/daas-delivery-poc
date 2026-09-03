@@ -95,7 +95,7 @@ export default function RootLayout({ children }) {
       <head>
         {/* Google Ads (gtag.js) */}
         <Script
-          src="https://www.googletagmanager.com/gtag/js?id=AW-16715555638"
+          src="https://www.googletagmanager.com/gtag/js?id=AW-17610513177"
           strategy="afterInteractive"
         />
         <Script id="google-gtag" strategy="afterInteractive">
@@ -103,7 +103,7 @@ export default function RootLayout({ children }) {
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', 'AW-16715555638');
+            gtag('config', 'AW-17610513177');
           `}
         </Script>
         <link rel="preconnect" href="https://fonts.googleapis.com" />

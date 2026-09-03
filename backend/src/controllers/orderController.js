@@ -791,8 +791,9 @@ export const createOrder = asyncHandler(async (req, response) => {
         
         // update order with the URL
         const OrderModel = req.getModel('Order');
-        await OrderModel.findByIdAndUpdate(order._id, { paymentLinkUrl: session.url });
+        await OrderModel.findByIdAndUpdate(order._id, { paymentLinkUrl: session.url, stripeCheckoutSessionId: session.id });
         order.paymentLinkUrl = session.url;
+        order.stripeCheckoutSessionId = session.id;
 
         // send email
         sendPaymentLinkEmail(order.customerEmail, order, session.url).catch(err => {

@@ -600,15 +600,7 @@ function POSContent() {
 
       if (selectedPayment === 'payment_link') {
         setPaymentLinkOrderId(res.data._id);
-        const linkRes = await paymentAPI.createLink({
-          orderId: res.data._id,
-          amount: total.toFixed(2),
-          restaurantId: user.restaurantId,
-          items: ticket,
-          customerPhone: savedCustomerDetails.customerPhone.trim() || undefined,
-          customerEmail: savedCustomerDetails.customerEmail.trim() || undefined,
-        });
-        setPaymentLinkUrl(linkRes.data?.url || linkRes.url);
+        setPaymentLinkUrl(res.data.paymentLinkUrl);
         setShowPaymentModal(false);
         setShowPaymentLinkModal(true);
         setPaymentLinkTimeLeft(600);
@@ -1485,4 +1477,5 @@ export default function POSPage() {
   );
   
 }
+
 
