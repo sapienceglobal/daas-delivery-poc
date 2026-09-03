@@ -577,6 +577,8 @@ function POSContent() {
         address: orderType === 'delivery'
           ? `${savedCustomerDetails.addressLine1}${savedCustomerDetails.addressLine2 ? ', ' + savedCustomerDetails.addressLine2 : ''}, ${savedCustomerDetails.city}, ${savedCustomerDetails.addressState} ${savedCustomerDetails.zipCode}`
           : (tableNumber ? `Table ${tableNumber}` : 'Walk-in Customer'),
+        addressLat: orderType === 'delivery' ? savedCustomerDetails.addressLat : undefined,
+        addressLng: orderType === 'delivery' ? savedCustomerDetails.addressLng : undefined,
         orderType: orderType === 'takeout' ? 'pickup' : (orderType === 'delivery' ? 'delivery' : 'dine_in'),
         paymentMethod: selectedPayment === 'card_terminal' ? 'credit_card' : (selectedPayment === 'payment_link' ? 'payment_link' : 'cash'),
         tableNumber: orderType === 'dine_in' ? tableNumber : null,
