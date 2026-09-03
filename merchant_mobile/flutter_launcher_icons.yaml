@@ -1,4 +1,6 @@
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png"
+  image_path: "assets/images/branded/lassi-lounge/admin_icon_ios.png"
+  adaptive_icon_background: "#111827"
+  adaptive_icon_foreground: "assets/images/branded/lassi-lounge/admin_icon_fg.png"

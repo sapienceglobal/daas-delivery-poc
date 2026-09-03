@@ -1065,29 +1065,41 @@ class _PosScreenState extends State<PosScreen> {
                   ),
                   const SizedBox(height: 24),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF3F4F6), foregroundColor: Colors.black),
-                        onPressed: () {
-                          Clipboard.setData(ClipboardData(text: paymentUrl));
-                          ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Link Copied!')));
-                        },
-                        icon: const Icon(Icons.copy, size: 16),
-                        label: const Text('Copy'),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF3F4F6), 
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                          ),
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: paymentUrl));
+                            ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Link Copied!')));
+                          },
+                          icon: const Icon(Icons.copy, size: 16),
+                          label: const Text('Copy', overflow: TextOverflow.ellipsis, maxLines: 1),
+                        ),
                       ),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.white),
-                        onPressed: () async {
-                          final url = Uri.parse('https://wa.me/?text=${Uri.encodeComponent("Please pay for your order here: $paymentUrl")}');
-                          if (await canLaunchUrl(url)) {
-                            await launchUrl(url, mode: LaunchMode.externalApplication);
-                          } else {
-                            ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp')));
-                          }
-                        },
-                        icon: const Icon(Icons.chat, size: 16),
-                        label: const Text('WhatsApp'),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF25D366), 
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                          ),
+                          onPressed: () async {
+                            final url = Uri.parse('https://wa.me/?text=${Uri.encodeComponent("Please pay for your order here: $paymentUrl")}');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            } else {
+                              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp')));
+                            }
+                          },
+                          icon: const Icon(Icons.chat, size: 16),
+                          label: const Text('WhatsApp', overflow: TextOverflow.ellipsis, maxLines: 1),
+                        ),
                       ),
                     ],
                   ),

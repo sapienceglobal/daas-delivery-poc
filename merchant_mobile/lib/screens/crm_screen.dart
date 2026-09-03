@@ -415,77 +415,81 @@ class _CrmScreenState extends State<CrmScreen> {
         child: Stack(
           children: [
             Column(
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                color: Colors.white,
-                child: Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 16,
-                  runSpacing: 16,
+              children: [
+                Expanded(
+              child: SingleChildScrollView(
+                child: Column(
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Customers',
-                          style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Manage your customer base, send promos, and view insights.',
-                          style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
-                        ),
-                      ],
+                    // Header
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      color: Colors.white,
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Customers',
+                                style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Manage your customer base, send promos, and view insights.',
+                                style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+                              ),
+                            ],
+                          ),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: _exportToCsv,
+                                icon: const Icon(Icons.download, size: 18),
+                                label: const Text('Export'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.grey.shade700,
+                                  elevation: 0,
+                                  side: BorderSide(color: Colors.grey.shade300),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                   final auth = context.read<AuthProvider>();
+                                   final restaurantId = auth.user?['restaurantId'];
+                                    if (restaurantId != null) {
+                                     _unfocusSearch();
+                                     CrmModals.showAddEditCustomerModal(context, restaurantId, _fetchCustomers);
+                                   }
+                                },
+                                icon: const Icon(Icons.add, size: 18),
+                                label: const Text('Add Customer'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF8B0000),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              )
+                            ],
+                          )
+                        ],
+                      ),
                     ),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: _exportToCsv,
-                          icon: const Icon(Icons.download, size: 18),
-                          label: const Text('Export'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.grey.shade700,
-                            elevation: 0,
-                            side: BorderSide(color: Colors.grey.shade300),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                             final auth = context.read<AuthProvider>();
-                             final restaurantId = auth.user?['restaurantId'];
-                              if (restaurantId != null) {
-                               _unfocusSearch();
-                               CrmModals.showAddEditCustomerModal(context, restaurantId, _fetchCustomers);
-                             }
-                          },
-                          icon: const Icon(Icons.add, size: 18),
-                          label: const Text('Add Customer'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF8B0000),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                        )
-                      ],
-                    )
-                  ],
-                ),
-              ),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
-                  child: Column(
-                    children: [
-                      // Stats
+                    
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
+                      child: Column(
+                        children: [
+                          // Stats
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         physics: const BouncingScrollPhysics(),
@@ -770,9 +774,12 @@ class _CrmScreenState extends State<CrmScreen> {
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+        ),
+      ],
+    ),
 
           // Floating Bulk Action Bar
           if (_selectedCustomerIds.isNotEmpty)

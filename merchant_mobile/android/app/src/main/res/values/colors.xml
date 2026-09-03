@@ -1,1 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?><resources><color name="notification_color">#DC2626</color></resources>
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="notification_color">#DC2626</color>
+    <color name="ic_launcher_background">#111827</color>
+</resources>

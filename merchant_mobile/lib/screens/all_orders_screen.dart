@@ -366,17 +366,6 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                                 ],
                               ),
                             ),
-                            ElevatedButton(
-                              onPressed: () => context.push('/pos'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFDC2626),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.all(12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                minimumSize: Size.zero,
-                              ),
-                              child: const Icon(Icons.add, size: 24),
-                            ),
                           ],
                         ),
                         const SizedBox(height: 24),

@@ -1467,16 +1467,9 @@ function POSContent() {
             specialInstructions: item.specialInstructions || undefined
           })),
           orderType: orderType === 'takeout' ? 'pickup' : (orderType === 'delivery' ? 'delivery' : 'dine_in'),
-          address: orderType === 'delivery'
-            ? {
-                street: savedCustomerDetails.addressLine1,
-                city: savedCustomerDetails.city,
-                state: savedCustomerDetails.addressState,
-                zip: savedCustomerDetails.zipCode,
-                lat: savedCustomerDetails.addressLat,
-                lng: savedCustomerDetails.addressLng
-              }
-            : undefined,
+          address: orderType === 'delivery' ? `${savedCustomerDetails.addressLine1}${savedCustomerDetails.addressLine2 ? ', ' + savedCustomerDetails.addressLine2 : ''}, ${savedCustomerDetails.city}, ${savedCustomerDetails.addressState} ${savedCustomerDetails.zipCode}` : undefined,
+          addressLat: orderType === 'delivery' ? savedCustomerDetails.addressLat : undefined,
+          addressLng: orderType === 'delivery' ? savedCustomerDetails.addressLng : undefined,
           deliveryQuote: savedCustomerDetails.deliveryQuote || undefined,
           couponCode: couponCode.trim() || undefined,
           customerName: savedCustomerDetails.customerName.trim() || undefined,
