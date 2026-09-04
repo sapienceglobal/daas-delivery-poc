@@ -1090,7 +1090,20 @@ class _PosScreenState extends State<PosScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                           ),
                           onPressed: () async {
-                            final url = Uri.parse('https://wa.me/?text=${Uri.encodeComponent("Please pay for your order here: $paymentUrl")}');
+                            final message = 'Hi! Please complete your payment for your order here:\n$paymentUrl';
+                            final rawPhone = _fullPhoneNumber.trim();
+                            String waUrl;
+                            if (rawPhone.isNotEmpty) {
+                              // Strip everything except digits for international format
+                              final digits = rawPhone.replaceAll(RegExp(r'[^\d]'), '');
+                              // If 10 digits (US without country code), prepend 1
+                              final intlPhone = digits.length == 10 ? '1$digits' : digits;
+                              waUrl = 'https://wa.me/$intlPhone?text=${Uri.encodeComponent(message)}';
+                            } else {
+                              waUrl = 'https://wa.me/?text=${Uri.encodeComponent(message)}';
+                              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('No customer phone. WhatsApp opened for manual selection.')));
+                            }
+                            final url = Uri.parse(waUrl);
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url, mode: LaunchMode.externalApplication);
                             } else {

@@ -1088,7 +1088,20 @@ function POSContent() {
               <button
                 className="w-full py-2 text-[#25D366] border border-[#25D366] rounded-lg font-bold hover:bg-[#25D366]/10 transition-colors text-[13px]"
                 onClick={() => {
-                  window.open(`https://wa.me/?text=${encodeURIComponent(`Please pay for your order here: ${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`)}`, '_blank');
+                  const payUrl = `${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`;
+                  const message = `Hi! Please complete your payment of your order here:\n${payUrl}`;
+                  const rawPhone = savedCustomerDetails.customerPhone?.trim();
+                  if (rawPhone) {
+                    // Strip everything except digits, ensure international format
+                    const digits = rawPhone.replace(/[^\d]/g, '');
+                    // If it starts with 0, assume US and prepend 1; if already has country code, use as-is
+                    const intlPhone = digits.startsWith('0') ? '1' + digits.slice(1) : (digits.length === 10 ? '1' + digits : digits);
+                    window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`, '_blank');
+                  } else {
+                    // No phone — open generic WhatsApp share
+                    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                    showToast('No customer phone saved. WhatsApp opened for manual selection.', 'info');
+                  }
                 }}
               >
                 WhatsApp

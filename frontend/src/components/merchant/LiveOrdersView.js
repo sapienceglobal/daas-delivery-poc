@@ -402,7 +402,17 @@ export default function LiveOrdersView({
                   <button
                     className="w-full py-2 text-[#25D366] border border-[#25D366] rounded-lg font-bold hover:bg-[#25D366]/10 transition-colors text-[13px]"
                     onClick={() => {
-                      window.open(`https://wa.me/?text=${encodeURIComponent(`Please pay for your order here: ${window.location.origin}/api/orders/${qrModalOrder._id}/pay`)}`, '_blank');
+                      const payUrl = `${window.location.origin}/api/orders/${qrModalOrder._id}/pay`;
+                      const message = `Hi${qrModalOrder.customerName ? ' ' + qrModalOrder.customerName : ''}! Please complete your payment of your order #${qrModalOrder._id.slice(-6).toUpperCase()} here:\n${payUrl}`;
+                      const rawPhone = qrModalOrder.customerPhone?.trim();
+                      if (rawPhone) {
+                        const digits = rawPhone.replace(/[^\d]/g, '');
+                        const intlPhone = digits.startsWith('0') ? '1' + digits.slice(1) : (digits.length === 10 ? '1' + digits : digits);
+                        window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`, '_blank');
+                      } else {
+                        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                        alert('No customer phone on this order. WhatsApp opened for manual selection.');
+                      }
                     }}
                   >
                     WhatsApp

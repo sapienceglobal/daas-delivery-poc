@@ -122,7 +122,7 @@ class MoreSettingsScreen extends StatelessWidget {
                       _buildGridItem(context, 'Reports & Analytics', Icons.analytics, const Color(0xFF10B981), const Color(0xFFECFDF5)),
                       _buildGridItem(context, 'Loyalty Rewards', Icons.card_giftcard, const Color(0xFFF59E0B), const Color(0xFFFFFBEB)),
                       _buildGridItem(context, 'Push Marketing', Icons.campaign, const Color(0xFFEC4899), const Color(0xFFFDF2F8)),
-                      _buildGridItem(context, 'Customers & CRM', Icons.people_alt, const Color(0xFF8B5CF6), const Color(0xFFF5F3FF)),
+                      _buildGridItem(context, 'Customers & CRM', Icons.people_alt, const Color(0xFF8B5CF6), const Color(0xFFF5F3FF), onTap: () => context.push('/crm')),
                       _buildGridItem(context, 'System Logs', Icons.receipt_long, const Color(0xFF64748B), const Color(0xFFF8FAFC)),
                       _buildGridItem(context, 'Support Messages', Icons.forum, const Color(0xFFF43F5E), const Color(0xFFFFF1F2)),
                     ],
@@ -138,9 +138,9 @@ class MoreSettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGridItem(BuildContext context, String title, IconData icon, Color color, Color bgColor) {
+  Widget _buildGridItem(BuildContext context, String title, IconData icon, Color color, Color bgColor, {VoidCallback? onTap}) {
     return GestureDetector(
-      onTap: () => _showAdminOnlyDialog(context, title),
+      onTap: onTap ?? () => _showAdminOnlyDialog(context, title),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(

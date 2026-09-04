@@ -179,7 +179,7 @@ router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
   }
 
   // Trigger customer push notification if status progressed
-  if (oldStatus !== newStatus && order.userId) {
+  if (oldStatus !== newStatus && order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
     try {
       await createNotification(
         order.userId,

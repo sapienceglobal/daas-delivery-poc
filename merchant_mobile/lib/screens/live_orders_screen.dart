@@ -222,12 +222,13 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
     );
   }
 
-  void _showPaymentModal(String paymentUrl, DateTime createdAt) {
+  void _showPaymentModal(String paymentUrl, DateTime createdAt, {String? customerPhone}) {
     showDialog(
       context: context,
       builder: (ctx) => _PaymentModalContent(
         paymentUrl: paymentUrl,
         createdAt: createdAt,
+        customerPhone: customerPhone,
       ),
     );
   }
@@ -431,10 +432,10 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    final url = '${ApiService.baseUrl}/api/orders/${order.id}/pay';
-                    _showPaymentModal(url, order.createdAt);
-                  },
+                    onPressed: () {
+                      final url = '${ApiService.baseUrl}/api/orders/${order.id}/pay';
+                      _showPaymentModal(url, order.createdAt, customerPhone: order.customerPhone);
+                    },
                   icon: const Icon(Icons.qr_code, size: 16, color: Colors.black87),
                   label: Text('Show QR Code', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black87)),
                   style: OutlinedButton.styleFrom(
@@ -632,8 +633,9 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
 class _PaymentModalContent extends StatefulWidget {
   final String paymentUrl;
   final DateTime createdAt;
+  final String? customerPhone;
 
-  const _PaymentModalContent({Key? key, required this.paymentUrl, required this.createdAt}) : super(key: key);
+  const _PaymentModalContent({Key? key, required this.paymentUrl, required this.createdAt, this.customerPhone}) : super(key: key);
 
   @override
   State<_PaymentModalContent> createState() => _PaymentModalContentState();
@@ -719,7 +721,18 @@ class _PaymentModalContentState extends State<_PaymentModalContent> {
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.white),
                     onPressed: () async {
-                      final url = Uri.parse('https://wa.me/?text=${Uri.encodeComponent("Please pay for your order here: ${widget.paymentUrl}")}');
+                      final message = 'Hi! Please complete your payment for your order here:\n${widget.paymentUrl}';
+                      final rawPhone = widget.customerPhone?.trim() ?? '';
+                      String waUrl;
+                      if (rawPhone.isNotEmpty && rawPhone != 'N/A') {
+                        final digits = rawPhone.replaceAll(RegExp(r'[^\d]'), '');
+                        final intlPhone = digits.length == 10 ? '1$digits' : digits;
+                        waUrl = 'https://wa.me/$intlPhone?text=${Uri.encodeComponent(message)}';
+                      } else {
+                        waUrl = 'https://wa.me/?text=${Uri.encodeComponent(message)}';
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No customer phone. WhatsApp opened for manual selection.')));
+                      }
+                      final url = Uri.parse(waUrl);
                       if (await canLaunchUrl(url)) {
                         await launchUrl(url, mode: LaunchMode.externalApplication);
                       } else {

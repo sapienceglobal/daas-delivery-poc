@@ -663,10 +663,10 @@ export const createOrder = asyncHandler(async (req, response) => {
       scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
       stripePaymentIntentId: finalStripePaymentIntentId || null,
       deliveryProvider: deliveryQuote.quote?.provider || 'doordash',
-      status: (paymentMethod === 'payment_link' || !restaurant.autoAcceptOrders) ? 'pending' : 'accepted',
+      status: (paymentMethod === 'payment_link' || (!restaurant.autoAcceptOrders && !['merchant_app', 'merchant_web', 'pos'].includes(platform))) ? 'pending' : 'accepted',
       statusUpdates: [
         { status: 'pending', description: 'Order placed', timestamp: new Date() },
-        ...((restaurant.autoAcceptOrders && paymentMethod !== 'payment_link') ? [{ status: 'accepted', description: 'Order auto-accepted by restaurant', timestamp: new Date() }] : [])
+        ...(((restaurant.autoAcceptOrders || ['merchant_app', 'merchant_web', 'pos'].includes(platform)) && paymentMethod !== 'payment_link') ? [{ status: 'accepted', description: 'Order accepted by merchant', timestamp: new Date() }] : [])
       ]
     });
 
@@ -780,7 +780,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     }
 
     // Auto-generate payment link and email it if paymentMethod is payment_link
-    if (order.paymentMethod === 'payment_link' && order.customerEmail) {
+    if (order.paymentMethod === 'payment_link') {
       try {
         const metadata = { orderId: order._id.toString() };
         if (req.user?._id) metadata.userId = req.user._id.toString();
@@ -795,10 +795,12 @@ export const createOrder = asyncHandler(async (req, response) => {
         order.paymentLinkUrl = session.url;
         order.stripeCheckoutSessionId = session.id;
 
-        // send email
-        sendPaymentLinkEmail(order.customerEmail, order, session.url).catch(err => {
-          logger.error(`Failed to send payment link email: ${err.message}`);
-        });
+        // send email if customer email exists
+        if (order.customerEmail) {
+          sendPaymentLinkEmail(order.customerEmail, order, session.url).catch(err => {
+            logger.error(`Failed to send payment link email: ${err.message}`);
+          });
+        }
       } catch (err) {
         logger.error(`Failed to generate payment link during order creation: ${err.message}`);
       }
@@ -860,6 +862,10 @@ export const createOrder = asyncHandler(async (req, response) => {
       } catch (notifErr) {
         console.error('Error sending background notifications:', notifErr);
       }
+    }
+
+    if (order.status === 'accepted') {
+      createShipdayDeliveryForOrder(order).catch(err => logger.error('Shipday background error during createOrder', err));
     }
 
     res.created(response, { data: order });
@@ -1333,7 +1339,7 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
     io.to(`order_${order._id}`).emit('order_status_changed', payload);
   }
 
-  if (order.userId) {
+  if (order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
     await createNotification(
       order.userId,
       `Order ${status}`,
@@ -1373,7 +1379,7 @@ export const acceptOrder = asyncHandler(async (req, response) => {
     io.to(`order_${order._id}`).emit('order_status_changed', payload);
   }
 
-  if (order.userId) {
+  if (order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
     await createNotification(
       order.userId,
       'Order Accepted',
@@ -1439,7 +1445,7 @@ export const rejectOrder = asyncHandler(async (req, response) => {
     io.to(`order_${order._id}`).emit('order_status_changed', payload);
   }
 
-  if (order.userId) {
+  if (order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
     await createNotification(
       order.userId,
       'Order Cancelled',
@@ -1537,7 +1543,7 @@ export const refundOrder = asyncHandler(async (req, response) => {
   }
 
   // send Notification
-  if (order.userId) {
+  if (order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
     const io = req.app.get('io');
     await createNotification(
       order.userId,

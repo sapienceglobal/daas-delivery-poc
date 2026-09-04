@@ -98,7 +98,7 @@ export const initCronJobs = (io, getModel) => {
             io.to(`order_${order._id}`).emit('order_status_changed', payload);
           }
 
-          if (order.userId) {
+          if (order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
             await createNotification(
               order.userId,
               'Order Delivered',
@@ -180,7 +180,7 @@ const processAutoCancel = async (order, internalReason, customerMessage, io, get
     }
 
     // notify Customer
-    if (order.userId) {
+    if (order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
       await createNotification(
         order.userId,
         'Order Auto-Cancelled',
