@@ -56,7 +56,7 @@ class PushNotificationService {
     }
 
     // You need an icon named @mipmap/ic_launcher or a custom drawable
-    const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@drawable/ic_notification');
     const DarwinInitializationSettings iosInit = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -114,13 +114,19 @@ class PushNotificationService {
     }
   }
 
-  Future<void> _showRichNotification(RemoteMessage message) async {
-    final notification = message.notification;
-    final data = message.data;
+  // Exposed globally so the background handler in main.dart can call it
+  static Future<void> showRichNotificationFromData(Map<String, dynamic> data) async {
+    final FlutterLocalNotificationsPlugin localNotifications = FlutterLocalNotificationsPlugin();
+    
+    // Ensure channel exists
+    final androidImplementation = localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (androidImplementation != null) {
+      await androidImplementation.createNotificationChannel(_channel);
+    }
 
-    final String title = notification?.title ?? data['title'] ?? 'New Order!';
-    final String body = notification?.body ?? data['body'] ?? '';
-    final String? imageUrl = notification?.android?.imageUrl ?? data['image'];
+    final String title = data['title'] ?? 'New Order!';
+    final String body = data['body'] ?? '';
+    final String? imageUrl = data['image'];
 
     ByteArrayAndroidBitmap? largeIconBitmap;
     StyleInformation styleInformation = BigTextStyleInformation(
@@ -131,26 +137,31 @@ class PushNotificationService {
     );
 
     if (imageUrl != null && imageUrl.isNotEmpty) {
-      final imageBytes = await _downloadImage(imageUrl);
-      if (imageBytes != null) {
-        largeIconBitmap = ByteArrayAndroidBitmap(imageBytes);
-        styleInformation = BigPictureStyleInformation(
-          ByteArrayAndroidBitmap(imageBytes),
-          largeIcon: ByteArrayAndroidBitmap(imageBytes),
-          contentTitle: '<b>$title</b>',
-          htmlFormatContentTitle: true,
-          summaryText: body,
-          htmlFormatSummaryText: true,
-        );
+      try {
+        final response = await http.get(Uri.parse(imageUrl));
+        if (response.statusCode == 200) {
+          final imageBytes = response.bodyBytes;
+          largeIconBitmap = ByteArrayAndroidBitmap(imageBytes);
+          styleInformation = BigPictureStyleInformation(
+            ByteArrayAndroidBitmap(imageBytes),
+            largeIcon: ByteArrayAndroidBitmap(imageBytes),
+            contentTitle: '<b>$title</b>',
+            htmlFormatContentTitle: true,
+            summaryText: body,
+            htmlFormatSummaryText: true,
+          );
+        }
+      } catch (e) {
+        debugPrint('Error downloading background image: $e');
       }
     }
 
-    int notificationId = message.hashCode;
+    int notificationId = data.hashCode;
     if (data['orderId'] != null) {
       notificationId = data['orderId'].hashCode;
     }
 
-    await _localNotifications.show(
+    await localNotifications.show(
       id: notificationId,
       title: title,
       body: body,
@@ -159,7 +170,7 @@ class PushNotificationService {
           _channel.id,
           _channel.name,
           channelDescription: _channel.description,
-          icon: '@mipmap/ic_launcher',
+          icon: '@drawable/ic_notification',
           largeIcon: largeIconBitmap,
           color: const Color(0xFFDC2626), 
           styleInformation: styleInformation,
@@ -168,13 +179,9 @@ class PushNotificationService {
           playSound: true,
           sound: const RawResourceAndroidNotificationSound('new_order_sound'),
           fullScreenIntent: true,
-          additionalFlags: Int32List.fromList(<int>[4]), // FLAG_INSISTENT (loops sound until dismissed)
+          additionalFlags: Int32List.fromList(<int>[4]), // FLAG_INSISTENT
           actions: <AndroidNotificationAction>[
-            const AndroidNotificationAction(
-              'view_order',
-              'View Order',
-              showsUserInterface: true,
-            ),
+            const AndroidNotificationAction('view_order', 'View Order', showsUserInterface: true),
           ],
         ),
         iOS: const DarwinNotificationDetails(
@@ -186,6 +193,23 @@ class PushNotificationService {
       ),
       payload: jsonEncode(data),
     );
+  }
+
+  Future<void> _showRichNotification(RemoteMessage message) async {
+    final notification = message.notification;
+    final data = message.data;
+
+    // Merge notification into data so we can reuse the logic
+    final mergedData = Map<String, dynamic>.from(data);
+    if (notification != null) {
+      mergedData['title'] = notification.title ?? mergedData['title'];
+      mergedData['body'] = notification.body ?? mergedData['body'];
+      if (notification.android?.imageUrl != null) {
+        mergedData['image'] = notification.android?.imageUrl;
+      }
+    }
+
+    await showRichNotificationFromData(mergedData);
   }
 
   Future<Uint8List?> _downloadImage(String url) async {

@@ -937,13 +937,12 @@ class QuickActionsGrid extends StatelessWidget {
           mainAxisSpacing: 12,
           childAspectRatio: 1.05, // Adjusted to make them slightly wider than square
           children: [
-            _buildAction(context, Icons.restaurant_menu, 'Manage Menu', const Color(0xFFF97316), '/menu-management'),
-            _buildAction(context, Icons.calendar_today, 'Table Reservation', const Color(0xFF8B5CF6), '/reservations'),
+            _buildAction(context, Icons.room_service_outlined, 'All Orders', const Color(0xFF22C55E), '/all-orders'),
+            _buildAction(context, Icons.calendar_month_outlined, 'Catering', const Color(0xFFA855F7), '/catering'),
+            _buildAction(context, Icons.sell_outlined, 'Menu Management', const Color(0xFF8B5CF6), '/menu-management'),
+            _buildAction(context, Icons.discount_outlined, 'Promotions', const Color(0xFF3B82F6), '/promotions'),
+            _buildAction(context, Icons.people_alt_outlined, 'Customers & CRM', const Color(0xFFEC4899), '/crm'),
             _buildAction(context, Icons.point_of_sale, 'Point of Sale', const Color(0xFF10B981), '/pos'),
-            _buildAction(context, Icons.local_offer, 'Create Coupon', const Color(0xFFDC2626), '/promotions'),
-            _buildAction(context, Icons.people_alt, 'Customers & CRM', const Color(0xFFEC4899), '/crm'),
-            _buildAction(context, Icons.bar_chart, 'View Reports', const Color(0xFF3B82F6), null, websiteOnly: true),
-            _buildAction(context, Icons.settings, 'Settings', const Color(0xFF6B7280), null, websiteOnly: true),
           ],
         ),
       ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../constants/app_colors.dart';
 import '../providers/auth_provider.dart';
@@ -177,6 +178,21 @@ class AppDrawer extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             child: Column(
               children: [
+                FutureBuilder<PackageInfo>(
+                  future: PackageInfo.fromPlatform(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Text(
+                          'Version ${snapshot.data!.version}',
+                          style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
                 _buildDrawerItem(
                   icon: Icons.logout,
                   title: 'Logout',

@@ -7,8 +7,8 @@ class ApiService {
   // Use the same fallback IP or a defined environment variable
   static const String _configuredBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://api.lassiloungeny.com',
-    // defaultValue: 'http://192.168.1.7:5001',
+    // defaultValue: 'https://api.lassiloungeny.com',
+    defaultValue: 'http://192.168.1.7:5001',
   );
   
   static const Duration _requestTimeout = Duration(seconds: 20);

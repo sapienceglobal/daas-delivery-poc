@@ -44,6 +44,11 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   debugPrint("Handling a background message: ${message.messageId}");
+  
+  // Natively trigger our insistent looping notification if it's a data-only message (or any background message we intercept)
+  if (message.data['type'] == 'new_order') {
+    await PushNotificationService.showRichNotificationFromData(message.data);
+  }
 }
 
 void main() async {
