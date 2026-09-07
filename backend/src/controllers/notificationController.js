@@ -116,30 +116,41 @@ export const createNotification = async (userId, title, body, type = 'system', a
 
         const isMerchantUser = ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'].includes(user.role);
 
+        const isNewOrder = type === 'new_order';
+        const soundName = (isMerchantUser && isNewOrder) ? 'new_order_sound' : 'default';
+        const channelIdName = isMerchantUser ? 'merchant_orders_channel_v3' : 'high_importance_channel';
+
         const message = {
-          notification: {
-            title,
-            body,
-            ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),
-          },
-          android: {
             notification: {
-              color: '#006778',
-              ...(!isMerchantUser && { icon: 'ic_notification' }), // Only apply for customer apps
-              channelId: 'high_importance_channel',
-              sound: 'default',
+              title,
+              body,
               ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),
-            }
-          },
-          data: {
-            type,
-            actionUrl: actionUrl || '',
-            ...(optimizedImageUrl && { image: optimizedImageUrl }),
-            ...(actionUrl && actionUrl.startsWith('/orders/') && { orderId: actionUrl.split('/').pop() }),
-            ...extraData
-          },
-          tokens: user.fcmTokens
-        };
+            },
+            android: {
+              notification: {
+                color: '#006778',
+                ...(!isMerchantUser && { icon: 'ic_notification' }), // Only apply for customer apps
+                channelId: channelIdName,
+                sound: soundName,
+                ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),
+              }
+            },
+            apns: {
+              payload: {
+                aps: {
+                  sound: soundName === 'default' ? 'default' : `${soundName}.wav`
+                }
+              }
+            },
+            data: {
+              type,
+              actionUrl: actionUrl || '',
+              ...(optimizedImageUrl && { image: optimizedImageUrl }),
+              ...(actionUrl && actionUrl.startsWith('/orders/') && { orderId: actionUrl.split('/').pop() }),
+              ...extraData
+            },
+            tokens: user.fcmTokens
+          };
         
         const { getMessaging } = await import('firebase-admin/messaging');
         getMessaging(firebaseApp).sendEachForMulticast(message)

@@ -29,11 +29,12 @@ class PushNotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
-    'merchant_orders_channel_v2',
+    'merchant_orders_channel_v3', // Changed channel ID to register new settings
     'New Orders & Updates',
     description: 'Rich notifications for new orders and merchant updates.',
     importance: Importance.max,
     playSound: true,
+    sound: RawResourceAndroidNotificationSound('new_order_sound'),
     enableVibration: true,
   );
 
@@ -165,11 +166,22 @@ class PushNotificationService {
           importance: Importance.max,
           priority: Priority.high,
           playSound: true,
+          sound: const RawResourceAndroidNotificationSound('new_order_sound'),
+          fullScreenIntent: true,
+          additionalFlags: Int32List.fromList(<int>[4]), // FLAG_INSISTENT (loops sound until dismissed)
+          actions: <AndroidNotificationAction>[
+            const AndroidNotificationAction(
+              'view_order',
+              'View Order',
+              showsUserInterface: true,
+            ),
+          ],
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
           presentBadge: true,
           presentSound: true,
+          sound: 'new_order_sound.wav',
         ),
       ),
       payload: jsonEncode(data),
