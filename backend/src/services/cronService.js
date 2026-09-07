@@ -79,6 +79,7 @@ export const initCronJobs = (io, getModel) => {
       // --- Rule 3: Delivery Neglect (4 hours) ---
       const staleDeliveryOrders = await Order.find({
         status: 'picked_up',
+        orderType: { $nin: ['pickup', 'dine-in', 'dine_in'] },
         updatedAt: { $lt: deliveryCutoff }
       });
 

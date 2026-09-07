@@ -52,31 +52,31 @@ export default function OrderStatusCard({ order }) {
           id: 'received',
           label: 'Order Received',
           desc: "We've received your order and payment.",
-          statuses: ['pending', 'accepted', 'preparing', 'ready', 'delivered'],
+          statuses: ['pending', 'accepted', 'preparing', 'ready', 'picked_up'],
         },
         {
           id: 'accepted',
           label: 'Order Accepted',
           desc: 'Restaurant has accepted your order.',
-          statuses: ['accepted', 'preparing', 'ready', 'delivered'],
+          statuses: ['accepted', 'preparing', 'ready', 'picked_up'],
         },
         {
           id: 'preparing',
           label: 'Preparing Your Order',
           desc: 'Our chef is preparing your delicious food.',
-          statuses: ['preparing', 'ready', 'delivered'],
+          statuses: ['preparing', 'ready', 'picked_up'],
         },
         {
           id: 'ready',
           label: order.orderType === 'dine_in' ? 'Served to Table' : 'Ready for Pickup',
           desc: order.orderType === 'dine_in' ? 'Your food is ready and being served.' : 'Your order is ready to be collected.',
-          statuses: ['ready', 'delivered'],
+          statuses: ['ready', 'picked_up'],
         },
         {
-          id: 'delivered',
+          id: 'picked_up',
           label: order.orderType === 'dine_in' ? 'Completed' : 'Collected',
           desc: 'We hope you enjoy your meal!',
-          statuses: ['delivered'],
+          statuses: ['picked_up'],
         },
       ];
 
@@ -96,7 +96,7 @@ export default function OrderStatusCard({ order }) {
         accepted: 1,
         preparing: 2,
         ready: 3,
-        delivered: 4,
+        picked_up: 4,
         cancelled: -1,
       };
 

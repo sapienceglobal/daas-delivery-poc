@@ -19,9 +19,12 @@ export const getDishImage = (itemName = '') => {
 export const isOngoingStatus = (status) => 
   ['pending', 'accepted', 'preparing', 'ready', 'picked_up', 'out_for_delivery'].includes(status);
 
-export const getStatusMeta = (status) => {
+export const getStatusMeta = (status, orderType = 'delivery') => {
   if (status === 'delivered') return { label: 'Delivered', icon: PackageCheck, className: 'bg-[#dff4df] text-[#2f8a42]' };
   if (status === 'cancelled') return { label: 'Cancelled', icon: XCircle, className: 'bg-[#ffe4ea] text-[#b4233a]' };
+  if (status === 'picked_up' && (orderType === 'pickup' || orderType === 'dine_in' || orderType === 'dine-in')) {
+    return { label: 'Collected', icon: PackageCheck, className: 'bg-[#dff4df] text-[#2f8a42]' };
+  }
   if (status === 'picked_up' || status === 'out_for_delivery') return { label: 'Out for Delivery', icon: Truck, className: 'bg-[#fff2d8] text-[#c27611]' };
   return { label: 'Preparing', icon: UtensilsCrossed, className: 'bg-[#fff2d8] text-[#c27611]' };
 };

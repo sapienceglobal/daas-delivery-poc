@@ -68,6 +68,9 @@ const getStatusMeta = (order) => {
   if (status === 'cancelled') {
     return { label: 'Cancelled', icon: XCircle, className: 'bg-[#ffe4ea] text-[#b4233a]' };
   }
+  if (status === 'picked_up' && (order?.orderType === 'pickup' || order?.orderType === 'dine_in' || order?.orderType === 'dine-in')) {
+    return { label: 'Collected', icon: PackageCheck, className: 'bg-[#dff4df] text-[#2f8a42]' };
+  }
   if (status === 'picked_up' || status === 'out_for_delivery') {
     return { label: 'Out for Delivery', icon: Truck, className: 'bg-[#fff2d8] text-[#c27611]' };
   }

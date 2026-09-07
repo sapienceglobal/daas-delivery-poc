@@ -419,6 +419,93 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // Auto-Refund Alerts
+                if (order.status.toLowerCase() == 'failed' && !order.hasAutoRefund)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      border: Border.all(color: Colors.red.shade200),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Order Failed — Payment may need manual review', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.red.shade900)),
+                              Text('Check the Order Journey below for details.', style: GoogleFonts.inter(fontSize: 12, color: Colors.red.shade700)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                if (order.hasAutoRefund)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: order.autoRefundFailed ? Colors.red.shade50 : 
+                             order.autoRefundSkipped ? Colors.grey.shade50 :
+                             order.autoRefundSucceeded ? Colors.amber.shade50 : Colors.blue.shade50,
+                      border: Border.all(color: order.autoRefundFailed ? Colors.red.shade200 : 
+                             order.autoRefundSkipped ? Colors.grey.shade300 :
+                             order.autoRefundSucceeded ? Colors.amber.shade200 : Colors.blue.shade200),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          order.autoRefundFailed ? Icons.gpp_bad :
+                          order.autoRefundSkipped ? Icons.settings :
+                          order.autoRefundSucceeded ? Icons.bolt : Icons.info_outline,
+                          color: order.autoRefundFailed ? Colors.red :
+                          order.autoRefundSkipped ? Colors.grey.shade700 :
+                          order.autoRefundSucceeded ? Colors.amber.shade900 : Colors.blue,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                order.autoRefundFailed ? '⚠️ Auto-Refund Failed — Manual action required' :
+                                order.autoRefundSkipped ? 'Auto-Refund Disabled in Settings' :
+                                order.autoRefundSucceeded ? '⚡ Auto-Refund Processed — \$${order.refundAmount > 0 ? order.refundAmount.toStringAsFixed(2) : order.total.toStringAsFixed(2)} was returned' : '🔄 Auto-Refund Initiated — Processing...',
+                                style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: order.autoRefundFailed ? Colors.red.shade900 :
+                                order.autoRefundSkipped ? Colors.grey.shade800 :
+                                order.autoRefundSucceeded ? Colors.amber.shade900 : Colors.blue.shade900),
+                              ),
+                              if (order.refundReason != null && !order.autoRefundSkipped)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text('Reason: ${order.refundReason!.replaceAll('_', ' ')}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: order.autoRefundFailed ? Colors.red.shade700 : order.autoRefundSucceeded ? Colors.amber.shade900 : Colors.blue.shade700)),
+                                ),
+                              if (order.autoRefundFailed)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text('Contact Stripe dashboard or initiate a manual refund below.', style: GoogleFonts.inter(fontSize: 12, color: Colors.red.shade700)),
+                                ),
+                              if (order.autoRefundSkipped)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text('You have turned off automatic refunds. Please initiate a manual refund below if required.', style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade700)),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // Customer Details Card
                 _buildSectionHeader('Customer Details'),
                 Card(

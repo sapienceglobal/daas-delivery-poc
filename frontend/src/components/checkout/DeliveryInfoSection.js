@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Package, MapPin, Navigation, Store, Check, Loader2 } from 'lucide-react';
+import { isRestaurantOpenNow } from '@/lib/formatters';
 import AddressModal from '@/components/shared/AddressModal';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
@@ -414,8 +415,9 @@ export default function DeliveryInfoSection({
               const timeDisplay = isClosed 
                 ? 'Closed Today' 
                 : (todayHours?.open && todayHours?.close ? `${formatTime(todayHours.open)} - ${formatTime(todayHours.close)}` : 'Hours unavailable');
-              const statusDisplay = isClosed ? 'Closed' : 'Open Now';
-              const statusColor = isClosed ? 'text-[#d0150f]' : 'text-[#1fae64]';
+              const isOpenNow = isRestaurantOpenNow(restaurant.operatingHours, restaurant.timezone);
+              const statusDisplay = isOpenNow ? 'Open Now' : 'Closed';
+              const statusColor = isOpenNow ? 'text-[#1fae64]' : 'text-[#d0150f]';
 
               return (
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 border border-[#f5ebe9] bg-[#fffcfb] rounded-xl mt-6">

@@ -7,7 +7,7 @@ import { getStatusMeta, formatOrderId, formatDate, getDishImage } from '../../pr
 
 export default function OrderDetailsModal({ order, onClose, onReorder }) {
   const router = useRouter();
-  const statusMeta = getStatusMeta(order.status);
+  const statusMeta = getStatusMeta(order.status, order.orderType);
   const StatusIcon = statusMeta.icon;
   const stamp = formatDate(order.createdAt);
 

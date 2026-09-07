@@ -13,6 +13,8 @@ const formatTime = (timeStr) => {
   return `${h}:${minutes} ${ampm}`;
 };
 
+import { getCurrentDayIndex, getTimezoneAbbr, isRestaurantOpenNow } from '@/lib/formatters';
+
 // subtract minutes from 24h format (HH:mm)
 const subtractMinutes = (timeStr, mins) => {
   if (!timeStr || typeof timeStr !== 'string') return timeStr;
@@ -53,10 +55,13 @@ export default function HoursModal({ isOpen, onClose, brand }) {
 
   if (!isMounted) return null;
 
+  // get timezone abbr
+  const tzAbbr = getTimezoneAbbr(brand?.timezone);
+
   // generate 7-day schedule starting from TODAY
   const generateDynamicHours = (closeOffsetMinutes = 0) => {
     const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const todayIndex = new Date().getDay(); 
+    const todayIndex = getCurrentDayIndex(brand?.timezone); 
     
     const orderedDays = [
       ...daysOfWeek.slice(todayIndex),
@@ -69,10 +74,10 @@ export default function HoursModal({ isOpen, onClose, brand }) {
       
       if (dbDay && !dbDay.isClosed && dbDay.open && dbDay.close) {
         const closingTime = closeOffsetMinutes > 0 ? subtractMinutes(dbDay.close, closeOffsetMinutes) : dbDay.close;
-        timeStr = `${dbDay.open} - ${closingTime}`; 
+        timeStr = `${formatTime(dbDay.open)} - ${formatTime(closingTime)} ${tzAbbr}`; 
       } else if (!brand?.operatingHours) {
         const closingTime = closeOffsetMinutes > 0 ? subtractMinutes('22:00', closeOffsetMinutes) : '22:00';
-        timeStr = `11:30 - ${closingTime}`;
+        timeStr = `11:30 AM - ${formatTime(closingTime)} ${tzAbbr}`;
       }
 
       const dayName = day.charAt(0).toUpperCase() + day.slice(1);
@@ -124,11 +129,15 @@ export default function HoursModal({ isOpen, onClose, brand }) {
             const isExpanded = openSection === section.id;
             const secHours = section.hoursData;
             const todaySecHours = secHours[0];
-            const isSecClosed = todaySecHours.isClosed;
+            
+            // Check if currently open right now using the live time check
+            const isOpenNow = isRestaurantOpenNow(brand?.operatingHours, brand?.timezone);
+            const isSecClosed = !isOpenNow;
+            
             const secStatusText = isSecClosed ? 'Closed' : 'Open';
             const secSubText = isSecClosed 
               ? (secHours.find(d => !d.isClosed)?.time.split(' - ')[0] || 'Unknown') 
-              : 'Close at ' + todaySecHours.time.split(' - ')[1];
+              : 'Close at ' + (todaySecHours.time.split(' - ')[1] || '');
 
             return (
               <div key={section.id} className={`border-b border-[#e5e7eb] last:border-none transition-colors duration-300 ${isExpanded ? 'bg-[#eeeeee]' : 'bg-white'}`}>

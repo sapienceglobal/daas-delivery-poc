@@ -9,7 +9,7 @@ import {
 } from '../../profileUtils';
 
 export default function OrderHistoryCard({ order, onReorder, onViewDetails }) {
-  const statusMeta = getStatusMeta(order.status);
+  const statusMeta = getStatusMeta(order.status, order.orderType);
   const StatusIcon = statusMeta.icon;
   const stamp = formatDate(order.createdAt);
   const displayItems = order.items?.slice(0, 3) || [];

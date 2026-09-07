@@ -8,6 +8,7 @@ import { footerContent } from './config';
 import { useState } from 'react';
 import { useBrand } from '@/context/BrandContext';
 import HoursModal from '@/components/shared/HoursModal';
+import { getTimezoneAbbr } from '@/lib/formatters';
 
 const SOCIAL_ICONS = {
   facebook: Facebook,
@@ -52,6 +53,7 @@ export default function LassiLoungeFooter() {
 
   const getDynamicHours = () => {
     if (!brand?.operatingHours) return footerContent.hours;
+    const tzAbbr = getTimezoneAbbr(brand?.timezone);
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const formatted = [];
     let currentGroup = null;
@@ -61,7 +63,7 @@ export default function LassiLoungeFooter() {
       const hrs = brand.operatingHours[day];
 
       const timeString = !hrs?.isClosed && hrs?.open && hrs?.close
-        ? `${formatTime(hrs.open)} - ${formatTime(hrs.close)}`
+        ? `${formatTime(hrs.open)} - ${formatTime(hrs.close)} ${tzAbbr}`
         : 'Closed';
 
       if (!currentGroup) {

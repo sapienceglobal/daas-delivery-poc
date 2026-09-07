@@ -515,7 +515,6 @@ export const createOrder = asyncHandler(async (req, response) => {
     throw new AppError('Unsupported payment method for US customer checkout. Please use card, Apple Pay, or Google Pay.', 400);
   }
 
-  // accept both MongoDB ObjectId and slug (e.g. 'lassi-lounge')
   const isObjectId = /^[a-fA-F0-9]{24}$/.test(restaurantId);
   let restaurantCheck;
   if (isObjectId) {
@@ -532,6 +531,41 @@ export const createOrder = asyncHandler(async (req, response) => {
   const normalizedRestaurantId = restaurantCheck._id.toString();
   if (restaurantCheck.isActive === false) {
     throw new AppError('This restaurant is not accepting orders right now', 400);
+  }
+
+  // check if restaurant is open according to operating hours
+  const isRestaurantOpenNow = (operatingHours, timezoneStr) => {
+    if (!operatingHours) return true; // if no hours are set, assume open (or could fail-safe to false, but true is safer for migration)
+    
+    let tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (timezoneStr) {
+      if (timezoneStr.includes('Eastern Time')) tz = 'America/New_York';
+      else if (timezoneStr.includes('Pacific Time')) tz = 'America/Los_Angeles';
+      else if (timezoneStr.includes('Indian Standard Time')) tz = 'Asia/Kolkata';
+    }
+    
+    const now = new Date();
+    const dateInTz = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+    const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const todayName = daysOfWeek[dateInTz.getDay()];
+    
+    const todayHours = operatingHours[todayName];
+    if (!todayHours || todayHours.isClosed || !todayHours.open || !todayHours.close) {
+      return false;
+    }
+    
+    const currentHour = String(dateInTz.getHours()).padStart(2, '0');
+    const currentMinute = String(dateInTz.getMinutes()).padStart(2, '0');
+    const currentTime = `${currentHour}:${currentMinute}`;
+    
+    if (todayHours.close < todayHours.open) {
+      return currentTime >= todayHours.open || currentTime <= todayHours.close;
+    }
+    return currentTime >= todayHours.open && currentTime <= todayHours.close;
+  };
+
+  if (!isRestaurantOpenNow(restaurantCheck.operatingHours, restaurantCheck.timezone)) {
+    throw new AppError('The restaurant is currently closed and not accepting orders.', 400);
   }
 
   // geo-distance serviceability check for delivery orders

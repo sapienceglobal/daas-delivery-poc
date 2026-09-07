@@ -352,14 +352,25 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   };
 
   // ─── Timeline ─────────────────────────────────────────────────────────────
-  let timelineSteps = [
-    { key: 'placed',       label: 'Order Placed',        entity: 'Customer' },
-    { key: 'accepted',     label: 'Order Confirmed',      entity: 'System' },
-    { key: 'preparing',    label: 'Preparing',            entity: 'Kitchen' },
-    { key: 'ready',        label: 'Ready for Pickup',     entity: 'Kitchen' },
-    { key: 'out_for_delivery', label: 'Out for Delivery', entity: 'Rider' },
-    { key: 'delivered',    label: 'Delivered',            entity: 'Pending' }
-  ];
+  let timelineSteps = [];
+  if (['pickup', 'dine_in', 'dine-in'].includes((order.orderType || '').toLowerCase())) {
+    timelineSteps = [
+      { key: 'placed',       label: 'Order Placed',        entity: 'Customer' },
+      { key: 'accepted',     label: 'Order Confirmed',      entity: 'System' },
+      { key: 'preparing',    label: 'Preparing',            entity: 'Kitchen' },
+      { key: 'ready',        label: 'Ready for Pickup',     entity: 'Kitchen' },
+      { key: 'picked_up',    label: 'Handed to Customer',   entity: 'Merchant' }
+    ];
+  } else {
+    timelineSteps = [
+      { key: 'placed',       label: 'Order Placed',        entity: 'Customer' },
+      { key: 'accepted',     label: 'Order Confirmed',      entity: 'System' },
+      { key: 'preparing',    label: 'Preparing',            entity: 'Kitchen' },
+      { key: 'ready',        label: 'Ready for Pickup',     entity: 'Kitchen' },
+      { key: 'out_for_delivery', label: 'Out for Delivery', entity: 'Rider' },
+      { key: 'delivered',    label: 'Delivered',            entity: 'Pending' }
+    ];
+  }
   if (['cancelled', 'refunded', 'failed'].includes(oStatus)) {
     timelineSteps = [
       { key: 'placed',    label: 'Order Placed',   entity: 'Customer' },

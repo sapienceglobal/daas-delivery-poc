@@ -48,6 +48,13 @@ export default function OrderHeaderBanner({ order, isSingleRestaurantMode }) {
           desc: 'Our talented chefs are crafting your dishes to absolute perfection.',
         };
       case 'picked_up':
+        if (order.orderType === 'pickup' || order.orderType === 'dine_in' || order.orderType === 'dine-in') {
+          return {
+            prefix: 'YOUR ORDER HAS BEEN',
+            statusWord: 'COLLECTED',
+            desc: 'We hope you enjoy your meal! Thank you for dining with us.',
+          };
+        }
         return {
           prefix: 'YOUR ORDER IS OUT FOR',
           statusWord: 'DELIVERY',
@@ -75,8 +82,13 @@ export default function OrderHeaderBanner({ order, isSingleRestaurantMode }) {
   };
 
   const wording = getWording();
-  const statusMeta =
+  let statusMeta =
     STATUS_META[order.status] ?? { label: order.status?.replace('_', ' ') || 'Updated', color: '#9ca3af' };
+  
+  if (order.status === 'picked_up' && (order.orderType === 'pickup' || order.orderType === 'dine_in' || order.orderType === 'dine-in')) {
+    statusMeta = { label: 'Collected', color: '#1fae64' };
+  }
+
   const isCancelled = order.status === 'cancelled';
   const isPaid = order.paymentStatus === 'paid';
   const displayOrderId = order.orderNumber?.replace('ORD-', '') || order._id.slice(-6).toUpperCase();

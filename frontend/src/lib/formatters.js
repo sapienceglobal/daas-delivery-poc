@@ -77,3 +77,41 @@ export const formatTime = (dateValue, timeFormat = '12 Hour (AM/PM)', timezone =
 export const formatDateTime = (dateValue, dateFormat, timeFormat, timezone) => {
   return `${formatDate(dateValue, dateFormat, timezone)} • ${formatTime(dateValue, timeFormat, timezone)}`;
 };
+
+export const getCurrentDayIndex = (timezoneStr) => {
+  const tz = mapTimezone(timezoneStr);
+  const dateInTz = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
+  return dateInTz.getDay(); // 0 (Sunday) to 6 (Saturday)
+};
+
+export const getTimezoneAbbr = (timezoneStr) => {
+  const tz = mapTimezone(timezoneStr);
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' }).formatToParts(new Date());
+  const tzName = parts.find(p => p.type === 'timeZoneName');
+  return tzName ? tzName.value : '';
+};
+
+export const isRestaurantOpenNow = (operatingHours, timezoneStr) => {
+  if (!operatingHours) return false;
+  const tz = mapTimezone(timezoneStr);
+  
+  const now = new Date();
+  const dateInTz = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+  const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const todayName = daysOfWeek[dateInTz.getDay()];
+  
+  const todayHours = operatingHours[todayName];
+  if (!todayHours || todayHours.isClosed || !todayHours.open || !todayHours.close) {
+    return false;
+  }
+  
+  const currentHour = String(dateInTz.getHours()).padStart(2, '0');
+  const currentMinute = String(dateInTz.getMinutes()).padStart(2, '0');
+  const currentTime = `${currentHour}:${currentMinute}`;
+  
+  if (todayHours.close < todayHours.open) {
+    // overnight hours (e.g. 20:00 to 02:00)
+    return currentTime >= todayHours.open || currentTime <= todayHours.close;
+  }
+  return currentTime >= todayHours.open && currentTime <= todayHours.close;
+};
