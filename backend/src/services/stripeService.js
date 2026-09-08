@@ -132,7 +132,7 @@ export const createCheckoutSession = async (amount, metadata = {}, customerId = 
     payment_method_types: ['card'],
     mode: 'payment',
     line_items: lineItems,
-    expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // Expires in 30 minutes minimum
+    expires_at: Math.floor(Date.now() / 1000) + (31 * 60), // Expires in 31 minutes to avoid latency edge case
     payment_intent_data: {
       metadata
     },
