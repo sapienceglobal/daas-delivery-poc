@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -124,12 +125,19 @@ class _PosScreenState extends State<PosScreen> {
   bool get _canCheckout {
     if (_cartItems.isEmpty) return false;
     if (_nameController.text.isEmpty || !_isNameValid) return false;
-    if (_fullPhoneNumber.isEmpty || !_isPhoneValid) return false;
+    if (_orderType == 'delivery') {
+      if (_fullPhoneNumber.isEmpty || !_isPhoneValid) return false;
+    } else {
+      if (_fullPhoneNumber.isEmpty && _emailController.text.isEmpty) return false;
+      if (_fullPhoneNumber.isNotEmpty && !_isPhoneValid) return false;
+    }
+    
     if (_emailController.text.isNotEmpty && !_isEmailValid) return false;
     return true;
   }
 
   bool get _isPaymentValid {
+    if (!_canCheckout) return false;
     if (_orderType == 'delivery') {
       if (_addressLat == null || _addressLng == null) return false;
       if (_isFetchingQuote) return false;
@@ -430,7 +438,7 @@ class _PosScreenState extends State<PosScreen> {
                         controller: _phoneController,
                         initialCountryCode: 'US',
                         decoration: InputDecoration(
-                          labelText: 'Phone',
+                          labelText: 'Phone (Required if no email)',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
@@ -467,7 +475,7 @@ class _PosScreenState extends State<PosScreen> {
                           setModalState(() {});
                         },
                         decoration: InputDecoration(
-                          labelText: 'Email',
+                          labelText: 'Email (Required if no phone)',
                           prefixIcon: const Icon(Icons.email),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -770,6 +778,23 @@ class _PosScreenState extends State<PosScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
+                      if (_orderType == 'delivery' && (_fullPhoneNumber.isEmpty || !_isPhoneValid)) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.red.shade200)),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text('Phone number is required for delivery. Please close this sheet and add it to customer info.', style: GoogleFonts.inter(color: Colors.red.shade700, fontSize: 13, fontWeight: FontWeight.w600)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       if (_orderType == 'dine_in') ...[
                         TextField(
                           controller: _tableController,
@@ -874,8 +899,6 @@ class _PosScreenState extends State<PosScreen> {
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          paymentButton('cash', 'Cash', Icons.attach_money),
-                          const SizedBox(width: 12),
                           paymentButton('card_terminal', 'Card', Icons.credit_card),
                           const SizedBox(width: 12),
                           paymentButton('payment_link', 'QR Link', Icons.qr_code),
@@ -1083,40 +1106,68 @@ class _PosScreenState extends State<PosScreen> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF25D366), 
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                          ),
-                          onPressed: () async {
-                            final message = 'Hi! Please complete your payment for your order here:\n$paymentUrl';
-                            final rawPhone = _fullPhoneNumber.trim();
-                            String waUrl;
-                            if (rawPhone.isNotEmpty) {
+                        child: Opacity(
+                          opacity: (_fullPhoneNumber.trim().isEmpty || _fullPhoneNumber.trim() == '0000000000') ? 0.4 : 1.0,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF25D366), 
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                              disabledBackgroundColor: const Color(0xFF25D366).withOpacity(0.5),
+                              disabledForegroundColor: Colors.white,
+                            ),
+                            onPressed: (_fullPhoneNumber.trim().isEmpty || _fullPhoneNumber.trim() == '0000000000') ? null : () async {
+                              final qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${Uri.encodeComponent(paymentUrl)}';
+                              final message = 'Hi! 👋\n\nPlease complete the payment for your order.\n\n🔗 *Click here to pay:* \n$paymentUrl\n\n📷 *Or scan this QR code:* \n$qrUrl\n\nThank you!';
+                              final rawPhone = _fullPhoneNumber.trim();
+                              
                               // Strip everything except digits for international format
                               final digits = rawPhone.replaceAll(RegExp(r'[^\d]'), '');
                               // If 10 digits (US without country code), prepend 1
                               final intlPhone = digits.length == 10 ? '1$digits' : digits;
-                              waUrl = 'https://wa.me/$intlPhone?text=${Uri.encodeComponent(message)}';
-                            } else {
-                              waUrl = 'https://wa.me/?text=${Uri.encodeComponent(message)}';
-                              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('No customer phone. WhatsApp opened for manual selection.')));
-                            }
-                            final url = Uri.parse(waUrl);
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url, mode: LaunchMode.externalApplication);
-                            } else {
-                              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp')));
-                            }
-                          },
-                          icon: const Icon(Icons.chat, size: 16),
-                          label: const Text('WhatsApp', overflow: TextOverflow.ellipsis, maxLines: 1),
+                              final waUrl = 'https://wa.me/$intlPhone?text=${Uri.encodeComponent(message)}';
+                              
+                              final url = Uri.parse(waUrl);
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url, mode: LaunchMode.externalApplication);
+                              } else {
+                                ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp')));
+                              }
+                            },
+                            icon: const Icon(Icons.chat, size: 16),
+                            label: const Text('WhatsApp', overflow: TextOverflow.ellipsis, maxLines: 1),
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blue.shade100)),
+                    child: Text('Note: If you want to change the payment method or check status, go to the Live Orders page.', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.blue.shade800, fontSize: 12, fontWeight: FontWeight.w500)),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF111827),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        countdownTimer?.cancel();
+                        socket.off('order_status_changed');
+                        Navigator.of(ctx).pop();
+                        Navigator.of(context).pop();
+                        context.go('/live-orders');
+                      },
+                      child: Text('Go to Live Orders', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [

@@ -9,7 +9,10 @@ import { useRouter } from 'next/navigation';
 import { formatTime } from '@/lib/formatters';
 import { QRCodeSVG } from 'qrcode.react';
 import { createPortal } from 'react-dom';
-import { QrCode } from 'lucide-react';
+import { QrCode, CreditCard } from 'lucide-react';
+import PaymentSimulatorModal from '@/components/checkout/PaymentSimulatorModal';
+import { api } from '@/lib/api';
+import { showToast } from '@/components/ui';
 
 export default function LiveOrdersView({ 
   orders = [], 
@@ -23,6 +26,7 @@ export default function LiveOrdersView({
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [qrModalOrder, setQrModalOrder] = useState(null);
+  const [stripeModalOrder, setStripeModalOrder] = useState(null);
   const [modalTimeLeft, setModalTimeLeft] = useState(0);
 
   useEffect(() => {
@@ -122,7 +126,7 @@ export default function LiveOrdersView({
       id: 'accepted',
       title: 'Accepted',
       theme: { bg: 'bg-[#fff7ed]', text: 'text-[#9a3412]', badgeBg: 'bg-[#ffedd5]', border: 'border-[#fed7aa]', buttonBg: 'bg-[#ea580c]', buttonHover: 'hover:bg-[#c2410c]' },
-      orders: getColOrders(['accepted'])
+      orders: getColOrders(['accepted', 'driver_assigned'])
     },
     {
       id: 'preparing',
@@ -243,6 +247,12 @@ export default function LiveOrdersView({
                     >
                       <QrCode className="w-3.5 h-3.5" /> Show QR Code
                     </button>
+                    <button
+                      onClick={() => setStripeModalOrder(order)}
+                      className="w-full bg-white border-2 border-[#3b82f6] text-[#3b82f6] text-xs font-bold py-2 rounded-lg hover:bg-[#eff6ff] transition-colors flex items-center justify-center gap-1 mt-1"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" /> Charge Card (Stripe)
+                    </button>
                     <button onClick={() => onRejectOrder && onRejectOrder(order._id)} className="w-full bg-white border border-[#fca5a5] text-[#dc2626] text-xs font-bold py-2 rounded-lg hover:bg-[#fef2f2] transition-colors mt-1">Cancel Order</button>
                   </>
                 ) : (
@@ -294,6 +304,7 @@ export default function LiveOrdersView({
   const cancelledPercentage = todayOrders.length ? Math.round((cancelledToday.length / todayOrders.length) * 100) : 0;
 
   return (
+    <>
     <div className="flex flex-col h-full overflow-hidden bg-[#F8FAFC]">
       
       {/* Header */}
@@ -400,18 +411,18 @@ export default function LiveOrdersView({
                     Copy Link
                   </button>
                   <button
-                    className="w-full py-2 text-[#25D366] border border-[#25D366] rounded-lg font-bold hover:bg-[#25D366]/10 transition-colors text-[13px]"
+                    className={`w-full py-2 rounded-lg font-bold transition-colors text-[13px] ${(!qrModalOrder.customerPhone || qrModalOrder.customerPhone === '0000000000') ? 'opacity-50 cursor-not-allowed text-[#9ca3af] border border-[#e5e7eb]' : 'text-[#25D366] border border-[#25D366] hover:bg-[#25D366]/10'}`}
+                    disabled={!qrModalOrder.customerPhone || qrModalOrder.customerPhone === '0000000000'}
+                    title={(!qrModalOrder.customerPhone || qrModalOrder.customerPhone === '0000000000') ? 'Number provide nhi kiya gaya' : 'Send WhatsApp Message'}
                     onClick={() => {
-                      const payUrl = `${window.location.origin}/api/orders/${qrModalOrder._id}/pay`;
-                      const message = `Hi${qrModalOrder.customerName ? ' ' + qrModalOrder.customerName : ''}! Please complete your payment of your order #${qrModalOrder._id.slice(-6).toUpperCase()} here:\n${payUrl}`;
-                      const rawPhone = qrModalOrder.customerPhone?.trim();
-                      if (rawPhone) {
+                      if (qrModalOrder.customerPhone && qrModalOrder.customerPhone !== '0000000000') {
+                        const payUrl = `${window.location.origin}/api/orders/${qrModalOrder._id}/pay`;
+                        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(payUrl)}`;
+                        const message = `Hi${qrModalOrder.customerName ? ' ' + qrModalOrder.customerName : ''}! 👋\n\nPlease complete the payment for your order #${qrModalOrder._id.slice(-6).toUpperCase()}.\n\n🔗 *Click here to pay:* \n${payUrl}\n\n📷 *Or scan this QR code:* \n${qrUrl}\n\nThank you!`;
+                        const rawPhone = qrModalOrder.customerPhone.trim();
                         const digits = rawPhone.replace(/[^\d]/g, '');
                         const intlPhone = digits.startsWith('0') ? '1' + digits.slice(1) : (digits.length === 10 ? '1' + digits : digits);
                         window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`, '_blank');
-                      } else {
-                        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                        alert('No customer phone on this order. WhatsApp opened for manual selection.');
                       }
                     }}
                   >
@@ -609,9 +620,37 @@ export default function LiveOrdersView({
               )}
             </div>
           </div>
-
         </div>
       </div>
     </div>
+  
+      {mounted && stripeModalOrder && (
+        <PaymentSimulatorModal
+          isOpen={!!stripeModalOrder}
+          onClose={() => setStripeModalOrder(null)}
+          amount={stripeModalOrder.total}
+          orderId={stripeModalOrder._id}
+          checkoutData={{
+            customerName: stripeModalOrder.customerName || '',
+            customerEmail: stripeModalOrder.customerEmail || '',
+            customerPhone: stripeModalOrder.customerPhone || ''
+          }}
+          onSuccess={async (paymentIntentId) => {
+            setStripeModalOrder(null);
+            try {
+              await api.put(`/api/orders/${stripeModalOrder._id}/payment`, {
+                paymentMethod: 'credit_card',
+                paymentStatus: 'paid',
+                stripePaymentIntentId: paymentIntentId
+              });
+              showToast('Order paid successfully via Stripe!', 'success');
+              if (onRefresh) onRefresh();
+            } catch (err) {
+              showToast('Payment successful but failed to update order status. Please refresh.', 'warning');
+            }
+          }}
+        />
+      )}
+    </>
   );
 }

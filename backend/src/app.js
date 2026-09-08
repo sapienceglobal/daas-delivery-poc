@@ -152,6 +152,8 @@ app.use('/api', (req, res, next) => {
   if (req.path.includes('health')) return next();
   // exempt static uploads GET requests
   if (req.path.includes('upload') && req.method === 'GET') return next();
+  // exempt invoice PDF downloads
+  if (req.path.includes('/invoice-pdf') && req.method === 'GET') return next();
   // browser requests cannot keep an app secret confidential; use CORS + auth cookies.
   // same-origin GET requests often omit the Origin header, so we also check sec-fetch-mode or User-Agent
   const isBrowser = Boolean(

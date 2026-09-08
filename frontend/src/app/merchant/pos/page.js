@@ -144,7 +144,7 @@ function POSContent() {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
 
   // Payment State
-  const [selectedPayment, setSelectedPayment] = useState('cash'); // cash, card_terminal, payment_link
+  const [selectedPayment, setSelectedPayment] = useState('card_terminal'); // card_terminal, payment_link
   const [tenderAmount, setTenderAmount] = useState('');
   const [completedOrder, setCompletedOrder] = useState(null);
 
@@ -498,7 +498,18 @@ function POSContent() {
   const isCustomerInfoComplete = (details = { customerName, customerPhone, customerEmail, addressLine1, city, addressState, zipCode, addressVerified, quoteError }) => {
     const { isPhoneValid, isFullNameValid, isEmailValid } = validateDetails(details);
     if (!details.customerName || !isFullNameValid) return false;
-    if (!details.customerPhone || !isPhoneValid) return false;
+    
+    const hasValidPhone = details.customerPhone && isPhoneValid;
+    const hasValidEmail = details.customerEmail && isEmailValid;
+    
+    // Must have at least one valid contact method for non-delivery orders
+    if (orderType !== 'delivery' && !hasValidPhone && !hasValidEmail) return false;
+    
+    // For delivery, phone number is strictly required by Shipday
+    if (orderType === 'delivery' && !hasValidPhone) return false;
+    
+    // If they typed something but it's invalid, block checkout
+    if (details.customerPhone && !isPhoneValid) return false;
     if (details.customerEmail && !isEmailValid) return false;
 
     if (orderType === 'delivery') {
@@ -584,16 +595,18 @@ function POSContent() {
         tableNumber: orderType === 'dine_in' ? tableNumber : null,
 
         // CRM Details
-        customerName: savedCustomerDetails.customerName.trim() || undefined,
-        customerPhone: savedCustomerDetails.customerPhone.trim() || undefined,
-        customerEmail: savedCustomerDetails.customerEmail.trim() || undefined,
+        customerName: savedCustomerDetails.customerName?.trim() || undefined,
+        customerPhone: savedCustomerDetails.customerPhone?.trim() || undefined,
+        customerEmail: savedCustomerDetails.customerEmail?.trim() || undefined,
 
         // Discount
-        couponCode: couponCode.trim() || undefined,
+        couponCode: couponCode?.trim() || undefined,
 
         // Delivery / Tracking
         stripePaymentIntentId,
-        courierNotes: orderType === 'delivery' ? savedCustomerDetails.deliveryInstructions : `POS Payment: ${selectedPayment}`
+        courierNotes: orderType === 'delivery' ? savedCustomerDetails.deliveryInstructions : `POS Payment: ${selectedPayment}`,
+        
+        orderSource: 'merchant_web'
       };
 
       const res = await orderAPI.create(orderData);
@@ -1013,14 +1026,7 @@ function POSContent() {
                 <p className="text-4xl font-black text-[#8b0000]">${total.toFixed(2)}</p>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                <button
-                  onClick={() => setSelectedPayment('cash')}
-                  className={`p-4 rounded-xl border-2 flex flex-col items-center text-center justify-center gap-2 transition-all ${selectedPayment === 'cash' ? 'border-[#8b0000] bg-[#fef2f2] text-[#8b0000]' : 'border-[#e5e7eb] text-[#9ca3af] hover:bg-[#f9fafb]'}`}
-                >
-                  <DollarSign className="w-8 h-8 mx-auto" />
-                  <span className="font-bold text-sm">Pay Later (Cash)</span>
-                </button>
+              <div className="grid grid-cols-2 gap-3 mb-6">
                 <button
                   onClick={() => { setSelectedPayment('card_terminal'); setTenderAmount(total.toFixed(2)); }}
                   className={`p-4 rounded-xl border-2 flex flex-col items-center text-center justify-center gap-2 transition-all ${selectedPayment === 'card_terminal' ? 'border-[#8b0000] bg-[#fef2f2] text-[#8b0000]' : 'border-[#e5e7eb] text-[#9ca3af] hover:bg-[#f9fafb]'}`}
@@ -1063,93 +1069,110 @@ function POSContent() {
       {/* PAYMENT LINK WAITING MODAL */}
       {mounted && showPaymentLinkModal && paymentLinkOrderId && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-[450px] overflow-hidden shadow-2xl flex flex-col p-8 text-center">
-            <h2 className="text-2xl font-black text-[#111827] mb-2">Waiting for Payment</h2>
-            <p className="text-[#6b7280] mb-6">Have the customer scan this QR code or send them the link to pay securely.</p>
-
-            <div className="flex justify-center bg-white p-4 border-2 border-gray-100 rounded-xl mb-6 shadow-inner mx-auto w-fit">
-              <QRCodeSVG value={`${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`} size={200} level="H" />
+          <div className="bg-white rounded-2xl w-full max-w-[700px] overflow-hidden shadow-2xl flex flex-col md:flex-row">
+            
+            {/* Left side: QR Code */}
+            <div className="bg-gray-50 flex flex-col items-center justify-center p-8 border-b md:border-b-0 md:border-r border-gray-200 w-full md:w-[45%]">
+              <div className="bg-white p-4 border-2 border-gray-100 rounded-xl shadow-sm mx-auto mb-4">
+                <QRCodeSVG value={`${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`} size={180} level="H" />
+              </div>
+              <div className="text-center font-bold text-[#ef4444] bg-[#fef2f2] rounded-lg py-2 px-6">
+                Time Remaining: {Math.floor(paymentLinkTimeLeft / 60).toString().padStart(2, '0')}:{(paymentLinkTimeLeft % 60).toString().padStart(2, '0')}
+              </div>
             </div>
 
-            <div className="text-center font-bold text-[#ef4444] mb-4 bg-[#fef2f2] rounded-lg py-2 mt-4">
-              Time Remaining: {Math.floor(paymentLinkTimeLeft / 60).toString().padStart(2, '0')}:{(paymentLinkTimeLeft % 60).toString().padStart(2, '0')}
-            </div>
+            {/* Right side: Content & Actions */}
+            <div className="p-8 w-full md:w-[55%] flex flex-col justify-center text-left">
+              <h2 className="text-2xl font-black text-[#111827] mb-2">Waiting for Payment</h2>
+              <p className="text-[#6b7280] mb-6 text-sm">Have the customer scan the QR code or send them the link to pay securely.</p>
 
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                className="w-full py-2 bg-white border border-[#e5e7eb] rounded-lg font-bold text-[#374151] hover:bg-[#f9fafb] transition-colors text-[13px]"
-                onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`);
-                  showToast('Link copied to clipboard!', 'success');
-                }}
-              >
-                Copy Link
-              </button>
-              <button
-                className="w-full py-2 text-[#25D366] border border-[#25D366] rounded-lg font-bold hover:bg-[#25D366]/10 transition-colors text-[13px]"
-                onClick={() => {
-                  const payUrl = `${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`;
-                  const message = `Hi! Please complete your payment of your order here:\n${payUrl}`;
-                  const rawPhone = savedCustomerDetails.customerPhone?.trim();
-                  if (rawPhone) {
-                    // Strip everything except digits, ensure international format
-                    const digits = rawPhone.replace(/[^\d]/g, '');
-                    // If it starts with 0, assume US and prepend 1; if already has country code, use as-is
-                    const intlPhone = digits.startsWith('0') ? '1' + digits.slice(1) : (digits.length === 10 ? '1' + digits : digits);
-                    window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`, '_blank');
-                  } else {
-                    // No phone — open generic WhatsApp share
-                    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                    showToast('No customer phone saved. WhatsApp opened for manual selection.', 'info');
-                  }
-                }}
-              >
-                WhatsApp
-              </button>
-              <button
-                className="w-full py-2 bg-white border border-[#3b82f6] text-[#3b82f6] rounded-lg font-bold hover:bg-[#eff6ff] transition-colors text-[13px]"
-                onClick={() => {
-                  if (navigator.share) {
-                    navigator.share({
-                      title: 'Payment Link',
-                      url: `${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`
-                    }).catch(console.error);
-                  } else {
+              <div className="grid grid-cols-3 gap-2 mb-6">
+                <button
+                  className="w-full py-2 bg-white border border-[#e5e7eb] rounded-lg font-bold text-[#374151] hover:bg-[#f9fafb] transition-colors text-[13px]"
+                  onClick={() => {
                     navigator.clipboard.writeText(`${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`);
-                    showToast('Share not supported on this browser. Link copied instead!', 'info');
-                  }
-                }}
-              >
-                Share
-              </button>
-            </div>
+                    showToast('Link copied to clipboard!', 'success');
+                  }}
+                >
+                  Copy Link
+                </button>
+                <button
+                  className={`w-full py-2 rounded-lg font-bold transition-colors text-[13px] ${(!savedCustomerDetails.customerPhone || savedCustomerDetails.customerPhone === '0000000000') ? 'opacity-50 cursor-not-allowed text-[#9ca3af] border border-[#e5e7eb]' : 'text-[#25D366] border border-[#25D366] hover:bg-[#25D366]/10'}`}
+                  disabled={!savedCustomerDetails.customerPhone || savedCustomerDetails.customerPhone === '0000000000'}
+                  title={(!savedCustomerDetails.customerPhone || savedCustomerDetails.customerPhone === '0000000000') ? 'Number provide nhi kiya gaya' : 'Send WhatsApp Message'}
+                  onClick={() => {
+                    if (savedCustomerDetails.customerPhone && savedCustomerDetails.customerPhone !== '0000000000') {
+                      const payUrl = `${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`;
+                      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(payUrl)}`;
+                      const message = `Hi! 👋\n\nPlease complete the payment for your order.\n\n🔗 *Click here to pay:* \n${payUrl}\n\n📷 *Or scan this QR code:* \n${qrUrl}\n\nThank you!`;
+                      const rawPhone = savedCustomerDetails.customerPhone.trim();
+                      const digits = rawPhone.replace(/[^\d]/g, '');
+                      const intlPhone = digits.startsWith('0') ? '1' + digits.slice(1) : (digits.length === 10 ? '1' + digits : digits);
+                      window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`, '_blank');
+                    }
+                  }}
+                >
+                  WhatsApp
+                </button>
+                <button
+                  className="w-full py-2 bg-white border border-[#3b82f6] text-[#3b82f6] rounded-lg font-bold hover:bg-[#eff6ff] transition-colors text-[13px]"
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({
+                        title: 'Payment Link',
+                        url: `${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`
+                      }).catch(console.error);
+                    } else {
+                      navigator.clipboard.writeText(`${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`);
+                      showToast('Share not supported on this browser. Link copied instead!', 'info');
+                    }
+                  }}
+                >
+                  Share
+                </button>
+              </div>
 
-            <div className="flex flex-col gap-2 mt-6">
-              <button
-                className="w-full py-3 bg-white border border-[#e5e7eb] text-[#374151] font-bold rounded-xl hover:bg-[#f9fafb] transition-colors"
-                onClick={() => {
-                  setIsPolling(false);
-                  setShowPaymentLinkModal(false);
-                  showToast('Order running in background. Check Live Orders to restore QR.', 'info');
-                }}
-              >
-                Run in Background
-              </button>
-              <button
-                className="w-full py-3 bg-white border border-[#fecaca] text-[#ef4444] font-bold rounded-xl hover:bg-[#fef2f2] transition-colors"
-                onClick={async () => {
-                  try {
-                    await orderAPI.reject(paymentLinkOrderId, 'Cancelled by merchant at POS');
-                    setIsPolling(false);
-                    setShowPaymentLinkModal(false);
-                    showToast('Order cancelled successfully.', 'success');
-                  } catch (e) {
-                    showToast('Failed to cancel order', 'error');
-                  }
-                }}
-              >
-                Cancel Order
-              </button>
+              <div className="p-3 bg-[#f3f4f6] border border-[#e5e7eb] rounded-xl mb-6">
+                <p className="text-[12px] text-[#111827] font-medium leading-relaxed">
+                  Note: If you want to change the payment method or check status, go to the Live Orders page.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2 mt-auto">
+                <div className="flex gap-2">
+                  <button
+                    className="flex-1 py-2.5 bg-[#111827] text-white font-bold rounded-lg hover:bg-black transition-colors text-sm shadow-sm"
+                    onClick={() => router.push('/merchant/live-orders')}
+                  >
+                    Go to Live Orders
+                  </button>
+                  <button
+                    className="flex-1 py-2.5 bg-white border border-[#e5e7eb] text-[#374151] font-bold rounded-lg hover:bg-[#f9fafb] transition-colors text-sm shadow-sm"
+                    onClick={() => {
+                      setIsPolling(false);
+                      setShowPaymentLinkModal(false);
+                      showToast('Order running in background. Check Live Orders to restore QR.', 'info');
+                    }}
+                  >
+                    Background
+                  </button>
+                </div>
+                <button
+                  className="w-full py-2 bg-transparent text-[#ef4444] font-bold rounded-lg hover:bg-[#fef2f2] transition-colors text-[13px] mt-1"
+                  onClick={async () => {
+                    try {
+                      await orderAPI.reject(paymentLinkOrderId, 'Cancelled by merchant at POS');
+                      setIsPolling(false);
+                      setShowPaymentLinkModal(false);
+                      showToast('Order cancelled successfully.', 'success');
+                    } catch (e) {
+                      showToast('Failed to cancel order', 'error');
+                    }
+                  }}
+                >
+                  Cancel Order
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1231,7 +1254,7 @@ function POSContent() {
               </div>
 
               <div>
-                <label className="block text-[13px] font-bold text-[#374151] mb-1">Phone Number</label>
+                <label className="block text-[13px] font-bold text-[#374151] mb-1">Phone Number <span className="font-normal text-[#6b7280]">{orderType === 'delivery' ? '(Required for delivery)' : '(Required if no email)'}</span></label>
                 <div className={`relative bg-white border rounded-lg overflow-hidden focus-within:ring-1 ${customerPhone && !isPhoneValid ? 'border-[#ef4444] focus-within:border-[#ef4444] focus-within:ring-[#ef4444]' : 'border-[#e5e7eb] focus-within:border-[#8b0000] focus-within:ring-[#8b0000]'}`}>
                   <PhoneInput
                     international
@@ -1246,7 +1269,7 @@ function POSContent() {
               </div>
 
               <div>
-                <label className="block text-[13px] font-bold text-[#374151] mb-1">Email Address</label>
+                <label className="block text-[13px] font-bold text-[#374151] mb-1">Email Address <span className="font-normal text-[#6b7280]">{orderType === 'delivery' ? '(Optional)' : '(Required if no phone number)'}</span></label>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
                     <Mail className="w-4 h-4 text-[#9ca3af]" />
@@ -1467,10 +1490,10 @@ function POSContent() {
           addressLat: orderType === 'delivery' ? savedCustomerDetails.addressLat : undefined,
           addressLng: orderType === 'delivery' ? savedCustomerDetails.addressLng : undefined,
           deliveryQuote: savedCustomerDetails.deliveryQuote || undefined,
-          couponCode: couponCode.trim() || undefined,
-          customerName: savedCustomerDetails.customerName.trim() || undefined,
-          customerPhone: savedCustomerDetails.customerPhone.trim() || undefined,
-          customerEmail: savedCustomerDetails.customerEmail.trim() || undefined
+          couponCode: couponCode?.trim() || undefined,
+          customerName: savedCustomerDetails.customerName?.trim() || undefined,
+          customerPhone: savedCustomerDetails.customerPhone?.trim() || undefined,
+          customerEmail: savedCustomerDetails.customerEmail?.trim() || undefined
         }}
         onSuccess={(paymentIntentId) => {
           setShowStripeModal(false);

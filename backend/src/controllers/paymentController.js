@@ -37,17 +37,20 @@ export const createIntent = asyncHandler(async (req, res) => {
     ? { ...req.body, ...req.body.checkoutData }
     : req.body;
 
-  // Rigorously validate the payload BEFORE creating a Stripe intent.
-  // This prevents charging the user for an order that will fail Joi validation during order creation.
-  const { error } = createOrderSchema.validate(body, { abortEarly: false, stripUnknown: true });
-  if (error) {
-    const errorMsg = error.details.map((x) => x.message).join(', ');
-    throw new AppError(errorMsg, 400);
-  }
-
   const { amount, orderId, restaurantId, items, orderType, tip, couponCode, useLoyaltyPoints, address, addressLat, addressLng, scheduledTime, paymentMethod, customerPhone, customerName, customerEmail } = body;
 
-  logger.info('createIntent called', { restaurantId, orderType, itemCount: items?.length, amount });
+  // When orderId is provided, this is a payment for an EXISTING order (e.g. merchant charging card
+  // from Live Orders). Skip createOrderSchema validation since the order already exists in the DB.
+  // When orderId is NOT provided, this is a pre-checkout intent for a NEW order — validate fully.
+  if (!orderId) {
+    const { error } = createOrderSchema.validate(body, { abortEarly: false, stripUnknown: true });
+    if (error) {
+      const errorMsg = error.details.map((x) => x.message).join(', ');
+      throw new AppError(errorMsg, 400);
+    }
+  }
+
+  logger.info('createIntent called', { restaurantId, orderType, itemCount: items?.length, amount, orderId: orderId || 'new' });
 
   let verifiedAmount = Number(amount);
   const metadata = {};
@@ -78,7 +81,21 @@ export const createIntent = asyncHandler(async (req, res) => {
     metadata.tenantDbName = process.env.FORCE_TENANT_DB_NAME || 'daas_poc_lassi_lounge';
   }
 
-  if (restaurantId && items?.length) {
+  // For existing orders, load from DB and use the stored total as the verified amount
+  if (orderId) {
+    const Order = req.getModel('Order');
+    const existingOrder = await Order.findById(orderId);
+    if (!existingOrder) throw new AppError('Order not found', 404);
+
+    // Guard: don't create a payment intent for already-paid or cancelled orders
+    if (existingOrder.paymentStatus === 'paid') throw new AppError('Order is already paid', 400);
+    if (['cancelled', 'failed', 'refunded'].includes(existingOrder.status)) {
+      throw new AppError(`Cannot create payment for a ${existingOrder.status} order`, 400);
+    }
+
+    verifiedAmount = existingOrder.total;
+    metadata.restaurantId = existingOrder.restaurantId.toString();
+  } else if (restaurantId && items?.length) {
     const prePricing = await calculateOrderPricing({
       restaurantId,
       items,

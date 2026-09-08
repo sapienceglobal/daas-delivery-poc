@@ -21,11 +21,21 @@ import { sendOrderConfirmationEmail, sendInvoiceEmail, sendPaymentLinkEmail } fr
 import { generateInvoiceHTML, generateKOTHTML } from '../services/documentService.js';
 import { createNotification } from './notificationController.js';
 import { sendPushNotification } from '../services/webPushService.js';
-import { sendOrderAlert } from '../services/whatsappService.js';
+import { sendOrderAlert, sendInvoiceWhatsApp } from '../services/whatsappService.js';
 import logger from '../utils/logger.js';
 
 const CUSTOMER_PAYMENT_METHODS = ['credit_card', 'apple_pay', 'google_pay', 'stripe_online'];
 const STRIPE_REFUND_PAYMENT_METHODS = ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'];
+
+const autoSendInvoice = async (order) => {
+  if (!order) return;
+  if (order.customerEmail) {
+    sendInvoiceEmail(order.customerEmail, order).catch(err => logger.error('Auto invoice email error', err));
+  }
+  if (order.customerPhone && order.customerPhone !== '0000000000') {
+    sendInvoiceWhatsApp(order.customerPhone, order).catch(err => logger.error('Auto invoice WhatsApp error', err));
+  }
+};
 
 /**
  * pushPaymentEvent — safely appends a structured event to order.paymentEvents.
@@ -453,6 +463,9 @@ export const handleStripeWebhookSuccess = async (orderId, paymentIntentId, dbNam
     });
   }
 
+  // Auto-send invoice on successful payment
+  autoSendInvoice(order);
+
   await order.save();
 
   if (io) {
@@ -479,9 +492,9 @@ export const createOrder = asyncHandler(async (req, response) => {
     orderType = 'delivery', paymentMethod = 'credit_card',
     tip = 0, couponCode, courierNotes, specialInstructions, scheduledTime, tableNumber,
     stripePaymentIntentId, useLoyaltyPoints = false, savedCardId,
-    customerPhone, customerName, customerEmail
+    customerPhone, customerName, customerEmail, orderSource
   } = req.body;
-  const platform = req.headers['x-platform'] || 'web';
+  const platform = orderSource || req.headers['x-platform'] || 'web';
 
   if (!restaurantId || !items?.length) {
     throw new AppError('restaurantId and items are required', 400);
@@ -855,6 +868,11 @@ export const createOrder = asyncHandler(async (req, response) => {
           logger.error(`Failed to send confirmation email to ${email}`, { error: err.message });
         });
       });
+    }
+
+    // Auto-send invoice if payment is completed at creation time (e.g. cash, pos)
+    if (order.paymentStatus === 'paid') {
+      autoSendInvoice(order);
     }
 
     // ── TRIGGER BACKGROUND NOTIFICATIONS ──────────────────────────────────────
@@ -1358,12 +1376,6 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
     }
   } else if (status === 'delivered' || status === 'picked_up') {
     awardLoyaltyPoints(order).catch(err => logger.error('Award points error', err));
-    if (order.customerEmail) {
-      const Payment = req.getModel('Payment');
-      Payment.findOne({ orderId: order._id }).lean().then(payment => {
-        sendInvoiceEmail(order.customerEmail, order, payment).catch(err => logger.error('Auto invoice email error', err));
-      }).catch(() => { });
-    }
   }
 
   const io = req.app.get('io');
@@ -1752,13 +1764,6 @@ export const driverDeliverOrder = asyncHandler(async (req, response) => {
     io.to(`order_${order._id}`).emit('order_status_changed', buildOrderSocketPayload(order));
   }
 
-  if (order.customerEmail) {
-    const Payment = req.getModel('Payment');
-    Payment.findOne({ orderId: order._id }).lean().then(payment => {
-      sendInvoiceEmail(order.customerEmail, order, payment).catch(err => logger.error('Auto invoice email error (driver)', err));
-    }).catch(() => { });
-  }
-
   res.success(response, { data: order, message: 'Order delivered successfully' });
 });
 
@@ -1800,23 +1805,38 @@ export const remakeOrder = asyncHandler(async (req, response) => {
   if (!order) throw new AppError('Order not found', 404);
   ensureCanManageRestaurant(req.user, order.restaurantId);
 
-  // create duplicate remake order with $0 cost
+  const chargeCustomer = req.body.chargeCustomer === true;
+
   const remake = new OrderModel({
     ...order.toObject(),
     _id: undefined,
     orderNumber: undefined,
+    externalDeliveryId: undefined,
     createdAt: undefined,
     updatedAt: undefined,
     status: 'pending',
     statusUpdates: [{ status: 'pending', timestamp: new Date(), comment: 'Remake order created' }],
-    total: 0,
-    subtotal: 0,
-    tax: 0,
-    deliveryFee: 0,
-    tip: 0,
-    paymentStatus: 'paid',
-    adminNotes: [{ text: 'Remake of order ' + order._id, author: 'Merchant', timestamp: new Date() }]
+    stripeCheckoutSessionId: undefined,
+    stripePaymentIntentId: undefined,
+    paymentLinkUrl: undefined,
+    adminNotes: [{ text: `Remake of order ${order._id}${chargeCustomer ? ' (Paid)' : ' ($0)'}`, author: 'Merchant', timestamp: new Date() }]
   });
+
+  if (!chargeCustomer) {
+    remake.total = 0;
+    remake.subtotal = 0;
+    remake.tax = 0;
+    remake.deliveryFee = 0;
+    remake.tip = 0;
+    remake.discount = 0;
+    remake.platformFee = 0;
+    remake.serviceFee = 0;
+    remake.paymentStatus = 'paid';
+  } else {
+    remake.paymentStatus = 'pending';
+    remake.paymentMethod = 'payment_link';
+  }
+
   await remake.save();
 
   await PaymentModel.create([{
@@ -1824,9 +1844,9 @@ export const remakeOrder = asyncHandler(async (req, response) => {
     userId: remake.userId || req.user._id,
     restaurantId: remake.restaurantId,
     method: remake.paymentMethod || 'cash',
-    status: 'completed',
-    amount: 0,
-    tip: 0,
+    status: remake.paymentStatus,
+    amount: remake.total,
+    tip: remake.tip,
     metadata: {
       orderNumber: remake.orderNumber,
       remakeOf: order._id
@@ -1849,14 +1869,32 @@ export const sendInvoice = asyncHandler(async (req, response) => {
   if (!order) throw new AppError('Order not found', 404);
   ensureCanManageRestaurant(req.user, order.restaurantId);
 
+  if (!order.customerEmail && !order.customerPhone) {
+    throw new AppError('No contact info (email or phone) available to send invoice', 400);
+  }
+
+  let sentTo = [];
+
   if (order.customerEmail) {
     try {
       await sendInvoiceEmail(order.customerEmail, order);
+      sentTo.push('email');
     } catch (err) {
       logger.error(`Failed to send invoice email for order ${order._id}:`, err);
     }
-  } else {
-    logger.warn(`Cannot send invoice for order ${order._id}: no customer email found`);
+  }
+
+  if (order.customerPhone && order.customerPhone !== '0000000000') {
+    try {
+      await sendInvoiceWhatsApp(order.customerPhone, order);
+      sentTo.push('whatsapp');
+    } catch (err) {
+      logger.error(`Failed to send invoice WhatsApp for order ${order._id}:`, err);
+    }
+  }
+
+  if (sentTo.length === 0) {
+    throw new AppError('Failed to send invoice to provided contact methods', 500);
   }
 
   res.success(response, { data: null, message: 'Invoice sent successfully' });
@@ -1963,6 +2001,46 @@ export const getInvoiceDocument = asyncHandler(async (req, response) => {
 });
 
 /**
+ * @desc    download invoice PDF
+ * @route   GET /api/orders/:id/invoice-pdf
+ * @access  Public
+ */
+export const downloadInvoicePdf = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const Payment = req.getModel('Payment');
+
+  const order = await Order.findById(req.params.id).populate('items.menuItemId').lean();
+  if (!order) throw new AppError('Order not found', 404);
+
+  const payment = await Payment.findOne({ orderId: order._id }).lean();
+
+  const { generateInvoiceHTML } = await import('../services/documentService.js');
+  const { generatePdfFromHtml } = await import('../services/pdfService.js');
+
+  let html;
+  try {
+    html = generateInvoiceHTML(order, payment);
+  } catch (error) {
+    logger.error(`Failed to generate HTML for order ${order._id}`, error);
+    throw new AppError('Failed to generate HTML document', 500);
+  }
+
+  let pdfBuffer;
+  try {
+    pdfBuffer = await generatePdfFromHtml(html);
+  } catch (error) {
+    logger.error(`Failed to generate PDF for order ${order._id}`, error);
+    throw new AppError('Failed to generate PDF document', 500);
+  }
+
+  const filename = `Invoice-${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}.pdf`;
+  
+  response.setHeader('Content-Type', 'application/pdf');
+  response.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+  response.end(Buffer.from(pdfBuffer), 'binary');
+});
+
+/**
  * @desc    generate and serve standalone KOT (Kitchen Order Ticket) HTML
  * @route   GET /api/orders/:id/kot
  * @access  Private (merchant, admin)
@@ -1979,3 +2057,64 @@ export const getKOTDocument = asyncHandler(async (req, response) => {
   response.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; script-src-attr 'unsafe-inline';");
   response.send(html);
 });
+
+/**
+ * @desc    Update payment status for an existing order (merchant charges card from Live Orders)
+ * @route   PUT /api/orders/:id/payment
+ * @access  Private (merchant)
+ */
+export const updatePaymentStatus = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  ensureCanManageRestaurant(req.user, order.restaurantId);
+
+  // Guard: don't allow updating an already-paid order UNLESS this request is also trying to set it to paid (idempotent race condition with Stripe webhooks)
+  if (order.paymentStatus === 'paid' && req.body.paymentStatus !== 'paid') {
+    throw new AppError('Order is already paid', 400);
+  }
+
+  // Guard: don't allow updating cancelled/failed orders
+  if (['cancelled', 'failed', 'refunded'].includes(order.status)) {
+    throw new AppError(`Cannot update payment for a ${order.status} order`, 400);
+  }
+
+  const { paymentMethod, paymentStatus, stripePaymentIntentId } = req.body;
+
+  if (paymentMethod) order.paymentMethod = paymentMethod;
+  if (stripePaymentIntentId) order.stripePaymentIntentId = stripePaymentIntentId;
+
+  if (paymentStatus) {
+    order.paymentStatus = paymentStatus;
+    if (paymentStatus === 'paid' && order.status === 'pending') {
+      order.status = 'accepted';
+      order.statusUpdates.push({ status: 'accepted', description: 'Order accepted after card payment by merchant' });
+
+      // Expire the old Stripe Checkout Session (QR link) so customer can no longer pay via link
+      if (order.stripeCheckoutSessionId) {
+        try {
+          await expireCheckoutSession(order.stripeCheckoutSessionId);
+        } catch (e) {
+          logger.warn(`Failed to expire checkout session on card charge: ${e.message}`);
+        }
+      }
+    }
+    
+    // Auto-send invoice on successful payment status update
+    if (paymentStatus === 'paid') {
+      autoSendInvoice(order);
+    }
+  }
+
+  await order.save();
+
+  const io = req.app.get('io');
+  if (io) {
+    const payload = buildOrderSocketPayload(order);
+    io.to(order.restaurantId.toString()).emit('order_status_update', payload);
+    io.to(order.restaurantId.toString()).emit('order_updated', payload);
+  }
+
+  res.success(response, { data: order, message: 'Payment status updated successfully' });
+});
+

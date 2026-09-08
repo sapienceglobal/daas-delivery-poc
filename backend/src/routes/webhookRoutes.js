@@ -145,8 +145,9 @@ router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
   }
 
   // Tracking URL from Shipday order data
-  if (orderData.tracking_link) {
-    updatePayload.trackingUrl = orderData.tracking_link;
+  const trackingUrl = orderData.trackingLink || orderData.tracking_link || event.trackingLink || event.tracking_link;
+  if (trackingUrl) {
+    updatePayload.trackingUrl = trackingUrl;
   }
 
   // Timing data

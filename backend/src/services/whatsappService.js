@@ -54,3 +54,47 @@ export const sendOrderAlert = async (restaurant, order) => {
     console.error('Error sending WhatsApp notification:', error.response?.data || error.message);
   }
 };
+
+export const sendInvoiceWhatsApp = async (customerPhone, order) => {
+  if (!customerPhone) return;
+
+  const token = process.env.WHATSAPP_API_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+  const invoiceUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/api/orders/${order._id}/invoice`;
+  
+  const messageText = `Hi ${order.customerName || 'there'}! 👋\n\nHere is the invoice for your recent order #${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}.\n\n🧾 *View Invoice:* \n${invoiceUrl}\n\nThank you for choosing ${order.restaurantName}!`;
+
+  if (!token || !phoneNumberId || token === 'your_meta_whatsapp_api_token') {
+    console.log(`\n[WHATSAPP MOCK] To: ${customerPhone}\n${messageText}\n`);
+    return;
+  }
+
+  let formattedNumber = customerPhone.replace(/[^\d+]/g, '');
+  if (!formattedNumber.startsWith('+')) {
+    formattedNumber = `+1${formattedNumber.replace(/^1/, '')}`;
+  }
+  const metaNumber = formattedNumber.replace('+', '');
+
+  try {
+    const response = await axios({
+      method: 'POST',
+      url: `https://graph.facebook.com/v17.0/${phoneNumberId}/messages`,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        messaging_product: 'whatsapp',
+        to: metaNumber,
+        type: 'text',
+        text: {
+          body: messageText
+        }
+      }
+    });
+    console.log('WhatsApp invoice sent:', response.data);
+  } catch (error) {
+    console.error('Error sending WhatsApp invoice:', error.response?.data || error.message);
+  }
+};

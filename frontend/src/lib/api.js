@@ -247,7 +247,7 @@ export const adminAPI = {
 export const paymentAPI = {
   createIntent: (amount, orderId, checkout = null) => api.post(
     '/api/payments/create-intent',
-    checkout || { amount, orderId }
+    { amount, orderId, ...(checkout || {}) }
   ),
   createSetupIntent: () => api.post('/api/payments/create-setup-intent'),
   createLink: (data) => api.post('/api/payments/create-link', data),

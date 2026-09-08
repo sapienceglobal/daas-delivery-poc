@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../constants/app_colors.dart';
 import '../providers/order_provider.dart';
 import '../models/order_model.dart';
 import '../services/api_service.dart';
+import '../providers/menu_provider.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
   final String orderId;
@@ -31,7 +34,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   void _launchURL(String path) async {
-    final url = Uri.parse('\${ApiService.baseUrl}$path');
+    final url = Uri.parse('${ApiService.baseUrl}$path');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
@@ -119,24 +122,169 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   void _confirmRemake(OrderModel order) {
-    _showPremiumDialog(
-      title: 'Remake Order',
-      subtitle: 'Send this order back to the kitchen to be prepared again?',
-      icon: Icons.refresh,
-      iconColor: Colors.orange,
-      confirmText: 'Yes, Remake',
-      onConfirm: () async {
-        setState(() => _isRemakingOrder = true);
-        try {
-          await ApiService.post('/api/orders/${order.id}/remake', {});
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Remake order sent to kitchen')));
-          if (mounted) context.read<OrderProvider>().fetchOrderById(widget.orderId);
-        } catch (e) {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to create remake order: $e')));
-        } finally {
-          if (mounted) setState(() => _isRemakingOrder = false);
-        }
-      },
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.refresh, color: Colors.orange, size: 36),
+              ),
+              const SizedBox(height: 16),
+              Text('Remake Order', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(
+                'Send this order back to the kitchen? You can remake it for free or charge the customer.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(color: Colors.grey.shade600, fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _executeRemake(order, true);
+                  },
+                  child: Text('Charge Customer', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black, side: BorderSide(color: Colors.grey.shade300), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _executeRemake(order, false);
+                  },
+                  child: Text('Free Remake (\$0)', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text('Cancel', style: GoogleFonts.inter(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _executeRemake(OrderModel order, bool chargeCustomer) async {
+    setState(() => _isRemakingOrder = true);
+    try {
+      final res = await ApiService.post('/api/orders/${order.id}/remake', {'chargeCustomer': chargeCustomer});
+      final resData = json.decode(res.body);
+      
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Remake order sent to kitchen (${chargeCustomer ? 'Paid' : '\$0 charge'})')));
+      
+      if (chargeCustomer && resData['data'] != null) {
+         final newOrderId = resData['data']['_id'];
+         final linkPayload = {
+           'orderId': newOrderId,
+           'amount': resData['data']['total']?.toStringAsFixed(2) ?? '0.00',
+           'restaurantId': context.read<MenuProvider>().restaurantId,
+           'items': resData['data']['items'],
+           'customerPhone': order.customerPhone,
+           'customerEmail': order.customerEmail,
+         };
+         final linkRes = await ApiService.post('/api/payments/create-link', linkPayload);
+         final linkResData = json.decode(linkRes.body);
+         final paymentUrl = linkResData['data']?['url'] ?? linkResData['url'];
+         if (mounted && paymentUrl != null) {
+            _showQRModal(paymentUrl, newOrderId);
+         }
+      }
+      if (mounted) context.read<OrderProvider>().fetchOrderById(widget.orderId);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to create remake order: $e')));
+    } finally {
+      if (mounted) setState(() => _isRemakingOrder = false);
+    }
+  }
+
+  void _showQRModal(String paymentUrl, String orderId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Waiting for Payment', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text('Have the customer scan the QR code to pay.', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.grey.shade600, fontSize: 14)),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, spreadRadius: 2)]),
+                child: QrImageView(
+                  data: paymentUrl,
+                  version: QrVersions.auto,
+                  size: 180.0,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blue.shade100)),
+                child: Text('Note: If you want to change the payment method or check status, go to the Live Orders page.', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.blue.shade800, fontSize: 12, fontWeight: FontWeight.w500)),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF111827),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    context.go('/live-orders');
+                  },
+                  child: Text('Go to Live Orders', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Close', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -266,8 +414,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           onPressed: () => context.pop(),
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.print, color: Colors.black), onPressed: () => _launchURL('/api/orders/\${order.id}/kot')),
-          IconButton(icon: const Icon(Icons.receipt, color: Colors.black), onPressed: () => _launchURL('/api/orders/\${order.id}/invoice')),
+          IconButton(icon: const Icon(Icons.print, color: Colors.black), onPressed: () => _launchURL('/api/orders/${order.id}/kot')),
+          IconButton(icon: const Icon(Icons.receipt, color: Colors.black), onPressed: () => _launchURL('/api/orders/${order.id}/invoice-pdf')),
         ],
       ),
       body: _isLoadingAction 
@@ -376,9 +524,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Opacity(
-                                opacity: (_isSendingInvoice || order.customerEmail == null) ? 0.4 : 1.0,
+                                opacity: (_isSendingInvoice || order.customerEmail == null || order.customerEmail == 'admin@lassiloungeny.com') ? 0.4 : 1.0,
                                 child: OutlinedButton.icon(
-                                  onPressed: (_isSendingInvoice || order.customerEmail == null) ? null : () => _handleSendInvoice(order),
+                                  onPressed: (_isSendingInvoice || order.customerEmail == null || order.customerEmail == 'admin@lassiloungeny.com') ? null : () => _handleSendInvoice(order),
                                   icon: _isSendingInvoice ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send, size: 16),
                                   label: Text('Email Invoice', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.black87)),
                                 ),
@@ -391,6 +539,24 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                           children: [
                             Expanded(
                               child: Opacity(
+                                opacity: (order.customerPhone == null || order.customerPhone!.isEmpty || order.customerPhone == '0000000000') ? 0.4 : 1.0,
+                                child: OutlinedButton.icon(
+                                  onPressed: (order.customerPhone == null || order.customerPhone!.isEmpty || order.customerPhone == '0000000000') ? null : () {
+                                    final baseUrl = 'http://localhost:3001'; // Fallback or could use env
+                                    final message = 'Hi ${order.customerName}! 👋\n\nHere is the official invoice file for your order #${order.orderNumber}:\n$baseUrl/api/orders/${order.id}/invoice-pdf\n\nThank you for your order!';
+                                    final digits = order.customerPhone!.replaceAll(RegExp(r'\D'), '');
+                                    final intlPhone = digits.startsWith('0') ? '1${digits.substring(1)}' : (digits.length == 10 ? '1$digits' : digits);
+                                    launchUrl(Uri.parse('https://wa.me/$intlPhone?text=${Uri.encodeComponent(message)}'), mode: LaunchMode.externalApplication);
+                                  },
+                                  icon: const Icon(Icons.message, size: 16, color: Colors.green),
+                                  style: OutlinedButton.styleFrom(side: BorderSide(color: Colors.green.shade200), backgroundColor: Colors.green.shade50),
+                                  label: Text('WhatsApp Invoice', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.green.shade700, fontSize: 13)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Opacity(
                                 opacity: (!canRefund) ? 0.4 : 1.0,
                                 child: OutlinedButton.icon(
                                   onPressed: (!canRefund) ? null : () => _confirmRefund(order),
@@ -399,7 +565,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
                             Expanded(
                               child: Opacity(
                                 opacity: isTerminal ? 0.4 : 1.0,
@@ -699,7 +869,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                           Text(order.courierPhone!, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold)),
                                           const SizedBox(width: 8),
                                           InkWell(
-                                            onTap: () => launchUrl(Uri.parse('tel:\${order.courierPhone}')),
+                                            onTap: () => launchUrl(Uri.parse('tel:${order.courierPhone}')),
                                             child: Container(
                                               padding: const EdgeInsets.all(4),
                                               decoration: BoxDecoration(color: Colors.grey.shade100, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade300)),

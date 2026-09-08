@@ -11,6 +11,8 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'dart:async';
+import 'dart:convert';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import '../services/api_service.dart';
 import '../constants/app_colors.dart';
 import '../providers/order_provider.dart';
@@ -33,6 +35,90 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
     // Orders are already fetched and kept alive by SocketService globally
   }
 
+  Future<void> _processStripePayment(OrderModel order) async {
+    bool isDialogShowing = false;
+    try {
+      isDialogShowing = true;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => const Center(child: CircularProgressIndicator()),
+      ).then((_) => isDialogShowing = false);
+
+      final intentPayload = {
+        'amount': order.total,
+        'orderId': order.id,
+        'customerName': order.customerName,
+        'customerPhone': order.customerPhone,
+        'customerEmail': order.customerEmail ?? '',
+      };
+
+      final intentResponse = await ApiService.post('/api/payments/create-intent', intentPayload);
+      final intentRes = jsonDecode(intentResponse.body);
+      final intentData = intentRes['data'] ?? intentRes;
+
+      if (intentData == null || !intentData.containsKey('clientSecret')) {
+        throw Exception(intentData['message'] ?? 'Failed to initialize payment');
+      }
+
+      final pData = intentData['data'] ?? intentData;
+
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: SetupPaymentSheetParameters(
+          paymentIntentClientSecret: pData['clientSecret'],
+          appearance: const PaymentSheetAppearance(
+            colors: PaymentSheetAppearanceColors(
+              primary: Color(0xFF8B0000),
+            ),
+          ),
+          merchantDisplayName: 'Merchant Stripe POS',
+        ),
+      );
+
+      if (isDialogShowing && mounted) {
+        Navigator.of(context).pop(); // hide loading
+        isDialogShowing = false;
+      }
+
+      await Stripe.instance.presentPaymentSheet();
+      
+      final stripePaymentIntentId = pData['paymentIntentId'] ?? pData['paymentIntent'];
+
+      // Now call our new endpoint to mark the order as paid via credit_card
+      final updateResponse = await ApiService.put('/api/orders/${order.id}/payment', {
+        'paymentMethod': 'credit_card',
+        'paymentStatus': 'paid',
+        'stripePaymentIntentId': stripePaymentIntentId,
+      });
+      final updateRes = jsonDecode(updateResponse.body);
+
+      if (updateRes['success'] == true || updateRes['data'] != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Order paid successfully via Stripe!'), backgroundColor: Colors.green),
+          );
+          context.read<OrderProvider>().fetchOrders(force: true);
+        }
+      }
+    } catch (e) {
+      if (isDialogShowing && mounted) {
+        Navigator.of(context).pop(); // hide loading if error
+        isDialogShowing = false;
+      }
+      
+      final errorStr = e.toString().toLowerCase();
+      if ((e is StripeException && e.error.code == FailureCode.Canceled) || errorStr.contains('cancel')) {
+        debugPrint('Payment sheet cancelled');
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Payment failed: ${e.toString()}'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final orderProvider = context.watch<OrderProvider>();
@@ -40,7 +126,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
 
     // Filter logic
     final newOrders = allOrders.where((o) => ['new', 'pending'].contains(o.status)).toList();
-    final accepted = allOrders.where((o) => o.status == 'accepted').toList();
+    final accepted = allOrders.where((o) => ['accepted', 'driver_assigned'].contains(o.status)).toList();
     final preparing = allOrders.where((o) => o.status == 'preparing').toList();
     final ready = allOrders.where((o) => o.status == 'ready').toList();
     final outForDelivery = allOrders.where((o) => o.orderType == 'delivery' && o.status == 'picked_up').toList();
@@ -386,7 +472,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
         break;
       case 'preparing':
         buttonText = 'Mark Ready';
-        nextStatus = 'ready_for_pickup';
+        nextStatus = 'ready';
         buttonColor = Colors.green;
         buttonIcon = Icons.room_service;
         break;
@@ -395,7 +481,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
         if (order.orderType == 'delivery') {
           buttonText = ''; // Disabled for delivery, Shipday driver handles this
         } else {
-          buttonText = 'Mark Picked Up';
+          buttonText = 'Handed to Customer';
           nextStatus = 'picked_up';
           buttonColor = Colors.blue;
           buttonIcon = Icons.local_shipping;
@@ -437,9 +523,22 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                       _showPaymentModal(url, order.createdAt, customerPhone: order.customerPhone);
                     },
                   icon: const Icon(Icons.qr_code, size: 16, color: Colors.black87),
-                  label: Text('Show QR Code', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black87)),
+                  label: Text('Show QR Code', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black87, fontSize: 12)),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Colors.grey.shade300),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _processStripePayment(order),
+                  icon: const Icon(Icons.credit_card, size: 16, color: Colors.blue),
+                  label: Text('Charge Card', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.blue, fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.blue),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
@@ -718,29 +817,33 @@ class _PaymentModalContentState extends State<_PaymentModalContent> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.white),
-                    onPressed: () async {
-                      final message = 'Hi! Please complete your payment for your order here:\n${widget.paymentUrl}';
-                      final rawPhone = widget.customerPhone?.trim() ?? '';
-                      String waUrl;
-                      if (rawPhone.isNotEmpty && rawPhone != 'N/A') {
+                  child: Opacity(
+                    opacity: (widget.customerPhone == null || widget.customerPhone!.trim().isEmpty || widget.customerPhone!.trim() == '0000000000' || widget.customerPhone!.trim() == 'N/A') ? 0.4 : 1.0,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF25D366), 
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: const Color(0xFF25D366).withOpacity(0.5),
+                        disabledForegroundColor: Colors.white,
+                      ),
+                      onPressed: (widget.customerPhone == null || widget.customerPhone!.trim().isEmpty || widget.customerPhone!.trim() == '0000000000' || widget.customerPhone!.trim() == 'N/A') ? null : () async {
+                        final qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${Uri.encodeComponent(widget.paymentUrl)}';
+                        final message = 'Hi! 👋\n\nPlease complete the payment for your order.\n\n🔗 *Click here to pay:* \n${widget.paymentUrl}\n\n📷 *Or scan this QR code:* \n$qrUrl\n\nThank you!';
+                        final rawPhone = widget.customerPhone!.trim();
                         final digits = rawPhone.replaceAll(RegExp(r'[^\d]'), '');
                         final intlPhone = digits.length == 10 ? '1$digits' : digits;
-                        waUrl = 'https://wa.me/$intlPhone?text=${Uri.encodeComponent(message)}';
-                      } else {
-                        waUrl = 'https://wa.me/?text=${Uri.encodeComponent(message)}';
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No customer phone. WhatsApp opened for manual selection.')));
-                      }
-                      final url = Uri.parse(waUrl);
-                      if (await canLaunchUrl(url)) {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp')));
-                      }
-                    },
-                    icon: const Icon(Icons.chat, size: 16),
-                    label: const Text('WhatsApp'),
+                        final waUrl = 'https://wa.me/$intlPhone?text=${Uri.encodeComponent(message)}';
+                        
+                        final url = Uri.parse(waUrl);
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp')));
+                        }
+                      },
+                      icon: const Icon(Icons.chat, size: 16),
+                      label: const Text('WhatsApp'),
+                    ),
                   ),
                 ),
               ],

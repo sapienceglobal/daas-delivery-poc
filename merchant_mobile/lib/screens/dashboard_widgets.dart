@@ -330,15 +330,25 @@ class RevenueOrdersCard extends StatelessWidget {
         children: [
           // Revenue Half
           Expanded(
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                  child: const Icon(Icons.attach_money, color: Color(0xFFFF5722), size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please login to the website to view analytics.', style: GoogleFonts.inter()),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    child: const Icon(Icons.attach_money, color: Color(0xFFFF5722), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -358,6 +368,7 @@ class RevenueOrdersCard extends StatelessWidget {
                 ),
               ],
             ),
+            ),
           ),
           // Divider
           Container(
@@ -368,15 +379,20 @@ class RevenueOrdersCard extends StatelessWidget {
           ),
           // Orders Half
           Expanded(
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                  child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFFFF5722), size: 24),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                context.go('/all-orders');
+              },
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFFFF5722), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -395,6 +411,7 @@ class RevenueOrdersCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
             ),
           ),
         ],

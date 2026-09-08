@@ -5,7 +5,7 @@ import StripeProvider from '@/components/payment/StripeProvider';
 import CheckoutForm from '@/components/payment/CheckoutForm';
 
 // paymentSimulatorModal — secure Stripe Elements modal for online checkout.
-export default function PaymentSimulatorModal({ isOpen, onClose, amount, checkoutData, onSuccess }) {
+export default function PaymentSimulatorModal({ isOpen, onClose, amount, checkoutData, onSuccess, orderId }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function PaymentSimulatorModal({ isOpen, onClose, amount, checkou
         </div>
         <div className="flex-1 flex flex-col min-h-0 font-sans bg-[#fdfcfb]">
           <div className="p-6 flex-1 flex flex-col min-h-0">
-            <StripeProvider amount={amount} checkoutData={checkoutData}>
+            <StripeProvider amount={amount} orderId={orderId} checkoutData={checkoutData}>
               <CheckoutForm amount={amount} onSuccess={onSuccess} onCancel={onClose} checkoutData={checkoutData} />
             </StripeProvider>
           </div>

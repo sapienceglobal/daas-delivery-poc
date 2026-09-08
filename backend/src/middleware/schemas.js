@@ -114,7 +114,15 @@ export const createOrderSchema = Joi.object({
   stripePaymentIntentId: Joi.string().max(200).allow('', null).optional(),
   savedCardId: Joi.string().max(200).allow('', null).optional(),
   useLoyaltyPoints: Joi.boolean().default(false),
-  customerPhone: Joi.string().max(30).allow('', null).optional(),
+  customerPhone: Joi.string().max(30).allow('', null)
+    .when('orderType', {
+      is: 'delivery',
+      then: Joi.required().invalid('', null).messages({
+        'any.required': 'Phone number is required for delivery orders',
+        'any.invalid': 'Phone number is required for delivery orders'
+      }),
+      otherwise: Joi.optional()
+    }),
   customerName: Joi.string()
     .max(50)
     .pattern(/^[a-zA-Z\s\-'.]+$/)
@@ -125,7 +133,8 @@ export const createOrderSchema = Joi.object({
       'string.max': 'Name cannot exceed 50 characters'
     }),
   customerEmail: Joi.string().email().allow('', null).optional(),
-  specialInstructions: Joi.string().max(1000).allow('', null).optional()
+  specialInstructions: Joi.string().max(1000).allow('', null).optional(),
+  orderSource: Joi.string().valid('web', 'app', 'merchant_app', 'merchant_web').optional()
 });
 
 export const rateOrderSchema = Joi.object({

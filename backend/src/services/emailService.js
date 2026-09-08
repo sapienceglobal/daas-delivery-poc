@@ -325,7 +325,7 @@ export const sendInvoiceEmail = async (email, order, payment = null) => {
     attachments: pdfBuffer ? [
       {
         filename: `Invoice_${orderRef}.pdf`,
-        content: pdfBuffer,
+        content: Buffer.from(pdfBuffer),
         contentType: 'application/pdf'
       }
     ] : []

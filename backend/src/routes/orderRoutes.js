@@ -8,6 +8,7 @@ const router = Router();
 
 // ── Public Routes ───────────────────────────────────────────────────────────
 router.get('/:id/pay', orderController.redirectToPayment);
+router.get('/:id/invoice-pdf', orderController.downloadInvoicePdf);
 
 // ── Customer Routes ─────────────────────────────────────────────────────────
 router.post('/', protect, authorize('customer', 'merchant', 'admin'), validate(createOrderSchema), orderController.createOrder);
@@ -21,6 +22,7 @@ router.post('/delivery-quote', protect, authorize('customer', 'merchant', 'admin
 // ── Merchant Routes ─────────────────────────────────────────────────────────
 router.get('/restaurant/:restaurantId', protect, authorize('merchant'), orderController.getRestaurantOrders);
 router.put('/:id/status', protect, authorize('merchant'), orderController.updateOrderStatus);
+router.put('/:id/payment', protect, authorize('merchant'), orderController.updatePaymentStatus);
 router.put('/:id/prep', protect, authorize('merchant'), orderController.updateOrderStatus);
 router.put('/:id/accept', protect, authorize('merchant'), orderController.acceptOrder);
 router.put('/:id/reject', protect, authorize('merchant'), orderController.rejectOrder);
