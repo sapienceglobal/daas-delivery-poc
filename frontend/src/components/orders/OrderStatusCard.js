@@ -1,11 +1,14 @@
 'use client';
 
 import { Check, ClipboardList, Loader2, AlertCircle } from 'lucide-react';
+import { formatTime } from '@/lib/formatters';
 
 export default function OrderStatusCard({ order }) {
   if (!order) return null;
 
   const isDelivery = order.orderType === 'delivery';
+  const tz = order.restaurantId?.timezone;
+  const tFmt = order.restaurantId?.timeFormat;
 
   // define steps dynamically based on order type (Delivery vs Pickup/Dine-in)
   const steps = isDelivery
@@ -121,11 +124,7 @@ export default function OrderStatusCard({ order }) {
     const stepObj = steps[stepIndex];
     const updateMatch = order.statusUpdates?.find(u => stepObj.statuses.includes(u.status));
     const timestampText = updateMatch
-      ? new Date(updateMatch.timestamp || updateMatch.createdAt).toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-        })
+      ? formatTime(updateMatch.timestamp || updateMatch.createdAt, tFmt, tz)
       : null;
 
     return { isCompleted, isActive, time: timestampText };

@@ -28,9 +28,9 @@ export const formatCurrency = (amount, currencySetting) => {
 // maps the settings timezone string to an IANA timezone identifier
 export const mapTimezone = (timezoneStr) => {
   if (!timezoneStr) return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  if (timezoneStr.includes('Eastern Time')) return 'America/New_York';
-  if (timezoneStr.includes('Pacific Time')) return 'America/Los_Angeles';
-  if (timezoneStr.includes('Indian Standard Time')) return 'Asia/Kolkata';
+  if (timezoneStr.includes('Eastern Time') || timezoneStr.includes('UTC-05:00') || timezoneStr.includes('UTC-5:00') || timezoneStr.includes('UTC-04:00') || timezoneStr.includes('UTC-4:00')) return 'America/New_York';
+  if (timezoneStr.includes('Pacific Time') || timezoneStr.includes('UTC-08:00') || timezoneStr.includes('UTC-8:00')) return 'America/Los_Angeles';
+  if (timezoneStr.includes('Indian Standard Time') || timezoneStr.includes('UTC+05:30') || timezoneStr.includes('UTC+5:30')) return 'Asia/Kolkata';
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 };
 

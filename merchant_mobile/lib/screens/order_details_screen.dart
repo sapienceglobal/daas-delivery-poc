@@ -11,6 +11,8 @@ import '../providers/order_provider.dart';
 import '../models/order_model.dart';
 import '../services/api_service.dart';
 import '../providers/menu_provider.dart';
+import '../utils/time_utils.dart';
+import '../providers/auth_provider.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
   final String orderId;
@@ -1166,8 +1168,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   String _formatDT(DateTime? t) {
-    if (t == null) return 'N/A';
-    return '${t.month}/${t.day}/${t.year}  ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final tz = authProvider.user?['restaurant']?['timezone'];
+    return TimeUtils.formatDateTimeWithTz(t, tz);
   }
 
   Widget _buildDeliveryRow(String label, String value) {

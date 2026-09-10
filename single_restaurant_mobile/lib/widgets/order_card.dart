@@ -4,6 +4,7 @@ import 'package:single_restaurant_mobile/screens/track_order_screen.dart';
 import 'package:single_restaurant_mobile/utils/formatters.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
+import 'package:single_restaurant_mobile/utils/time_utils.dart';
 
 class OrderCard extends StatelessWidget {
   final Map<String, dynamic> order;
@@ -122,7 +123,7 @@ class OrderCard extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          _formatDate(order['createdAt'] ?? ''),
+          _formatDate(context, order['createdAt'] ?? ''),
           style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 12),
@@ -153,7 +154,7 @@ class OrderCard extends StatelessWidget {
               const Icon(Icons.check_circle_outline, color: Colors.green, size: 18),
               const SizedBox(width: 8),
               Expanded(
-                child: Text('Delivered on ${_formatDate(order['deliveredAt'] ?? order['createdAt'])}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500)),
+                child: Text('Delivered on ${_formatDate(context, order['deliveredAt'] ?? order['createdAt'])}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500)),
               ),
             ],
           ),
@@ -169,7 +170,7 @@ class OrderCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 26.0, top: 4),
             child: Text(
-              _formatDate(order['cancelledAt'] ?? order['createdAt']),
+              _formatDate(context, order['cancelledAt'] ?? order['createdAt']),
               style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ),
@@ -401,15 +402,12 @@ class OrderCard extends StatelessWidget {
     );
   }
 
-  String _formatDate(String isoString) {
+  String _formatDate(BuildContext context, String isoString) {
     try {
       final date = DateTime.parse(isoString);
-      final monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      final month = monthNames[date.month - 1];
-      final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
-      final amPm = date.hour >= 12 ? 'PM' : 'AM';
-      final min = date.minute.toString().padLeft(2, '0');
-      return '$month ${date.day}, ${date.year} • $hour:$min $amPm';
+      final restaurantProvider = Provider.of<RestaurantProvider>(context, listen: false);
+      final tz = restaurantProvider.restaurant?['timezone'];
+      return TimeUtils.formatDateTimeWithTz(date, tz);
     } catch (e) {
       return isoString;
     }

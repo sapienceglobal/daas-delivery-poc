@@ -19,6 +19,19 @@ function MapCenterWatcher({ onMapSettle }) {
   const map = useMap();
 
   useEffect(() => {
+    // Fix for map not rendering tiles correctly in modals
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 400);
+
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    
+    if (map.getContainer()) {
+      resizeObserver.observe(map.getContainer());
+    }
+
     const handleMoveEnd = () => {
       const center = map.getCenter();
       onMapSettle({ lat: center.lat, lng: center.lng });
@@ -30,6 +43,8 @@ function MapCenterWatcher({ onMapSettle }) {
     handleMoveEnd();
 
     return () => {
+      clearTimeout(timer);
+      resizeObserver.disconnect();
       map.off('moveend', handleMoveEnd);
     };
   }, [map, onMapSettle]);
@@ -221,6 +236,9 @@ export default function MapLocationPicker({
 
   return (
     <div className="flex flex-col h-full bg-white relative animate-in fade-in duration-300 rounded-b-2xl overflow-hidden">
+      {/* Ensure Leaflet CSS is loaded even if bundler misses the import */}
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+      
       {/* Map Container - Flex 1 to take remaining space */}
       <div className="relative flex-1 min-h-[300px] w-full bg-gray-100">
         <MapContainer 

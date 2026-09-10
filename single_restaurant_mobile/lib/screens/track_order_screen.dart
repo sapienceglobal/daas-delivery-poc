@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
+import 'package:single_restaurant_mobile/utils/time_utils.dart';
 
 class TrackOrderScreen extends StatefulWidget {
   final String orderId;
@@ -787,13 +788,10 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
   String _formatDate(String? isoString) {
     if (isoString == null) return '';
     try {
-      final date = DateTime.parse(isoString).toLocal();
-      final monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      final month = monthNames[date.month - 1];
-      final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
-      final amPm = date.hour >= 12 ? 'PM' : 'AM';
-      final min = date.minute.toString().padLeft(2, '0');
-      return '$month ${date.day}, ${date.year} • $hour:$min $amPm';
+      final date = DateTime.parse(isoString);
+      final restaurantProvider = Provider.of<RestaurantProvider>(context, listen: false);
+      final tz = restaurantProvider.restaurant?['timezone'];
+      return TimeUtils.formatDateTimeWithTz(date, tz);
     } catch (e) {
       return isoString;
     }
@@ -801,11 +799,10 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
   
   String _formatTime(String isoString) {
     try {
-      final date = DateTime.parse(isoString).toLocal();
-      final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
-      final amPm = date.hour >= 12 ? 'PM' : 'AM';
-      final min = date.minute.toString().padLeft(2, '0');
-      return '$hour:$min $amPm';
+      final date = DateTime.parse(isoString);
+      final restaurantProvider = Provider.of<RestaurantProvider>(context, listen: false);
+      final tz = restaurantProvider.restaurant?['timezone'];
+      return TimeUtils.formatDateTimeWithTz(date, tz).split('  ').last;
     } catch (e) {
       return isoString;
     }

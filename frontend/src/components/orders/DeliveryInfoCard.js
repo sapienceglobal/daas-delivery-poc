@@ -3,36 +3,26 @@
 import { MapPin, Phone, MessageSquare, Clock, ShieldAlert, Navigation, Truck } from 'lucide-react';
 import LiveCourierTrackingCard from './LiveCourierTrackingCard';
 
+import { formatTime as globalFormatTime } from '@/lib/formatters';
+
 export default function DeliveryInfoCard({ order }) {
   if (!order) return null;
 
   const isDelivery = order.orderType === 'delivery';
+  const tz = order.restaurantId?.timezone;
+  const tFmt = order.restaurantId?.timeFormat;
 
   const getEtaRange = () => {
     if (order.deliveryTime) {
       const etaDate = new Date(order.deliveryTime);
       const startEta = new Date(etaDate.getTime() - 10 * 60 * 1000);
-
-      const formatTime = (d) => d.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      });
-
-      return `${formatTime(startEta)} - ${formatTime(etaDate)}`;
+      return `${globalFormatTime(startEta, tFmt, tz)} - ${globalFormatTime(etaDate, tFmt, tz)}`;
     }
 
     const createdDate = new Date(order.createdAt);
     const startEta = new Date(createdDate.getTime() + 30 * 60 * 1000);
     const endEta = new Date(createdDate.getTime() + 45 * 60 * 1000);
-
-    const formatTime = (d) => d.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-
-    return `${formatTime(startEta)} - ${formatTime(endEta)}`;
+    return `${globalFormatTime(startEta, tFmt, tz)} - ${globalFormatTime(endEta, tFmt, tz)}`;
   };
 
   const hasCourierLocation = typeof order.courierLat === 'number' && typeof order.courierLng === 'number';

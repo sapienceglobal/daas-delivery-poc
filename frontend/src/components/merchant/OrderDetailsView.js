@@ -582,26 +582,26 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 <div className="space-y-3.5">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-[#6b7280]">Placement Time</span>
-                    <span className="text-xs font-bold text-[#111827] text-right">{formatDate(order.createdAt)}<br/><span className="text-[#6b7280]">{formatTime(order.createdAt)}</span></span>
+                    <span className="text-xs font-bold text-[#111827] text-right">{formatDate(order.createdAt, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-[#6b7280]">{formatTime(order.createdAt, restaurant?.timeFormat, restaurant?.timezone)}</span></span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-[#6b7280]">Accepted Time</span>
                     <span className="text-xs font-bold text-[#111827] text-right">
                       {order.statusUpdates?.find(u => u.status === 'accepted')?.timestamp 
-                        ? <>{formatDate(order.statusUpdates.find(u => u.status === 'accepted').timestamp)}<br/><span className="text-[#6b7280]">{formatTime(order.statusUpdates.find(u => u.status === 'accepted').timestamp)}</span></> 
+                        ? <>{formatDate(order.statusUpdates.find(u => u.status === 'accepted').timestamp, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-[#6b7280]">{formatTime(order.statusUpdates.find(u => u.status === 'accepted').timestamp, restaurant?.timeFormat, restaurant?.timezone)}</span></> 
                         : 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-[#6b7280]">Pickup Time</span>
                     <span className="text-xs font-bold text-[#111827] text-right">
-                      {order.pickupTime ? <>{formatDate(order.pickupTime)}<br/><span className="text-[#6b7280]">{formatTime(order.pickupTime)}</span></> : 'N/A'}
+                      {order.pickupTime ? <>{formatDate(order.pickupTime, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-[#6b7280]">{formatTime(order.pickupTime, restaurant?.timeFormat, restaurant?.timezone)}</span></> : 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-[#6b7280]">Delivery Time</span>
                     <span className="text-xs font-bold text-[#111827] text-right">
-                      {order.deliveryTime ? <>{formatDate(order.deliveryTime)}<br/><span className="text-[#6b7280]">{formatTime(order.deliveryTime)}</span></> : 'N/A'}
+                      {order.deliveryTime ? <>{formatDate(order.deliveryTime, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-[#6b7280]">{formatTime(order.deliveryTime, restaurant?.timeFormat, restaurant?.timezone)}</span></> : 'N/A'}
                     </span>
                   </div>
                 </div>

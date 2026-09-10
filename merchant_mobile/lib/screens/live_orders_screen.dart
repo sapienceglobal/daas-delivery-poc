@@ -20,6 +20,8 @@ import '../models/order_model.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/shared_app_bar.dart';
 import '../widgets/shared_bottom_nav.dart';
+import '../providers/auth_provider.dart';
+import '../utils/time_utils.dart';
 
 class LiveOrdersScreen extends StatefulWidget {
   const LiveOrdersScreen({Key? key}) : super(key: key);
@@ -342,10 +344,15 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                 Expanded(
                   child: Text('#${order.orderNumber}', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14), overflow: TextOverflow.ellipsis),
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  '${order.createdAt.hour}:${order.createdAt.minute.toString().padLeft(2, '0')}',
-                  style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.access_time, size: 12, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text(
+                      TimeUtils.formatDateTimeWithTz(order.createdAt, Provider.of<AuthProvider>(context, listen: false).user?['restaurant']?['timezone']).split('  ').last,
+                      style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                  ],
                 ),
               ],
             ),
