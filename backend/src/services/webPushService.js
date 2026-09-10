@@ -20,8 +20,8 @@ export const sendPushNotification = async (restaurant, payload) => {
     return;
   }
 
-  if (!process.env.VAPID_PUBLIC_KEY) {
-    console.warn('Web push VAPID keys not configured. Skipping push notification.');
+  if (!process.env.VAPID_PUBLIC_KEY || process.env.NODE_ENV !== 'production') {
+    console.warn(`Web push VAPID keys not configured or not in production. Skipping push notification.`);
     return;
   }
 

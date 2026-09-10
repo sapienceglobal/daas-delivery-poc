@@ -425,8 +425,8 @@ export default function SettingsView({ restaurant, onRefresh }) {
                 <div>
                   <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Timezone</label>
                   <select value={formData.timezone} onChange={(e) => handleChange('timezone', e.target.value)} className={`w-full px-3 py-2 text-sm cursor-pointer ${fieldBase}`}>
-                    <option value="(UTC-05:00) Eastern Time (ET)">(UTC-05:00) Eastern Time (ET)</option>
-                    <option value="(UTC-08:00) Pacific Time (PT)">(UTC-08:00) Pacific Time (PT)</option>
+                    <option value="(UTC-05:00) Eastern Time (ET)">Eastern Time (New York) - Auto adjusts for DST</option>
+                    <option value="(UTC-08:00) Pacific Time (PT)">Pacific Time (Los Angeles) - Auto adjusts for DST</option>
                     <option value="(UTC+05:30) Indian Standard Time (IST)">(UTC+05:30) Indian Standard Time (IST)</option>
                   </select>
                 </div>

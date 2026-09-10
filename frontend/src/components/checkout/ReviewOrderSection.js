@@ -284,14 +284,14 @@ export default function ReviewOrderSection({
         </div>
 
         {/* Modal Footer Controls */}
-        <div className="bg-[#f9fafb] border-t border-[#e5e7eb] px-6 py-4 flex gap-4">
+        <div className="bg-[#f9fafb] border-t border-[#e5e7eb] px-4 sm:px-6 py-4 flex flex-col-reverse sm:flex-row gap-3 sm:gap-4">
           <button
             onClick={onBack}
-            className="flex-1 py-3 border border-[#e5e7eb] hover:bg-[#ffffff] text-[13px] font-bold text-[#4b5563] uppercase tracking-wider rounded-xl ll-interactive ll-focus-ring"
+            className="w-full sm:flex-1 py-3 border border-[#e5e7eb] hover:bg-[#ffffff] text-[13px] font-bold text-[#4b5563] uppercase tracking-wider rounded-xl ll-interactive ll-focus-ring"
           >
             Cancel / Back
           </button>
-          <div className="flex-1 flex flex-col items-center">
+          <div className="w-full sm:flex-1 flex flex-col items-center">
             <button
               onClick={onPlaceOrder}
               disabled={isPlacingOrder}

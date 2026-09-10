@@ -17,8 +17,8 @@ export const sendOrderAlert = async (restaurant, order) => {
   
   const messageText = `🚨 *New Order Alert!* 🚨\n\n*Customer:* ${order.customerName}\n*Type:* ${order.orderType}\n*Total:* $${order.total.toFixed(2)}\n\n*View Order:* ${dashboardLink}`;
 
-  if (!token || !phoneNumberId || token === 'your_meta_whatsapp_api_token') {
-    // if not configured, just log to console as requested
+  if (process.env.NODE_ENV !== 'production' || !token || !phoneNumberId || token === 'your_meta_whatsapp_api_token') {
+    // if not configured or not in production, just log to console
     console.log(`\n[WHATSAPP MOCK] To: ${whatsappNumber}\n${messageText}\n`);
     return;
   }
@@ -65,7 +65,8 @@ export const sendInvoiceWhatsApp = async (customerPhone, order) => {
   
   const messageText = `Hi ${order.customerName || 'there'}! 👋\n\nHere is the invoice for your recent order #${order.orderNumber || order._id.toString().slice(-6).toUpperCase()}.\n\n🧾 *View Invoice:* \n${invoiceUrl}\n\nThank you for choosing ${order.restaurantName}!`;
 
-  if (!token || !phoneNumberId || token === 'your_meta_whatsapp_api_token') {
+  if (process.env.NODE_ENV !== 'production' || !token || !phoneNumberId || token === 'your_meta_whatsapp_api_token') {
+    // if not configured or not in production, just log to console
     console.log(`\n[WHATSAPP MOCK] To: ${customerPhone}\n${messageText}\n`);
     return;
   }

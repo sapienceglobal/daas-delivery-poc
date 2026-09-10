@@ -18,7 +18,7 @@ export const generatePdfFromHtml = async (htmlContent) => {
     
     // set the HTML content of the page
     await page.setContent(htmlContent, {
-      waitUntil: 'networkidle0'
+      waitUntil: 'domcontentloaded'
     });
 
     // generate PDF

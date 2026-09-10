@@ -103,8 +103,11 @@ export const createNotification = async (userId, title, body, type = 'system', a
     
     // dispatch FCM push notification
     if (user && user.fcmTokens && user.fcmTokens.length > 0) {
-      const firebaseApp = getFirebaseAdmin();
-      if (firebaseApp) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[FCM DEV MOCK] Suppressed sending real FCM to user ${userId}`);
+      } else {
+        const firebaseApp = getFirebaseAdmin();
+        if (firebaseApp) {
         // optimize image for push notifications (thumbnail)
         let optimizedImageUrl = imageUrl;
         if (optimizedImageUrl && optimizedImageUrl.includes('res.cloudinary.com')) {
@@ -184,6 +187,7 @@ export const createNotification = async (userId, title, body, type = 'system', a
             }
           })
           .catch(error => logger.error('Error sending FCM push:', error));
+        }
       }
     }
 
