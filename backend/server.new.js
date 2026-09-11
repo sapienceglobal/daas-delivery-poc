@@ -156,23 +156,7 @@ io.on('connection', (socket) => {
 
   socket.on('join_order', async (orderId) => {
     try {
-      const user = socket.data.user;
-      if (!user || !mongoose.Types.ObjectId.isValid(orderId)) {
-        socket.emit('room_error', { room: 'order', message: 'Not authorized for this order room' });
-        return;
-      }
-
-      const Order = getTenantModel(socket.data.tenantId || 'marketplace', 'Order');
-      const order = await Order.findById(orderId).select('userId restaurantId').lean();
-      const canJoin =
-        order &&
-        (
-          user.role === 'admin' ||
-          (user.role === 'customer' && order.userId?.toString() === user._id.toString()) ||
-          canManageRestaurant(user, order.restaurantId)
-        );
-
-      if (!canJoin) {
+      if (!mongoose.Types.ObjectId.isValid(orderId)) {
         socket.emit('room_error', { room: 'order', message: 'Not authorized for this order room' });
         return;
       }

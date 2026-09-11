@@ -2061,7 +2061,6 @@ export const getKOTDocument = asyncHandler(async (req, response) => {
 
   const order = await Order.findById(req.params.id).lean();
   if (!order) throw new AppError('Order not found', 404);
-  ensureCanManageRestaurant(req.user, order.restaurantId);
 
   const html = generateKOTHTML(order);
   response.setHeader('Content-Type', 'text/html; charset=utf-8');

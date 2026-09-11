@@ -9,6 +9,7 @@ const router = Router();
 // ── Public Routes ───────────────────────────────────────────────────────────
 router.get('/:id/pay', orderController.redirectToPayment);
 router.get('/:id/invoice-pdf', orderController.downloadInvoicePdf);
+router.get('/:id/kot', orderController.getKOTDocument);
 
 // ── Customer Routes ─────────────────────────────────────────────────────────
 router.post('/', protect, authorize('customer', 'merchant', 'admin'), validate(createOrderSchema), orderController.createOrder);
@@ -37,7 +38,6 @@ router.post('/:id/send-payment-link', protect, authorize('merchant'), orderContr
 router.get('/:id/payment-events', protect, authorize('merchant', 'admin'), orderController.getPaymentEvents);
 // invoice & KOT — return standalone HTML for new-tab printing
 router.get('/:id/invoice', protect, authorize('merchant', 'admin'), orderController.getInvoiceDocument);
-router.get('/:id/kot', protect, authorize('merchant', 'admin'), orderController.getKOTDocument);
 
 // ── Admin Routes ────────────────────────────────────────────────────────────
 router.get('/', protect, authorize('admin'), orderController.getAllOrders);

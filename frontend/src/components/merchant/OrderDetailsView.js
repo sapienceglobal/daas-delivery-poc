@@ -857,7 +857,7 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
               <button 
                 onClick={() => {
                   if (order.customerPhone && order.customerPhone !== '0000000000') {
-                    const baseUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.NEXT_PUBLIC_API_URL || window.location.origin;
+                    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
                     const message = `Hi ${order.customerName || 'there'}! 👋\n\nHere is the official invoice file for your order #${order.orderNumber || order._id.slice(-6).toUpperCase()}:\n${baseUrl}/api/orders/${order._id}/invoice-pdf\n\nThank you for your order!`;
                     const phone = order.customerPhone.replace(/[^\d+]/g, '');
                     const waNumber = phone.startsWith('+') ? phone.replace('+', '') : `1${phone.replace(/^1/, '')}`;

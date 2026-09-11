@@ -94,9 +94,9 @@ class OrderProvider with ChangeNotifier {
             return;
           }
 
-          if (payload['order'] != null) {
-             final updatedOrder = payload['order'];
-             final orderId = updatedOrder['_id']?.toString();
+          if (payload.isNotEmpty) {
+             final updatedOrder = payload['order'] ?? payload;
+             final orderId = updatedOrder['_id']?.toString() ?? updatedOrder['orderId']?.toString();
              
              if (orderId == null) return;
 

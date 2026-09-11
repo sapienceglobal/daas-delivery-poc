@@ -270,7 +270,7 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 const SizedBox(height: 8),
-                if (status == 'on_the_way' || status == 'picked_up' || status == 'out_for_delivery') ...[
+                if (_order!['orderType'] == 'delivery' && (status == 'on_the_way' || status == 'picked_up' || status == 'out_for_delivery')) ...[
                   const Row(
                     children: [
                       Icon(Icons.moped, color: AppColors.secondary, size: 16),
@@ -284,6 +284,14 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                       _order!['estimatedDelivery'] ?? 'Arriving soon',
                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
+                  ),
+                ] else if (_order!['orderType'] != 'delivery' && (status == 'picked_up' || status == 'delivered' || status == 'completed')) ...[
+                  const Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 16),
+                      SizedBox(width: 8),
+                      Expanded(child: Text('Order Collected', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13))),
+                    ],
                   ),
                 ] else if (status == 'preparing') ...[
                   const Row(
@@ -346,8 +354,8 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
     final isDelivery = _order!['orderType'] == 'delivery';
 
     final statusRank = isDelivery
-      ? {'pending': 0, 'accepted': 1, 'preparing': 2, 'ready': 3, 'picked_up': 4, 'out_for_delivery': 4, 'delivered': 5, 'cancelled': -1}
-      : {'pending': 0, 'accepted': 1, 'preparing': 2, 'ready': 3, 'delivered': 4, 'cancelled': -1};
+      ? {'pending': 0, 'accepted': 1, 'preparing': 2, 'ready': 3, 'picked_up': 4, 'out_for_delivery': 4, 'delivered': 5, 'completed': 5, 'cancelled': -1}
+      : {'pending': 0, 'accepted': 1, 'preparing': 2, 'ready': 3, 'picked_up': 4, 'delivered': 4, 'completed': 4, 'cancelled': -1};
 
     final currentRank = statusRank[status] ?? 0;
 

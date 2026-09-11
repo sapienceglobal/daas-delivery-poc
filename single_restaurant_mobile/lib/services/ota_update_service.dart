@@ -197,7 +197,13 @@ class OtaUpdateService {
     if (newVersion.contains('+') && currentVersion.contains('+')) {
       final newBuild = int.tryParse(newVersion.split('+').last) ?? 0;
       final currentBuild = int.tryParse(currentVersion.split('+').last) ?? 0;
-      return newBuild > currentBuild;
+      
+      // Fix for Flutter --split-per-abi offsets (adds 1000, 2000, or 3000)
+      // By using modulo 1000, we only compare the actual base build increments.
+      final baseNewBuild = newBuild % 1000;
+      final baseCurrentBuild = currentBuild % 1000;
+      
+      return baseNewBuild > baseCurrentBuild;
     }
     
     return false;

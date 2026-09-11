@@ -37,7 +37,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   void _launchURL(String path) async {
-    final url = Uri.parse('${ApiService.baseUrl}$path');
+    const siteUrl = String.fromEnvironment('SITE_URL', defaultValue: 'https://www.lassiloungeny.com');
+    final url = Uri.parse('$siteUrl$path');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
@@ -847,9 +848,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                             order.customerPhone == '0000000000')
                                         ? null
                                         : () {
-                                            final baseUrl = ApiService.baseUrl;
+                                            const siteUrl = String.fromEnvironment('SITE_URL', defaultValue: 'https://www.lassiloungeny.com');
                                             final message =
-                                                'Hi ${order.customerName}! 👋\n\nHere is the official invoice file for your order #${order.orderNumber}:\n$baseUrl/api/orders/${order.id}/invoice-pdf\n\nThank you for your order!';
+                                                'Hi ${order.customerName}! 👋\n\nHere is the official invoice file for your order #${order.orderNumber}:\n$siteUrl/api/orders/${order.id}/invoice-pdf\n\nThank you for your order!';
                                             final digits = order.customerPhone!
                                                 .replaceAll(RegExp(r'\D'), '');
                                             final intlPhone =
