@@ -89,14 +89,20 @@ const getCarrier = (payload = {}) => {
   if (payload.carrier) {
     return {
       name: payload.carrier.name || null,
-      phone: payload.carrier.phone || null
+      phone: payload.carrier.phone || null,
+      phoneForRestaurant: payload.carrier.restaurantPhoneNumber || null,
+      phoneForCustomer: payload.carrier.customerPhoneNumber || null,
+      imageUrl: payload.carrier.imageUrl || payload.carrier.photo || payload.driverImageUrl || null,
+      vehicle: payload.carrier.vehicle || payload.carrier.vehicle_description || payload.driverVehicleDescription || null
     };
   }
   // Shipday tracking/progress: fixedData.carrier
   if (payload.courierName) {
     return {
       name: payload.courierName,
-      phone: payload.courierPhone || null
+      phone: payload.courierPhone || null,
+      imageUrl: payload.driverImageUrl || null,
+      vehicle: payload.driverVehicleDescription || null
     };
   }
   // Legacy DoorDash format
@@ -161,10 +167,17 @@ export const applyDeliveryUpdate = (order, payload = {}) => {
     }
   }
 
-  // Extract carrier info
   const carrier = getCarrier(payload);
   assignIfPresent(order, 'courierName', carrier.name);
   assignIfPresent(order, 'courierPhone', carrier.phone);
+  assignIfPresent(order, 'courierPhoneForRestaurant', carrier.phoneForRestaurant);
+  assignIfPresent(order, 'courierPhoneForCustomer', carrier.phoneForCustomer);
+  assignIfPresent(order, 'courierImageUrl', carrier.imageUrl);
+  assignIfPresent(order, 'courierVehicle', carrier.vehicle);
+  
+  if (payload.thirdPartyName || payload.thirdPartyDeliveryName) {
+    assignIfPresent(order, 'thirdPartyDeliveryName', payload.thirdPartyName || payload.thirdPartyDeliveryName);
+  }
 
   // Extract carrier location
   const location = getCarrierLocation(payload);
@@ -175,7 +188,11 @@ export const applyDeliveryUpdate = (order, payload = {}) => {
 
   // Extract Shipday-specific fields
   assignIfPresent(order, 'deliveryId', payload.deliveryId);
-  assignIfPresent(order, 'trackingUrl', payload.trackingUrl || payload.trackingLink);
+  let trackingUrl = payload.trackingUrl || payload.trackingLink;
+  if (!trackingUrl && (order.deliveryId || payload.deliveryId)) {
+    trackingUrl = `https://track.shipday.com/${order.deliveryId || payload.deliveryId}`;
+  }
+  assignIfPresent(order, 'trackingUrl', trackingUrl);
 
   // Timing fields from tracking
   if (payload.pickupTime) order.pickupTime = new Date(payload.pickupTime);
@@ -260,8 +277,13 @@ export const buildOrderSocketPayload = (order) => {
     refundReason: plainOrder.refundReason,
     courierName: plainOrder.courierName,
     courierPhone: plainOrder.courierPhone,
+    courierPhoneForRestaurant: plainOrder.courierPhoneForRestaurant,
+    courierPhoneForCustomer: plainOrder.courierPhoneForCustomer,
     courierLat: plainOrder.courierLat,
     courierLng: plainOrder.courierLng,
+    courierImageUrl: plainOrder.courierImageUrl,
+    courierVehicle: plainOrder.courierVehicle,
+    thirdPartyDeliveryName: plainOrder.thirdPartyDeliveryName,
     trackingUrl: plainOrder.trackingUrl,
     pickupTime: plainOrder.pickupTime,
     deliveryTime: plainOrder.deliveryTime,
@@ -286,6 +308,8 @@ export const pollActiveDeliveries = async (io) => {
       status: order.status,
       courierName: order.courierName,
       courierPhone: order.courierPhone,
+      courierPhoneForRestaurant: order.courierPhoneForRestaurant,
+      courierPhoneForCustomer: order.courierPhoneForCustomer,
       courierLat: order.courierLat,
       courierLng: order.courierLng,
       trackingUrl: order.trackingUrl,

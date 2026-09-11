@@ -32,7 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (email.isEmpty || password.isEmpty) return;
 
     final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.login(email, password);
+    final success = await authProvider.login(email, password, rememberMe: _rememberMe);
 
     if (success && mounted) {
       context.go('/');

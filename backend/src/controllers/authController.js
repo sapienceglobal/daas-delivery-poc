@@ -191,7 +191,7 @@ export const login = asyncHandler(async (req, response) => {
   const tenantId = req.tenantId || 'marketplace';
   const UserModel = req.getModel('User');
 
-  const user = await UserModel.findOne({ email });
+  const user = await UserModel.findOne({ email }).populate('restaurantId', 'timezone name');
   if (!user) {
     throw new AppError('Invalid email or password.', 401);
   }
@@ -410,7 +410,8 @@ export const getMe = asyncHandler(async (req, response) => {
   const user = await req.getModel('User')
     .findById(req.user._id)
     .populate('favoriteRestaurants', 'name cuisine banner rating reviewCount deliveryTime deliveryFee distance')
-    .populate('favoriteItems', 'name description price image type');
+    .populate('favoriteItems', 'name description price image type')
+    .populate('restaurantId', 'timezone name');
 
   if (!user) throw new AppError('User not found', 404);
 

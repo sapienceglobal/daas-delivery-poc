@@ -54,7 +54,10 @@ export default function MerchantKDSPage() {
       await orderAPI.updateStatus(orderId, status); 
       showToast(`Status → ${status}`, 'success'); 
       loadData(); 
-    } catch (err) { showToast(err.message || 'Failed', 'error'); }
+    } catch (err) { 
+      showToast(err.message || 'Failed', 'error'); 
+      loadData();
+    }
   };
 
   if (globalLoading || loading) return <PageLoader text="Loading Kitchen Display..." />;

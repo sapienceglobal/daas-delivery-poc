@@ -35,7 +35,7 @@ void main() async {
   await Firebase.initializeApp();
   
   tz.initializeTimeZones();
-  final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+  final String currentTimeZone = (await FlutterTimezone.getLocalTimezone()).identifier;
   tz.setLocalLocation(tz.getLocation(currentTimeZone));
   
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

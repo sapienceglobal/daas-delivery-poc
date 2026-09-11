@@ -88,6 +88,11 @@ class OrderModel {
   final String? specialInstructions;
   final String? courierName;
   final String? courierPhone;
+  final String? courierPhoneForCustomer;
+  final String? courierPhoneForRestaurant;
+  final String? courierImageUrl;
+  final String? courierVehicle;
+  final String? thirdPartyDeliveryName;
   final String? customerEmail;
   final String? address;
   final String? tableNumber;
@@ -135,6 +140,11 @@ class OrderModel {
     this.specialInstructions,
     this.courierName,
     this.courierPhone,
+    this.courierPhoneForCustomer,
+    this.courierPhoneForRestaurant,
+    this.courierImageUrl,
+    this.courierVehicle,
+    this.thirdPartyDeliveryName,
     this.customerEmail,
     this.address,
     this.tableNumber,
@@ -206,6 +216,11 @@ class OrderModel {
       specialInstructions: json['specialInstructions'],
       courierName: json['courierName'],
       courierPhone: json['courierPhone'],
+      courierPhoneForCustomer: json['courierPhoneForCustomer'],
+      courierPhoneForRestaurant: json['courierPhoneForRestaurant'],
+      courierImageUrl: json['courierImageUrl'],
+      courierVehicle: json['courierVehicle'],
+      thirdPartyDeliveryName: json['thirdPartyDeliveryName'],
       paymentStatus: json['paymentStatus']?.toString().toLowerCase() ?? 'unpaid',
       paymentMethod: json['paymentMethod']?.toString().toLowerCase() ?? 'cash',
       paymentLinkUrl: json['paymentLinkUrl']?.toString(),
@@ -256,6 +271,8 @@ class OrderModel {
       specialInstructions: specialInstructions,
       courierName: courierName,
       courierPhone: courierPhone,
+      courierPhoneForCustomer: courierPhoneForCustomer,
+      courierPhoneForRestaurant: courierPhoneForRestaurant,
       paymentStatus: paymentStatus,
       paymentMethod: paymentMethod,
       paymentLinkUrl: paymentLinkUrl,

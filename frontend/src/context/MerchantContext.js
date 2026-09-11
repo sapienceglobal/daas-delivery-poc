@@ -46,7 +46,9 @@ export function MerchantProvider({ children }) {
         setGlobalLoading(false);
         return;
       }
-      const rid = user.restaurantId;
+      const rid = typeof user.restaurantId === 'object' 
+        ? (user.restaurantId._id || user.restaurantId.id) 
+        : user.restaurantId;
       setRoomId(rid);
       
       const restData = await restaurantAPI.getMyRestaurant().catch(() => null);

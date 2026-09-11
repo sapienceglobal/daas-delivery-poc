@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import { Loader2, Navigation } from 'lucide-react';
 
 // fix for default marker icon issues in react-leaflet
@@ -236,15 +235,13 @@ export default function MapLocationPicker({
 
   return (
     <div className="flex flex-col h-full bg-white relative animate-in fade-in duration-300 rounded-b-2xl overflow-hidden">
-      {/* Ensure Leaflet CSS is loaded even if bundler misses the import */}
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       
       {/* Map Container - Flex 1 to take remaining space */}
       <div className="relative flex-1 min-h-[300px] w-full bg-gray-100">
         <MapContainer 
           center={[center.lat, center.lng]} 
           zoom={17} 
-          style={{ height: '100%', width: '100%', zIndex: 10 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}
           zoomControl={false}
           ref={mapRef}
         >

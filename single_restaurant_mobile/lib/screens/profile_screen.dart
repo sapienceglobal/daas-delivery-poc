@@ -58,11 +58,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final PackageInfo info = await PackageInfo.fromPlatform();
       if (mounted) {
         setState(() {
-          _appVersion = info.version;
+          _appVersion = '${info.version}+${info.buildNumber}';
         });
       }
     } catch (e) {
-      debugPrint('Failed to load app version: $e');
+      print('Error getting package info: $e');
     }
   }
 

@@ -588,21 +588,35 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: Colors.grey.shade200,
-            backgroundImage: const AssetImage('assets/images/branded/lassi-lounge/reviews/amit-v.jpg'),
-            onBackgroundImageError: (exception, stackTrace) {}, // Ignore if mock fails
-            child: const Icon(Icons.person, color: Colors.grey, size: 30), // Fallback
-          ),
+          _order!['courierImageUrl']?.toString().isNotEmpty == true
+              ? ClipOval(
+                  child: CachedNetworkImage(
+                    imageUrl: _order!['courierImageUrl']!,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, url, error) => CircleAvatar(
+                      radius: 28,
+                      backgroundColor: Colors.grey.shade200,
+                      child: const Icon(Icons.person, color: Colors.grey, size: 30),
+                    ),
+                  ),
+                )
+              : CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.grey.shade200,
+                  child: const Icon(Icons.person, color: Colors.grey, size: 30),
+                ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Driver Details', 
-                  style: TextStyle(color: Colors.grey, fontSize: 11)
+                Text(
+                  _order!['thirdPartyDeliveryName']?.toString().isNotEmpty == true
+                      ? 'Driver Details • ${_order!['thirdPartyDeliveryName']}'
+                      : 'Driver Details', 
+                  style: const TextStyle(color: Colors.grey, fontSize: 11)
                 ),
                 const SizedBox(height: 2),
                 Row(
@@ -610,6 +624,16 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
                     Text(_order!['courierName']?.toString().isNotEmpty == true ? _order!['courierName'] : 'Assigning rider...', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
                 ),
+                if (_order!['courierVehicle']?.toString().isNotEmpty == true) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Icon(Icons.directions_car_outlined, color: Colors.grey, size: 14),
+                      const SizedBox(width: 4),
+                      Text(_order!['courierVehicle']!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 4),
                 Row(
                   children: [

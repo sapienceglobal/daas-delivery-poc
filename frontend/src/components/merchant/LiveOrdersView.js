@@ -228,7 +228,14 @@ export default function LiveOrdersView({
         {col.id === 'out_for_delivery' && (
           <div className="flex flex-col gap-0.5 text-xs font-medium text-[#6b7280] mb-3">
             <span>Rider: {order.courierName ? order.courierName : 'Assigning rider...'}</span>
-            {order.courierPhone && <span className="flex items-center gap-1"><Phone className="w-3 h-3"/> {order.courierPhone}</span>}
+            {order.courierPhoneForCustomer ? (
+              <span className="flex items-center gap-1"><Phone className="w-3 h-3"/> (Customer): {order.courierPhoneForCustomer}</span>
+            ) : order.courierPhone && (
+              <span className="flex items-center gap-1"><Phone className="w-3 h-3"/> {order.courierPhone}</span>
+            )}
+            {order.courierPhoneForRestaurant && (
+              <span className="flex items-center gap-1 mt-0.5"><Phone className="w-3 h-3"/> (Restaurant): {order.courierPhoneForRestaurant}</span>
+            )}
           </div>
         )}
 

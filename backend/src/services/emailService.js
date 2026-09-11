@@ -312,7 +312,7 @@ export const sendInvoiceEmail = async (email, order, payment = null) => {
     <p style="margin:0 0 24px;color:${BRAND_MUTED};font-size:13px;">Order #${orderRef}</p>
     <p style="margin:0 0 24px;">
       Hi ${order.customerName || 'Customer'},<br><br>
-      Thank you for your order! Please find your official invoice attached to this email as a PDF document.
+      Thank you for your order! ${pdfBuffer ? 'Please find your official invoice attached to this email as a PDF document.' : 'Your invoice has been generated.'}
     </p>
     <p style="margin:28px 0 0;font-size:12px;color:${BRAND_MUTED};">Thank you for your business!</p>
   `;
@@ -320,8 +320,8 @@ export const sendInvoiceEmail = async (email, order, payment = null) => {
   return sendEmail({
     to: email,
     subject: `Invoice for Order #${orderRef}`,
-    text: `Hi ${order.customerName || 'Customer'},\n\nPlease find your invoice for Order #${orderRef} attached.\n\nThank you!`,
-    html: emailShell({ preheader: `Your invoice for Order #${orderRef} is attached`, bodyHtml: emailBody }),
+    text: `Hi ${order.customerName || 'Customer'},\n\nThank you for your order! ${pdfBuffer ? 'Please find your invoice for Order #' + orderRef + ' attached.' : ''}\n\nThank you!`,
+    html: emailShell({ preheader: `Your invoice for Order #${orderRef} ${pdfBuffer ? 'is attached' : 'has been generated'}`, bodyHtml: emailBody }),
     attachments: pdfBuffer ? [
       {
         filename: `Invoice_${orderRef}.pdf`,

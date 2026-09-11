@@ -186,6 +186,9 @@ class OrderProvider extends ChangeNotifier {
     } catch (e) {
       _error = 'Failed to update order: $e';
       notifyListeners();
+      // Edge case: if update failed (e.g., transition invalid because it was already updated in the background),
+      // we must fetch the latest state so the local UI catches up.
+      fetchOrders(force: true);
       rethrow;
     }
   }

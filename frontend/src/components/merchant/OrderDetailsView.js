@@ -618,21 +618,61 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                       <span className="text-xs font-bold text-[#111827]">{order.deliveryId}</span>
                     </div>
                   )}
+                  {order.thirdPartyDeliveryName && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-[#6b7280]">3rd Party Partner</span>
+                      <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">{order.thirdPartyDeliveryName}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center mt-2 pt-3 border-t border-dashed border-[#e5e7eb]">
                     <span className="text-xs font-bold text-[#6b7280]">Assigned Rider</span>
-                    <span className="text-[13px] font-black text-[#111827]">{order.courierName || 'Pending'}</span>
+                    <div className="flex items-center gap-2">
+                      {order.courierImageUrl && (
+                        <img src={order.courierImageUrl} alt={order.courierName} className="w-6 h-6 rounded-full object-cover border border-[#e5e7eb]" />
+                      )}
+                      <span className="text-[13px] font-black text-[#111827]">{order.courierName || 'Pending'}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-[#6b7280]">Rider Phone</span>
-                    {order.courierPhone ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-[#111827]">{order.courierPhone}</span>
-                        <a href={`tel:${order.courierPhone}`} className="w-7 h-7 rounded-full bg-[#f3f4f6] flex items-center justify-center text-[#374151] hover:bg-[#e5e7eb] border border-[#e5e7eb] transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
-                      </div>
-                    ) : (
-                      <span className="text-xs font-bold text-[#111827]">N/A</span>
-                    )}
-                  </div>
+                  {order.courierVehicle && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-[#6b7280]">Vehicle</span>
+                      <span className="text-xs font-bold text-[#111827]">{order.courierVehicle}</span>
+                    </div>
+                  )}
+                  {order.courierPhoneForCustomer || order.courierPhoneForRestaurant ? (
+                    <>
+                      {order.courierPhoneForCustomer && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-[#6b7280]">Rider Phone (Customer)</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-[#111827]">{order.courierPhoneForCustomer}</span>
+                            <a href={`tel:${order.courierPhoneForCustomer}`} className="w-7 h-7 rounded-full bg-[#f3f4f6] flex items-center justify-center text-[#374151] hover:bg-[#e5e7eb] border border-[#e5e7eb] transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
+                          </div>
+                        </div>
+                      )}
+                      {order.courierPhoneForRestaurant && (
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-xs font-bold text-[#6b7280]">Rider Phone (Restaurant)</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-[#111827]">{order.courierPhoneForRestaurant}</span>
+                            <a href={`tel:${order.courierPhoneForRestaurant}`} className="w-7 h-7 rounded-full bg-[#f3f4f6] flex items-center justify-center text-[#374151] hover:bg-[#e5e7eb] border border-[#e5e7eb] transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-[#6b7280]">Rider Phone</span>
+                      {order.courierPhone ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-[#111827]">{order.courierPhone}</span>
+                          <a href={`tel:${order.courierPhone}`} className="w-7 h-7 rounded-full bg-[#f3f4f6] flex items-center justify-center text-[#374151] hover:bg-[#e5e7eb] border border-[#e5e7eb] transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-bold text-[#111827]">N/A</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {order.rating && (
@@ -817,7 +857,8 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
               <button 
                 onClick={() => {
                   if (order.customerPhone && order.customerPhone !== '0000000000') {
-                    const message = `Hi ${order.customerName || 'there'}! 👋\n\nHere is the official invoice file for your order #${order.orderNumber || order._id.slice(-6).toUpperCase()}:\n${window.location.origin}/api/orders/${order._id}/invoice-pdf\n\nThank you for your order!`;
+                    const baseUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.NEXT_PUBLIC_API_URL || window.location.origin;
+                    const message = `Hi ${order.customerName || 'there'}! 👋\n\nHere is the official invoice file for your order #${order.orderNumber || order._id.slice(-6).toUpperCase()}:\n${baseUrl}/api/orders/${order._id}/invoice-pdf\n\nThank you for your order!`;
                     const phone = order.customerPhone.replace(/[^\d+]/g, '');
                     const waNumber = phone.startsWith('+') ? phone.replace('+', '') : `1${phone.replace(/^1/, '')}`;
                     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`, '_blank');

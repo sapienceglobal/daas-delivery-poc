@@ -1,4 +1,5 @@
 import './globals.css';
+import 'leaflet/dist/leaflet.css';
 import Script from 'next/script';
 import { Providers } from '@/components/shared/Providers';
 import SiteChrome from '@/components/shared/SiteChrome';

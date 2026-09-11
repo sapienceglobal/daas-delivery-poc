@@ -92,19 +92,36 @@ export default function LiveCourierTrackingCard({ order, isNaked = false, classN
             <OrderTrackingMap order={order} />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px] pt-2">
-            <div className="rounded-xl border border-[#e5e7eb] bg-[#ffffff] p-3 shadow-sm flex items-center justify-between">
-              <div>
-                <span className="font-bold text-[#6b7280] block mb-1">Driver Name</span>
-                <span className="font-bold text-[#1a1a1a]">{order.courierName || 'Awaiting Assignment'}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-[13px] pt-2">
+              <div className="rounded-xl border border-[#e5e7eb] bg-[#ffffff] p-3 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-[#6b7280] block mb-1">Driver Name</span>
+                  <div className="flex items-center gap-2">
+                    {order.courierImageUrl && (
+                      <img src={order.courierImageUrl} alt={order.courierName} className="w-8 h-8 rounded-full object-cover border border-[#e5e7eb]" />
+                    )}
+                    <span className="font-bold text-[#1a1a1a]">{order.courierName || 'Awaiting Assignment'}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="rounded-xl border border-[#e5e7eb] bg-[#ffffff] p-3 shadow-sm flex items-center justify-between">
-              <div>
-                <span className="font-bold text-[#6b7280] block mb-1">Contact Number</span>
-                <span className="font-bold text-[#1a1a1a]">{order.courierPhone || 'Awaiting Assignment'}</span>
+              <div className="rounded-xl border border-[#e5e7eb] bg-[#ffffff] p-3 shadow-sm flex flex-col justify-center">
+                <span className="font-bold text-[#6b7280] block mb-1">Vehicle / Network</span>
+                <span className="font-bold text-[#1a1a1a]">
+                  {order.courierVehicle || order.thirdPartyDeliveryName ? (
+                    <>
+                      {order.courierVehicle && <span>{order.courierVehicle}</span>}
+                      {order.courierVehicle && order.thirdPartyDeliveryName && <span className="mx-1 text-[#d1d5db]">|</span>}
+                      {order.thirdPartyDeliveryName && <span className="text-orange-600">{order.thirdPartyDeliveryName}</span>}
+                    </>
+                  ) : 'N/A'}
+                </span>
               </div>
-            </div>
+              <div className="rounded-xl border border-[#e5e7eb] bg-[#ffffff] p-3 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-[#6b7280] block mb-1">Contact Number</span>
+                  <span className="font-bold text-[#1a1a1a]">{order.courierPhone || 'Awaiting Assignment'}</span>
+                </div>
+              </div>
           </div>
         </>
       )}

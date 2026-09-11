@@ -5,7 +5,7 @@ import {
 import { api } from '@/lib/api';
 import { showToast } from '@/components/ui';
 
-export default function KitchenDisplayView({ orders = [], restaurantId }) {
+export default function KitchenDisplayView({ orders = [], restaurantId, onUpdateStatus, onRefresh }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const containerRef = useRef(null);
@@ -63,11 +63,17 @@ export default function KitchenDisplayView({ orders = [], restaurantId }) {
   }, []);
 
   const updateOrderStatus = async (orderId, status) => {
+    if (onUpdateStatus) {
+      await onUpdateStatus(orderId, status);
+      return;
+    }
     try {
       await api.put(`/api/orders/${orderId}/status`, { status });
       showToast(`Order marked as ${status}`, 'success');
+      if (onRefresh) onRefresh();
     } catch (err) {
       showToast('Failed to update status', 'error');
+      if (onRefresh) onRefresh();
     }
   };
 

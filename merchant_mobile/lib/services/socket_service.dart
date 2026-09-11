@@ -35,6 +35,7 @@ class SocketService {
     final options = IO.OptionBuilder()
         .setTransports(['websocket', 'polling'])
         .enableAutoConnect()
+        .enableForceNewConnection()
         .setAuth({
           'appSecret': 'mobile_app_secure_key_2026',
           if (token != null) 'token': token,

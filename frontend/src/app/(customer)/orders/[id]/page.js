@@ -42,11 +42,13 @@ export default function OrderDetailPage() {
     joinOrderRoom(id);
 
     const handleStatusChange = (data) => {
-      if (data?.order) setOrder(data.order);
+      setOrder(prev => {
+        if (data?.status && prev && prev.status !== data.status) {
+          showToast(`Order status updated: ${data.status.replace('_', ' ')}`, 'info');
+        }
+        return data?.order || prev;
+      });
       loadOrder();
-      if (data?.status) {
-        showToast(`Order status updated: ${data.status.replace('_', ' ')}`, 'info');
-      }
     };
 
     on('order_status_changed', handleStatusChange);

@@ -12,10 +12,11 @@ export const generatePdfFromHtml = async (htmlContent) => {
     logger.info('Launching Puppeteer browser for PDF generation...');
     browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--single-process'],
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
     });
     const page = await browser.newPage();
-    
+
     // set the HTML content of the page
     await page.setContent(htmlContent, {
       waitUntil: 'domcontentloaded'

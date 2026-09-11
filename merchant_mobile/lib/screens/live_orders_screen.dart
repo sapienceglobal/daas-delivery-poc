@@ -55,12 +55,17 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
         'customerEmail': order.customerEmail ?? '',
       };
 
-      final intentResponse = await ApiService.post('/api/payments/create-intent', intentPayload);
+      final intentResponse = await ApiService.post(
+        '/api/payments/create-intent',
+        intentPayload,
+      );
       final intentRes = jsonDecode(intentResponse.body);
       final intentData = intentRes['data'] ?? intentRes;
 
       if (intentData == null || !intentData.containsKey('clientSecret')) {
-        throw Exception(intentData['message'] ?? 'Failed to initialize payment');
+        throw Exception(
+          intentData['message'] ?? 'Failed to initialize payment',
+        );
       }
 
       final pData = intentData['data'] ?? intentData;
@@ -69,9 +74,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: pData['clientSecret'],
           appearance: const PaymentSheetAppearance(
-            colors: PaymentSheetAppearanceColors(
-              primary: Color(0xFF8B0000),
-            ),
+            colors: PaymentSheetAppearanceColors(primary: Color(0xFF8B0000)),
           ),
           merchantDisplayName: 'Merchant Stripe POS',
         ),
@@ -83,21 +86,26 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
       }
 
       await Stripe.instance.presentPaymentSheet();
-      
-      final stripePaymentIntentId = pData['paymentIntentId'] ?? pData['paymentIntent'];
+
+      final stripePaymentIntentId =
+          pData['paymentIntentId'] ?? pData['paymentIntent'];
 
       // Now call our new endpoint to mark the order as paid via credit_card
-      final updateResponse = await ApiService.put('/api/orders/${order.id}/payment', {
-        'paymentMethod': 'credit_card',
-        'paymentStatus': 'paid',
-        'stripePaymentIntentId': stripePaymentIntentId,
-      });
+      final updateResponse =
+          await ApiService.put('/api/orders/${order.id}/payment', {
+            'paymentMethod': 'credit_card',
+            'paymentStatus': 'paid',
+            'stripePaymentIntentId': stripePaymentIntentId,
+          });
       final updateRes = jsonDecode(updateResponse.body);
 
       if (updateRes['success'] == true || updateRes['data'] != null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Order paid successfully via Stripe!'), backgroundColor: Colors.green),
+            const SnackBar(
+              content: Text('Order paid successfully via Stripe!'),
+              backgroundColor: Colors.green,
+            ),
           );
           context.read<OrderProvider>().fetchOrders(force: true);
         }
@@ -107,14 +115,18 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
         Navigator.of(context).pop(); // hide loading if error
         isDialogShowing = false;
       }
-      
+
       final errorStr = e.toString().toLowerCase();
-      if ((e is StripeException && e.error.code == FailureCode.Canceled) || errorStr.contains('cancel')) {
+      if ((e is StripeException && e.error.code == FailureCode.Canceled) ||
+          errorStr.contains('cancel')) {
         debugPrint('Payment sheet cancelled');
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Payment failed: ${e.toString()}'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Payment failed: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -127,11 +139,17 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
     final allOrders = orderProvider.orders;
 
     // Filter logic
-    final newOrders = allOrders.where((o) => ['new', 'pending'].contains(o.status)).toList();
-    final accepted = allOrders.where((o) => ['accepted', 'driver_assigned'].contains(o.status)).toList();
+    final newOrders = allOrders
+        .where((o) => ['new', 'pending'].contains(o.status))
+        .toList();
+    final accepted = allOrders
+        .where((o) => ['accepted', 'driver_assigned'].contains(o.status))
+        .toList();
     final preparing = allOrders.where((o) => o.status == 'preparing').toList();
     final ready = allOrders.where((o) => o.status == 'ready').toList();
-    final outForDelivery = allOrders.where((o) => o.orderType == 'delivery' && o.status == 'picked_up').toList();
+    final outForDelivery = allOrders
+        .where((o) => o.orderType == 'delivery' && o.status == 'picked_up')
+        .toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -147,58 +165,107 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Live Orders',
-                            style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Track and manage orders in real time',
-                            style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF991B1B),
-                          borderRadius: BorderRadius.circular(8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Live Orders',
+                              style: GoogleFonts.inter(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Track and manage orders in real time',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
-                        child: IconButton(
-                          onPressed: () => context.read<OrderProvider>().fetchOrders(),
-                          icon: const Icon(Icons.refresh, color: Colors.white, size: 20),
-                          tooltip: 'Refresh',
-                          padding: const EdgeInsets.all(10),
-                          constraints: const BoxConstraints(),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF991B1B),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            onPressed: () =>
+                                context.read<OrderProvider>().fetchOrders(),
+                            icon: const Icon(
+                              Icons.refresh,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            tooltip: 'Refresh',
+                            padding: const EdgeInsets.all(10),
+                            constraints: const BoxConstraints(),
+                          ),
                         ),
-                      )
-                    ],
-                  ),
-                  const SizedBox(height: 24),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
 
-                  // Order Status Sections
-                  _buildStatusSection('New Orders', Icons.shopping_bag_outlined, newOrders, const Color(0xFF991B1B), const Color(0xFFFEF2F2), const Color(0xFFFEE2E2), const Color(0xFFFECACA)),
-                  _buildStatusSection('Accepted', Icons.check_circle_outline, accepted, const Color(0xFF9A3412), const Color(0xFFFFF7ED), const Color(0xFFFFEDD5), const Color(0xFFFED7AA)),
-                  _buildStatusSection('Preparing', Icons.access_time, preparing, const Color(0xFF5B21B6), const Color(0xFFF5F3FF), const Color(0xFFEDE9FE), const Color(0xFFDDD6FE)),
-                  _buildStatusSection('Ready', Icons.shopping_bag, ready, const Color(0xFF166534), const Color(0xFFF0FDF4), const Color(0xFFDCFCE7), const Color(0xFFBBF7D0)),
-                  _buildStatusSection('Out for Delivery', Icons.directions_bike, outForDelivery, const Color(0xFF1E40AF), const Color(0xFFEFF6FF), const Color(0xFFDBEAFE), const Color(0xFFBFDBFE)),
+                    // Order Status Sections
+                    _buildStatusSection(
+                      'New Orders',
+                      Icons.shopping_bag_outlined,
+                      newOrders,
+                      const Color(0xFF991B1B),
+                      const Color(0xFFFEF2F2),
+                      const Color(0xFFFEE2E2),
+                      const Color(0xFFFECACA),
+                    ),
+                    _buildStatusSection(
+                      'Accepted',
+                      Icons.check_circle_outline,
+                      accepted,
+                      const Color(0xFF9A3412),
+                      const Color(0xFFFFF7ED),
+                      const Color(0xFFFFEDD5),
+                      const Color(0xFFFED7AA),
+                    ),
+                    _buildStatusSection(
+                      'Preparing',
+                      Icons.access_time,
+                      preparing,
+                      const Color(0xFF5B21B6),
+                      const Color(0xFFF5F3FF),
+                      const Color(0xFFEDE9FE),
+                      const Color(0xFFDDD6FE),
+                    ),
+                    _buildStatusSection(
+                      'Ready',
+                      Icons.shopping_bag,
+                      ready,
+                      const Color(0xFF166534),
+                      const Color(0xFFF0FDF4),
+                      const Color(0xFFDCFCE7),
+                      const Color(0xFFBBF7D0),
+                    ),
+                    _buildStatusSection(
+                      'Out for Delivery',
+                      Icons.directions_bike,
+                      outForDelivery,
+                      const Color(0xFF1E40AF),
+                      const Color(0xFFEFF6FF),
+                      const Color(0xFFDBEAFE),
+                      const Color(0xFFBFDBFE),
+                    ),
 
+                    // Today's Summary
+                    _buildTodaySummary(allOrders),
 
-
-                  // Today's Summary
-                  _buildTodaySummary(allOrders),
-
-                  // Recent Completed
-                  _buildRecentCompleted(allOrders),
-                  
-                ],
+                    // Recent Completed
+                    _buildRecentCompleted(allOrders),
+                  ],
+                ),
               ),
-            ),
       ),
       bottomNavigationBar: const SharedBottomNav(currentIndex: 1),
     );
@@ -224,7 +291,14 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                     Container(width: 200, height: 16, color: Colors.white),
                   ],
                 ),
-                Container(width: 100, height: 40, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8))),
+                Container(
+                  width: 100,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -249,7 +323,15 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
     );
   }
 
-  Widget _buildStatusSection(String title, IconData icon, List<OrderModel> orders, Color textColor, Color bgColor, Color badgeBgColor, Color borderColor) {
+  Widget _buildStatusSection(
+    String title,
+    IconData icon,
+    List<OrderModel> orders,
+    Color textColor,
+    Color bgColor,
+    Color badgeBgColor,
+    Color borderColor,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       padding: const EdgeInsets.all(16),
@@ -268,18 +350,41 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: borderColor)),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: borderColor),
+                    ),
                     child: Icon(icon, color: textColor, size: 16),
                   ),
                   const SizedBox(width: 12),
-                  Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: textColor, fontSize: 16)),
+                  Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                      fontSize: 16,
+                    ),
+                  ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: badgeBgColor, borderRadius: BorderRadius.circular(12)),
-                child: Text('${orders.length}', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: textColor, fontSize: 14)),
-              )
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: badgeBgColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${orders.length}',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -290,7 +395,10 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                 color: Colors.white.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(12),
                 // Using a regular border as placeholder for dashed border
-                border: Border.all(color: borderColor, style: BorderStyle.solid),
+                border: Border.all(
+                  color: borderColor,
+                  style: BorderStyle.solid,
+                ),
               ),
               child: Center(
                 child: Row(
@@ -298,19 +406,31 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                   children: [
                     Icon(Icons.inbox, color: Colors.grey.shade400, size: 16),
                     const SizedBox(width: 8),
-                    Text('No orders', style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 12)),
+                    Text(
+                      'No orders',
+                      style: GoogleFonts.inter(
+                        color: Colors.grey.shade500,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ),
             )
           else
-            ...orders.map((order) => _buildOrderCard(order, textColor)).toList(),
+            ...orders
+                .map((order) => _buildOrderCard(order, textColor))
+                .toList(),
         ],
       ),
     );
   }
 
-  void _showPaymentModal(String paymentUrl, DateTime createdAt, {String? customerPhone}) {
+  void _showPaymentModal(
+    String paymentUrl,
+    DateTime createdAt, {
+    String? customerPhone,
+  }) {
     showDialog(
       context: context,
       builder: (ctx) => _PaymentModalContent(
@@ -333,7 +453,13 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,22 +468,46 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text('#${order.orderNumber}', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14), overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    '#${order.orderNumber}',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 Row(
                   children: [
                     const Icon(Icons.access_time, size: 12, color: Colors.grey),
                     const SizedBox(width: 4),
                     Text(
-                      TimeUtils.formatDateTimeWithTz(order.createdAt, Provider.of<AuthProvider>(context, listen: false).user?['restaurant']?['timezone']).split('  ').last,
-                      style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+                        TimeUtils.formatDateTimeWithTz(
+                          order.createdAt,
+                          TimeUtils.getRestaurantTimezone(Provider.of<AuthProvider>(
+                            context,
+                            listen: false,
+                          ).user),
+                        ).split('  ').last,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 4),
-            Text(order.customerName, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(
+              order.customerName,
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -375,27 +525,64 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('${item.quantity}x', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary)),
+                          Text(
+                            '${item.quantity}x',
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: AppColors.primary,
+                            ),
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(item.name, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade800), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                Text(
+                                  item.name,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey.shade800,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                                 if (item.size != null && item.size!.isNotEmpty)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 2),
-                                    child: Text('Size: ${item.size}', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.bold)),
+                                    child: Text(
+                                      'Size: ${item.size}',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade700,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 if (item.addOns.isNotEmpty)
-                                  ...item.addOns.map((a) => Padding(
-                                    padding: const EdgeInsets.only(top: 2),
-                                    child: Text('+ $a', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic)),
-                                  )),
-                                if (item.specialInstructions != null && item.specialInstructions!.isNotEmpty)
+                                  ...item.addOns.map(
+                                    (a) => Padding(
+                                      padding: const EdgeInsets.only(top: 2),
+                                      child: Text(
+                                        '+ $a',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          color: Colors.grey.shade600,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                if (item.specialInstructions != null &&
+                                    item.specialInstructions!.isNotEmpty)
                                   Text(
                                     'Note: ${item.specialInstructions}',
-                                    style: GoogleFonts.inter(fontSize: 11, color: Colors.red.shade700, fontStyle: FontStyle.italic),
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      color: Colors.red.shade700,
+                                      fontStyle: FontStyle.italic,
+                                    ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -409,19 +596,124 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                   if (order.items.length > 3)
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
-                      child: Text('+ ${order.items.length - 3} more items', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
-                    )
+                      child: Text(
+                        '+ ${order.items.length - 3} more items',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
+            if (order.status == 'out_for_delivery') ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade100),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.delivery_dining, size: 16, color: Colors.blue),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Rider: ${order.courierName ?? 'Assigning rider...'}',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (order.courierPhoneForCustomer != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 22),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.phone, size: 12, color: Colors.blue),
+                            const SizedBox(width: 4),
+                            Text(
+                              '(Customer): ${order.courierPhoneForCustomer}',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                color: Colors.blue.shade800,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (order.courierPhone != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 22),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.phone, size: 12, color: Colors.blue),
+                            const SizedBox(width: 4),
+                            Text(
+                              order.courierPhone!,
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                color: Colors.blue.shade800,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (order.courierPhoneForRestaurant != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 22),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.storefront, size: 12, color: Colors.blue),
+                            const SizedBox(width: 4),
+                            Text(
+                              '(Restaurant): ${order.courierPhoneForRestaurant}',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                color: Colors.blue.shade800,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text('${order.items.length} Items', style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 12, color: Colors.grey.shade700), overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    '${order.items.length} Items',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                      color: Colors.grey.shade700,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                Text('\$${order.total.toStringAsFixed(2)}', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(
+                  '\$${order.total.toStringAsFixed(2)}',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
               ],
             ),
             if (_hasQuickActions(order)) ...[
@@ -435,8 +727,15 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
   }
 
   bool _hasQuickActions(OrderModel order) {
-    if (order.status == 'out_for_delivery' && order.trackingUrl != null) return true;
-    return ['pending', 'accepted', 'preparing', 'ready_for_pickup', 'ready'].contains(order.status);
+    if (order.status == 'out_for_delivery' && order.trackingUrl != null)
+      return true;
+    return [
+      'pending',
+      'accepted',
+      'preparing',
+      'ready_for_pickup',
+      'ready',
+    ].contains(order.status);
   }
 
   Widget _buildQuickActions(BuildContext context, OrderModel order) {
@@ -446,12 +745,24 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
           Expanded(
             child: OutlinedButton.icon(
               onPressed: () => launchUrl(Uri.parse(order.trackingUrl!)),
-              icon: const Icon(Icons.location_on, size: 16, color: Color(0xFF8B0000)),
-              label: Text('Track Live Order', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: const Color(0xFF8B0000))),
+              icon: const Icon(
+                Icons.location_on,
+                size: 16,
+                color: Color(0xFF8B0000),
+              ),
+              label: Text(
+                'Track Live Order',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF8B0000),
+                ),
+              ),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Color(0xFF8B0000)),
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ),
@@ -514,9 +825,23 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle)),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Text('Awaiting Payment...', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13)),
+                Text(
+                  'Awaiting Payment...',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                    fontSize: 13,
+                  ),
+                ),
               ],
             ),
           ),
@@ -525,16 +850,34 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                    onPressed: () {
-                      final url = '${ApiService.baseUrl}/api/orders/${order.id}/pay';
-                      _showPaymentModal(url, order.createdAt, customerPhone: order.customerPhone);
-                    },
-                  icon: const Icon(Icons.qr_code, size: 16, color: Colors.black87),
-                  label: Text('Show QR Code', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.black87, fontSize: 12)),
+                  onPressed: () {
+                    final url =
+                        '${ApiService.baseUrl}/api/orders/${order.id}/pay';
+                    _showPaymentModal(
+                      url,
+                      order.createdAt,
+                      customerPhone: order.customerPhone,
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.qr_code,
+                    size: 16,
+                    color: Colors.black87,
+                  ),
+                  label: Text(
+                    'Show QR Code',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                      fontSize: 12,
+                    ),
+                  ),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Colors.grey.shade300),
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
@@ -542,12 +885,25 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => _processStripePayment(order),
-                  icon: const Icon(Icons.credit_card, size: 16, color: Colors.blue),
-                  label: Text('Charge Card', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.blue, fontSize: 12)),
+                  icon: const Icon(
+                    Icons.credit_card,
+                    size: 16,
+                    color: Colors.blue,
+                  ),
+                  label: Text(
+                    'Charge Card',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue,
+                      fontSize: 12,
+                    ),
+                  ),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.blue),
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
@@ -560,20 +916,33 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () async {
                     try {
-                      await context.read<OrderProvider>().updateOrderStatus(order.id, 'cancelled');
+                      await context.read<OrderProvider>().updateOrderStatus(
+                        order.id,
+                        'cancelled',
+                      );
                     } catch (e) {
                       print('Error cancelling order: $e');
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(e.toString())));
                       }
                     }
                   },
                   icon: const Icon(Icons.close, size: 16, color: Colors.red),
-                  label: Text('Cancel Order', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.red)),
+                  label: Text(
+                    'Cancel Order',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red,
+                    ),
+                  ),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.red),
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
@@ -591,20 +960,33 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
               child: ElevatedButton.icon(
                 onPressed: () async {
                   try {
-                    await context.read<OrderProvider>().updateOrderStatus(order.id, nextStatus);
+                    await context.read<OrderProvider>().updateOrderStatus(
+                      order.id,
+                      nextStatus,
+                    );
                   } catch (e) {
                     print('Error updating order status: $e');
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(e.toString())));
                     }
                   }
                 },
                 icon: Icon(buttonIcon, size: 16, color: Colors.white),
-                label: Text(buttonText, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.white)),
+                label: Text(
+                  buttonText,
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: buttonColor,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   elevation: 0,
                 ),
               ),
@@ -619,53 +1001,106 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () async {
                     try {
-                      await context.read<OrderProvider>().updateOrderStatus(order.id, 'cancelled');
+                      await context.read<OrderProvider>().updateOrderStatus(
+                        order.id,
+                        'cancelled',
+                      );
                     } catch (e) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(e.toString())));
                       }
                     }
                   },
                   icon: const Icon(Icons.close, size: 16, color: Colors.red),
-                  label: Text('Reject Order', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.red)),
+                  label: Text(
+                    'Reject Order',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red,
+                    ),
+                  ),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.red),
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-        ]
+        ],
       ],
     );
   }
 
   Widget _buildTodaySummary(List<OrderModel> orders) {
-    final todayOrders = orders.where((o) => o.createdAt.day == DateTime.now().day).toList();
-    final completed = todayOrders.where((o) => ['delivered', 'completed', 'picked_up'].contains(o.status)).toList();
-    final cancelled = todayOrders.where((o) => ['cancelled', 'refunded'].contains(o.status)).toList();
+    final todayOrders = orders
+        .where((o) => o.createdAt.day == DateTime.now().day)
+        .toList();
+    final completed = todayOrders
+        .where(
+          (o) => ['delivered', 'completed', 'picked_up'].contains(o.status),
+        )
+        .toList();
+    final cancelled = todayOrders
+        .where((o) => ['cancelled', 'refunded'].contains(o.status))
+        .toList();
 
-    final completedPercent = todayOrders.isEmpty ? 0 : (completed.length / todayOrders.length * 100).round();
-    final cancelledPercent = todayOrders.isEmpty ? 0 : (cancelled.length / todayOrders.length * 100).round();
+    final completedPercent = todayOrders.isEmpty
+        ? 0
+        : (completed.length / todayOrders.length * 100).round();
+    final cancelledPercent = todayOrders.isEmpty
+        ? 0
+        : (cancelled.length / todayOrders.length * 100).round();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Today\'s Summary', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
+          Text(
+            'Today\'s Summary',
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildSummaryStat('Total Orders', '${todayOrders.length}', null, null)),
+              Expanded(
+                child: _buildSummaryStat(
+                  'Total Orders',
+                  '${todayOrders.length}',
+                  null,
+                  null,
+                ),
+              ),
               Container(height: 40, width: 1, color: Colors.grey.shade200),
-              Expanded(child: _buildSummaryStat('Completed', '${completed.length}', '($completedPercent%)', const Color(0xFF166534))),
+              Expanded(
+                child: _buildSummaryStat(
+                  'Completed',
+                  '${completed.length}',
+                  '($completedPercent%)',
+                  const Color(0xFF166534),
+                ),
+              ),
               Container(height: 40, width: 1, color: Colors.grey.shade200),
-              Expanded(child: _buildSummaryStat('Cancelled', '${cancelled.length}', '($cancelledPercent%)', const Color(0xFFDC2626))),
+              Expanded(
+                child: _buildSummaryStat(
+                  'Cancelled',
+                  '${cancelled.length}',
+                  '($cancelledPercent%)',
+                  const Color(0xFFDC2626),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -673,28 +1108,53 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
             onTap: () {
               context.push('/all-orders');
             },
-            child: Text('View All Orders →', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: const Color(0xFFDC2626), fontSize: 12)),
+            child: Text(
+              'View All Orders →',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFFDC2626),
+                fontSize: 12,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryStat(String label, String val, String? sub, Color? subColor) {
+  Widget _buildSummaryStat(
+    String label,
+    String val,
+    String? sub,
+    Color? subColor,
+  ) {
     return Column(
       children: [
-        Text(label, style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 10)),
+        Text(
+          label,
+          style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 10),
+        ),
         const SizedBox(height: 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(val, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16, color: subColor ?? Colors.black)),
+            Text(
+              val,
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: subColor ?? Colors.black,
+              ),
+            ),
             if (sub != null) ...[
               const SizedBox(width: 4),
-              Text(sub, style: GoogleFonts.inter(color: subColor, fontSize: 12)),
-            ]
+              Text(
+                sub,
+                style: GoogleFonts.inter(color: subColor, fontSize: 12),
+              ),
+            ],
           ],
-        )
+        ),
       ],
     );
   }
@@ -702,14 +1162,24 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
   Widget _buildRecentCompleted(List<OrderModel> orders) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Recent Completed', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(
+                'Recent Completed',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -726,10 +1196,16 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
               children: [
                 Icon(Icons.inbox, color: Colors.grey.shade400, size: 16),
                 const SizedBox(width: 8),
-                Text('No completed orders yet', style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 12)),
+                Text(
+                  'No completed orders yet',
+                  style: GoogleFonts.inter(
+                    color: Colors.grey.shade500,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -741,7 +1217,12 @@ class _PaymentModalContent extends StatefulWidget {
   final DateTime createdAt;
   final String? customerPhone;
 
-  const _PaymentModalContent({Key? key, required this.paymentUrl, required this.createdAt, this.customerPhone}) : super(key: key);
+  const _PaymentModalContent({
+    Key? key,
+    required this.paymentUrl,
+    required this.createdAt,
+    this.customerPhone,
+  }) : super(key: key);
 
   @override
   State<_PaymentModalContent> createState() => _PaymentModalContentState();
@@ -786,9 +1267,22 @@ class _PaymentModalContentState extends State<_PaymentModalContent> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Waiting for Payment', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(
+              'Waiting for Payment',
+              style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text('Have the customer scan the QR code to pay.', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.grey.shade600, fontSize: 14)),
+            Text(
+              'Have the customer scan the QR code to pay.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                color: Colors.grey.shade600,
+                fontSize: 14,
+              ),
+            ),
             const SizedBox(height: 24),
             QrImageView(
               data: widget.paymentUrl,
@@ -800,11 +1294,17 @@ class _PaymentModalContentState extends State<_PaymentModalContent> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: Text(
                 'Time Remaining: ${(_modalTimeLeft ~/ 60).toString().padLeft(2, '0')}:${(_modalTimeLeft % 60).toString().padLeft(2, '0')}',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.red),
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -813,10 +1313,15 @@ class _PaymentModalContentState extends State<_PaymentModalContent> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF3F4F6), foregroundColor: Colors.black),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF3F4F6),
+                      foregroundColor: Colors.black,
+                    ),
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: widget.paymentUrl));
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link Copied!')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Link Copied!')),
+                      );
                     },
                     icon: const Icon(Icons.copy, size: 16),
                     label: const Text('Copy'),
@@ -825,29 +1330,58 @@ class _PaymentModalContentState extends State<_PaymentModalContent> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Opacity(
-                    opacity: (widget.customerPhone == null || widget.customerPhone!.trim().isEmpty || widget.customerPhone!.trim() == '0000000000' || widget.customerPhone!.trim() == 'N/A') ? 0.4 : 1.0,
+                    opacity:
+                        (widget.customerPhone == null ||
+                            widget.customerPhone!.trim().isEmpty ||
+                            widget.customerPhone!.trim() == '0000000000' ||
+                            widget.customerPhone!.trim() == 'N/A')
+                        ? 0.4
+                        : 1.0,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF25D366), 
+                        backgroundColor: const Color(0xFF25D366),
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: const Color(0xFF25D366).withOpacity(0.5),
+                        disabledBackgroundColor: const Color(
+                          0xFF25D366,
+                        ).withOpacity(0.5),
                         disabledForegroundColor: Colors.white,
                       ),
-                      onPressed: (widget.customerPhone == null || widget.customerPhone!.trim().isEmpty || widget.customerPhone!.trim() == '0000000000' || widget.customerPhone!.trim() == 'N/A') ? null : () async {
-                        final qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${Uri.encodeComponent(widget.paymentUrl)}';
-                        final message = 'Hi! 👋\n\nPlease complete the payment for your order.\n\n🔗 *Click here to pay:* \n${widget.paymentUrl}\n\n📷 *Or scan this QR code:* \n$qrUrl\n\nThank you!';
-                        final rawPhone = widget.customerPhone!.trim();
-                        final digits = rawPhone.replaceAll(RegExp(r'[^\d]'), '');
-                        final intlPhone = digits.length == 10 ? '1$digits' : digits;
-                        final waUrl = 'https://wa.me/$intlPhone?text=${Uri.encodeComponent(message)}';
-                        
-                        final url = Uri.parse(waUrl);
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp')));
-                        }
-                      },
+                      onPressed:
+                          (widget.customerPhone == null ||
+                              widget.customerPhone!.trim().isEmpty ||
+                              widget.customerPhone!.trim() == '0000000000' ||
+                              widget.customerPhone!.trim() == 'N/A')
+                          ? null
+                          : () async {
+                              final qrUrl =
+                                  'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${Uri.encodeComponent(widget.paymentUrl)}';
+                              final message =
+                                  'Hi! 👋\n\nPlease complete the payment for your order.\n\n🔗 *Click here to pay:* \n${widget.paymentUrl}\n\n📷 *Or scan this QR code:* \n$qrUrl\n\nThank you!';
+                              final rawPhone = widget.customerPhone!.trim();
+                              final digits = rawPhone.replaceAll(
+                                RegExp(r'[^\d]'),
+                                '',
+                              );
+                              final intlPhone = digits.length == 10
+                                  ? '1$digits'
+                                  : digits;
+                              final waUrl =
+                                  'https://wa.me/$intlPhone?text=${Uri.encodeComponent(message)}';
+
+                              final url = Uri.parse(waUrl);
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(
+                                  url,
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Could not open WhatsApp'),
+                                  ),
+                                );
+                              }
+                            },
                       icon: const Icon(Icons.chat, size: 16),
                       label: const Text('WhatsApp'),
                     ),
@@ -862,7 +1396,7 @@ class _PaymentModalContentState extends State<_PaymentModalContent> {
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('Close'),
               ),
-            )
+            ),
           ],
         ),
       ),

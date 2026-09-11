@@ -10,6 +10,8 @@ import '../providers/order_provider.dart';
 import '../models/order_model.dart';
 import 'package:go_router/go_router.dart';
 import 'dashboard_widgets.dart';
+import '../providers/auth_provider.dart';
+import '../utils/time_utils.dart';
 
 class AllOrdersScreen extends StatefulWidget {
   const AllOrdersScreen({Key? key}) : super(key: key);
@@ -24,7 +26,8 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
   String _statusFilter = 'All Status';
   String _paymentFilter = 'All Payment Status';
   DateTime? _selectedDate;
-  String _activeTab = 'All Orders'; // 'All Orders', 'Dine-in', 'Takeaway', 'Delivery'
+  String _activeTab =
+      'All Orders'; // 'All Orders', 'Dine-in', 'Takeaway', 'Delivery'
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -79,27 +82,41 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
 
   Future<void> _exportToCSV(List<OrderModel> orders) async {
     if (orders.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No orders to export')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No orders to export')));
       return;
     }
-    
+
     // Create CSV content
     final buffer = StringBuffer();
-    buffer.writeln('Order ID,Customer,Phone,Order Type,Status,Payment Status,Payment Method,Amount,Items,Date');
-    
+    buffer.writeln(
+      'Order ID,Customer,Phone,Order Type,Status,Payment Status,Payment Method,Amount,Items,Date',
+    );
+
     for (var order in orders) {
-      final dateStr = '${order.createdAt.year}-${order.createdAt.month.toString().padLeft(2, "0")}-${order.createdAt.day.toString().padLeft(2, "0")} ${order.createdAt.hour.toString().padLeft(2, "0")}:${order.createdAt.minute.toString().padLeft(2, "0")}';
-      buffer.writeln('${order.orderNumber},"${order.customerName}","${order.customerPhone}",${order.orderType},${order.status},${order.paymentStatus},${order.paymentMethod},${order.total},${order.items.length},$dateStr');
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final tz = TimeUtils.getRestaurantTimezone(authProvider.user);
+      final tzDateTime = TimeUtils.getTzDateTime(order.createdAt, tz);
+      final dateStr =
+          '${tzDateTime.year}-${tzDateTime.month.toString().padLeft(2, "0")}-${tzDateTime.day.toString().padLeft(2, "0")} ${tzDateTime.hour.toString().padLeft(2, "0")}:${tzDateTime.minute.toString().padLeft(2, "0")}';
+      buffer.writeln(
+        '${order.orderNumber},"${order.customerName}","${order.customerPhone}",${order.orderType},${order.status},${order.paymentStatus},${order.paymentMethod},${order.total},${order.items.length},$dateStr',
+      );
     }
 
     try {
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/orders_export_${DateTime.now().millisecondsSinceEpoch}.csv');
+      final file = File(
+        '${dir.path}/orders_export_${DateTime.now().millisecondsSinceEpoch}.csv',
+      );
       await file.writeAsString(buffer.toString());
-      
+
       await Share.shareXFiles([XFile(file.path)], text: 'Exported Orders');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to export: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to export: $e')));
     }
   }
 
@@ -127,7 +144,14 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Filter Orders', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A))),
+                        Text(
+                          'Filter Orders',
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
                         IconButton(
                           icon: const Icon(Icons.close, color: Colors.grey),
                           onPressed: () => Navigator.pop(context),
@@ -135,94 +159,165 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
-                    Text('ORDER STATUS', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF94A3B8), letterSpacing: 1)),
+
+                    Text(
+                      'ORDER STATUS',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF94A3B8),
+                        letterSpacing: 1,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: ['All Status', 'New', 'Accepted', 'Preparing', 'Ready', 'Out for Delivery', 'Completed', 'Cancelled']
-                          .map((status) => ChoiceChip(
-                                label: Text(status),
-                                selected: _statusFilter == status,
-                                onSelected: (selected) {
-                                  if (selected) {
-                                    setState(() => _statusFilter = status);
-                                    setModalState(() {});
-                                  }
-                                },
-                                selectedColor: const Color(0xFFDC2626),
-                                labelStyle: GoogleFonts.inter(
-                                  color: _statusFilter == status ? Colors.white : const Color(0xFF475569),
-                                  fontWeight: _statusFilter == status ? FontWeight.w600 : FontWeight.w500,
-                                  fontSize: 13,
+                      children:
+                          [
+                                'All Status',
+                                'New',
+                                'Accepted',
+                                'Preparing',
+                                'Ready',
+                                'Out for Delivery',
+                                'Completed',
+                                'Cancelled',
+                              ]
+                              .map(
+                                (status) => ChoiceChip(
+                                  label: Text(status),
+                                  selected: _statusFilter == status,
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() => _statusFilter = status);
+                                      setModalState(() {});
+                                    }
+                                  },
+                                  selectedColor: const Color(0xFFDC2626),
+                                  labelStyle: GoogleFonts.inter(
+                                    color: _statusFilter == status
+                                        ? Colors.white
+                                        : const Color(0xFF475569),
+                                    fontWeight: _statusFilter == status
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    fontSize: 13,
+                                  ),
+                                  backgroundColor: const Color(0xFFF8FAFC),
+                                  side: BorderSide(
+                                    color: _statusFilter == status
+                                        ? Colors.transparent
+                                        : Colors.grey.shade200,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
                                 ),
-                                backgroundColor: const Color(0xFFF8FAFC),
-                                side: BorderSide(color: _statusFilter == status ? Colors.transparent : Colors.grey.shade200),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                              ))
-                          .toList(),
+                              )
+                              .toList(),
                     ),
                     const SizedBox(height: 24),
-                    
-                    Text('ORDER TYPE', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF94A3B8), letterSpacing: 1)),
+
+                    Text(
+                      'ORDER TYPE',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF94A3B8),
+                        letterSpacing: 1,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: ['All Types', 'Delivery', 'Takeaway', 'Dine-in']
-                          .map((type) => ChoiceChip(
-                                label: Text(type),
-                                selected: _orderTypeFilter == type,
-                                onSelected: (selected) {
-                                  if (selected) {
-                                    setState(() => _orderTypeFilter = type);
-                                    setModalState(() {});
-                                  }
-                                },
-                                selectedColor: const Color(0xFFDC2626),
-                                labelStyle: GoogleFonts.inter(
-                                  color: _orderTypeFilter == type ? Colors.white : const Color(0xFF475569),
-                                  fontWeight: _orderTypeFilter == type ? FontWeight.w600 : FontWeight.w500,
-                                  fontSize: 13,
-                                ),
-                                backgroundColor: const Color(0xFFF8FAFC),
-                                side: BorderSide(color: _orderTypeFilter == type ? Colors.transparent : Colors.grey.shade200),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                              ))
+                          .map(
+                            (type) => ChoiceChip(
+                              label: Text(type),
+                              selected: _orderTypeFilter == type,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setState(() => _orderTypeFilter = type);
+                                  setModalState(() {});
+                                }
+                              },
+                              selectedColor: const Color(0xFFDC2626),
+                              labelStyle: GoogleFonts.inter(
+                                color: _orderTypeFilter == type
+                                    ? Colors.white
+                                    : const Color(0xFF475569),
+                                fontWeight: _orderTypeFilter == type
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                                fontSize: 13,
+                              ),
+                              backgroundColor: const Color(0xFFF8FAFC),
+                              side: BorderSide(
+                                color: _orderTypeFilter == type
+                                    ? Colors.transparent
+                                    : Colors.grey.shade200,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                          )
                           .toList(),
                     ),
                     const SizedBox(height: 24),
-                    
-                    Text('PAYMENT STATUS', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF94A3B8), letterSpacing: 1)),
+
+                    Text(
+                      'PAYMENT STATUS',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF94A3B8),
+                        letterSpacing: 1,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: ['All Payment Status', 'Paid', 'Unpaid', 'Refunded']
-                          .map((payment) => ChoiceChip(
-                                label: Text(payment),
-                                selected: _paymentFilter == payment,
-                                onSelected: (selected) {
-                                  if (selected) {
-                                    setState(() => _paymentFilter = payment);
-                                    setModalState(() {});
-                                  }
-                                },
-                                selectedColor: const Color(0xFFDC2626),
-                                labelStyle: GoogleFonts.inter(
-                                  color: _paymentFilter == payment ? Colors.white : const Color(0xFF475569),
-                                  fontWeight: _paymentFilter == payment ? FontWeight.w600 : FontWeight.w500,
-                                  fontSize: 13,
+                      children:
+                          ['All Payment Status', 'Paid', 'Unpaid', 'Refunded']
+                              .map(
+                                (payment) => ChoiceChip(
+                                  label: Text(payment),
+                                  selected: _paymentFilter == payment,
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() => _paymentFilter = payment);
+                                      setModalState(() {});
+                                    }
+                                  },
+                                  selectedColor: const Color(0xFFDC2626),
+                                  labelStyle: GoogleFonts.inter(
+                                    color: _paymentFilter == payment
+                                        ? Colors.white
+                                        : const Color(0xFF475569),
+                                    fontWeight: _paymentFilter == payment
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    fontSize: 13,
+                                  ),
+                                  backgroundColor: const Color(0xFFF8FAFC),
+                                  side: BorderSide(
+                                    color: _paymentFilter == payment
+                                        ? Colors.transparent
+                                        : Colors.grey.shade200,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
                                 ),
-                                backgroundColor: const Color(0xFFF8FAFC),
-                                side: BorderSide(color: _paymentFilter == payment ? Colors.transparent : Colors.grey.shade200),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                              ))
-                          .toList(),
+                              )
+                              .toList(),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -230,9 +325,18 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFDC2626),
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        child: Text('Apply Filters', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        child: Text(
+                          'Apply Filters',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -254,21 +358,24 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
     final filteredOrders = allOrders.where((o) {
       // Search
       final searchStr = _searchQuery.toLowerCase();
-      final matchesSearch = searchStr.isEmpty ||
+      final matchesSearch =
+          searchStr.isEmpty ||
           o.orderNumber.toLowerCase().contains(searchStr) ||
           o.customerName.toLowerCase().contains(searchStr) ||
           o.customerPhone.toLowerCase().contains(searchStr);
 
       // Status Filter
-      final matchesStatus = _statusFilter == 'All Status' ||
+      final matchesStatus =
+          _statusFilter == 'All Status' ||
           (o.status.toLowerCase() == _statusFilter.toLowerCase());
 
       // Type Filter
       String mappedType = 'delivery';
       if (o.orderType == 'pickup') mappedType = 'takeaway';
       if (o.orderType == 'dine_in') mappedType = 'dine-in';
-      
-      final matchesTypeDropdown = _orderTypeFilter == 'All Types' ||
+
+      final matchesTypeDropdown =
+          _orderTypeFilter == 'All Types' ||
           (_orderTypeFilter.toLowerCase() == mappedType);
 
       // Tab Filter
@@ -280,28 +387,52 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
       // Payment Filter
       final pStatus = o.paymentStatus.toLowerCase();
       bool matchesPayment = true;
-      if (_paymentFilter == 'Paid') matchesPayment = (pStatus == 'paid' || pStatus == 'completed');
-      if (_paymentFilter == 'Unpaid') matchesPayment = (pStatus == 'pending' || pStatus == 'unpaid');
+      if (_paymentFilter == 'Paid')
+        matchesPayment = (pStatus == 'paid' || pStatus == 'completed');
+      if (_paymentFilter == 'Unpaid')
+        matchesPayment = (pStatus == 'pending' || pStatus == 'unpaid');
       if (_paymentFilter == 'Refunded') matchesPayment = pStatus == 'refunded';
 
       // Date Filter
       bool matchesDate = true;
       if (_selectedDate != null) {
-        final orderDate = DateTime(o.createdAt.year, o.createdAt.month, o.createdAt.day);
-        final filterDate = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final tz = TimeUtils.getRestaurantTimezone(authProvider.user);
+        final tzDateTime = TimeUtils.getTzDateTime(o.createdAt, tz);
+        final orderDate = DateTime(
+          tzDateTime.year,
+          tzDateTime.month,
+          tzDateTime.day,
+        );
+        final filterDate = DateTime(
+          _selectedDate!.year,
+          _selectedDate!.month,
+          _selectedDate!.day,
+        );
         matchesDate = orderDate.isAtSameMomentAs(filterDate);
       }
 
-      return matchesSearch && matchesStatus && matchesTypeDropdown && matchesTab && matchesPayment && matchesDate;
+      return matchesSearch &&
+          matchesStatus &&
+          matchesTypeDropdown &&
+          matchesTab &&
+          matchesPayment &&
+          matchesDate;
     }).toList();
 
     // Stats calculations from raw `allOrders` (not filtered)
     int countTotal = allOrders.length;
-    int countNew = allOrders.where((o) => ['new', 'pending'].contains(o.status)).length;
+    int countNew = allOrders
+        .where((o) => ['new', 'pending'].contains(o.status))
+        .length;
     int countPreparing = allOrders.where((o) => o.status == 'preparing').length;
     int countReady = allOrders.where((o) => o.status == 'ready').length;
-    int countOut = allOrders.where((o) => o.status == 'picked_up' && o.orderType == 'delivery').length;
-    int countCompleted = allOrders.where((o) => ['completed', 'delivered'].contains(o.status)).length;
+    int countOut = allOrders
+        .where((o) => o.status == 'picked_up' && o.orderType == 'delivery')
+        .length;
+    int countCompleted = allOrders
+        .where((o) => ['completed', 'delivered'].contains(o.status))
+        .length;
 
     // Tab counts from raw `allOrders`
     int tabDineIn = allOrders.where((o) => o.orderType == 'dine_in').length;
@@ -314,7 +445,11 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Color(0xFF0F172A)),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            size: 20,
+            color: Color(0xFF0F172A),
+          ),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -323,7 +458,14 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
             }
           },
         ),
-        title: Text('All Orders', style: GoogleFonts.inter(color: const Color(0xFF0F172A), fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+        title: Text(
+          'All Orders',
+          style: GoogleFonts.inter(
+            color: const Color(0xFF0F172A),
+            fontWeight: FontWeight.bold,
+            letterSpacing: -0.5,
+          ),
+        ),
         iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
@@ -340,163 +482,228 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Header
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Orders',
-                                    style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Manage and track all restaurant orders in one place.',
-                                    style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Stats Horizontal Scroll
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          child: Row(
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildStatCard('Total Orders', countTotal.toString(), Icons.shopping_cart_outlined, const Color(0xFFEA580C)),
-                              const SizedBox(width: 12),
-                              _buildStatCard('New Orders', countNew.toString(), Icons.inbox_outlined, const Color(0xFF991B1B)),
-                              const SizedBox(width: 12),
-                              _buildStatCard('Preparing', countPreparing.toString(), Icons.local_fire_department_outlined, const Color(0xFF9333EA)),
-                              const SizedBox(width: 12),
-                              _buildStatCard('Ready', countReady.toString(), Icons.check_circle_outline, const Color(0xFF3B82F6)),
-                              const SizedBox(width: 12),
-                              _buildStatCard('Out for Delivery', countOut.toString(), Icons.directions_bike, const Color(0xFF16A34A)),
-                              const SizedBox(width: 12),
-                              _buildStatCard('Completed', countCompleted.toString(), Icons.done_all, const Color(0xFFD97706)),
+                              Text(
+                                'Orders',
+                                style: GoogleFonts.inter(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Manage and track all restaurant orders in one place.',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 24),
-
-                        // Search and Filter Section
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _searchController,
-                                decoration: InputDecoration(
-                                  hintText: 'Search Order ID or Customer...',
-                                  hintStyle: GoogleFonts.inter(color: Colors.grey.shade400, fontSize: 13),
-                                  prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 20),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey.shade200),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.grey.shade200),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(color: Color(0xFFDC2626)),
-                                  ),
-                                ),
-                                onChanged: (val) {
-                                  setState(() {
-                                    _searchQuery = val;
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            InkWell(
-                              onTap: _showFilterBottomSheet,
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                ),
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    const Icon(Icons.tune, color: Color(0xFF0F172A), size: 22),
-                                    if (_statusFilter != 'All Status' || _orderTypeFilter != 'All Types' || _paymentFilter != 'All Payment Status')
-                                      Positioned(
-                                        top: -2,
-                                        right: -2,
-                                        child: Container(
-                                          width: 10,
-                                          height: 10,
-                                          decoration: const BoxDecoration(color: Color(0xFFDC2626), shape: BoxShape.circle),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            InkWell(
-                              onTap: () => _exportToCSV(filteredOrders),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                ),
-                                child: const Icon(Icons.download_rounded, color: Color(0xFFDC2626), size: 22),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 24),
+
+                    // Stats Horizontal Scroll
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          _buildStatCard(
+                            'Total Orders',
+                            countTotal.toString(),
+                            Icons.shopping_cart_outlined,
+                            const Color(0xFFEA580C),
+                          ),
+                          const SizedBox(width: 12),
+                          _buildStatCard(
+                            'New Orders',
+                            countNew.toString(),
+                            Icons.inbox_outlined,
+                            const Color(0xFF991B1B),
+                          ),
+                          const SizedBox(width: 12),
+                          _buildStatCard(
+                            'Preparing',
+                            countPreparing.toString(),
+                            Icons.local_fire_department_outlined,
+                            const Color(0xFF9333EA),
+                          ),
+                          const SizedBox(width: 12),
+                          _buildStatCard(
+                            'Ready',
+                            countReady.toString(),
+                            Icons.check_circle_outline,
+                            const Color(0xFF3B82F6),
+                          ),
+                          const SizedBox(width: 12),
+                          _buildStatCard(
+                            'Out for Delivery',
+                            countOut.toString(),
+                            Icons.directions_bike,
+                            const Color(0xFF16A34A),
+                          ),
+                          const SizedBox(width: 12),
+                          _buildStatCard(
+                            'Completed',
+                            countCompleted.toString(),
+                            Icons.done_all,
+                            const Color(0xFFD97706),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Search and Filter Section
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Search Order ID or Customer...',
+                              hintStyle: GoogleFonts.inter(
+                                color: Colors.grey.shade400,
+                                fontSize: 13,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                color: Colors.grey,
+                                size: 20,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 0,
+                                horizontal: 16,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade200,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade200,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFDC2626),
+                                ),
+                              ),
+                            ),
+                            onChanged: (val) {
+                              setState(() {
+                                _searchQuery = val;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        InkWell(
+                          onTap: _showFilterBottomSheet,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                const Icon(
+                                  Icons.tune,
+                                  color: Color(0xFF0F172A),
+                                  size: 22,
+                                ),
+                                if (_statusFilter != 'All Status' ||
+                                    _orderTypeFilter != 'All Types' ||
+                                    _paymentFilter != 'All Payment Status')
+                                  Positioned(
+                                    top: -2,
+                                    right: -2,
+                                    child: Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFDC2626),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () => _exportToCSV(filteredOrders),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: const Icon(
+                              Icons.download_rounded,
+                              color: Color(0xFFDC2626),
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                 ),
-                
-                // Orders List
-                if (orderProvider.isLoading)
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => _buildShimmerOrderRow(),
-                      childCount: 5,
-                    ),
-                  )
-                else
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final order = filteredOrders[index];
-                        return _buildOrderRow(order);
-                      },
-                      childCount: filteredOrders.length,
-                    ),
-                  ),
-                const SliverToBoxAdapter(child: SizedBox(height: 40)), // Bottom padding
-              ],
+              ),
             ),
+
+            // Orders List
+            if (orderProvider.isLoading)
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => _buildShimmerOrderRow(),
+                  childCount: 5,
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final order = filteredOrders[index];
+                  return _buildOrderRow(order);
+                }, childCount: filteredOrders.length),
+              ),
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 40),
+            ), // Bottom padding
+          ],
+        ),
       ),
     );
   }
@@ -526,7 +733,14 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Container(width: 32, height: 32, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -573,21 +787,51 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Text('#${order.orderNumber}', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: const Color(0xFF0F172A))),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${order.createdAt.hour.toString().padLeft(2, "0")}:${order.createdAt.minute.toString().padLeft(2, "0")} ${order.createdAt.hour >= 12 ? "PM" : "AM"}',
-                        style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.w500),
-                      ),
-                    ],
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Text(
+                          '#${order.orderNumber}',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            TimeUtils.formatDateTimeWithTz(
+                              order.createdAt,
+                              TimeUtils.getRestaurantTimezone(Provider.of<AuthProvider>(
+                                context,
+                                listen: false,
+                              ).user),
+                            ),
+                            style: GoogleFonts.inter(
+                              color: Colors.grey.shade500,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  Text('\$${order.total.toStringAsFixed(2)}', style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 15, color: const Color(0xFF0F172A))),
+                  const SizedBox(width: 8),
+                  Text(
+                    '\$${order.total.toStringAsFixed(2)}',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Middle Row: Customer and Status
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -598,11 +842,18 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF1F5F9),
+                            shape: BoxShape.circle,
+                          ),
                           child: Icon(
-                            order.orderType == 'pickup' ? Icons.shopping_bag_outlined : 
-                            order.orderType == 'dine_in' ? Icons.restaurant_outlined : Icons.directions_bike_outlined,
-                            size: 16, color: const Color(0xFF475569),
+                            order.orderType == 'pickup'
+                                ? Icons.shopping_bag_outlined
+                                : order.orderType == 'dine_in'
+                                ? Icons.restaurant_outlined
+                                : Icons.directions_bike_outlined,
+                            size: 16,
+                            color: const Color(0xFF475569),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -610,9 +861,24 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(order.customerName, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13, color: const Color(0xFF0F172A)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              Text(
+                                order.customerName,
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                               const SizedBox(height: 2),
-                              Text(order.customerPhone, style: GoogleFonts.inter(color: Colors.grey.shade500, fontSize: 12)),
+                              Text(
+                                order.customerPhone,
+                                style: GoogleFonts.inter(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -629,14 +895,30 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            (order.paymentStatus == 'paid' || order.paymentStatus == 'completed') ? Icons.check_circle : 
-                            order.paymentStatus == 'refunded' ? Icons.cancel : Icons.pending, 
-                            size: 12, 
-                            color: (order.paymentStatus == 'paid' || order.paymentStatus == 'completed') ? const Color(0xFF10B981) : 
-                                   order.paymentStatus == 'refunded' ? const Color(0xFFEF4444) : const Color(0xFFF59E0B)
+                            (order.paymentStatus == 'paid' ||
+                                    order.paymentStatus == 'completed')
+                                ? Icons.check_circle
+                                : order.paymentStatus == 'refunded'
+                                ? Icons.cancel
+                                : Icons.pending,
+                            size: 12,
+                            color:
+                                (order.paymentStatus == 'paid' ||
+                                    order.paymentStatus == 'completed')
+                                ? const Color(0xFF10B981)
+                                : order.paymentStatus == 'refunded'
+                                ? const Color(0xFFEF4444)
+                                : const Color(0xFFF59E0B),
                           ),
                           const SizedBox(width: 4),
-                          Text(order.paymentStatus.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
+                          Text(
+                            order.paymentStatus.toUpperCase(),
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -654,7 +936,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
     Color bgColor;
     Color textColor;
     String label;
-    
+
     switch (status.toLowerCase()) {
       case 'new':
       case 'pending':
@@ -691,7 +973,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
         textColor = const Color(0xFF475569);
         label = status;
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -701,12 +983,22 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
       ),
       child: Text(
         label.toUpperCase(),
-        style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: textColor, letterSpacing: 0.5),
+        style: GoogleFonts.inter(
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          color: textColor,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       width: 150,
       decoration: BoxDecoration(
@@ -758,8 +1050,8 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                 Text(
                   title.toUpperCase(),
                   style: GoogleFonts.inter(
-                    color: Colors.grey.shade500, 
-                    fontSize: 10, 
+                    color: Colors.grey.shade500,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
                   ),
@@ -768,7 +1060,11 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: GoogleFonts.outfit(color: AppColors.textPrimary, fontSize: 24, fontWeight: FontWeight.w800),
+                  style: GoogleFonts.outfit(
+                    color: AppColors.textPrimary,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),
@@ -778,4 +1074,3 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
     );
   }
 }
-

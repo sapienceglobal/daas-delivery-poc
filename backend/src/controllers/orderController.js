@@ -1337,6 +1337,8 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
   };
 
   let finalStatus = status;
+  let wasAlreadyInState = false;
+
   const { doc: finalOrder } = await withOptimisticRetry(order, async (doc) => {
     if (!status) {
       if (doc.status === 'pending') finalStatus = 'accepted';
@@ -1349,6 +1351,11 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
       finalStatus = status;
     }
 
+    if (doc.status === finalStatus) {
+      wasAlreadyInState = true;
+      return;
+    }
+
     if (!allowedTransitions[doc.status]?.includes(finalStatus)) {
       throw new AppError(`Cannot change order from ${doc.status} to ${finalStatus}`, 400);
     }
@@ -1359,6 +1366,10 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
     doc.status = finalStatus;
     doc.statusUpdates.push({ status: finalStatus, description: `Status updated to ${finalStatus}` });
   });
+
+  if (wasAlreadyInState) {
+    return response.success({ data: finalOrder });
+  }
 
   status = finalStatus;
   order = finalOrder;

@@ -24,7 +24,14 @@ class AuthProvider extends ChangeNotifier {
       ApiService.setAuthToken(token);
       final userStr = prefs.getString('user');
       if (userStr != null) {
-        _user = jsonDecode(userStr);
+        final decodedUser = jsonDecode(userStr);
+        if (decodedUser['restaurantId'] is Map) {
+          decodedUser['timezone'] = decodedUser['restaurantId']['timezone'];
+          decodedUser['restaurantId'] = decodedUser['restaurantId']['_id'] ?? decodedUser['restaurantId']['id'];
+          // Save the flattened version back to prefs for future
+          prefs.setString('user', jsonEncode(decodedUser));
+        }
+        _user = decodedUser;
       }
     } else {
       _isAuthenticated = false;
@@ -38,7 +45,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String email, String password, {bool rememberMe = false}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -56,14 +63,22 @@ class AuthProvider extends ChangeNotifier {
         final user = decoded['user'];
         
         if (user['role'] == 'admin' || user['role'] == 'merchant') {
+          // Flatten restaurantId if it's an object, to prevent type errors across the app
+          if (user['restaurantId'] is Map) {
+            user['timezone'] = user['restaurantId']['timezone'];
+            user['restaurantId'] = user['restaurantId']['_id'] ?? user['restaurantId']['id'];
+          }
+          
           _token = token;
           _user = user;
           _isAuthenticated = true;
           ApiService.setAuthToken(token);
           
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('token', token);
-          await prefs.setString('user', jsonEncode(user));
+          if (rememberMe) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('token', token);
+            await prefs.setString('user', jsonEncode(user));
+          }
           
           _isLoading = false;
           notifyListeners();

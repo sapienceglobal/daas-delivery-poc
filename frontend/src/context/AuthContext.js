@@ -58,6 +58,11 @@ export function AuthProvider({ children }) {
         const userData = data.data;
         if (cancelled) return;
 
+        // Flatten restaurantId if populated as an object to prevent [object Object] errors in URLs
+        if (userData && userData.restaurantId && typeof userData.restaurantId === 'object') {
+          userData.restaurantId = userData.restaurantId._id || userData.restaurantId.id;
+        }
+
         // cache only safe fields — never cache addresses, cards, or cart data in localStorage.
         localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
         // user_role cookie is a UX hint for smooth navigation only.
@@ -90,6 +95,10 @@ export function AuthProvider({ children }) {
 
     const { user: userData } = data;
 
+    if (userData && userData.restaurantId && typeof userData.restaurantId === 'object') {
+      userData.restaurantId = userData.restaurantId._id || userData.restaurantId.id;
+    }
+
     localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
     localStorage.removeItem('marketplace_token');
     localStorage.setItem('marketplace_remember_me', rememberMe ? 'true' : 'false');
@@ -106,9 +115,17 @@ export function AuthProvider({ children }) {
     return userData;
   }, []);
 
+  const flattenUser = (userData) => {
+    if (userData && userData.restaurantId && typeof userData.restaurantId === 'object') {
+      userData.restaurantId = userData.restaurantId._id || userData.restaurantId.id;
+    }
+    return userData;
+  };
+
   const verify2FA = useCallback(async (tempToken, token, rememberMe = true) => {
     const data = await authAPI.verify2FA({ tempToken, token, rememberMe });
-    const { user: userData } = data;
+    let { user: userData } = data;
+    userData = flattenUser(userData);
 
     localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
     localStorage.removeItem('marketplace_token');
@@ -128,7 +145,8 @@ export function AuthProvider({ children }) {
 
   const socialLogin = useCallback(async (provider, token, role = 'customer') => {
     const data = await authAPI.socialLogin({ provider, token, role });
-    const { user: userData } = data;
+    let { user: userData } = data;
+    userData = flattenUser(userData);
 
     localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
     localStorage.removeItem('marketplace_token');

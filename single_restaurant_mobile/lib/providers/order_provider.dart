@@ -103,14 +103,34 @@ class OrderProvider with ChangeNotifier {
              bool shouldNotify = false;
 
              if (_trackedOrdersCache.containsKey(orderId)) {
-                 _trackedOrdersCache[orderId] = updatedOrder;
-                 shouldNotify = true;
+                 final oldOrder = _trackedOrdersCache[orderId];
+                 
+                 final statusChanged = oldOrder == null || oldOrder['status'] != updatedOrder['status'];
+                 final locationChanged = oldOrder == null || 
+                                       oldOrder['courierLat'] != updatedOrder['courierLat'] || 
+                                       oldOrder['courierLng'] != updatedOrder['courierLng'];
+                 
+                 if (statusChanged || locationChanged) {
+                    final merged = Map<String, dynamic>.from(oldOrder ?? {});
+                    merged.addAll(updatedOrder); // Merge incoming fields safely
+                    _trackedOrdersCache[orderId] = merged;
+                    shouldNotify = true;
+                 }
              }
 
              final index = _orders.indexWhere((o) => o['_id']?.toString() == orderId);
              if (index != -1) {
-               _orders[index] = updatedOrder;
-               shouldNotify = true;
+                 final oldOrderInList = _orders[index];
+                 final statusChanged = oldOrderInList['status'] != updatedOrder['status'];
+                 final locationChanged = oldOrderInList['courierLat'] != updatedOrder['courierLat'] || 
+                                       oldOrderInList['courierLng'] != updatedOrder['courierLng'];
+                 
+                 if (statusChanged || locationChanged) {
+                   final mergedListOrder = Map<String, dynamic>.from(oldOrderInList);
+                   mergedListOrder.addAll(updatedOrder); // Merge incoming fields safely
+                   _orders[index] = mergedListOrder;
+                   shouldNotify = true;
+                 }
              }
 
              if (shouldNotify) {

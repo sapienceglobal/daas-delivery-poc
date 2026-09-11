@@ -207,10 +207,15 @@ const OrderSchema = new mongoose.Schema({
     ref: 'Driver',
     default: null
   },
+  thirdPartyDeliveryName: { type: String, default: null },
   courierName: { type: String, default: null },
   courierPhone: { type: String, default: null },
+  courierPhoneForCustomer: { type: String, default: null },
+  courierPhoneForRestaurant: { type: String, default: null },
   courierLat: { type: Number, default: null },
   courierLng: { type: Number, default: null },
+  courierImageUrl: { type: String, default: null },
+  courierVehicle: { type: String, default: null },
   lastDeliverySyncAt: { type: Date, default: null },
 
   // ── Rating (inline for quick access; detailed in Review model) ────────

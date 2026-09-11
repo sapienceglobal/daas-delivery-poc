@@ -144,8 +144,33 @@ router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
     }
   }
 
+  const tp = event.thirdPartyDeliveryOrder || {};
+
+  // Extract advanced Shipday fields
+  const thirdPartyName = tp.thirdPartyName || event.thirdPartyName || orderData.thirdPartyName;
+  if (thirdPartyName) {
+    updatePayload.thirdPartyDeliveryName = thirdPartyName;
+  }
+  
+  const imageUrl = tp.driverImageUrl || event.driverImageUrl || orderData.driverImageUrl;
+  const vehicle = tp.driverVehicleDescription || event.driverVehicleDescription || orderData.driverVehicleDescription;
+  
+  if (imageUrl || vehicle) {
+    if (!updatePayload.carrier) updatePayload.carrier = {};
+    if (imageUrl) updatePayload.carrier.imageUrl = imageUrl;
+    if (vehicle) updatePayload.carrier.vehicle = vehicle;
+  }
+
+  // Carrier location from standard webhook (driverLat, driverLng)
+  const lat = tp.driverLat ?? event.driverLat ?? orderData.driverLat;
+  const lng = tp.driverLng ?? event.driverLng ?? orderData.driverLng;
+  if (typeof lat === 'number' && typeof lng === 'number') {
+    updatePayload.courierLat = lat;
+    updatePayload.courierLng = lng;
+  }
+
   // Tracking URL from Shipday order data
-  const trackingUrl = orderData.trackingLink || orderData.tracking_link || event.trackingLink || event.tracking_link;
+  const trackingUrl = orderData.trackingUrl || orderData.trackingLink || orderData.tracking_link || event.trackingUrl || event.trackingLink || event.tracking_link;
   if (trackingUrl) {
     updatePayload.trackingUrl = trackingUrl;
   }

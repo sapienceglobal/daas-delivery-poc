@@ -57,17 +57,26 @@ export default function MerchantLiveOrdersPage() {
       await orderAPI.updateStatus(orderId, status); 
       showToast(`Status → ${status}`, 'success'); 
       loadData(); 
-    } catch (err) { showToast(err.message || 'Failed', 'error'); }
+    } catch (err) { 
+      showToast(err.message || 'Failed', 'error'); 
+      loadData();
+    }
   };
 
   const handleAcceptOrder = async (orderId) => {
     try { await orderAPI.accept(orderId); showToast('Order accepted!', 'success'); loadData(); }
-    catch (err) { showToast(err.message || 'Failed', 'error'); }
+    catch (err) { 
+      showToast(err.message || 'Failed', 'error'); 
+      loadData();
+    }
   };
 
   const handleRejectOrder = async (orderId) => {
     try { await orderAPI.reject(orderId, 'Rejected by restaurant'); showToast('Order rejected', 'info'); loadData(); }
-    catch (err) { showToast(err.message || 'Failed', 'error'); }
+    catch (err) { 
+      showToast(err.message || 'Failed', 'error'); 
+      loadData();
+    }
   };
 
   if (globalLoading || loading) return <PageLoader text="Loading Live Orders..." />;
