@@ -89,11 +89,15 @@ const getCarrier = (payload = {}) => {
   if (payload.carrier) {
     return {
       name: payload.carrier.name || null,
-      phone: payload.carrier.phone || null,
-      phoneForRestaurant: payload.carrier.restaurantPhoneNumber || null,
-      phoneForCustomer: payload.carrier.customerPhoneNumber || null,
-      imageUrl: payload.carrier.imageUrl || payload.carrier.photo || payload.driverImageUrl || null,
-      vehicle: payload.carrier.vehicle || payload.carrier.vehicle_description || payload.driverVehicleDescription || null
+      phone: payload.carrier.phone || payload.carrier.phoneNumber || null,
+      phoneForRestaurant: payload.carrier.restaurantPhoneNumber || payload.carrier.restaurant_phone_number || null,
+      phoneForCustomer: payload.carrier.customerPhoneNumber || payload.carrier.customer_phone_number || null,
+      imageUrl: payload.carrier.imageUrl || payload.carrier.photo || payload.carrier.carrierPhoto
+        || payload.carrier.driverImageUrl || payload.carrier.driverImage || payload.carrier.driverPhoto
+        || payload.driverImageUrl || null,
+      vehicle: payload.carrier.vehicle || payload.carrier.vehicleDescription || payload.carrier.vehicle_description
+        || payload.carrier.driverVehicleDescription
+        || payload.driverVehicleDescription || null
     };
   }
   // Shipday tracking/progress: fixedData.carrier
@@ -117,26 +121,37 @@ const getCarrier = (payload = {}) => {
  * Extracts carrier location from Shipday webhook or tracking payload.
  */
 const getCarrierLocation = (payload = {}) => {
+  let lat = null;
+  let lng = null;
+
   // Shipday location webhook format
   if (payload.event === 'LOCATION_UPDATE' || payload.event === 'location_update') {
-    return {
-      lat: payload.latitude || null,
-      lng: payload.longitude || null
-    };
+    lat = payload.latitude;
+    lng = payload.longitude;
   }
   // Shipday tracking/progress: dynamicData.carrierLocation
-  if (payload.courierLat && payload.courierLng) {
-    return { lat: payload.courierLat, lng: payload.courierLng };
+  else if (payload.courierLat != null && payload.courierLng != null) {
+    lat = payload.courierLat;
+    lng = payload.courierLng;
   }
   // Legacy DoorDash format
-  const dasher = payload.dasher || payload.driver || payload.courier || {};
-  const loc = payload.dasher_location || dasher.location || payload.driver_location || payload.courier_location || null;
-  if (loc) {
-    return {
-      lat: loc.lat ?? loc.latitude ?? null,
-      lng: loc.lng ?? loc.lon ?? loc.longitude ?? null
-    };
+  else {
+    const dasher = payload.dasher || payload.driver || payload.courier || {};
+    const loc = payload.dasher_location || dasher.location || payload.driver_location || payload.courier_location;
+    if (loc) {
+      lat = loc.lat ?? loc.latitude;
+      lng = loc.lng ?? loc.lon ?? loc.longitude;
+    }
   }
+
+  if (lat != null && lng != null) {
+    const parsedLat = Number(lat);
+    const parsedLng = Number(lng);
+    if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+      return { lat: parsedLat, lng: parsedLng };
+    }
+  }
+
   return null;
 };
 
@@ -193,6 +208,10 @@ export const applyDeliveryUpdate = (order, payload = {}) => {
     trackingUrl = `https://track.shipday.com/${order.deliveryId || payload.deliveryId}`;
   }
   assignIfPresent(order, 'trackingUrl', trackingUrl);
+
+  // Third-party delivery tracking URL (DoorDash/UberEats rider-to-restaurant tracking)
+  const thirdPartyTrackingUrl = payload.thirdPartyTrackingUrl || payload.thirdPartyTrackingLink;
+  assignIfPresent(order, 'thirdPartyTrackingUrl', thirdPartyTrackingUrl);
 
   // Timing fields from tracking
   if (payload.pickupTime) order.pickupTime = new Date(payload.pickupTime);
@@ -285,6 +304,7 @@ export const buildOrderSocketPayload = (order) => {
     courierVehicle: plainOrder.courierVehicle,
     thirdPartyDeliveryName: plainOrder.thirdPartyDeliveryName,
     trackingUrl: plainOrder.trackingUrl,
+    thirdPartyTrackingUrl: plainOrder.thirdPartyTrackingUrl,
     pickupTime: plainOrder.pickupTime,
     deliveryTime: plainOrder.deliveryTime,
     order: plainOrder

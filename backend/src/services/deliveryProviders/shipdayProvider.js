@@ -192,6 +192,8 @@ export const getOrderTracking = async (shipdayOrderId) => {
       courierLng: carrierLocation.longitude || null,
       estimatedTimeMinutes: dynamicData.estimatedTimeInMinutes || null,
       trackingUrl: fixedData.trackingLink || null,
+      driverImageUrl: carrier.carrierPhoto || carrier.photo || carrier.imageUrl || null,
+      driverVehicleDescription: carrier.vehicleDescription || carrier.vehicle_description || carrier.vehicle || null,
       pickupTime: orderStatus.pickedTime ? new Date(orderStatus.pickedTime) : null,
       deliveryTime: orderStatus.deliveryTime ? new Date(orderStatus.deliveryTime) : null
     };

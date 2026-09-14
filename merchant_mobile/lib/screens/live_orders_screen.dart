@@ -608,7 +608,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                 ],
               ),
             ),
-            if (order.status == 'out_for_delivery') ...[
+            if (order.orderType == 'delivery' && order.status == 'picked_up') ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -727,7 +727,13 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
   }
 
   bool _hasQuickActions(OrderModel order) {
-    if (order.status == 'out_for_delivery' && order.trackingUrl != null)
+    // Delivery type + picked_up = out for delivery → show track button
+    if (order.orderType == 'delivery' && order.status == 'picked_up' &&
+        (order.thirdPartyTrackingUrl != null || order.trackingUrl != null))
+      return true;
+    // Ready delivery orders → show waiting for rider
+    if (order.orderType == 'delivery' &&
+        ['ready_for_pickup', 'ready'].contains(order.status))
       return true;
     return [
       'pending',
@@ -739,12 +745,15 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
   }
 
   Widget _buildQuickActions(BuildContext context, OrderModel order) {
-    if (order.status == 'out_for_delivery' && order.trackingUrl != null) {
+    // Delivery type + picked_up = out for delivery → show track button
+    if (order.orderType == 'delivery' && order.status == 'picked_up' &&
+        (order.thirdPartyTrackingUrl != null || order.trackingUrl != null)) {
+      final trackUrl = order.thirdPartyTrackingUrl ?? order.trackingUrl!;
       return Row(
         children: [
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: () => launchUrl(Uri.parse(order.trackingUrl!)),
+              onPressed: () => launchUrl(Uri.parse(trackUrl)),
               icon: const Icon(
                 Icons.location_on,
                 size: 16,
@@ -767,6 +776,46 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
             ),
           ),
         ],
+      );
+    }
+
+    // Ready delivery orders → show animated "Waiting for Rider..." indicator
+    if (order.orderType == 'delivery' &&
+        ['ready_for_pickup', 'ready'].contains(order.status)) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0FDF4),
+          border: Border.all(
+            color: const Color(0xFFBBF7D0),
+            width: 2,
+            strokeAlign: BorderSide.strokeAlignInside,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: const Color(0xFF16A34A),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Waiting for Rider...',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: const Color(0xFF166534),
+              ),
+            ),
+          ],
+        ),
       );
     }
 
@@ -797,14 +846,87 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
       case 'ready_for_pickup':
       case 'ready':
         if (order.orderType == 'delivery') {
-          buttonText = ''; // Disabled for delivery, Shipday driver handles this
+          // Delivery orders: "Waiting for Rider" handled above, return nothing here
+          return const SizedBox.shrink();
         } else {
           buttonText = 'Handed to Customer';
           nextStatus = 'picked_up';
           buttonColor = Colors.blue;
           buttonIcon = Icons.local_shipping;
+          
+          // For pickup, we want to show BOTH the "Waiting for Customer..." animation AND the button
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  border: Border.all(
+                    color: const Color(0xFFBBF7D0),
+                    width: 2,
+                    strokeAlign: BorderSide.strokeAlignInside,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: const Color(0xFF16A34A),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Waiting for Customer...',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: const Color(0xFF166534),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    await context.read<OrderProvider>().updateOrderStatus(
+                      order.id,
+                      nextStatus,
+                    );
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.toString())),
+                      );
+                    }
+                  }
+                },
+                icon: Icon(buttonIcon, size: 18),
+                label: Text(
+                  buttonText,
+                  style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: buttonColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ],
+          );
         }
-        break;
     }
 
     if (buttonText.isEmpty) return const SizedBox.shrink();
@@ -1038,13 +1160,20 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
   }
 
   Widget _buildTodaySummary(List<OrderModel> orders) {
-    final todayOrders = orders
-        .where((o) => o.createdAt.day == DateTime.now().day)
-        .toList();
+    final now = DateTime.now();
+    final todayOrders = orders.where((o) {
+      final localCreatedAt = o.createdAt.toLocal();
+      return localCreatedAt.year == now.year &&
+             localCreatedAt.month == now.month &&
+             localCreatedAt.day == now.day;
+    }).toList();
     final completed = todayOrders
-        .where(
-          (o) => ['delivered', 'completed', 'picked_up'].contains(o.status),
-        )
+        .where((o) {
+          final isDelivery = o.orderType.toLowerCase() == 'delivery';
+          final status = o.status.toLowerCase();
+          if (status == 'picked_up' && isDelivery) return false;
+          return ['delivered', 'completed', 'picked_up'].contains(status);
+        })
         .toList();
     final cancelled = todayOrders
         .where((o) => ['cancelled', 'refunded'].contains(o.status))
@@ -1160,6 +1289,20 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
   }
 
   Widget _buildRecentCompleted(List<OrderModel> orders) {
+    final now = DateTime.now();
+    final completedOrders = orders.where((o) {
+      final localCreatedAt = o.createdAt.toLocal();
+      final isToday = localCreatedAt.year == now.year &&
+             localCreatedAt.month == now.month &&
+             localCreatedAt.day == now.day;
+      if (!isToday) return false;
+      
+      final isDelivery = o.orderType.toLowerCase() == 'delivery';
+      final status = o.status.toLowerCase();
+      if (status == 'picked_up' && isDelivery) return false;
+      return ['delivered', 'completed', 'picked_up'].contains(status);
+    }).toList();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1183,29 +1326,55 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.inbox, color: Colors.grey.shade400, size: 16),
-                const SizedBox(width: 8),
-                Text(
-                  'No completed orders yet',
-                  style: GoogleFonts.inter(
-                    color: Colors.grey.shade500,
-                    fontSize: 12,
+          if (completedOrders.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inbox, color: Colors.grey.shade400, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    'No completed orders yet',
+                    style: GoogleFonts.inter(
+                      color: Colors.grey.shade500,
+                      fontSize: 12,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: completedOrders.take(3).length, // Show up to 3 recent
+              itemBuilder: (context, index) {
+                final order = completedOrders[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        order.orderNumber ?? '#${order.id.substring(order.id.length - 4)}',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      Text(
+                        '\$${order.total.toStringAsFixed(2)}',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: const Color(0xFF166534)),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-          ),
         ],
       ),
     );

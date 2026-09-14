@@ -277,25 +277,35 @@ export default function LiveOrdersView({
             <button onClick={() => onUpdateStatus && onUpdateStatus(order._id, 'ready')} className={`w-full text-white text-xs font-bold py-2 rounded-lg transition-colors ${col.theme.buttonBg} ${col.theme.buttonHover}`}>Mark as Ready</button>
           )}
           {col.id === 'ready' && order.orderType === 'pickup' && (
-            <button onClick={() => onUpdateStatus && onUpdateStatus(order._id, 'picked_up')} className={`w-full text-white text-xs font-bold py-2 rounded-lg transition-colors ${col.theme.buttonBg} ${col.theme.buttonHover}`}>
-              Handed to Customer
-            </button>
+            <div className="flex flex-col gap-2">
+              <div className={`w-full flex items-center justify-center gap-2 text-xs font-bold py-2.5 rounded-lg border-2 border-dashed border-[#bbf7d0] text-[#166534] bg-[#f0fdf4]`}>
+                <div className="w-3.5 h-3.5 border-2 border-[#16a34a] border-t-transparent rounded-full animate-spin" />
+                Waiting for Customer...
+              </div>
+              <button onClick={() => onUpdateStatus && onUpdateStatus(order._id, 'picked_up')} className={`w-full text-white text-xs font-bold py-2 rounded-lg transition-colors ${col.theme.buttonBg} ${col.theme.buttonHover}`}>
+                Handed to Customer
+              </button>
+            </div>
           )}
           {col.id === 'ready' && order.orderType === 'delivery' && (
-            <div className={`w-full text-center text-xs font-bold py-2 rounded-lg border-2 border-dashed border-[#bbf7d0] text-[#166534] bg-[#f0fdf4]`}>
+            <div className={`w-full flex items-center justify-center gap-2 text-xs font-bold py-2.5 rounded-lg border-2 border-dashed border-[#bbf7d0] text-[#166534] bg-[#f0fdf4]`}>
+              <div className="w-3.5 h-3.5 border-2 border-[#16a34a] border-t-transparent rounded-full animate-spin" />
               Waiting for Rider...
             </div>
           )}
           {col.id === 'out_for_delivery' && (
-            <button 
-              onClick={() => {
-                if (order.trackingUrl) window.open(order.trackingUrl, '_blank');
-              }}
-              disabled={!order.trackingUrl}
-              className={`w-full text-white text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 ${col.theme.buttonBg} ${col.theme.buttonHover} ${!order.trackingUrl ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <Truck className="w-3.5 h-3.5" /> Track Order
-            </button>
+            <div className="flex flex-col gap-1.5">
+              <button 
+                onClick={() => {
+                  const url = order.thirdPartyTrackingUrl || order.trackingUrl;
+                  if (url) window.open(url, '_blank');
+                }}
+                disabled={!order.thirdPartyTrackingUrl && !order.trackingUrl}
+                className={`w-full text-white text-xs font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 ${col.theme.buttonBg} ${col.theme.buttonHover} ${!order.thirdPartyTrackingUrl && !order.trackingUrl ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <Truck className="w-3.5 h-3.5" /> Track Order
+              </button>
+            </div>
           )}
         </div>
       </div>

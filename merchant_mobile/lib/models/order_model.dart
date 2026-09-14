@@ -122,6 +122,7 @@ class OrderModel {
   final String? deliveryProvider;
   final String? deliveryId;
   final String? trackingUrl;
+  final String? thirdPartyTrackingUrl;
   final DateTime? pickupTime;
   final DateTime? deliveryTime;
   final String? courierNotes;
@@ -172,6 +173,7 @@ class OrderModel {
     this.deliveryProvider,
     this.deliveryId,
     this.trackingUrl,
+    this.thirdPartyTrackingUrl,
     this.pickupTime,
     this.deliveryTime,
     this.courierNotes,
@@ -248,6 +250,7 @@ class OrderModel {
       deliveryProvider: json['deliveryProvider'],
       deliveryId: json['deliveryId'],
       trackingUrl: json['trackingUrl'],
+      thirdPartyTrackingUrl: json['thirdPartyTrackingUrl'],
       pickupTime: json['pickupTime'] != null ? DateTime.parse(json['pickupTime']) : null,
       deliveryTime: json['deliveryTime'] != null ? DateTime.parse(json['deliveryTime']) : null,
       courierNotes: json['courierNotes'],
@@ -299,6 +302,7 @@ class OrderModel {
       deliveryProvider: deliveryProvider,
       deliveryId: deliveryId,
       trackingUrl: trackingUrl,
+      thirdPartyTrackingUrl: thirdPartyTrackingUrl,
       pickupTime: pickupTime,
       deliveryTime: deliveryTime,
       courierNotes: courierNotes,

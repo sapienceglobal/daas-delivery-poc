@@ -430,8 +430,13 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
     int countOut = allOrders
         .where((o) => o.status == 'picked_up' && o.orderType == 'delivery')
         .length;
-    int countCompleted = allOrders
-        .where((o) => ['completed', 'delivered'].contains(o.status))
+      int countCompleted = allOrders
+          .where((o) {
+            final isDelivery = o.orderType.toLowerCase() == 'delivery';
+            final status = o.status.toLowerCase();
+            if (status == 'picked_up' && !isDelivery) return true;
+            return ['completed', 'delivered'].contains(status);
+          })
         .length;
 
     // Tab counts from raw `allOrders`

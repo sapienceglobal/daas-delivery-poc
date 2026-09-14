@@ -570,8 +570,8 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 <h3 className="text-[11px] font-black text-[#8b0000] uppercase tracking-wider flex items-center gap-2">
                   <Truck className="w-4 h-4" /> Delivery & Tracking Details
                 </h3>
-                {order.trackingUrl && (
-                  <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#8b0000] hover:bg-[#6b0000] px-3 py-1.5 rounded-lg transition-colors shadow-sm">
+                {(order.thirdPartyTrackingUrl || order.trackingUrl) && (
+                  <a href={order.thirdPartyTrackingUrl || order.trackingUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#8b0000] hover:bg-[#6b0000] px-3 py-1.5 rounded-lg transition-colors shadow-sm">
                     <ExternalLink className="w-3.5 h-3.5" /> Track Order
                   </a>
                 )}

@@ -1388,7 +1388,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          if (order.trackingUrl != null)
+                          if (order.thirdPartyTrackingUrl != null || order.trackingUrl != null)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -1429,7 +1429,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                   ),
                                   InkWell(
                                     onTap: () => launchUrl(
-                                      Uri.parse(order.trackingUrl!),
+                                      Uri.parse(order.thirdPartyTrackingUrl ?? order.trackingUrl!),
                                     ),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(

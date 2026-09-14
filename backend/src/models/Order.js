@@ -195,6 +195,7 @@ const OrderSchema = new mongoose.Schema({
   deliveryProvider: { type: String, default: 'shipday' },
   deliveryId: { type: String, default: null },
   trackingUrl: { type: String, default: null },
+  thirdPartyTrackingUrl: { type: String, default: null },
   pickupTime: { type: Date, default: null },
   deliveryTime: { type: Date, default: null },
   scheduledTime: { type: Date, default: null },

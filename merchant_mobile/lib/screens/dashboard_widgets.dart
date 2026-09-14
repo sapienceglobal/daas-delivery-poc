@@ -463,7 +463,11 @@ class DashboardStatsGrid extends StatelessWidget {
     final aov = data?.aov ?? 0.0;
       
     final orderProvider = context.watch<OrderProvider>();
-    final liveOrders = orderProvider.orders.where((o) => ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'picked_up'].contains((o.status).toLowerCase())).length;
+    final liveOrders = orderProvider.orders.where((o) {
+      final status = o.status.toLowerCase();
+      if (status == 'picked_up' && o.orderType.toLowerCase() != 'delivery') return false;
+      return ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'picked_up'].contains(status);
+    }).length;
 
     return LayoutBuilder(
       builder: (context, constraints) {

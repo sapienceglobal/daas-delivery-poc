@@ -129,18 +129,24 @@ router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
 
   // Carrier info from webhook
   if (event.carrier) {
-    updatePayload.carrier = event.carrier;
+    updatePayload.carrier = { ...event.carrier };
   }
 
   // Third-party carrier info (when dispatched through 3rd party via Shipday)
-  // We prioritize this over event.carrier because event.carrier contains generic aggregator info (e.g. "DoorDash" and their generic support number)
+  // We MERGE into existing carrier instead of overwriting, to preserve phone numbers etc.
   if (event.thirdPartyDeliveryOrder) {
     const tp = event.thirdPartyDeliveryOrder;
     if (tp.driverName) {
-      updatePayload.carrier = {
-        name: tp.driverName,
-        phone: tp.driverPhone || updatePayload.carrier?.phone
-      };
+      if (!updatePayload.carrier) updatePayload.carrier = {};
+      updatePayload.carrier.name = tp.driverName;
+      updatePayload.carrier.phone = tp.driverPhone || tp.driver_phone_number || updatePayload.carrier.phone;
+      // Preserve customer/restaurant phone numbers from third-party
+      if (tp.customerPhoneNumber || tp.customer_phone_number) {
+        updatePayload.carrier.customerPhoneNumber = tp.customerPhoneNumber || tp.customer_phone_number;
+      }
+      if (tp.restaurantPhoneNumber || tp.restaurant_phone_number) {
+        updatePayload.carrier.restaurantPhoneNumber = tp.restaurantPhoneNumber || tp.restaurant_phone_number;
+      }
     }
   }
 
@@ -152,8 +158,19 @@ router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
     updatePayload.thirdPartyDeliveryName = thirdPartyName;
   }
   
-  const imageUrl = tp.driverImageUrl || event.driverImageUrl || orderData.driverImageUrl;
-  const vehicle = tp.driverVehicleDescription || event.driverVehicleDescription || orderData.driverVehicleDescription;
+  // Driver image URL — handle all known Shipday / DoorDash / UberEats field variations
+  const imageUrl = tp.driverImageUrl || tp.driverImage || tp.driverPhoto || tp.driver_image_url
+    || tp.carrierPhoto || tp.carrier_photo
+    || event.driverImageUrl || event.driverImage || event.driverPhoto
+    || event.carrier?.carrierPhoto || event.carrier?.photo || event.carrier?.imageUrl
+    || orderData.driverImageUrl || orderData.driverImage;
+  
+  // Vehicle info — handle all known field name variations
+  const vehicle = tp.driverVehicleDescription || tp.vehicleDescription || tp.vehicle_description
+    || tp.vehicleMake || tp.vehicle_make
+    || event.driverVehicleDescription || event.vehicleDescription
+    || event.carrier?.vehicleDescription || event.carrier?.vehicle_description
+    || orderData.driverVehicleDescription || orderData.vehicleDescription;
   
   if (imageUrl || vehicle) {
     if (!updatePayload.carrier) updatePayload.carrier = {};
@@ -161,18 +178,41 @@ router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
     if (vehicle) updatePayload.carrier.vehicle = vehicle;
   }
 
+  // Debug log: show what carrier data we extracted so we can troubleshoot
+  logger.info('Shipday webhook carrier extraction', {
+    orderNumber,
+    hasCarrier: !!updatePayload.carrier,
+    carrierName: updatePayload.carrier?.name || null,
+    carrierImageUrl: imageUrl || null,
+    carrierVehicle: vehicle || null,
+    hasThirdParty: !!event.thirdPartyDeliveryOrder,
+    thirdPartyKeys: event.thirdPartyDeliveryOrder ? Object.keys(event.thirdPartyDeliveryOrder) : [],
+    eventCarrierKeys: event.carrier ? Object.keys(event.carrier) : []
+  });
+
   // Carrier location from standard webhook (driverLat, driverLng)
   const lat = tp.driverLat ?? event.driverLat ?? orderData.driverLat;
   const lng = tp.driverLng ?? event.driverLng ?? orderData.driverLng;
-  if (typeof lat === 'number' && typeof lng === 'number') {
-    updatePayload.courierLat = lat;
-    updatePayload.courierLng = lng;
+  if (lat != null && lng != null) {
+    const parsedLat = Number(lat);
+    const parsedLng = Number(lng);
+    if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+      updatePayload.courierLat = parsedLat;
+      updatePayload.courierLng = parsedLng;
+    }
   }
 
   // Tracking URL from Shipday order data
   const trackingUrl = orderData.trackingUrl || orderData.trackingLink || orderData.tracking_link || event.trackingUrl || event.trackingLink || event.tracking_link;
   if (trackingUrl) {
     updatePayload.trackingUrl = trackingUrl;
+  }
+
+  // Third-party delivery tracking URL (DoorDash/UberEats etc.)
+  // This link shows the rider's journey TO the restaurant (useful for restaurant)
+  const thirdPartyTrackingUrl = tp.trackingUrl || tp.tracking_url || tp.trackingLink || tp.tracking_link;
+  if (thirdPartyTrackingUrl) {
+    updatePayload.thirdPartyTrackingUrl = thirdPartyTrackingUrl;
   }
 
   // Timing data
