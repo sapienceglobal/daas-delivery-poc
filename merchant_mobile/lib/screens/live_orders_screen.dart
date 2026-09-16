@@ -608,7 +608,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                 ],
               ),
             ),
-            if (order.orderType == 'delivery' && order.status == 'picked_up') ...[
+            if (order.orderType == 'delivery' && order.courierName != null) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -727,8 +727,8 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
   }
 
   bool _hasQuickActions(OrderModel order) {
-    // Delivery type + picked_up = out for delivery → show track button
-    if (order.orderType == 'delivery' && order.status == 'picked_up' &&
+    // Show track button on any active status when tracking URL is available
+    if (order.orderType == 'delivery' &&
         (order.thirdPartyTrackingUrl != null || order.trackingUrl != null))
       return true;
     // Ready delivery orders → show waiting for rider
@@ -741,13 +741,18 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
       'preparing',
       'ready_for_pickup',
       'ready',
+      'picked_up',
     ].contains(order.status);
   }
 
   Widget _buildQuickActions(BuildContext context, OrderModel order) {
-    // Delivery type + picked_up = out for delivery → show track button
-    if (order.orderType == 'delivery' && order.status == 'picked_up' &&
-        (order.thirdPartyTrackingUrl != null || order.trackingUrl != null)) {
+    // Track button: show on any status when delivery + tracking URL available
+    final hasTrackingUrl = order.orderType == 'delivery' &&
+        (order.thirdPartyTrackingUrl != null || order.trackingUrl != null);
+
+    // For picked_up (out for delivery), only show track button
+    if (order.orderType == 'delivery' && order.status == 'picked_up') {
+      if (!hasTrackingUrl) return const SizedBox.shrink();
       final trackUrl = order.thirdPartyTrackingUrl ?? order.trackingUrl!;
       return Row(
         children: [
@@ -1076,16 +1081,53 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
 
     return Column(
       children: [
+        // Track button above status button when tracking URL available (not on pending)
+        if (hasTrackingUrl && order.status != 'pending') ...[
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => launchUrl(Uri.parse(order.thirdPartyTrackingUrl ?? order.trackingUrl!)),
+                  icon: const Icon(
+                    Icons.location_on,
+                    size: 16,
+                    color: Color(0xFF8B0000),
+                  ),
+                  label: Text(
+                    'Track Live Order',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF8B0000),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF8B0000)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
         Row(
           children: [
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () async {
                   try {
-                    await context.read<OrderProvider>().updateOrderStatus(
-                      order.id,
-                      nextStatus,
-                    );
+                    // Use dedicated accept endpoint for pending orders
+                    if (order.status == 'pending') {
+                      await context.read<OrderProvider>().acceptOrder(order.id);
+                    } else {
+                      await context.read<OrderProvider>().updateOrderStatus(
+                        order.id,
+                        nextStatus,
+                      );
+                    }
                   } catch (e) {
                     print('Error updating order status: $e');
                     if (context.mounted) {

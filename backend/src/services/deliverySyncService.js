@@ -1,4 +1,5 @@
 import { getDeliveryTracking } from './deliveryAggregatorService.js';
+import { getOnDemandDetails } from './deliveryProviders/shipdayProvider.js';
 import Order from '../models/Order.js';
 import logger from '../utils/logger.js';
 import { awardLoyaltyPoints } from '../controllers/orderController.js';
@@ -332,14 +333,58 @@ export const pollActiveDeliveries = async (io) => {
       courierPhoneForCustomer: order.courierPhoneForCustomer,
       courierLat: order.courierLat,
       courierLng: order.courierLng,
+      courierImageUrl: order.courierImageUrl,
+      courierVehicle: order.courierVehicle,
       trackingUrl: order.trackingUrl,
+      thirdPartyTrackingUrl: order.thirdPartyTrackingUrl,
       pickupTime: order.pickupTime,
       deliveryTime: order.deliveryTime
     };
 
     try {
       const result = await syncDeliveryTracking(order);
-      if (!result.updated || !io) return;
+
+      // On-demand details enrichment fallback: fetch driverImageUrl/driverVehicleDescription
+      // from Shipday's on-demand details endpoint if missing after regular sync
+      if (order.deliveryId && (!order.courierImageUrl || !order.courierVehicle)) {
+        try {
+          const details = await getOnDemandDetails(order.deliveryId);
+          if (details) {
+            let enriched = false;
+            if (details.driverImageUrl && !order.courierImageUrl) {
+              order.courierImageUrl = details.driverImageUrl;
+              enriched = true;
+            }
+            if (details.driverVehicleDescription && !order.courierVehicle) {
+              order.courierVehicle = details.driverVehicleDescription;
+              enriched = true;
+            }
+            if (details.trackingUrl && !order.thirdPartyTrackingUrl) {
+              order.thirdPartyTrackingUrl = details.trackingUrl;
+              enriched = true;
+            }
+            if (details.thirdPartyName && !order.thirdPartyDeliveryName) {
+              order.thirdPartyDeliveryName = details.thirdPartyName;
+              enriched = true;
+            }
+            if (enriched) {
+              await order.save();
+              logger.info('Polling: on-demand details enrichment succeeded', {
+                orderId: order._id,
+                courierImageUrl: !!order.courierImageUrl,
+                courierVehicle: !!order.courierVehicle
+              });
+            }
+          }
+        } catch (enrichErr) {
+          logger.debug('Polling: on-demand enrichment failed (non-critical)', {
+            orderId: order._id,
+            error: enrichErr.message
+          });
+        }
+      }
+
+      if (!result.updated && !order.isModified?.() && !io) return;
 
       const changed = Object.entries(before).some(([key, value]) => {
         const nextValue = order[key];

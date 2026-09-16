@@ -207,6 +207,53 @@ export const getOrderTracking = async (shipdayOrderId) => {
   }
 };
 
+// ── Get On-Demand Delivery Details ──────────────────────────────────────────
+/**
+ * Fetches on-demand delivery details from Shipday.
+ * Uses the On-Demand Details endpoint: GET /on-demand/details/{orderId}
+ *
+ * This is the ONLY Shipday data source that contains driverImageUrl and
+ * driverVehicleDescription — these fields do NOT exist in the webhook's
+ * thirdPartyDeliveryOrder object.
+ *
+ * @param {string|number} shipdayOrderId - The Shipday order ID
+ * @returns {Promise<Object|null>} - On-demand details or null if unavailable
+ */
+export const getOnDemandDetails = async (shipdayOrderId) => {
+  try {
+    const response = await shipdayRequest({
+      method: 'get',
+      path: `/on-demand/details/${encodeURIComponent(shipdayOrderId)}`
+    });
+
+    const data = response.data;
+    if (!data) return null;
+
+    return {
+      driverName: data.driverName || null,
+      driverPhone: data.driverPhone || null,
+      driverLat: data.driverLat != null ? Number(data.driverLat) : null,
+      driverLng: data.driverLng != null ? Number(data.driverLng) : null,
+      driverImageUrl: data.driverImageUrl || null,
+      driverVehicleDescription: data.driverVehicleDescription || null,
+      trackingUrl: data.trackingUrl || null,
+      thirdPartyName: data.thirdPartyName || null,
+      thirdPartyFee: data.thirdPartyFee != null ? Number(data.thirdPartyFee) : null,
+      status: data.status || null
+    };
+  } catch (error) {
+    // 404 = order not dispatched via on-demand, 401 = plan doesn't support this endpoint
+    if (error.response?.status === 401 || error.response?.status === 404 || error.response?.status === 400) {
+      logger.debug(`Shipday on-demand details unavailable for order ${shipdayOrderId} (status ${error.response?.status})`);
+      return null;
+    }
+    logger.warn(`Failed to fetch Shipday on-demand details for order ${shipdayOrderId}`, {
+      error: error.response?.data || error.message
+    });
+    return null;
+  }
+};
+
 // ── Get Active Orders ───────────────────────────────────────────────────────
 /**
  * Retrieves all active orders from Shipday.

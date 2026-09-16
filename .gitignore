@@ -200,3 +200,5 @@ update_location.*
 *update*location*
 test_*.js
 *_test.js
+
+docs/

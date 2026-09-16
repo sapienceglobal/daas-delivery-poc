@@ -5,6 +5,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import logger from '../utils/logger.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { applyDeliveryUpdate, buildOrderSocketPayload } from '../services/deliverySyncService.js';
+import { getOnDemandDetails } from '../services/deliveryProviders/shipdayProvider.js';
 import { createNotification } from '../controllers/notificationController.js';
 
 // ── Shipday Webhook Token ───────────────────────────────────────────────────
@@ -234,6 +235,62 @@ router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
     await order.save();
   } catch (err) {
     logger.error('Failed to save order in Shipday webhook', { orderId: order._id, error: err.message });
+  }
+
+  // ── On-Demand Details Enrichment ──────────────────────────────────────────
+  // Fetch driverImageUrl and driverVehicleDescription from Shipday's on-demand
+  // details endpoint. These fields ONLY exist there — not in webhook payloads.
+  const needsEnrichment = order.deliveryId && (!order.courierImageUrl || !order.courierVehicle);
+  if (needsEnrichment) {
+    // Fire-and-forget: don't block the webhook response
+    (async () => {
+      try {
+        const details = await getOnDemandDetails(order.deliveryId);
+        if (!details) return;
+
+        let enriched = false;
+        if (details.driverImageUrl && !order.courierImageUrl) {
+          order.courierImageUrl = details.driverImageUrl;
+          enriched = true;
+        }
+        if (details.driverVehicleDescription && !order.courierVehicle) {
+          order.courierVehicle = details.driverVehicleDescription;
+          enriched = true;
+        }
+        // Also backfill tracking URL if missing
+        if (details.trackingUrl && !order.thirdPartyTrackingUrl) {
+          order.thirdPartyTrackingUrl = details.trackingUrl;
+          enriched = true;
+        }
+        if (details.thirdPartyName && !order.thirdPartyDeliveryName) {
+          order.thirdPartyDeliveryName = details.thirdPartyName;
+          enriched = true;
+        }
+
+        if (enriched) {
+          await order.save();
+          logger.info('Shipday on-demand details enrichment succeeded', {
+            orderId: order._id,
+            courierImageUrl: !!order.courierImageUrl,
+            courierVehicle: !!order.courierVehicle,
+            thirdPartyTrackingUrl: !!order.thirdPartyTrackingUrl
+          });
+
+          // Re-emit socket update with enriched data
+          const enrichedIo = req.app.get('io');
+          if (enrichedIo) {
+            const enrichedPayload = buildOrderSocketPayload(order);
+            enrichedIo.to(order.restaurantId.toString()).emit('order_updated', enrichedPayload);
+            enrichedIo.to(`order_${order._id}`).emit('order_status_changed', enrichedPayload);
+          }
+        }
+      } catch (enrichErr) {
+        logger.warn('On-demand details enrichment failed (non-blocking)', {
+          orderId: order._id,
+          error: enrichErr.message
+        });
+      }
+    })();
   }
 
   // Emit real-time update via Socket.io

@@ -183,11 +183,41 @@ class OrderProvider extends ChangeNotifier {
         _orders[index] = _orders[index].copyWith(status: status);
         notifyListeners();
       }
+      // Delayed re-fetch: the server may have triggered background side effects
+      // (e.g., createShipdayDeliveryForOrder setting deliveryId) that the optimistic
+      // update doesn't capture. Re-fetch after a short delay to get the full state.
+      Future.delayed(const Duration(milliseconds: 800), () {
+        fetchOrderById(orderId);
+      });
     } catch (e) {
       _error = 'Failed to update order: $e';
       notifyListeners();
       // Edge case: if update failed (e.g., transition invalid because it was already updated in the background),
       // we must fetch the latest state so the local UI catches up.
+      fetchOrders(force: true);
+      rethrow;
+    }
+  }
+
+  /// Accept a pending order using the dedicated /accept endpoint.
+  /// This matches the web panel's behavior (sends confirmation email, etc.)
+  /// and ensures consistent behavior across all platforms.
+  Future<void> acceptOrder(String orderId) async {
+    try {
+      await ApiService.put('/api/orders/$orderId/accept', {});
+      // Optimistic update
+      final index = _orders.indexWhere((o) => o.id == orderId);
+      if (index != -1) {
+        _orders[index] = _orders[index].copyWith(status: 'accepted');
+        notifyListeners();
+      }
+      // Delayed re-fetch to capture server-side changes (deliveryId, etc.)
+      Future.delayed(const Duration(milliseconds: 800), () {
+        fetchOrderById(orderId);
+      });
+    } catch (e) {
+      _error = 'Failed to accept order: $e';
+      notifyListeners();
       fetchOrders(force: true);
       rethrow;
     }
