@@ -627,18 +627,24 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                   <div className="flex justify-between items-center mt-2 pt-3 border-t border-dashed border-[#e5e7eb]">
                     <span className="text-xs font-bold text-[#6b7280]">Assigned Rider</span>
                     <div className="flex items-center gap-2">
-                      {order.courierImageUrl && (
+                      {order.courierImageUrl ? (
                         <img src={order.courierImageUrl} alt={order.courierName} className="w-6 h-6 rounded-full object-cover border border-[#e5e7eb]" />
-                      )}
+                      ) : order.courierName ? (
+                        <span className="text-[10px] text-[#9ca3af] italic">No photo</span>
+                      ) : null}
                       <span className="text-[13px] font-black text-[#111827]">{order.courierName || 'Pending'}</span>
                     </div>
                   </div>
-                  {order.courierVehicle && (
+                  {order.courierName ? (
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-[#6b7280]">Vehicle</span>
-                      <span className="text-xs font-bold text-[#111827]">{order.courierVehicle}</span>
+                      {order.courierVehicle ? (
+                        <span className="text-xs font-bold text-[#111827]">{order.courierVehicle}</span>
+                      ) : (
+                        <span className="text-[11px] text-[#9ca3af] italic">Not provided by carrier</span>
+                      )}
                     </div>
-                  )}
+                  ) : null}
                   {order.courierPhoneForCustomer || order.courierPhoneForRestaurant ? (
                     <>
                       {order.courierPhoneForCustomer && (

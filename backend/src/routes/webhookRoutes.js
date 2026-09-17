@@ -245,6 +245,12 @@ router.post('/', verifyShipdayToken, asyncHandler(async (req, response) => {
     // Fire-and-forget: don't block the webhook response
     (async () => {
       try {
+        logger.info('Attempting on-demand details enrichment', {
+          orderId: order._id,
+          deliveryId: order.deliveryId,
+          hasCourierImageUrl: !!order.courierImageUrl,
+          hasCourierVehicle: !!order.courierVehicle
+        });
         const details = await getOnDemandDetails(order.deliveryId);
         if (!details) return;
 

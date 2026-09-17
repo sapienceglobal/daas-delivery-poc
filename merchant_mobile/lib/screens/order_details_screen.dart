@@ -1546,6 +1546,18 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                                   errorWidget: (context, url, error) => const Icon(Icons.person, size: 24),
                                                 ),
                                               ),
+                                            )
+                                          else if (order.courierName != null)
+                                            Padding(
+                                              padding: const EdgeInsets.only(right: 6.0),
+                                              child: Text(
+                                                'No photo',
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 10,
+                                                  color: Colors.grey.shade400,
+                                                  fontStyle: FontStyle.italic,
+                                                ),
+                                              ),
                                             ),
                                           Text(
                                             order.courierName ?? 'Pending',
@@ -1559,10 +1571,18 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                     ],
                                   ),
                                 ),
-                                if (order.courierVehicle != null)
+                                // Vehicle row — always shown when courier is assigned
+                                if (order.courierName != null)
                                   _buildDeliveryRow(
                                     'Vehicle',
-                                    order.courierVehicle!,
+                                    order.courierVehicle ?? 'Not provided by carrier',
+                                    valueStyle: order.courierVehicle == null
+                                        ? GoogleFonts.inter(
+                                            fontSize: 11,
+                                            color: Colors.grey.shade400,
+                                            fontStyle: FontStyle.italic,
+                                          )
+                                        : null,
                                   ),
                                 if (order.courierPhoneForCustomer != null || order.courierPhoneForRestaurant != null) ...[
                                   if (order.courierPhoneForCustomer != null)
@@ -2213,7 +2233,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     return TimeUtils.formatDateTimeWithTz(t, tz);
   }
 
-  Widget _buildDeliveryRow(String label, String value) {
+  Widget _buildDeliveryRow(String label, String value, {TextStyle? valueStyle}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
@@ -2229,7 +2249,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           ),
           Text(
             value,
-            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
+            style: valueStyle ?? GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
           ),
         ],
       ),

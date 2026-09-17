@@ -274,11 +274,19 @@ export const syncDeliveryTracking = async (order, options = {}) => {
     } catch (saveErr) {
       logger.error('Failed to update lastDeliverySyncAt', { orderId: order._id, error: saveErr.message });
     }
-    logger.warn('Shipday delivery polling failed', {
-      orderId: order._id,
-      deliveryId: order.deliveryId || order.externalDeliveryId,
-      error: error.response?.data || error.message
-    });
+    const errMsg = error.response?.data?.errorMessage || error.message || '';
+    if (errMsg.includes('Order does not exist') || errMsg.includes('report service')) {
+      logger.debug('Shipday delivery tracking unavailable (likely on-demand/completed order)', {
+        orderId: order._id,
+        deliveryId: order.deliveryId || order.externalDeliveryId
+      });
+    } else {
+      logger.warn('Shipday delivery polling failed', {
+        orderId: order._id,
+        deliveryId: order.deliveryId || order.externalDeliveryId,
+        error: error.response?.data || error.message
+      });
+    }
     return { updated: false, error, order };
   }
 };

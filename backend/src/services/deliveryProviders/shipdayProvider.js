@@ -227,7 +227,21 @@ export const getOnDemandDetails = async (shipdayOrderId) => {
     });
 
     const data = response.data;
-    if (!data) return null;
+    if (!data) {
+      logger.warn(`Shipday on-demand details: empty response for order ${shipdayOrderId}`);
+      return null;
+    }
+
+    // Log the raw fields so we can diagnose what Shipday actually returns
+    logger.info('Shipday on-demand details fetched', {
+      shipdayOrderId,
+      driverName: data.driverName || null,
+      driverImageUrl: data.driverImageUrl || null,
+      driverVehicleDescription: data.driverVehicleDescription || null,
+      trackingUrl: data.trackingUrl || null,
+      thirdPartyName: data.thirdPartyName || null,
+      status: data.status || null
+    });
 
     return {
       driverName: data.driverName || null,
@@ -242,13 +256,10 @@ export const getOnDemandDetails = async (shipdayOrderId) => {
       status: data.status || null
     };
   } catch (error) {
-    // 404 = order not dispatched via on-demand, 401 = plan doesn't support this endpoint
-    if (error.response?.status === 401 || error.response?.status === 404 || error.response?.status === 400) {
-      logger.debug(`Shipday on-demand details unavailable for order ${shipdayOrderId} (status ${error.response?.status})`);
-      return null;
-    }
-    logger.warn(`Failed to fetch Shipday on-demand details for order ${shipdayOrderId}`, {
-      error: error.response?.data || error.message
+    // Upgrade to warn so this appears in production PM2 logs
+    logger.warn(`Shipday on-demand details failed for order ${shipdayOrderId}`, {
+      httpStatus: error.response?.status || null,
+      body: error.response?.data || error.message
     });
     return null;
   }
