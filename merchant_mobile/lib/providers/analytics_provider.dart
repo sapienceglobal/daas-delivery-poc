@@ -2,8 +2,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/analytics_model.dart';
 import '../services/api_service.dart';
+import '../services/socket_service.dart';
 
 class AnalyticsProvider with ChangeNotifier {
+  final SocketService? socketService;
+
   AnalyticsData? _data;
   bool _isLoading = false;
   String _error = '';
@@ -11,6 +14,26 @@ class AnalyticsProvider with ChangeNotifier {
   String? _specialTimeframe; // 'yesterday', 'custom'
   DateTime? _startDate;
   DateTime? _endDate;
+  String? _restaurantId;
+
+  AnalyticsProvider({this.socketService}) {
+    _initSocketListeners();
+  }
+
+  void _initSocketListeners() {
+    if (socketService == null) return;
+    
+    void handleUpdate(dynamic data) {
+      if (_restaurantId != null) {
+        // Trigger a silent re-fetch
+        fetchAnalytics(_restaurantId!, silent: true);
+      }
+    }
+
+    socketService!.on('new_order', handleUpdate);
+    socketService!.on('order_updated', handleUpdate);
+    socketService!.on('order_status_changed', handleUpdate);
+  }
 
   AnalyticsData? get data => _data;
   bool get isLoading => _isLoading;
@@ -26,15 +49,19 @@ class AnalyticsProvider with ChangeNotifier {
     String? specialTimeframe,
     DateTime? startDate,
     DateTime? endDate,
+    bool silent = false,
   }) async {
+    _restaurantId = restaurantId;
     if (days != null) _selectedDays = days;
     if (specialTimeframe != null) _specialTimeframe = specialTimeframe;
     if (startDate != null) _startDate = startDate;
     if (endDate != null) _endDate = endDate;
 
-    _isLoading = true;
-    _error = '';
-    notifyListeners();
+    if (!silent) {
+      _isLoading = true;
+      _error = '';
+      notifyListeners();
+    }
 
     try {
       String endpoint = '/api/analytics/restaurant/$restaurantId?';
@@ -52,12 +79,12 @@ class AnalyticsProvider with ChangeNotifier {
       if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
         _data = AnalyticsData.fromJson(jsonResponse['data']);
       } else {
-        _error = 'Failed to load analytics data';
+        if (!silent) _error = 'Failed to load analytics data';
       }
     } catch (e) {
-      _error = e.toString();
+      if (!silent) _error = e.toString();
     } finally {
-      _isLoading = false;
+      if (!silent) _isLoading = false;
       notifyListeners();
     }
   }

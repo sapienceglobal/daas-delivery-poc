@@ -92,6 +92,7 @@ class OrderModel {
   final String? courierPhoneForRestaurant;
   final String? courierImageUrl;
   final String? courierVehicle;
+  final String? courierVehiclePlate;
   final String? thirdPartyDeliveryName;
   final String? customerEmail;
   final String? address;
@@ -127,6 +128,8 @@ class OrderModel {
   final DateTime? deliveryTime;
   final String? courierNotes;
   final double? rating;
+  final bool isRemake;
+  final String? parentOrderId;
 
   OrderModel({
     required this.id,
@@ -145,6 +148,7 @@ class OrderModel {
     this.courierPhoneForRestaurant,
     this.courierImageUrl,
     this.courierVehicle,
+    this.courierVehiclePlate,
     this.thirdPartyDeliveryName,
     this.customerEmail,
     this.address,
@@ -178,6 +182,8 @@ class OrderModel {
     this.deliveryTime,
     this.courierNotes,
     this.rating,
+    this.isRemake = false,
+    this.parentOrderId,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -222,6 +228,7 @@ class OrderModel {
       courierPhoneForRestaurant: json['courierPhoneForRestaurant'],
       courierImageUrl: json['courierImageUrl'],
       courierVehicle: json['courierVehicle'],
+      courierVehiclePlate: json['courierVehiclePlate'],
       thirdPartyDeliveryName: json['thirdPartyDeliveryName'],
       paymentStatus: json['paymentStatus']?.toString().toLowerCase() ?? 'unpaid',
       paymentMethod: json['paymentMethod']?.toString().toLowerCase() ?? 'cash',
@@ -240,9 +247,9 @@ class OrderModel {
       tip: (json['tip'] ?? 0).toDouble(),
       refundAmount: (json['refundAmount'] ?? 0).toDouble(),
       orderSource: json['orderSource'],
-      accountName: json['userId']?['name'],
-      accountEmail: json['userId']?['email'],
-      accountPhone: json['userId']?['phone'],
+      accountName: json['userId'] is Map ? json['userId']['name'] : null,
+      accountEmail: json['userId'] is Map ? json['userId']['email'] : null,
+      accountPhone: json['userId'] is Map ? json['userId']['phone'] : null,
       hasAutoRefund: hasAutoRefund,
       autoRefundSucceeded: autoRefundSucceeded,
       autoRefundFailed: autoRefundFailed,
@@ -255,6 +262,8 @@ class OrderModel {
       deliveryTime: json['deliveryTime'] != null ? DateTime.parse(json['deliveryTime']) : null,
       courierNotes: json['courierNotes'],
       rating: json['rating'] != null ? (json['rating'] as num).toDouble() : null,
+      isRemake: json['isRemake'] ?? false,
+      parentOrderId: json['parentOrderId'],
     );
   }
 
@@ -311,6 +320,8 @@ class OrderModel {
       deliveryTime: deliveryTime,
       courierNotes: courierNotes,
       rating: rating,
+      isRemake: isRemake,
+      parentOrderId: parentOrderId,
     );
   }
 }

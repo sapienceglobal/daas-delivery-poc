@@ -217,6 +217,7 @@ const OrderSchema = new mongoose.Schema({
   courierLng: { type: Number, default: null },
   courierImageUrl: { type: String, default: null },
   courierVehicle: { type: String, default: null },
+  courierVehiclePlate: { type: String, default: null },
   lastDeliverySyncAt: { type: Date, default: null },
 
   // ── Rating (inline for quick access; detailed in Review model) ────────
@@ -240,6 +241,14 @@ const OrderSchema = new mongoose.Schema({
   // structured event log of every payment + order lifecycle event.
   // use pushPaymentEvent() append safely.
   paymentEvents: { type: [PaymentEventSchema], default: [] },
+
+  // ── Remake Tracking ───────────────────────────────────────────────────
+  isRemake: { type: Boolean, default: false },
+  parentOrderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Order',
+    default: null
+  },
 
   // ── Legacy field kept for DoorDash API compatibility ──────────────────
   productName: { type: String, default: null },

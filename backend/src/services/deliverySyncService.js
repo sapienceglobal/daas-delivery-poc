@@ -98,7 +98,9 @@ const getCarrier = (payload = {}) => {
         || payload.driverImageUrl || null,
       vehicle: payload.carrier.vehicle || payload.carrier.vehicleDescription || payload.carrier.vehicle_description
         || payload.carrier.driverVehicleDescription
-        || payload.driverVehicleDescription || null
+        || payload.driverVehicleDescription || null,
+      vehiclePlate: payload.carrier.licensePlate || payload.carrier.vehiclePlate || payload.carrier.license_plate
+        || payload.driverLicensePlate || payload.driverVehiclePlate || null
     };
   }
   // Shipday tracking/progress: fixedData.carrier
@@ -190,6 +192,7 @@ export const applyDeliveryUpdate = (order, payload = {}) => {
   assignIfPresent(order, 'courierPhoneForCustomer', carrier.phoneForCustomer);
   assignIfPresent(order, 'courierImageUrl', carrier.imageUrl);
   assignIfPresent(order, 'courierVehicle', carrier.vehicle);
+  assignIfPresent(order, 'courierVehiclePlate', carrier.vehiclePlate);
   
   if (payload.thirdPartyName || payload.thirdPartyDeliveryName) {
     assignIfPresent(order, 'thirdPartyDeliveryName', payload.thirdPartyName || payload.thirdPartyDeliveryName);

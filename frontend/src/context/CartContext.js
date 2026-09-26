@@ -137,6 +137,16 @@ export function CartProvider({ children }) {
     if (authLoading || hydratedOwner !== storageKeys.owner) return;
     if (restaurant) {
       localStorage.setItem(storageKeys.restaurant, JSON.stringify(restaurant));
+      
+      // silently refresh cached restaurant to prevent stale operatingHours
+      restaurantAPI.getById(restaurant._id)
+        .then(data => {
+          if (data?.data && JSON.stringify(data.data.operatingHours) !== JSON.stringify(restaurant.operatingHours)) {
+            setRestaurant(data.data);
+          }
+        })
+        .catch(() => {});
+        
     } else {
       localStorage.removeItem(storageKeys.restaurant);
       

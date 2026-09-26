@@ -466,7 +466,14 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
                         />
                       </td>
                       <td className="px-4 py-4">
-                        <div className="text-sm font-bold text-[#111827]">#{order.orderNumber || order._id?.toString().slice(-6) || 'N/A'}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-[#111827]">#{order.orderNumber || order._id?.toString().slice(-6) || 'N/A'}</span>
+                          {order.isRemake && (
+                            <span className="px-1.5 py-0.5 rounded bg-[#ffedd5] text-[#9a3412] text-[10px] font-bold tracking-wider">
+                              REMADE
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">

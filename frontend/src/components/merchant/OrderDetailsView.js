@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { 
   ChevronLeft, Printer, Send, Calendar, Clock, 
   MapPin, Phone, Mail, FileText,
-  CheckCircle, XCircle, FileClock, RefreshCcw,
+  CheckCircle, XCircle, FileClock, RefreshCcw, X,
   AlertTriangle, ShieldAlert, Zap, ArrowDownLeft,
   CreditCard, Info, Activity, Eye,
   Globe, Smartphone, Truck, Star, ExternalLink, Settings,
@@ -36,7 +36,7 @@ function fmtAmt(amount, currency) {
   return ` · ${formatCurrency(amount, currency)}`;
 }
 
-export default function OrderDetailsView({ order: initialOrder, onBack, onUpdateStatus, onRefresh }) {
+export default function OrderDetailsView({ order: initialOrder, onBack, onUpdateStatus, onRefresh, onViewOriginal }) {
   const { restaurant } = useMerchantContext();
   const { on, off } = useSocket();
   const currency = restaurant?.currency || 'USD';
@@ -58,6 +58,7 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   const [isSendingLink, setIsSendingLink] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showRemakeModal, setShowRemakeModal] = useState(false);
+  const [showDriverImage, setShowDriverImage] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -398,6 +399,31 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
 
   return (
     <div className="space-y-6 pb-20">
+      {order.isRemake && (
+        <div className="bg-[#fff7ed] border border-[#fed7aa] rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-[#ea580c]" />
+            <div>
+              <h3 className="text-[#7c2d12] font-bold text-sm">Remade Order</h3>
+              <p className="text-[#c2410c] text-xs mt-0.5">This order is a remake of a previous order.</p>
+            </div>
+          </div>
+          {order.parentOrderId && (
+            <button
+              onClick={() => {
+                if (onViewOriginal) {
+                  onViewOriginal(order.parentOrderId);
+                } else {
+                  window.open(`/merchant/all-orders`, '_blank');
+                }
+              }}
+              className="px-4 py-1.5 bg-[#ffedd5] hover:bg-[#fed7aa] text-[#9a3412] text-xs font-bold rounded-lg transition-colors"
+            >
+              View Original
+            </button>
+          )}
+        </div>
+      )}
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
@@ -628,7 +654,12 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                     <span className="text-xs font-bold text-[#6b7280]">Assigned Rider</span>
                     <div className="flex items-center gap-2">
                       {order.courierImageUrl ? (
-                        <img src={order.courierImageUrl} alt={order.courierName} className="w-6 h-6 rounded-full object-cover border border-[#e5e7eb]" />
+                        <img 
+                          src={order.courierImageUrl} 
+                          alt={order.courierName} 
+                          onClick={() => setShowDriverImage(true)}
+                          className="w-6 h-6 rounded-full object-cover border border-[#e5e7eb] cursor-pointer hover:opacity-80 transition-opacity" 
+                        />
                       ) : order.courierName ? (
                         <span className="text-[10px] text-[#9ca3af] italic">No photo</span>
                       ) : null}
@@ -638,8 +669,12 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                   {order.courierName ? (
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-[#6b7280]">Vehicle</span>
-                      {order.courierVehicle ? (
-                        <span className="text-xs font-bold text-[#111827]">{order.courierVehicle}</span>
+                      {order.courierVehicle || order.courierVehiclePlate ? (
+                        <span className="text-xs font-bold text-[#111827]">
+                          {order.courierVehiclePlate 
+                            ? `${order.courierVehicle || 'Vehicle'} | Plate: ${order.courierVehiclePlate}` 
+                            : order.courierVehicle}
+                        </span>
                       ) : (
                         <span className="text-[11px] text-[#9ca3af] italic">Not provided by carrier</span>
                       )}
@@ -1056,6 +1091,29 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
         </div>
 
       </div>
+
+      {/* Driver Image Modal */}
+      {showDriverImage && mounted && createPortal(
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 cursor-pointer"
+          onClick={() => setShowDriverImage(false)}
+        >
+          <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setShowDriverImage(false)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 bg-black/50 rounded-full p-2"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img 
+              src={order.courierImageUrl} 
+              alt={order.courierName || 'Driver'} 
+              className="w-full h-auto rounded-xl shadow-2xl object-contain max-h-[80vh]" 
+            />
+          </div>
+        </div>,
+        document.body
+      )}
 
       <ConfirmModal
         {...confirmConfig}

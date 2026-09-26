@@ -747,6 +747,57 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                     const SizedBox(height: 16),
                   ],
 
+                  if (order.isRemake && order.parentOrderId != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        border: Border.all(color: Colors.orange.shade200),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.orange.shade700),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Remade Order',
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orange.shade900,
+                                  ),
+                                ),
+                                Text(
+                                  'This order is a remake of a previous order.',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: Colors.orange.shade800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              context.push('/order-details/${order.parentOrderId}');
+                            },
+                            child: Text(
+                              'View Original',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
                   // Quick Actions Group
                   _buildSectionHeader('Quick Actions'),
                   Card(
@@ -1537,13 +1588,45 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                           if (order.courierImageUrl != null)
                                             Padding(
                                               padding: const EdgeInsets.only(right: 8.0),
-                                              child: ClipOval(
-                                                child: CachedNetworkImage(
-                                                  imageUrl: order.courierImageUrl!,
-                                                  width: 24,
-                                                  height: 24,
-                                                  fit: BoxFit.cover,
-                                                  errorWidget: (context, url, error) => const Icon(Icons.person, size: 24),
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  showDialog(
+                                                    context: context,
+                                                    builder: (_) => Dialog(
+                                                      backgroundColor: Colors.transparent,
+                                                      child: Stack(
+                                                        alignment: Alignment.center,
+                                                        children: [
+                                                          ClipRRect(
+                                                            borderRadius: BorderRadius.circular(16),
+                                                            child: CachedNetworkImage(
+                                                              imageUrl: order.courierImageUrl!,
+                                                              width: double.infinity,
+                                                              fit: BoxFit.contain,
+                                                              errorWidget: (context, url, error) => const Icon(Icons.person, size: 64, color: Colors.white),
+                                                            ),
+                                                          ),
+                                                          Positioned(
+                                                            top: 0,
+                                                            right: 0,
+                                                            child: IconButton(
+                                                              icon: const Icon(Icons.close, color: Colors.white, size: 32),
+                                                              onPressed: () => Navigator.of(context).pop(),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                                child: ClipOval(
+                                                  child: CachedNetworkImage(
+                                                    imageUrl: order.courierImageUrl!,
+                                                    width: 24,
+                                                    height: 24,
+                                                    fit: BoxFit.cover,
+                                                    errorWidget: (context, url, error) => const Icon(Icons.person, size: 24),
+                                                  ),
                                                 ),
                                               ),
                                             )
@@ -1575,8 +1658,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                 if (order.courierName != null)
                                   _buildDeliveryRow(
                                     'Vehicle',
-                                    order.courierVehicle ?? 'Not provided by carrier',
-                                    valueStyle: order.courierVehicle == null
+                                    order.courierVehiclePlate != null
+                                        ? '${order.courierVehicle ?? 'Vehicle'} | Plate: ${order.courierVehiclePlate}'
+                                        : (order.courierVehicle ?? 'Not provided by carrier'),
+                                    valueStyle: order.courierVehicle == null && order.courierVehiclePlate == null
                                         ? GoogleFonts.inter(
                                             fontSize: 11,
                                             color: Colors.grey.shade400,
@@ -1788,6 +1873,20 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                         style: GoogleFonts.inter(
                                           fontSize: 11,
                                           color: Colors.grey.shade500,
+                                        ),
+                                      ),
+                                    if (item.specialInstructions != null &&
+                                        item.specialInstructions!.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          'Note: ${item.specialInstructions}',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            color: Colors.red.shade700,
+                                            fontStyle: FontStyle.italic,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                         ),
                                       ),
                                   ],

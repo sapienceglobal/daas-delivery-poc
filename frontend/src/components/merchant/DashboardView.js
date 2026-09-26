@@ -354,7 +354,7 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
           <div className="space-y-3">
             {recentActiveOrders.map(o => (
               <div key={o._id} className="flex justify-between items-center text-xs font-bold border-b border-[#f3f4f6] pb-3 last:border-0 last:pb-0">
-                <span className="w-16 text-[#6b7280]">#{o.orderNumber || o._id?.toString().slice(-6)}</span>
+                <span className="w-20 shrink-0 pr-2 text-[#6b7280]">#{o.orderNumber || o._id?.toString().slice(-6)}</span>
                 <span className="flex-1 text-[#111827] truncate pr-4">{o.items?.[0]?.name || 'Custom Order'} {o.items?.length > 1 ? `+${o.items.length - 1} more` : ''}</span>
                 <span className="w-20 text-[#ea580c] bg-[#fff7ed] px-2 py-0.5 rounded text-center border border-[#ffedd5] capitalize">{o.orderType || 'Delivery'}</span>
                 <span className="w-16 text-right text-[#6b7280]">{new Date(o.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -420,10 +420,23 @@ export default function DashboardView({ stats, orders, reservations, cateringInq
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={salesData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#9ca3af', fontWeight: 'bold' }} dy={5} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#9ca3af', fontWeight: 'bold' }} dy={5} minTickGap={30} interval="preserveStartEnd" />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#9ca3af', fontWeight: 'bold' }} tickFormatter={(val) => `${val/1000}K`} />
-                  <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold' }} />
-                  <Line type="monotone" dataKey="revenue" stroke="#991b1b" strokeWidth={3} dot={{ r: 3, fill: '#991b1b', strokeWidth: 2, stroke: '#fff' }} />
+                  <RechartsTooltip 
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        const val = payload[0]?.value || 0;
+                        return (
+                          <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-md p-2">
+                            <p className="text-[10px] font-bold text-[#6b7280] mb-0.5">{label}</p>
+                            <p className="text-[11px] font-extrabold text-[#991b1b]">Revenue: ${Number(val).toFixed(2)}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Line type="monotone" dataKey="revenue" stroke="#991b1b" strokeWidth={3} dot={salesData.length > 31 ? false : { r: 3, fill: '#991b1b', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             )}

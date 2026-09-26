@@ -96,22 +96,103 @@ export const isRestaurantOpenNow = (operatingHours, timezoneStr) => {
   const tz = mapTimezone(timezoneStr);
   
   const now = new Date();
-  const dateInTz = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-  const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const todayName = daysOfWeek[dateInTz.getDay()];
+  
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+    weekday: 'long'
+  }).formatToParts(now);
+
+  const partObj = {};
+  parts.forEach(p => partObj[p.type] = p.value);
+  
+  const todayName = partObj.weekday.toLowerCase();
   
   const todayHours = operatingHours[todayName];
   if (!todayHours || todayHours.isClosed || !todayHours.open || !todayHours.close) {
     return false;
   }
   
-  const currentHour = String(dateInTz.getHours()).padStart(2, '0');
-  const currentMinute = String(dateInTz.getMinutes()).padStart(2, '0');
+  let h = parseInt(partObj.hour, 10);
+  if (h === 24) h = 0;
+  const currentHour = String(h).padStart(2, '0');
+  const currentMinute = String(partObj.minute).padStart(2, '0');
   const currentTime = `${currentHour}:${currentMinute}`;
   
-  if (todayHours.close < todayHours.open) {
-    // overnight hours (e.g. 20:00 to 02:00)
-    return currentTime >= todayHours.open || currentTime <= todayHours.close;
+  const getMinutes = (timeStr) => {
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const currentMins = getMinutes(currentTime);
+  const openMins = getMinutes(todayHours.open);
+  let closeMinsRaw = getMinutes(todayHours.close);
+  
+  if (closeMinsRaw < openMins) {
+    closeMinsRaw += 24 * 60; // add a day for overnight shifts
   }
-  return currentTime >= todayHours.open && currentTime <= todayHours.close;
+  const closeMins = closeMinsRaw - 15; // 15-minute buffer
+  
+  let checkMins = currentMins;
+  if (checkMins < openMins) {
+     checkMins += 24 * 60; // adjust current time if after midnight but before open
+  }
+  
+  return checkMins >= openMins && checkMins <= closeMins;
+};
+
+export const isWithin15MinsOfClosing = (operatingHours, timezoneStr) => {
+  if (!operatingHours) return false;
+  const tz = mapTimezone(timezoneStr);
+  
+  const now = new Date();
+  
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+    weekday: 'long'
+  }).formatToParts(now);
+
+  const partObj = {};
+  parts.forEach(p => partObj[p.type] = p.value);
+  
+  const todayName = partObj.weekday.toLowerCase();
+  
+  const todayHours = operatingHours[todayName];
+  if (!todayHours || todayHours.isClosed || !todayHours.open || !todayHours.close) {
+    return false;
+  }
+  
+  let h = parseInt(partObj.hour, 10);
+  if (h === 24) h = 0;
+  const currentHour = String(h).padStart(2, '0');
+  const currentMinute = String(partObj.minute).padStart(2, '0');
+  const currentTime = `${currentHour}:${currentMinute}`;
+  
+  const getMinutes = (timeStr) => {
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const currentMins = getMinutes(currentTime);
+  const openMins = getMinutes(todayHours.open);
+  let closeMinsRaw = getMinutes(todayHours.close);
+  
+  if (closeMinsRaw < openMins) {
+    closeMinsRaw += 24 * 60; // add a day for overnight shifts
+  }
+  const closeMins = closeMinsRaw - 15; // 15-minute buffer
+  
+  let checkMins = currentMins;
+  if (checkMins < openMins) {
+     checkMins += 24 * 60;
+  }
+  
+  // It is within 15 mins if it is strictly greater than closeMins (the cutoff time)
+  // but less than or equal to the actual closing time
+  return checkMins > closeMins && checkMins <= closeMinsRaw;
 };

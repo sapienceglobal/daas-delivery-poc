@@ -259,10 +259,10 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                     ),
 
                     // Today's Summary
-                    _buildTodaySummary(allOrders),
+                    _buildTodaySummary(allOrders, context),
 
                     // Recent Completed
-                    _buildRecentCompleted(allOrders),
+                    _buildRecentCompleted(allOrders, context),
                   ],
                 ),
               ),
@@ -1201,13 +1201,16 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
     );
   }
 
-  Widget _buildTodaySummary(List<OrderModel> orders) {
-    final now = DateTime.now();
+  Widget _buildTodaySummary(List<OrderModel> orders, BuildContext context) {
+    final user = Provider.of<AuthProvider>(context, listen: false).user;
+    final tzString = TimeUtils.getRestaurantTimezone(user);
+    final nowTz = TimeUtils.getTzDateTime(DateTime.now(), tzString);
+    
     final todayOrders = orders.where((o) {
-      final localCreatedAt = o.createdAt.toLocal();
-      return localCreatedAt.year == now.year &&
-             localCreatedAt.month == now.month &&
-             localCreatedAt.day == now.day;
+      final orderTz = TimeUtils.getTzDateTime(o.createdAt, tzString);
+      return orderTz.year == nowTz.year &&
+             orderTz.month == nowTz.month &&
+             orderTz.day == nowTz.day;
     }).toList();
     final completed = todayOrders
         .where((o) {
@@ -1330,13 +1333,15 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
     );
   }
 
-  Widget _buildRecentCompleted(List<OrderModel> orders) {
-    final now = DateTime.now();
+  Widget _buildRecentCompleted(List<OrderModel> orders, BuildContext context) {
+    final user = Provider.of<AuthProvider>(context, listen: false).user;
+    final tzString = TimeUtils.getRestaurantTimezone(user);
+    final nowTz = TimeUtils.getTzDateTime(DateTime.now(), tzString);
     final completedOrders = orders.where((o) {
-      final localCreatedAt = o.createdAt.toLocal();
-      final isToday = localCreatedAt.year == now.year &&
-             localCreatedAt.month == now.month &&
-             localCreatedAt.day == now.day;
+      final orderTz = TimeUtils.getTzDateTime(o.createdAt, tzString);
+      final isToday = orderTz.year == nowTz.year &&
+             orderTz.month == nowTz.month &&
+             orderTz.day == nowTz.day;
       if (!isToday) return false;
       
       final isDelivery = o.orderType.toLowerCase() == 'delivery';

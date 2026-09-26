@@ -102,7 +102,7 @@ void main() async {
           create: (_) => CateringProvider()..fetchEnquiries(),
         ),
         ChangeNotifierProvider<AnalyticsProvider>(
-          create: (_) => AnalyticsProvider(),
+          create: (_) => AnalyticsProvider(socketService: socketService),
         ),
         ChangeNotifierProvider<NotificationProvider>(
           create: (_) => NotificationProvider()..fetchNotifications(),

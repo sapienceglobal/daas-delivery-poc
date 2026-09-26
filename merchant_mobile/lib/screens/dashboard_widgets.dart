@@ -800,7 +800,21 @@ class LiveOrderTracker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Consumer<OrderProvider>(
+      builder: (context, orderProvider, child) {
+        final activeOrders = orderProvider.orders.where((o) {
+          final s = o.status;
+          return !['delivered', 'cancelled', 'completed'].contains(s) &&
+                 !(s == 'picked_up' && o.orderType != 'delivery');
+        }).toList();
+        
+        final newCount = activeOrders.where((o) => ['new', 'pending'].contains(o.status)).length;
+        final acceptedCount = activeOrders.where((o) => ['accepted', 'driver_assigned'].contains(o.status)).length;
+        final preparingCount = activeOrders.where((o) => o.status == 'preparing').length;
+        final readyCount = activeOrders.where((o) => o.status == 'ready').length;
+        final outForDeliveryCount = activeOrders.where((o) => o.orderType == 'delivery' && o.status == 'picked_up').length;
+
+        return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -845,41 +859,44 @@ class LiveOrderTracker extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildPipelineStep(Icons.fiber_new_outlined, 'New', '0', const Color(0xFFDC2626)),
+              _buildPipelineStep(Icons.fiber_new_outlined, 'New', newCount.toString(), const Color(0xFFDC2626)),
               _buildConnector(),
-              _buildPipelineStep(Icons.check_circle_outline, 'Accepted', '0', const Color(0xFF10B981)),
+              _buildPipelineStep(Icons.check_circle_outline, 'Accepted', acceptedCount.toString(), const Color(0xFF10B981)),
               _buildConnector(),
-              _buildPipelineStep(Icons.restaurant_outlined, 'Preparing', '0', const Color(0xFFF97316)),
+              _buildPipelineStep(Icons.restaurant_outlined, 'Preparing', preparingCount.toString(), const Color(0xFFF97316)),
               _buildConnector(),
-              _buildPipelineStep(Icons.inventory_2_outlined, 'Ready', '0', const Color(0xFF3B82F6)),
+              _buildPipelineStep(Icons.inventory_2_outlined, 'Ready', readyCount.toString(), const Color(0xFF3B82F6)),
               _buildConnector(),
-              _buildPipelineStep(Icons.delivery_dining, 'Out for\nDelivery', '0', const Color(0xFF0D9488)),
+              _buildPipelineStep(Icons.delivery_dining, 'Out for\nDelivery', outForDeliveryCount.toString(), const Color(0xFF0D9488)),
             ],
           ),
           const SizedBox(height: 20),
 
           // Empty state without New Order button
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9FAFB),
-              borderRadius: BorderRadius.circular(14),
+          if (activeOrders.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAFB),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.receipt_long_rounded, color: Colors.grey.shade400, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'No active orders currently',
+                    style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.receipt_long_rounded, color: Colors.grey.shade400, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'No active orders currently',
-                  style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
+    );
+      },
     );
   }
 

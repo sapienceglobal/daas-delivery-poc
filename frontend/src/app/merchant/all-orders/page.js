@@ -48,6 +48,11 @@ export default function MerchantAllOrdersPage() {
         onBack={() => setSelectedOrder(null)}
         onUpdateStatus={handleUpdateStatus}
         onRefresh={loadData}
+        onViewOriginal={(parentId) => {
+          const original = orders.find(o => o._id === parentId);
+          if (original) setSelectedOrder(original);
+          else showToast('Original order not found in current view', 'error');
+        }}
       />
     );
   }

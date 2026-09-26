@@ -206,13 +206,23 @@ export default function ReportsAnalyticsView({ analyticsData, restaurant, startD
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={revenueChartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} dy={10} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} dy={10} minTickGap={30} interval="preserveStartEnd" />
                     <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} tickFormatter={(v) => `${v/1000}K`} />
                     <RechartsTooltip 
-                      contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
-                      formatter={(value, name) => [name === 'Revenue' ? renderCurrency(value) : value, name]}
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const val = payload[0]?.value || 0;
+                          return (
+                            <div className="bg-white border border-[#e5e7eb] rounded-lg shadow-md p-2.5">
+                              <p className="text-xs font-bold text-[#6b7280] mb-1">{label}</p>
+                              <p className="text-sm font-extrabold text-[#b91c1c]">Revenue: {renderCurrency(val)}</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
                     />
-                    <Line yAxisId="left" type="monotone" dataKey="Revenue" stroke="#b91c1c" strokeWidth={3} dot={{ r: 4, fill: '#b91c1c', strokeWidth: 2, stroke: '#ffffff' }} activeDot={{ r: 6 }} />
+                    <Line yAxisId="left" type="monotone" dataKey="Revenue" stroke="#b91c1c" strokeWidth={3} dot={revenueChartData.length > 31 ? false : { r: 4, fill: '#b91c1c', strokeWidth: 2, stroke: '#ffffff' }} activeDot={{ r: 6 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

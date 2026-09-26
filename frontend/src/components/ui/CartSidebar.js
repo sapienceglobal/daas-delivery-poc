@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
-import { X, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
+import { X, Plus, Minus, ShoppingBag, ArrowRight, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Button from './Button';
+import { isRestaurantOpenNow, isWithin15MinsOfClosing } from '@/lib/formatters';
 
 const getDishImage = (itemName = '') => {
   const name = itemName.toLowerCase();
@@ -24,7 +25,7 @@ const getDishImage = (itemName = '') => {
 };
 
 export default function CartSidebar() {
-  const { isCartOpen, closeCart, items, subtotal, updateQuantity, removeItem } = useCart();
+  const { isCartOpen, closeCart, items, subtotal, updateQuantity, removeItem, restaurant } = useCart();
   const router = useRouter();
   const [touchStartY, setTouchStartY] = useState(null);
   const [dragY, setDragY] = useState(0);
@@ -209,19 +210,31 @@ export default function CartSidebar() {
 
         {/* Footer */}
         {items.length > 0 && (
-          <div className="p-4 border-t border-border bg-surface/50 backdrop-blur-sm">
-            <div className="flex justify-between items-center mb-4 text-sm font-semibold">
+          <div className="p-4 border-t border-border bg-surface/50 backdrop-blur-sm flex flex-col gap-3">
+            <div className="flex justify-between items-center mb-1 text-sm font-semibold">
               <span className="opacity-70">Subtotal</span>
               <span>${subtotal.toFixed(2)}</span>
             </div>
-            <Button 
-              onClick={handleCheckout} 
-              variant="primary" 
-              className="w-full py-4 text-base font-bold shadow-lg"
-            >
-              Proceed to Checkout
-              <ArrowRight size={18} className="ml-2" />
-            </Button>
+            
+            {restaurant && !isRestaurantOpenNow(restaurant.operatingHours, restaurant.timezone) ? (
+              <div className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-2">
+                <Clock className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <p className="text-sm text-red-800 font-medium leading-tight">
+                  {isWithin15MinsOfClosing(restaurant.operatingHours, restaurant.timezone)
+                    ? "We're wrapping up for the day! We stop accepting new orders 15 minutes before closing time."
+                    : "The restaurant is currently closed. We are not accepting orders at this time."}
+                </p>
+              </div>
+            ) : (
+              <Button 
+                onClick={handleCheckout} 
+                variant="primary" 
+                className="w-full py-4 text-base font-bold shadow-lg"
+              >
+                Proceed to Checkout
+                <ArrowRight size={18} className="ml-2" />
+              </Button>
+            )}
           </div>
         )}
         
