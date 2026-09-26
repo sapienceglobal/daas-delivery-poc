@@ -658,6 +658,10 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                           src={order.courierImageUrl} 
                           alt={order.courierName} 
                           onClick={() => setShowDriverImage(true)}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(order.courierName || 'Driver') + '&background=e5e7eb&color=374151';
+                          }}
                           className="w-6 h-6 rounded-full object-cover border border-[#e5e7eb] cursor-pointer hover:opacity-80 transition-opacity" 
                         />
                       ) : order.courierName ? (
@@ -1108,6 +1112,10 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
             <img 
               src={order.courierImageUrl} 
               alt={order.courierName || 'Driver'} 
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(order.courierName || 'Driver') + '&background=e5e7eb&color=374151&size=256';
+              }}
               className="w-full h-auto rounded-xl shadow-2xl object-contain max-h-[80vh]" 
             />
           </div>
