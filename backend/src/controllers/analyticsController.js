@@ -102,17 +102,22 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
   const prevStartDate = new Date(startDate);
   prevStartDate.setDate(prevStartDate.getDate() - diffDays);
 
-  // helper match conditions
   const currentMatch = {
     restaurantId: new mongoose.Types.ObjectId(restaurantId),
     createdAt: { $gte: startDate, $lt: endOfToday },
-    status: { $in: ['delivered', 'picked_up', 'completed'] }
+    $or: [
+      { paymentStatus: { $in: ['paid', 'partially_refunded'] } },
+      { status: { $in: ['delivered', 'picked_up', 'completed'] } }
+    ]
   };
   
   const prevMatch = {
     restaurantId: new mongoose.Types.ObjectId(restaurantId),
     createdAt: { $gte: prevStartDate, $lt: startDate },
-    status: { $in: ['delivered', 'picked_up', 'completed'] }
+    $or: [
+      { paymentStatus: { $in: ['paid', 'partially_refunded'] } },
+      { status: { $in: ['delivered', 'picked_up', 'completed'] } }
+    ]
   };
 
   // --- CURRENT PERIOD DATA ---
@@ -120,7 +125,7 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
   // 1. Daily Stats
   const dailyStats = await Order.aggregate([
     { $match: currentMatch },
-    { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: tz } }, revenue: { $sum: "$total" }, orders: { $sum: 1 } } },
+    { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: tz } }, revenue: { $sum: { $subtract: ["$total", { $ifNull: ["$refundAmount", 0] }] } }, orders: { $sum: 1 } } },
     { $sort: { _id: 1 } }
   ]);
 
@@ -145,13 +150,13 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
   // 2. Sales by Channel
   const salesByChannel = await Order.aggregate([
     { $match: currentMatch },
-    { $group: { _id: "$orderType", count: { $sum: 1 }, revenue: { $sum: "$total" } } }
+    { $group: { _id: "$orderType", count: { $sum: 1 }, revenue: { $sum: { $subtract: ["$total", { $ifNull: ["$refundAmount", 0] }] } } } }
   ]);
 
   // 3. Payment Method Breakdown
   const paymentMethodBreakdown = await Order.aggregate([
     { $match: currentMatch },
-    { $group: { _id: "$paymentMethod", count: { $sum: 1 }, revenue: { $sum: "$total" } } }
+    { $group: { _id: "$paymentMethod", count: { $sum: 1 }, revenue: { $sum: { $subtract: ["$total", { $ifNull: ["$refundAmount", 0] }] } } } }
   ]);
 
   // 4. Orders by Time of Day (Heatmap)
@@ -195,7 +200,7 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
   
   const prevStats = await Order.aggregate([
     { $match: prevMatch },
-    { $group: { _id: null, revenue: { $sum: "$total" }, orders: { $sum: 1 } } }
+    { $group: { _id: null, revenue: { $sum: { $subtract: ["$total", { $ifNull: ["$refundAmount", 0] }] } }, orders: { $sum: 1 } } }
   ]);
   const prevRevenue = prevStats.length > 0 ? prevStats[0].revenue : 0;
   const prevOrders = prevStats.length > 0 ? prevStats[0].orders : 0;
