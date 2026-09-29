@@ -21,6 +21,7 @@ router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), aut
 router.post('/reset-password/:token', authLimiter, validate(resetPasswordSchema), authController.resetPassword);
 router.post('/verify-otp', authLimiter, authController.verifyOtp);
 router.post('/resend-otp', authLimiter, authController.resendOtp);
+router.post('/request-deletion', authLimiter, authController.requestAccountDeletion);
 
 // ── Protected Routes ────────────────────────────────────────────────────────
 router.get('/me', protect, authController.getMe);
@@ -28,6 +29,7 @@ router.put('/me', protect, authController.updateProfile);
 router.put('/me/password', protect, validate(changePasswordSchema), authController.changePassword);
 router.post('/me/fcm-token', protect, authController.saveFcmToken);
 router.post('/logout', protect, authController.logout);
+router.delete('/me', protect, authController.deleteAccount);
 
 // ── Addresses ───────────────────────────────────────────────────────────────
 router.post('/me/addresses', protect, authorize('customer', 'merchant', 'admin'), authController.addAddress);

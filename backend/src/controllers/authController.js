@@ -406,6 +406,101 @@ export const logout = asyncHandler(async (req, response) => {
     .json({ success: true, message: 'Logged out successfully' });
 });
 
+export const deleteAccount = asyncHandler(async (req, response) => {
+  const userId = req.user._id;
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findById(userId);
+
+  if (!user) {
+    throw new AppError('User account not found', 404);
+  }
+
+  const { password, confirmation, reason } = req.body;
+  const isSocialUser = !!(user.socialLogin?.googleId || user.socialLogin?.appleId);
+
+  // Security Verification
+  if (!isSocialUser) {
+    if (!password) {
+      throw new AppError('Current password is required to verify your identity before deleting your account.', 400);
+    }
+    const isPasswordValid = user.validatePassword(password);
+    if (!isPasswordValid) {
+      throw new AppError('Incorrect password. Please verify your password to proceed.', 401);
+    }
+  } else {
+    if (confirmation !== 'DELETE') {
+      throw new AppError('Please type DELETE to confirm account deletion.', 400);
+    }
+  }
+
+  // Cleanup related customer record
+  try {
+    const CustomerModel = req.getModel('Customer');
+    if (CustomerModel && user.email) {
+      await CustomerModel.deleteMany({ email: user.email.toLowerCase() });
+    }
+  } catch (err) {
+    logger.warn('Failed to clean up customer record during account deletion', { error: err.message });
+  }
+
+  // Delete User
+  await UserModel.findByIdAndDelete(userId);
+
+  logger.info('User permanently deleted account', {
+    userId: user._id.toString(),
+    email: user.email,
+    reason: reason || 'Not specified',
+    deletedAt: new Date().toISOString()
+  });
+
+  const secureCookie = process.env.COOKIE_SECURE === 'true' ||
+    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
+
+  response
+    .cookie('token', '', {
+      httpOnly: true,
+      secure: secureCookie,
+      sameSite: secureCookie ? 'none' : 'lax',
+      expires: new Date(0),
+      path: '/'
+    })
+    .json({
+      success: true,
+      message: 'Your account and all associated personal data have been permanently deleted.'
+    });
+});
+
+export const requestAccountDeletion = asyncHandler(async (req, response) => {
+  const { email, accountType, reason, confirmation } = req.body;
+
+  if (!email || !email.includes('@')) {
+    throw new AppError('A valid email address is required to submit a deletion request.', 400);
+  }
+
+  if (confirmation !== 'DELETE') {
+    throw new AppError('Please type DELETE to confirm your request.', 400);
+  }
+
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+
+  logger.info('Public account deletion request submitted', {
+    email: email.toLowerCase().trim(),
+    accountType: accountType || 'customer',
+    reason: reason || 'Not specified',
+    userExists: !!user,
+    requestedAt: new Date().toISOString()
+  });
+
+  const ticketId = 'DEL-' + Math.random().toString(36).substring(2, 8).toUpperCase() + '-' + Date.now().toString().slice(-4);
+
+  response.status(200).json({
+    success: true,
+    ticketId,
+    message: `Your account deletion request has been registered under ticket #${ticketId}. Our security team will review and permanently delete your account and associated records within 24 to 48 hours.`
+  });
+});
+
 export const getMe = asyncHandler(async (req, response) => {
   const user = await req.getModel('User')
     .findById(req.user._id)

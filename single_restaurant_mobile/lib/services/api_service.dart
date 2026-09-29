@@ -82,9 +82,13 @@ class ApiService {
     return _send(() => http.patch(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
 
-  static Future<http.Response> delete(String endpoint, {Map<String, String>? headers}) async {
+  static Future<http.Response> delete(String endpoint, {dynamic body, Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.delete(uri, headers: buildHeaders(headers)));
+    return _send(() => http.delete(
+      uri,
+      headers: buildHeaders(headers),
+      body: body != null ? json.encode(body) : null,
+    ));
   }
 
   static Future<http.Response> _send(Future<http.Response> Function() request) async {

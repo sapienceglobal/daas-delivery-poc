@@ -2,18 +2,21 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:in_app_update/in_app_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:open_file/open_file.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
 
 class OtaUpdateService {
-  static const String updateUrl = 'https://raw.githubusercontent.com/sapienceglobal/merchant-app-updates/refs/heads/main/latest.json';
+  // Remote version check JSON endpoint (for fallback/notification)
+  static const String updateUrl =
+      'https://raw.githubusercontent.com/sapienceglobal/merchant-app-updates/refs/heads/main/latest.json';
+  static const String packageName = 'com.lassilounge.merchant_mobile';
 
   final Dio dio = Dio();
   static bool _hasCheckedForUpdate = false;
 
+  /// Check for app updates using Google Play In-App Updates with Store fallback
   Future<void> checkForUpdate(
     BuildContext context, {
     bool isManual = false,
@@ -21,198 +24,198 @@ class OtaUpdateService {
     if (!isManual && _hasCheckedForUpdate) return;
     if (!isManual) _hasCheckedForUpdate = true;
 
+    // 1. Google Play In-App Update API (Native Play Store update)
+    if (Platform.isAndroid) {
+      try {
+        final updateInfo = await InAppUpdate.checkForUpdate();
+        if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable) {
+          if (updateInfo.immediateUpdateAllowed) {
+            await InAppUpdate.performImmediateUpdate();
+            return;
+          } else if (updateInfo.flexibleUpdateAllowed) {
+            await InAppUpdate.startFlexibleUpdate();
+            await InAppUpdate.completeFlexibleUpdate();
+            return;
+          }
+        } else if (isManual && updateInfo.updateAvailability == UpdateAvailability.updateNotAvailable) {
+          if (context.mounted) {
+            _showUpToDateSnackBar(context);
+          }
+          return;
+        }
+      } catch (e) {
+        // Throws if the app is running in debug or was not installed via Play Store.
+        debugPrint('Play Store In-App Update check skipped or error: $e');
+      }
+    }
+
+    // 2. Fallback to Remote Config / Play Store Link
     try {
-      if (isManual) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Animated Icon Container
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const SizedBox(
-                      width: 32, 
-                      height: 32,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  const Text(
-                    'Checking for updates...',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D3436), // Dark text, no yellow line
-                      letterSpacing: 0.5,
-                      decoration: TextDecoration.none, // Explicitly remove underline
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Please wait a moment',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade500,
-                      decoration: TextDecoration.none,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+      if (isManual && context.mounted) {
+        _showCheckingDialog(context);
       }
 
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = '${packageInfo.version}+${packageInfo.buildNumber}';
 
-      // Timestamp for Smart Caching
       final response = await dio.get(
         '$updateUrl?t=${DateTime.now().millisecondsSinceEpoch}',
-        options: Options(responseType: ResponseType.plain),
+        options: Options(
+          responseType: ResponseType.plain,
+          receiveTimeout: const Duration(seconds: 10),
+          sendTimeout: const Duration(seconds: 10),
+        ),
       );
 
-      if (isManual && context.mounted) Navigator.pop(context);
+      if (isManual && context.mounted) {
+        Navigator.of(context, rootNavigator: true).maybePop();
+      }
 
       final data = response.data is String
           ? jsonDecode(response.data)
           : response.data;
       final latestVersion = data['latestVersion'] ?? data['version'];
-      final apkUrl = data['apkUrl'];
-      
-      if (latestVersion == null || apkUrl == null) {
-        throw Exception('Invalid update data format: latestVersion or apkUrl is null. Data: $data');
-      }
-      
-      // Release Notes parsing
-      final releaseNotes =
-          data['releaseNotes'] ?? data['notes'] ?? "• Bug fixes and performance improvements.";
+      final releaseNotes = data['releaseNotes'] ??
+          data['notes'] ??
+          "• Bug fixes and performance improvements.";
 
-      if (_isVersionGreaterThan(latestVersion.toString(), currentVersion)) {
+      if (latestVersion != null &&
+          _isVersionGreaterThan(latestVersion.toString(), currentVersion)) {
         if (!context.mounted) return;
-        _showUpdateDialog(context, latestVersion, apkUrl, releaseNotes);
+        _showPlayStoreUpdateDialog(
+            context, latestVersion.toString(), releaseNotes.toString());
       } else {
         if (isManual && context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.check_circle,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'App is up to date!',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-              backgroundColor: const Color(0xFF43A047),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              margin: const EdgeInsets.all(16),
-            ),
-          );
+          _showUpToDateSnackBar(context);
         }
       }
     } catch (e) {
       if (isManual && context.mounted) {
         Navigator.of(context, rootNavigator: true).maybePop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Expanded(child: Text('Error: $e')),
-              ],
-            ),
-            backgroundColor: const Color(0xFFE53935),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
+        _showPlayStoreRedirectOption(context);
       }
-      debugPrint('OTA check error: $e');
+      debugPrint('Remote update check error: $e');
+    }
+  }
+
+  /// Launch Google Play Store directly to Merchant App page
+  static Future<void> openPlayStore() async {
+    final marketUri = Uri.parse('market://details?id=$packageName');
+    final webUri = Uri.parse(
+        'https://play.google.com/store/apps/details?id=$packageName');
+
+    try {
+      if (await canLaunchUrl(marketUri)) {
+        await launchUrl(marketUri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      debugPrint('Could not open Play Store: $e');
+      try {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      } catch (_) {}
     }
   }
 
   bool _isVersionGreaterThan(String newVersion, String currentVersion) {
-    // Strip build numbers if present (e.g. 1.0.0+1 -> 1.0.0)
     final cleanNew = newVersion.split('+').first;
     final cleanCurrent = currentVersion.split('+').first;
 
-    List<int> currentV = cleanCurrent.split('.').map((e) => int.tryParse(e) ?? 0).toList();
-    List<int> newV = cleanNew.split('.').map((e) => int.tryParse(e) ?? 0).toList();
-    
+    List<int> currentV =
+        cleanCurrent.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    List<int> newV =
+        cleanNew.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+
     for (var i = 0; i < currentV.length; i++) {
       if (i >= newV.length) return false;
       if (newV[i] > currentV[i]) return true;
       if (newV[i] < currentV[i]) return false;
     }
-    
-    // If the base version is the same, check the build number if present
+
     if (newVersion.contains('+') && currentVersion.contains('+')) {
       final newBuild = int.tryParse(newVersion.split('+').last) ?? 0;
       final currentBuild = int.tryParse(currentVersion.split('+').last) ?? 0;
-      
-      // Fix for Flutter --split-per-abi offsets (adds 1000, 2000, or 3000)
-      // By using modulo 1000, we only compare the actual base build increments.
+
       final baseNewBuild = newBuild % 1000;
       final baseCurrentBuild = currentBuild % 1000;
-      
+
       return baseNewBuild > baseCurrentBuild;
     }
-    
+
     return false;
   }
 
-  Future<void> _showUpdateDialog(
+  void _showCheckingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDC2626).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFDC2626)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Checking for updates...',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D3436),
+                  letterSpacing: 0.5,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Connecting to Google Play Store',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade500,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPlayStoreUpdateDialog(
     BuildContext context,
     String version,
-    String url,
     String notes,
-  ) async {
+  ) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -225,7 +228,7 @@ class OtaUpdateService {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [AppColors.primary, AppColors.accent],
+              colors: [Color(0xFF8B0000), Color(0xFFDC2626)],
             ),
           ),
           child: Column(
@@ -243,12 +246,12 @@ class OtaUpdateService {
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.rocket_launch_rounded, // Changed Icon
-                        size: 60,
+                        Icons.rocket_launch_rounded,
+                        size: 56,
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     const Text(
                       'Update Available! 🎉',
                       style: TextStyle(
@@ -258,11 +261,11 @@ class OtaUpdateService {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
-                      'Version $version is ready',
+                      'Version $version is ready on Google Play',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         color: Colors.white.withOpacity(0.9),
                       ),
                     ),
@@ -282,8 +285,8 @@ class OtaUpdateService {
                 ),
                 child: Column(
                   children: [
-                    // New Feature Badge
                     Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Colors.red.shade50,
@@ -300,7 +303,7 @@ class OtaUpdateService {
                             children: [
                               Icon(
                                 Icons.star_rounded,
-                                color: AppColors.primary,
+                                color: Color(0xFFDC2626),
                                 size: 20,
                               ),
                               SizedBox(width: 8),
@@ -309,13 +312,12 @@ class OtaUpdateService {
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
+                                  color: Color(0xFFDC2626),
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 8),
-                          // Scrollable Release Notes
                           ConstrainedBox(
                             constraints: const BoxConstraints(maxHeight: 120),
                             child: SingleChildScrollView(
@@ -334,7 +336,7 @@ class OtaUpdateService {
                     ),
                     const SizedBox(height: 20),
 
-                    // Buttons
+                    // Actions
                     Row(
                       children: [
                         Expanded(
@@ -344,7 +346,7 @@ class OtaUpdateService {
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               side: BorderSide(
                                 color: Colors.grey.shade300,
-                                width: 2,
+                                width: 1.5,
                               ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -355,7 +357,7 @@ class OtaUpdateService {
                               style: TextStyle(
                                 color: Colors.grey.shade700,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 15,
+                                fontSize: 14,
                               ),
                             ),
                           ),
@@ -366,10 +368,10 @@ class OtaUpdateService {
                           child: ElevatedButton(
                             onPressed: () {
                               Navigator.pop(ctx);
-                              _downloadAndInstallApk(url, context);
+                              openPlayStore();
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
+                              backgroundColor: const Color(0xFFDC2626),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
@@ -380,13 +382,13 @@ class OtaUpdateService {
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.download_rounded, size: 20),
+                                Icon(Icons.shop_outlined, size: 20),
                                 SizedBox(width: 8),
                                 Text(
-                                  'Update Now',
+                                  'Update on Play Store',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 15,
+                                    fontSize: 14,
                                   ),
                                 ),
                               ],
@@ -405,412 +407,66 @@ class OtaUpdateService {
     );
   }
 
-  Future<void> _downloadAndInstallApk(
-    String apkUrl,
-    BuildContext context,
-  ) async {
-    // Robust Permission Handling for Android 8+
-    if (Platform.isAndroid) {
-      var status = await Permission.requestInstallPackages.status;
-      if (!status.isGranted) {
-        status = await Permission.requestInstallPackages.request();
-        if (!status.isGranted) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(
-                  children: [
-                    const Icon(
-                      Icons.warning_amber,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Please allow permission to install updates',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-                backgroundColor: Colors.orange,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                margin: const EdgeInsets.all(16),
-                action: SnackBarAction(
-                  label: 'Settings',
-                  textColor: Colors.white,
-                  onPressed: () => openAppSettings(),
-                ),
+  void _showUpToDateSnackBar(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
               ),
-            );
-            await openAppSettings();
-            return;
-          }
-        }
-      }
-    }
-
-    Directory? dir;
-    if (Platform.isAndroid) {
-      dir = await getExternalStorageDirectory();
-    } else {
-      dir = await getApplicationDocumentsDirectory();
-    }
-
-    if (dir == null) return;
-    final String savePath = '${dir.path}/new_merchant_update.apk';
-    final File file = File(savePath);
-
-    // Delete old file before download
-    if (await file.exists()) await file.delete();
-
-    if (!context.mounted) return;
-
-    final bool? success = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) =>
-          DownloadProgressDialog(apkUrl: apkUrl, savePath: savePath, dio: dio),
-    );
-
-    if (success == true) {
-      debugPrint("Opening file at: $savePath");
-      final result = await OpenFile.open(savePath);
-
-      debugPrint("Install Result: ${result.type}");
-
-      if (result.type != ResultType.done && context.mounted) {
-        if (result.type == ResultType.permissionDenied) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      "Permission Denied: Enable 'Install Unknown Apps'",
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
+              child: const Icon(
+                Icons.check_circle,
+                color: Colors.white,
+                size: 20,
               ),
-              backgroundColor: const Color(0xFFE53935),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              margin: const EdgeInsets.all(16),
             ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text("Install Failed: ${result.message}")),
-                ],
-              ),
-              backgroundColor: const Color(0xFFE53935),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              margin: const EdgeInsets.all(16),
+            const SizedBox(width: 12),
+            const Text(
+              'App is up to date on Google Play!',
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
-          );
-        }
-      }
-    }
-  }
-}
-
-// PREMIUM DOWNLOAD PROGRESS DIALOG
-class DownloadProgressDialog extends StatefulWidget {
-  final String apkUrl;
-  final String savePath;
-  final Dio dio;
-
-  const DownloadProgressDialog({
-    super.key,
-    required this.apkUrl,
-    required this.savePath,
-    required this.dio,
-  });
-
-  @override
-  State<DownloadProgressDialog> createState() => _DownloadProgressDialogState();
-}
-
-class _DownloadProgressDialogState extends State<DownloadProgressDialog>
-    with SingleTickerProviderStateMixin {
-  double progress = 0.0;
-  String receivedSize = "0";
-  String totalSize = "0";
-  String status = "Initializing...";
-  late AnimationController _animationController;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat();
-    _startDownload();
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  void _startDownload() async {
-    try {
-      await widget.dio.download(
-        widget.apkUrl,
-        widget.savePath,
-        onReceiveProgress: (received, total) {
-          if (total != -1 && mounted) {
-            setState(() {
-              progress = received / total;
-              status = "Downloading...";
-              receivedSize = (received / 1024 / 1024).toStringAsFixed(1);
-              totalSize = (total / 1024 / 1024).toStringAsFixed(1);
-            });
-          }
-        },
-      );
-
-      if (mounted) {
-        setState(() {
-          progress = 1.0;
-          status = "Verifying...";
-        });
-        await Future.delayed(const Duration(milliseconds: 500));
-        if (mounted) Navigator.pop(context, true);
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context, false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Expanded(child: Text("Download Error: $e")),
-              ],
-            ),
-            backgroundColor: const Color(0xFFE53935),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false,
-      child: Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 30,
-                offset: const Offset(0, 15),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Animated Icon
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Rotating ring
-                  RotationTransition(
-                    turns: _animationController,
-                    child: Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.primary.withOpacity(0.3),
-                          width: 3,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Center icon
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.4),
-                          blurRadius: 15,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Image.asset(
-                      'assets/images/branded/lassi-lounge/Lassi-Lounge-icon.png',
-                      width: 44,
-                      height: 44,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 28),
-
-              // Title
-              const Text(
-                "Downloading Update",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A1A1A),
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // Status
-              Text(
-                status,
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 28),
-
-              // Progress Bar
-              Stack(
-                children: [
-                  Container(
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    height: 12,
-                    width: MediaQuery.of(context).size.width * progress * 0.6,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primary, AppColors.accent],
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Progress Info
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "$receivedSize / $totalSize MB",
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade700,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primary, AppColors.accent],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      "${(progress * 100).toStringAsFixed(0)}%",
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Info text
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 16,
-                      color: AppColors.primary,
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Please do not close the app',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.accent,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          ],
         ),
+        backgroundColor: const Color(0xFF43A047),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _showPlayStoreRedirectOption(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.white, size: 20),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Check latest version directly on Google Play Store',
+                style: TextStyle(fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+        action: SnackBarAction(
+          label: 'Open',
+          textColor: Colors.white,
+          onPressed: openPlayStore,
+        ),
+        backgroundColor: const Color(0xFFDC2626),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }

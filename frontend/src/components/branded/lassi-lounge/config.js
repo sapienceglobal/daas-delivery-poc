@@ -138,6 +138,10 @@ export const footerContent = {
   legalLinks: [
     { label: 'Privacy Policy', href: '/privacy-policy' },
     { label: 'Terms & Conditions', href: '/terms-conditions' },
+    { label: 'Merchant Privacy', href: '/merchant-privacy-policy' },
+    { label: 'Merchant Terms', href: '/merchant-terms' },
+    { label: 'Delete Account', href: '/delete-account' },
+    { label: 'Partner Portal', href: '/merchant-portal' },
   ],
 };
 export const testimonialsContent = {

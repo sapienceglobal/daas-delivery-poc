@@ -118,4 +118,39 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('user');
     notifyListeners();
   }
+
+  // Delete Merchant Account (Google Play Compliance)
+  // Returns null on success, error message on failure
+  Future<String?> deleteAccount({String? password, String? confirmation, String? reason}) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.delete('/api/auth/me', body: {
+        if (password != null && password.isNotEmpty) 'password': password,
+        if (confirmation != null && confirmation.isNotEmpty) 'confirmation': confirmation,
+        if (reason != null && reason.isNotEmpty) 'reason': reason,
+      });
+
+      final decoded = jsonDecode(response.body);
+      if (response.statusCode == 200 && decoded['success'] == true) {
+        await logout();
+        _isLoading = false;
+        notifyListeners();
+        return null; // success
+      } else {
+        _isLoading = false;
+        notifyListeners();
+        return decoded['message'] ?? 'Failed to delete account. Please try again.';
+      }
+    } on HttpException catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return e.message;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return 'Unable to connect to the server. Please check your internet connection.';
+    }
+  }
 }

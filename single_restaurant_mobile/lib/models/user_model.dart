@@ -15,6 +15,7 @@ class UserModel {
   final int loyaltyPoints;
   final String? referralCode;
   final Map<String, dynamic>? notificationPreferences;
+  final bool isSocialLogin;
   
   UserModel({
     required this.id,
@@ -31,9 +32,13 @@ class UserModel {
     this.loyaltyPoints = 0,
     this.referralCode,
     this.notificationPreferences,
+    this.isSocialLogin = false,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final social = json['socialLogin'] as Map<String, dynamic>?;
+    final hasSocial = social != null && (social['googleId'] != null || social['appleId'] != null);
+
     return UserModel(
       id: json['_id'] ?? '',
       name: json['name'] ?? '',
@@ -49,6 +54,7 @@ class UserModel {
       loyaltyPoints: json['loyaltyPoints'] ?? 0,
       referralCode: json['referralCode'],
       notificationPreferences: json['notificationPreferences'] as Map<String, dynamic>?,
+      isSocialLogin: hasSocial,
     );
   }
 }

@@ -46,6 +46,24 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<String?> deleteAccount({String? password, String? confirmation, String? reason}) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final error = await _authService.deleteAccount(
+      password: password,
+      confirmation: confirmation,
+      reason: reason,
+    );
+    if (error == null) {
+      _user = null;
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return error;
+  }
+
   // Helper to trigger UI updates without full refresh if we just edit a field locally
   void updateUserLocally(UserModel updatedUser) {
     _user = updatedUser;

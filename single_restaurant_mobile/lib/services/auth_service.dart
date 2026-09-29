@@ -421,4 +421,30 @@ class AuthService {
       return false;
     }
   }
+
+  // Delete Account (Google Play Compliance)
+  // Returns null on success, error message string on failure
+  Future<String?> deleteAccount({String? password, String? confirmation, String? reason}) async {
+    try {
+      final response = await ApiService.delete('/api/auth/me', body: {
+        if (password != null) 'password': password,
+        if (confirmation != null) 'confirmation': confirmation,
+        if (reason != null) 'reason': reason,
+      });
+
+      if (response.statusCode == 200) {
+        await logout();
+        return null; // success
+      }
+
+      final errorData = json.decode(response.body);
+      return errorData['message'] ?? 'Failed to delete account. Please try again.';
+    } catch (e) {
+      print('Error deleting account: $e');
+      if (e is HttpException) {
+        return e.message;
+      }
+      return 'Unable to connect to the server. Please check your internet connection.';
+    }
+  }
 }

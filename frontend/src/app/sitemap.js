@@ -68,13 +68,37 @@ export default function sitemap() {
       url: `${siteUrl}/privacy-policy`,
       lastModified: now,
       changeFrequency: 'yearly',
-      priority: 0.3,
+      priority: 0.4,
     },
     {
       url: `${siteUrl}/terms-conditions`,
       lastModified: now,
       changeFrequency: 'yearly',
-      priority: 0.3,
+      priority: 0.4,
+    },
+    {
+      url: `${siteUrl}/merchant-privacy-policy`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+    {
+      url: `${siteUrl}/merchant-terms`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+    {
+      url: `${siteUrl}/delete-account`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.4,
+    },
+    {
+      url: `${siteUrl}/merchant-portal`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.7,
     },
   ];
 }
