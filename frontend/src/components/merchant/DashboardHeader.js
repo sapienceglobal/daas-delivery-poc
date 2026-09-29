@@ -6,13 +6,13 @@ import {
   Search, Menu, ShoppingBag, Bell, HelpCircle, Settings, LogOut,
   ClipboardList, Utensils, CalendarCheck, Users, Ticket, BarChart3,
   ChefHat, Store, X, ArrowRight, Loader2, UserCircle, MessageSquare,
-  Layout, Send, Activity
+  Layout, Send, Activity, Trash2, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMerchantContext } from '@/context/MerchantContext';
 import {
   orderAPI, menuAPI, reservationAPI, cateringAPI,
-  crmAPI, notificationAPI
+  crmAPI, notificationAPI, authAPI
 } from '@/lib/api';
 import { showToast } from '@/components/ui';
 
@@ -52,6 +52,49 @@ export default function DashboardHeader({ user }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [headerCounts, setHeaderCounts] = useState({ activeOrders: 0 });
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteReason, setDeleteReason] = useState('closing_business');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  const handleDeleteMerchantAccount = async (e) => {
+    e.preventDefault();
+    setDeleteError('');
+
+    if (!deletePassword) {
+      setDeleteError('Please enter your account password to verify identity.');
+      return;
+    }
+
+    if (deleteConfirmation.trim().toUpperCase() !== 'DELETE') {
+      setDeleteError('Please type DELETE in capital letters to confirm.');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const res = await authAPI.deleteAccount({
+        password: deletePassword,
+        confirmation: deleteConfirmation.trim().toUpperCase(),
+        reason: deleteReason,
+      });
+
+      if (res && (res.success || res.message)) {
+        showToast.success('Merchant account permanently deleted.');
+        setIsDeleteModalOpen(false);
+        try { await logout(); } catch (_) {}
+        router.push('/restaurant-panel');
+      } else {
+        setDeleteError(res?.message || 'Failed to delete account.');
+      }
+    } catch (err) {
+      setDeleteError(err?.message || 'Incorrect password or verification failed.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
   const headerRef = useRef(null);
   const searchRef = useRef(null);
   const searchWrapRef = useRef(null);
@@ -437,13 +480,114 @@ export default function DashboardHeader({ user }) {
               <button onClick={() => router.push('/merchant/crm')} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-[#374151] hover:bg-[#f9fafb]">
                 <UserCircle className="w-4 h-4" /> Customer workspace
               </button>
-              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-[#b91c1c] hover:bg-[#fef2f2] border-t border-[#f3f4f6]">
+              <button
+                onClick={() => { setIsDeleteModalOpen(true); setProfileOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-[#b91c1c] hover:bg-[#fef2f2] border-t border-[#f3f4f6]"
+              >
+                <Trash2 className="w-4 h-4 text-[#b91c1c]" /> Delete Merchant Account
+              </button>
+              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-[#4b5563] hover:bg-[#f9fafb] border-t border-[#f3f4f6]">
                 <LogOut className="w-4 h-4" /> Logout
               </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Delete Merchant Account Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-red-100 relative text-[#111827]">
+            <button
+              onClick={() => { setIsDeleteModalOpen(false); setDeleteError(''); }}
+              className="absolute top-5 right-5 text-gray-400 hover:text-gray-700 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-4">
+              <Trash2 className="w-7 h-7 text-[#b91c1c]" />
+            </div>
+
+            <h3 className="text-xl font-extrabold text-gray-900 mb-1">
+              Delete Merchant Account
+            </h3>
+            <p className="text-sm text-gray-500 mb-5 leading-relaxed">
+              This will permanently delete your merchant account (<span className="font-bold text-gray-800">{user?.email}</span>), revoke managerial privileges, and unlink your profile from this restaurant.
+            </p>
+
+            {deleteError && (
+              <div className="mb-4 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-700" />
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleDeleteMerchantAccount} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Verify Current Password <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Enter your merchant password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm text-gray-900 font-medium focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Type <span className="font-mono text-red-600 font-bold bg-red-50 px-1.5 py-0.5 rounded">DELETE</span> to confirm <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="DELETE"
+                  value={deleteConfirmation}
+                  onChange={(e) => setDeleteConfirmation(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm text-gray-900 font-mono font-bold uppercase focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Reason for Leaving (Optional)
+                </label>
+                <select
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm text-gray-900 font-medium focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none bg-white"
+                >
+                  <option value="closing_business">Restaurant closed or system change</option>
+                  <option value="left_organization">Left company / no longer with restaurant</option>
+                  <option value="privacy_security">Security or privacy concerns</option>
+                  <option value="other">Other reason</option>
+                </select>
+              </div>
+
+              <div className="pt-2 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setIsDeleteModalOpen(false); setDeleteError(''); }}
+                  className="flex-1 py-3 px-4 rounded-xl border border-gray-300 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isDeleting}
+                  className="flex-1 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold shadow-md hover:shadow-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? 'Deleting...' : 'Confirm Deletion'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

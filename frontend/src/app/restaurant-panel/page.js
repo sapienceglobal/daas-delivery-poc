@@ -509,7 +509,22 @@ export default function AdminLoginPage() {
               </Link>
             </div>
 
-            <div className="mt-8 text-center text-[11px] text-[#9ca3af] font-medium">
+            {/* Merchant Legal & Compliance Links */}
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-[12px] text-[#9ca3af]">
+              <Link href="/merchant-privacy-policy" className="hover:text-[#4a090b] underline transition-colors">
+                Merchant Privacy
+              </Link>
+              <span>•</span>
+              <Link href="/merchant-terms" className="hover:text-[#4a090b] underline transition-colors">
+                Partner Terms
+              </Link>
+              <span>•</span>
+              <Link href="/merchant-account-deletion" className="hover:text-[#4a090b] underline transition-colors">
+                Account Deletion
+              </Link>
+            </div>
+
+            <div className="mt-6 text-center text-[11px] text-[#9ca3af] font-medium">
               © {new Date().getFullYear()} Lassi Lounge. All Rights Reserved.
             </div>
           </div>

@@ -48,19 +48,6 @@ export default function TermsConditionsSection() {
             Please read these terms and conditions carefully before using our service. They outline your rights and responsibilities when using Lassi Lounge.
           </p>
           <p className="text-sm text-[#9ca3af] mt-4">Last Updated: September 2026</p>
-
-          {/* Terms Selector Tabs */}
-          <div className="mt-8 inline-flex p-1.5 rounded-2xl bg-white border border-[#e5e7eb] shadow-sm">
-            <span className="px-5 py-2.5 rounded-xl font-bold text-sm bg-[#cd131b] text-white shadow-sm cursor-default">
-              Customer Terms
-            </span>
-            <a
-              href="/merchant-terms"
-              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-[#4b5563] hover:text-[#cd131b] hover:bg-[#faf9f8] transition-all"
-            >
-              Merchant &amp; Partner Agreement &rarr;
-            </a>
-          </div>
         </div>
 
         <div className="space-y-6">

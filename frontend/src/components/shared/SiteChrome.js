@@ -17,8 +17,9 @@ export default function SiteChrome({ children }) {
   const isAdminOrMerchant = pathname.startsWith('/admin') || pathname.startsWith('/merchant') || pathname.startsWith('/restaurant-panel');
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password') || pathname.startsWith('/forgot-password') || pathname.startsWith('/verify-otp');
   const isStandalonePage = pathname.startsWith('/payment-success');
+  const isMerchantPublicPage = pathname.startsWith('/merchant-') || pathname === '/merchant-portal';
 
-  if (isAuthPage || isAdminOrMerchant || isStandalonePage) {
+  if (isAuthPage || isAdminOrMerchant || isStandalonePage || isMerchantPublicPage) {
     return (
       <div className="flex flex-col min-h-screen">
         {children}

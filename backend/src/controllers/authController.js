@@ -501,6 +501,86 @@ export const requestAccountDeletion = asyncHandler(async (req, response) => {
   });
 });
 
+export const webDeleteAccount = asyncHandler(async (req, response) => {
+  const { email, password, accountType, reason, confirmation } = req.body;
+
+  if (!email || !email.includes('@')) {
+    throw new AppError('A valid email address is required.', 400);
+  }
+
+  if (!password) {
+    throw new AppError('Your account password is required for security verification.', 400);
+  }
+
+  if (confirmation !== 'DELETE') {
+    throw new AppError('Please type DELETE to confirm permanent account deletion.', 400);
+  }
+
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+
+  if (!user) {
+    throw new AppError('No account found with this email address.', 404);
+  }
+
+  // Validate Role Match
+  if (accountType === 'customer') {
+    if (user.role !== 'customer') {
+      throw new AppError('This email belongs to a Merchant account. Please use the Merchant Account Deletion portal.', 403);
+    }
+  } else if (accountType === 'merchant') {
+    if (user.role !== 'merchant' && user.role !== 'admin') {
+      throw new AppError('This email belongs to a Customer account. Please use the Customer Account Deletion portal.', 403);
+    }
+  }
+
+  // Verify Password
+  const isSocialUser = !!(user.socialLogin?.googleId || user.socialLogin?.appleId);
+  if (!isSocialUser) {
+    const isPasswordValid = user.validatePassword(password);
+    if (!isPasswordValid) {
+      throw new AppError('Incorrect password. Identity verification failed.', 401);
+    }
+  }
+
+  // Cleanup related customer record
+  try {
+    const CustomerModel = req.getModel('Customer');
+    if (CustomerModel && user.email) {
+      await CustomerModel.deleteMany({ email: user.email.toLowerCase() });
+    }
+  } catch (err) {
+    logger.warn('Failed to clean up customer record during web account deletion', { error: err.message });
+  }
+
+  // Permanently delete user
+  await UserModel.findByIdAndDelete(user._id);
+
+  logger.info('Account permanently deleted via web verification', {
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role,
+    reason: reason || 'Not specified',
+    deletedAt: new Date().toISOString()
+  });
+
+  const secureCookie = process.env.COOKIE_SECURE === 'true' ||
+    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
+
+  response
+    .cookie('token', '', {
+      httpOnly: true,
+      secure: secureCookie,
+      sameSite: secureCookie ? 'none' : 'lax',
+      expires: new Date(0),
+      path: '/'
+    })
+    .json({
+      success: true,
+      message: `Your ${user.role === 'customer' ? 'Customer' : 'Merchant'} account (${user.email}) and all personal data have been permanently deleted.`
+    });
+});
+
 export const getMe = asyncHandler(async (req, response) => {
   const user = await req.getModel('User')
     .findById(req.user._id)

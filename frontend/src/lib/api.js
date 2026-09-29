@@ -100,6 +100,8 @@ export const authAPI = {
   resetPassword: (token, password) => api.post(`/api/auth/reset-password/${token}`, { password }),
   verifyOtp: (email, otp) => api.post('/api/auth/verify-otp', { email, otp }),
   resendOtp: (email) => api.post('/api/auth/resend-otp', { email }),
+  deleteAccount: (data) => request('/api/auth/me', { method: 'DELETE', body: data }),
+  webDeleteAccount: (data) => api.post('/api/auth/web-delete-account', data),
 
   // two-Factor Authentication
   generate2FA: () => api.get('/api/auth/2fa/generate'),

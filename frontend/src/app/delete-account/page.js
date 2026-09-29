@@ -1,9 +1,9 @@
 import React from 'react';
-import AccountDeletionSection from '@/components/branded/lassi-lounge/sections/AccountDeletionSection';
+import CustomerAccountDeletionSection from '@/components/branded/lassi-lounge/sections/CustomerAccountDeletionSection';
 
 export const metadata = {
-  title: 'Request Account & Data Deletion - Lassi Lounge NY',
-  description: 'Permanent account deletion and personal data removal request portal for Lassi Lounge customer and merchant mobile applications.',
+  title: 'Delete Customer Account & Data - Lassi Lounge NY',
+  description: 'Permanent customer account deletion and personal data removal request portal for Lassi Lounge food delivery users.',
   alternates: {
     canonical: '/delete-account',
   },
@@ -11,9 +11,9 @@ export const metadata = {
 
 export default function DeleteAccountPage() {
   return (
-    <div className="min-h-screen flex flex-col font-sans">
-      <main className="flex-1 pt-20 pb-16">
-        <AccountDeletionSection />
+    <div className="min-h-screen flex flex-col font-sans bg-[#faf9f8]">
+      <main className="flex-1 pt-16 pb-16">
+        <CustomerAccountDeletionSection />
       </main>
     </div>
   );

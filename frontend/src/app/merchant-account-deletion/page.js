@@ -1,9 +1,11 @@
 import React from 'react';
-import AccountDeletionSection from '@/components/branded/lassi-lounge/sections/AccountDeletionSection';
+import MerchantPublicHeader from '@/components/merchant-public/MerchantPublicHeader';
+import MerchantPublicFooter from '@/components/merchant-public/MerchantPublicFooter';
+import MerchantAccountDeletionSection from '@/components/branded/lassi-lounge/sections/MerchantAccountDeletionSection';
 
 export const metadata = {
-  title: 'Merchant Account Deletion Request - Lassi Lounge NY',
-  description: 'Merchant partner account deletion and data removal portal for Lassi Lounge store managers and kitchen staff.',
+  title: 'Merchant & Partner Account Deletion - Lassi Lounge NY',
+  description: 'Merchant partner and restaurant manager account deletion portal for Lassi Lounge store operations and mobile merchant app users.',
   alternates: {
     canonical: '/merchant-account-deletion',
   },
@@ -11,10 +13,12 @@ export const metadata = {
 
 export default function MerchantAccountDeletionPage() {
   return (
-    <div className="min-h-screen flex flex-col font-sans">
-      <main className="flex-1 pt-20 pb-16">
-        <AccountDeletionSection />
+    <div className="min-h-screen flex flex-col font-sans bg-[#faf9f8]">
+      <MerchantPublicHeader />
+      <main className="flex-1">
+        <MerchantAccountDeletionSection />
       </main>
+      <MerchantPublicFooter />
     </div>
   );
 }

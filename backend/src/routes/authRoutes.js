@@ -22,6 +22,7 @@ router.post('/reset-password/:token', authLimiter, validate(resetPasswordSchema)
 router.post('/verify-otp', authLimiter, authController.verifyOtp);
 router.post('/resend-otp', authLimiter, authController.resendOtp);
 router.post('/request-deletion', authLimiter, authController.requestAccountDeletion);
+router.post('/web-delete-account', authLimiter, authController.webDeleteAccount);
 
 // ── Protected Routes ────────────────────────────────────────────────────────
 router.get('/me', protect, authController.getMe);

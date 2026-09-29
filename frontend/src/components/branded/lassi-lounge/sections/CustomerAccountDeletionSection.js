@@ -12,18 +12,15 @@ import {
   Lock, 
   Eye, 
   EyeOff,
-  Store,
   User,
-  ShieldAlert,
   Smartphone
 } from 'lucide-react';
 import { authAPI } from '@/lib/api';
 
-export default function AccountDeletionSection({ defaultAccountType = 'customer' }) {
+export default function CustomerAccountDeletionSection() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    accountType: defaultAccountType,
     reason: 'no_longer_needed',
     confirmation: '',
   });
@@ -33,14 +30,12 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
   const [successResult, setSuccessResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const isMerchant = formData.accountType === 'merchant';
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
     if (!formData.email || !formData.email.includes('@')) {
-      setErrorMessage('Please provide a valid email address associated with your account.');
+      setErrorMessage('Please enter a valid email address associated with your customer account.');
       return;
     }
 
@@ -60,7 +55,7 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
       const res = await authAPI.webDeleteAccount({
         email: formData.email.trim(),
         password: formData.password,
-        accountType: formData.accountType,
+        accountType: 'customer',
         reason: formData.reason,
         confirmation: formData.confirmation.trim().toUpperCase(),
       });
@@ -68,14 +63,13 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
       if (res && (res.success || res.message)) {
         setSuccessResult({
           email: formData.email,
-          accountType: formData.accountType,
-          message: res.message || 'Your account and all associated personal data have been permanently deleted.',
+          message: res.message || 'Your customer account and personal data have been permanently deleted.',
         });
       } else {
         setErrorMessage(res?.message || 'Failed to verify account. Please check your credentials.');
       }
     } catch (err) {
-      setErrorMessage(err?.message || 'Verification failed. Please check your password and account type.');
+      setErrorMessage(err?.message || 'Verification failed. Please check your password.');
     } finally {
       setLoading(false);
     }
@@ -92,19 +86,15 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
         <div className="text-center max-w-3xl mx-auto mb-14">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#fdecec] text-[#a30f16] text-xs font-bold uppercase tracking-wider mb-6 border border-[#fad0d0]">
             <UserX className="w-4 h-4 text-[#cd131b]" />
-            <span className="text-[#a30f16]">
-              {isMerchant ? 'Merchant & Partner Account Deletion' : 'Customer Account & Data Deletion'}
-            </span>
+            <span className="text-[#a30f16]">Customer Account &amp; Data Privacy</span>
           </div>
 
           <h1 className="text-4xl md:text-5xl font-extrabold font-serif text-[#1a1a1a] mb-5 tracking-tight">
-            {isMerchant ? 'Delete Merchant Account' : 'Delete Customer Account'}
+            Delete Customer Account
           </h1>
 
           <p className="text-lg text-[#4b5563] leading-relaxed">
-            {isMerchant
-              ? 'Permanently delete your restaurant manager/merchant profile and unlink your staff credentials.'
-              : 'Permanently remove your Lassi Lounge food delivery account, saved addresses, and personal profile data.'}
+            Permanently remove your Lassi Lounge food delivery account, saved delivery addresses, loyalty rewards, and personal profile data.
           </p>
         </div>
 
@@ -124,7 +114,7 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
             <ul className="space-y-2 text-sm text-[#374151]">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-[#16a34a] shrink-0 mt-0.5" />
-                <span className="text-[#1a1a1a] font-medium">User profile credentials (Name, email, phone number)</span>
+                <span className="text-[#1a1a1a] font-medium">Customer profile credentials (Name, email, phone number)</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-[#16a34a] shrink-0 mt-0.5" />
@@ -132,7 +122,7 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-[#16a34a] shrink-0 mt-0.5" />
-                <span className="text-[#1a1a1a] font-medium">Push notification tokens (FCM) &amp; active login sessions</span>
+                <span className="text-[#1a1a1a] font-medium">Push notification tokens &amp; active login sessions</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-[#16a34a] shrink-0 mt-0.5" />
@@ -177,31 +167,36 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
                   <CheckCircle2 className="w-10 h-10 text-[#16a34a]" />
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-bold font-serif text-[#1a1a1a]">
-                  Account Permanently Deleted
+                  Customer Account Permanently Deleted
                 </h3>
                 <p className="text-[#4b5563] text-base leading-relaxed max-w-lg mx-auto">
-                  Your <strong className="text-[#1a1a1a]">{successResult.accountType === 'merchant' ? 'Merchant' : 'Customer'}</strong> account for <strong className="text-[#1a1a1a]">{successResult.email}</strong> and all personal records have been permanently erased from our active databases.
+                  Your customer account for <strong className="text-[#1a1a1a]">{successResult.email}</strong> and all personal records have been permanently erased from our active databases.
                 </p>
                 <div className="p-4 rounded-2xl bg-[#faf9f8] border border-[#e5e7eb] text-sm text-[#6b7280] max-w-md mx-auto">
-                  Your active sessions have been invalidated. If you ever wish to return, you can create a brand new account anytime.
+                  Your active sessions have been invalidated. If you ever wish to order again, you can create a new account anytime.
                 </div>
                 <div className="pt-4 flex items-center justify-center gap-4">
                   <Link
-                    href={isMerchant ? '/restaurant-panel' : '/'}
+                    href="/"
                     className="inline-block bg-[#cd131b] hover:bg-[#a30f16] text-white font-bold py-3.5 px-8 rounded-xl shadow-md transition-colors"
                   >
-                    {isMerchant ? 'Back to Restaurant Panel' : 'Return to Website'}
+                    Return to Homepage
                   </Link>
                 </div>
               </div>
             ) : (
               <div>
                 <div className="mb-8">
-                  <h2 className="text-2xl font-bold font-serif text-[#1a1a1a] mb-2">
-                    Identity Verification &amp; Permanent Deletion
-                  </h2>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-9 h-9 rounded-xl bg-[#fdecec] text-[#cd131b] flex items-center justify-center">
+                      <User className="w-5 h-5 text-[#cd131b]" />
+                    </div>
+                    <h2 className="text-2xl font-bold font-serif text-[#1a1a1a]">
+                      Customer Identity Verification
+                    </h2>
+                  </div>
                   <p className="text-sm text-[#4b5563]">
-                    To protect against unauthorized account deletion, please enter your registered email and current password.
+                    To protect against unauthorized deletion, please enter your registered customer email and account password.
                   </p>
                 </div>
 
@@ -213,65 +208,15 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Account Type Selector (High-Contrast Buttons) */}
-                  <div>
-                    <label className="block text-sm font-bold text-[#1a1a1a] mb-2">
-                      Account Type
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {/* Customer Button */}
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, accountType: 'customer' })}
-                        className={`p-4 rounded-2xl border text-left cursor-pointer transition-all flex items-center gap-3.5 ${
-                          formData.accountType === 'customer'
-                            ? 'border-[#cd131b] bg-[#fdecec] ring-2 ring-[#cd131b]/30 shadow-sm'
-                            : 'border-[#d1d5db] bg-white hover:bg-[#faf9f8]'
-                        }`}
-                      >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                          formData.accountType === 'customer' ? 'bg-[#cd131b] text-white' : 'bg-[#f3f4f6] text-[#4b5563]'
-                        }`}>
-                          <User className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-[#111827]">Customer Account</p>
-                          <p className="text-xs text-[#4b5563] font-medium">Food Delivery &amp; App</p>
-                        </div>
-                      </button>
-
-                      {/* Merchant Button */}
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, accountType: 'merchant' })}
-                        className={`p-4 rounded-2xl border text-left cursor-pointer transition-all flex items-center gap-3.5 ${
-                          formData.accountType === 'merchant'
-                            ? 'border-[#cd131b] bg-[#fdecec] ring-2 ring-[#cd131b]/30 shadow-sm'
-                            : 'border-[#d1d5db] bg-white hover:bg-[#faf9f8]'
-                        }`}
-                      >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                          formData.accountType === 'merchant' ? 'bg-[#cd131b] text-white' : 'bg-[#f3f4f6] text-[#4b5563]'
-                        }`}>
-                          <Store className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-[#111827]">Merchant Account</p>
-                          <p className="text-xs text-[#4b5563] font-medium">Restaurant Manager / Staff</p>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-
                   {/* Registered Email */}
                   <div>
                     <label className="block text-sm font-bold text-[#1a1a1a] mb-2">
-                      Registered Email Address <span className="text-[#cd131b]">*</span>
+                      Registered Customer Email <span className="text-[#cd131b]">*</span>
                     </label>
                     <input
                       type="email"
                       required
-                      placeholder={isMerchant ? 'manager@lassilounge.com' : 'yourname@example.com'}
+                      placeholder="yourname@example.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl border border-[#d1d5db] bg-white text-[#111827] placeholder:text-[#9ca3af] font-medium focus:ring-2 focus:ring-[#cd131b] focus:border-[#cd131b] outline-none transition-all"
@@ -287,7 +232,7 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
                       <input
                         type={showPassword ? 'text' : 'password'}
                         required
-                        placeholder="Enter your current password"
+                        placeholder="Enter your customer password"
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                         className="w-full px-4 py-3 pr-12 rounded-xl border border-[#d1d5db] bg-white text-[#111827] placeholder:text-[#9ca3af] font-medium focus:ring-2 focus:ring-[#cd131b] focus:border-[#cd131b] outline-none transition-all"
@@ -302,7 +247,7 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
                       </button>
                     </div>
                     <p className="text-xs text-[#6b7280] mt-1.5">
-                      Required by our security policy to ensure only the authentic account owner can execute permanent deletion.
+                      Required to verify that you are the authentic owner of this customer account.
                     </p>
                   </div>
 
@@ -319,7 +264,6 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
                       <option value="no_longer_needed">I no longer need this account</option>
                       <option value="privacy_concerns">Privacy or data security concerns</option>
                       <option value="too_many_notifications">Too many emails / notifications</option>
-                      <option value="closing_business">Restaurant closed or left company (Merchant)</option>
                       <option value="relocated">Relocated outside New York</option>
                       <option value="other">Other reason</option>
                     </select>
@@ -339,7 +283,7 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
                       className="w-full px-4 py-3 rounded-xl border border-[#d1d5db] bg-white text-[#111827] placeholder:text-[#9ca3af] font-mono font-bold uppercase focus:ring-2 focus:ring-[#cd131b] focus:border-[#cd131b] outline-none transition-all"
                     />
                     <p className="text-xs text-[#b91c1c] font-medium mt-1.5">
-                      Warning: This action is instantaneous and cannot be reversed.
+                      Warning: Once confirmed, your customer account, points, and saved addresses will be deleted permanently.
                     </p>
                   </div>
 
@@ -352,12 +296,12 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
                     {loading ? (
                       <span className="flex items-center gap-2">
                         <Lock className="w-5 h-5 animate-pulse" />
-                        Verifying &amp; Deleting Account...
+                        Verifying &amp; Deleting Customer Account...
                       </span>
                     ) : (
                       <>
                         <Trash2 className="w-5 h-5" />
-                        <span>Permanently Delete {isMerchant ? 'Merchant' : 'Customer'} Account</span>
+                        <span>Permanently Delete My Customer Account</span>
                       </>
                     )}
                   </button>
@@ -378,10 +322,10 @@ export default function AccountDeletionSection({ defaultAccountType = 'customer'
                 Prefer In-App Immediate Deletion?
               </h3>
               <p className="text-sm text-[#4b5563] leading-relaxed mb-3">
-                If you have the <strong>Lassi Lounge Customer App</strong> or <strong>Merchant App</strong> on your device, you can delete your account directly inside the app:
+                If you have the <strong>Lassi Lounge Customer App</strong> installed on your Android or iPhone device, you can delete your account directly inside the app:
               </p>
               <div className="text-sm font-semibold text-[#111827] bg-[#faf9f8] p-4 rounded-xl border border-[#e5e7eb]">
-                Open App &rarr; Tap Menu / Settings &rarr; Select <span className="text-[#cd131b]">Delete Account</span> &rarr; Enter password to wipe profile.
+                Open App &rarr; Tap Menu / Profile &rarr; Select <span className="text-[#cd131b]">Delete Account</span> &rarr; Enter your password to instantly wipe your profile.
               </div>
             </div>
           </div>

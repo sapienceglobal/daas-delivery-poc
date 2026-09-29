@@ -40,22 +40,9 @@ export default function PrivacyPolicySection() {
             Privacy Policy
           </h1>
           <p className="text-lg text-[#4b5563] leading-relaxed">
-            Your privacy is critically important to us. This policy outlines how we collect, use, and protect personal data across Lassi Lounge services.
+            Your privacy is critically important to us. This policy outlines how we collect, use, and protect your personal information at Lassi Lounge.
           </p>
           <p className="text-sm text-[#9ca3af] mt-4">Last Updated: September 2026</p>
-
-          {/* Policy Selector Tabs */}
-          <div className="mt-8 inline-flex p-1.5 rounded-2xl bg-white border border-[#e5e7eb] shadow-sm">
-            <span className="px-5 py-2.5 rounded-xl font-bold text-sm bg-[#cd131b] text-white shadow-sm cursor-default">
-              Customer Policy
-            </span>
-            <a
-              href="/merchant-privacy-policy"
-              className="px-5 py-2.5 rounded-xl font-semibold text-sm text-[#4b5563] hover:text-[#cd131b] hover:bg-[#faf9f8] transition-all"
-            >
-              Merchant &amp; Partner Policy &rarr;
-            </a>
-          </div>
         </div>
 
         <div className="space-y-8">

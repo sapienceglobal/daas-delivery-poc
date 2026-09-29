@@ -95,6 +95,12 @@ export default function sitemap() {
       priority: 0.4,
     },
     {
+      url: `${siteUrl}/merchant-account-deletion`,
+      lastModified: now,
+      changeFrequency: 'yearly',
+      priority: 0.4,
+    },
+    {
       url: `${siteUrl}/merchant-portal`,
       lastModified: now,
       changeFrequency: 'weekly',
