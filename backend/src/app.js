@@ -75,7 +75,9 @@ if (process.env.TRUST_PROXY) {
 }
 
 // ── Global Middleware ───────────────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 app.use(cors({
   origin: corsOrigin,
