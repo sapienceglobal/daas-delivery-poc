@@ -121,6 +121,12 @@ export const register = asyncHandler(async (req, response) => {
   const existing = await UserModel.findOne({ email });
   if (existing) throw new AppError('An account with this email already exists.', 409);
 
+  // Prevent duplicate accounts with the same phone number (anti-fraud for first-order coupons etc.)
+  if (phone) {
+    const phoneExists = await UserModel.findOne({ phone, _id: { $ne: existing?._id } });
+    if (phoneExists) throw new AppError('An account with this phone number already exists. Please login instead.', 409);
+  }
+
   const user = new UserModel({ name, email, phone: phone || '', role: role || 'customer', password: 'temp' });
   user.setPassword(password);
 

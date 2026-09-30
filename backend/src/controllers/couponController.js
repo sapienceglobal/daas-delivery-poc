@@ -19,8 +19,19 @@ export const validateCoupon = asyncHandler(async (req, response) => {
   }
 
   const pastOrderCount = await OrderModel.countDocuments({ userId: req.user._id });
+
+  // Anti-fraud: For first-order-only coupons, also check phone-based order history
+  let effectivePastOrderCount = pastOrderCount;
+  if (coupon.firstOrderOnly && req.user.phone) {
+    const phoneOrderCount = await OrderModel.countDocuments({
+      customerPhone: req.user.phone,
+      userId: { $ne: req.user._id }
+    });
+    effectivePastOrderCount = pastOrderCount + phoneOrderCount;
+  }
+
   // pass null for paymentMethod during live validation so it applies successfully and frontend can enforce the UI lock
-  const validation = coupon.isValid(cartValue || 0, req.user._id, pastOrderCount, null);
+  const validation = coupon.isValid(cartValue || 0, req.user._id, effectivePastOrderCount, null);
 
   if (!validation.valid) {
     throw new AppError(validation.reason, 400);

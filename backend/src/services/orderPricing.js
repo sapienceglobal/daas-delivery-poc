@@ -193,7 +193,24 @@ export const calculateOrderPricing = async ({
       throw new AppError('Coupon is not valid for this restaurant', 400);
     }
     const pastOrderCount = userId ? (await OrderModel.countDocuments({ userId })) : 0;
-    const validation = coupon.isValid(subtotal, userId, pastOrderCount, paymentMethod);
+
+    // Anti-fraud: For first-order-only coupons, also check if ANY order exists
+    // under the same phone number (across different accounts).
+    // This prevents users from creating multiple accounts with different emails
+    // but the same phone to exploit first-order discounts.
+    let effectivePastOrderCount = pastOrderCount;
+    if (coupon.firstOrderOnly && userId) {
+      const currentUser = await UserModel.findById(userId).select('phone');
+      if (currentUser?.phone) {
+        const phoneOrderCount = await OrderModel.countDocuments({
+          'customerPhone': currentUser.phone,
+          userId: { $ne: userId }  // orders from OTHER accounts with same phone
+        });
+        effectivePastOrderCount = pastOrderCount + phoneOrderCount;
+      }
+    }
+
+    const validation = coupon.isValid(subtotal, userId, effectivePastOrderCount, paymentMethod);
     if (!validation.valid) throw new AppError(validation.reason || 'Coupon is not valid', 400);
     discount = coupon.type === 'free_delivery'
       ? deliveryFee
