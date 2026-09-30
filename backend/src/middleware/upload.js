@@ -94,7 +94,8 @@ export const uploadToCloudinary = async (buffer, { folder = 'restaurant-platform
 
   // Return the public URL
   // Construct URL accessible via our Express static route
-  const publicUrl = `${process.env.API_URL || 'http://127.0.0.1:5001'}/uploads/${folder}/${filename}`;
+  const baseUrl = process.env.API_URL || (process.env.NODE_ENV === 'production' ? 'https://api.lassiloungeny.com' : 'http://127.0.0.1:5001');
+  const publicUrl = `${baseUrl}/uploads/${folder}/${filename}`;
 
   return {
     url: publicUrl,
