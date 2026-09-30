@@ -38,7 +38,8 @@ export default function CmsManagementView() {
   const fetchCms = async () => {
     try {
       const userRes = await authAPI.getMe();
-      const restaurantId = userRes.data?.restaurantId;
+      const restaurantIdRaw = userRes.data?.restaurantId;
+      const restaurantId = typeof restaurantIdRaw === 'object' ? restaurantIdRaw._id : restaurantIdRaw;
       if (!restaurantId) return;
 
       const res = await api.get(`/api/cms?restaurantId=${restaurantId}`);
