@@ -9,7 +9,7 @@ const router = Router();
 
 const validateFolder = (requestedFolder) => {
   const folder = requestedFolder || 'restaurant-platform/uploads';
-  if (typeof folder !== 'string' || folder.includes('..') || !folder.startsWith('restaurant-platform/')) {
+  if (typeof folder !== 'string' || folder.includes('..')) {
     throw new AppError('Invalid upload folder path', 400);
   }
   return folder;
