@@ -83,7 +83,11 @@ const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@
 // exactly as-is.
 
 export const register = asyncHandler(async (req, response) => {
-  const { name, email, password, phone, role } = req.body;
+  const { name, email, password, phone, role, agreedToTerms } = req.body;
+
+  if (!agreedToTerms) {
+    throw new AppError('You must agree to the Terms & Conditions and Privacy Policy to register.', 400);
+  }
 
   if (!name || !email || !password) {
     throw new AppError('Please provide name, email, and password.', 400);
@@ -127,7 +131,15 @@ export const register = asyncHandler(async (req, response) => {
     if (phoneExists) throw new AppError('An account with this phone number already exists. Please login instead.', 409);
   }
 
-  const user = new UserModel({ name, email, phone: phone || '', role: role || 'customer', password: 'temp' });
+  const user = new UserModel({ 
+    name, 
+    email, 
+    phone: phone || '', 
+    role: role || 'customer', 
+    password: 'temp',
+    hasAcceptedTerms: true,
+    termsAcceptedAt: new Date()
+  });
   user.setPassword(password);
 
   if (phone) {

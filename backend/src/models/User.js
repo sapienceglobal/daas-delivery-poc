@@ -43,6 +43,14 @@ const UserSchema = new mongoose.Schema({
     default: '',
     trim: true
   },
+  hasAcceptedTerms: {
+    type: Boolean,
+    default: false
+  },
+  termsAcceptedAt: {
+    type: Date,
+    default: null
+  },
   avatar: {
     type: String,
     default: null

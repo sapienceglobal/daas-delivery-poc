@@ -90,6 +90,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       email: _emailController.text.trim(),
       password: _passwordController.text,
       phone: '$_selectedCountryCode${_phoneController.text.trim()}',
+      agreedToTerms: _agreedToTerms,
     );
 
     if (!mounted) return;

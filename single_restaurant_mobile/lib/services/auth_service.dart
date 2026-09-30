@@ -43,6 +43,7 @@ class AuthService {
     required String name,
     required String email,
     required String password,
+    required bool agreedToTerms,
     String? phone,
   }) async {
     try {
@@ -52,6 +53,7 @@ class AuthService {
         'password': password,
         'phone': phone ?? '',
         'role': 'customer',
+        'agreedToTerms': agreedToTerms,
       });
 
       // Agar status 201 (Created) ya 200 (OK) hai toh success

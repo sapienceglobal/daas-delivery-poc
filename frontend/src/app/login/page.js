@@ -158,10 +158,9 @@ function LoginPageContent() {
         // and emails an OTP. The session only starts once verifyOtp()
         // succeeds on the next screen (see AuthContext.js + the
         // register controller for the actual fix). That's what was
-        // causing "straight to /customer, no verification": the old
         // register() logged the browser in immediately, so the redirect
         // effect above won the race against router.push('/verify-otp').
-        await register(form);
+        await register({ ...form, agreedToTerms });
         router.push(`/verify-otp?email=${encodeURIComponent(form.email)}`);
         return;
       } else {
