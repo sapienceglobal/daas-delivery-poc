@@ -54,7 +54,10 @@ export default function CategorySidebar({
     }
   }, [activeCategory, searchQuery]);
 
-  const isExpired = activeCoupon && (new Date(activeCoupon.endDate) < new Date() || !activeCoupon.isActive);
+  const isExpired = activeCoupon && (
+    activeCoupon.isActive === false || 
+    (activeCoupon.endDate && new Date(activeCoupon.endDate).getTime() < Date.now())
+  );
 
   return (
     <div className="space-y-6 ll-reveal">
@@ -164,7 +167,7 @@ export default function CategorySidebar({
                   showToast('Coupon applied! Checkout to see discount.', 'success');
                 }
               }}
-              className={`${isExpired ? 'bg-gray-500 cursor-not-allowed opacity-70' : 'bg-[#e8a020] hover:bg-[#d68f13]'} text-[#1a1a1a] text-[11px] uppercase tracking-wide font-black w-full rounded-md py-2.5 shadow-[0_4px_15px_rgba(232,160,32,0.2)] ll-interactive ll-focus-ring`}
+              className={`${isExpired ? 'bg-red-600 cursor-not-allowed text-white' : 'bg-[#e8a020] hover:bg-[#d68f13] text-[#1a1a1a]'} text-[11px] uppercase tracking-wide font-black w-full rounded-md py-2.5 shadow-[0_4px_15px_rgba(232,160,32,0.2)] ll-interactive ll-focus-ring`}
             >
               {isExpired ? 'EXPIRED' : (isViewOnly ? 'ORDER NOW' : (couponApplied ? 'APPLIED!' : 'APPLY'))}
             </button>
