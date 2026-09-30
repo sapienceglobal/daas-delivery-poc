@@ -31,91 +31,124 @@ export const upload = multer({
   }
 });
 
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import crypto from 'crypto';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const UPLOADS_DIR = path.join(__dirname, '../../uploads');
+
 /**
- * Upload a buffer to Cloudinary.
+ * Upload a buffer to Local File System (replaces Cloudinary).
  *
  * @param {Buffer} buffer - File buffer from multer
  * @param {Object} options
- * @param {String} options.folder - Cloudinary folder (e.g. 'restaurants/banners')
+ * @param {String} options.folder - Subfolder (e.g. 'restaurant-platform')
  * @param {String} [options.publicId] - Custom public ID
  * @param {String} [options.resourceType] - 'image' | 'raw' | 'auto'
  * @returns {Promise<{ url: String, publicId: String, width: Number, height: Number }>}
  */
 export const uploadToCloudinary = async (buffer, { folder = 'restaurant-platform', publicId, resourceType = 'image' } = {}) => {
   let finalBuffer = buffer;
+  let ext = 'jpg';
+  let width = 0, height = 0;
 
-  // Compress if it's an image and larger than 5MB
-  if (resourceType === 'image' && buffer.length > 5 * 1024 * 1024) {
+  // Compress if it's an image
+  if (resourceType === 'image') {
     try {
+      // Get image metadata before processing to get width/height
+      const metadata = await sharp(buffer).metadata();
+      width = metadata.width;
+      height = metadata.height;
+
+      // Always process the image to normalize it and strip metadata
       finalBuffer = await sharp(buffer)
         .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 80 })
         .toBuffer();
+      
+      ext = 'jpg';
       logger.info(`Compressed image from ${(buffer.length / 1024 / 1024).toFixed(2)}MB to ${(finalBuffer.length / 1024 / 1024).toFixed(2)}MB`);
     } catch (e) {
       logger.error('Sharp compression failed', { error: e.message });
       // Proceed with original buffer if compression fails
+      ext = 'png'; // fallback extension
     }
+  } else if (resourceType === 'raw') {
+      ext = 'pdf';
   }
 
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        public_id: publicId || undefined,
-        resource_type: resourceType,
-        transformation: resourceType === 'image'
-          ? [{ quality: 'auto', fetch_format: 'auto' }]
-          : undefined
-      },
-      (error, result) => {
-        if (error) {
-          logger.error('Cloudinary upload failed', { error: error.message });
-          if (error.message && error.message.toLowerCase().includes('file size too large')) {
-            return reject(new AppError('The selected file is too large (maximum allowed is 10MB). Please choose a smaller file.', 400));
-          }
-          return reject(error);
-        }
-        resolve({
-          url: result.secure_url,
-          publicId: result.public_id,
-          width: result.width,
-          height: result.height,
-          format: result.format,
-          bytes: result.bytes
-        });
-      }
-    );
-    uploadStream.end(finalBuffer);
-  });
+  // Generate unique filename
+  const filename = (publicId || crypto.randomBytes(16).toString('hex')) + '.' + ext;
+  
+  // Make sure the target folder exists
+  const targetFolder = path.join(UPLOADS_DIR, folder);
+  await fs.mkdir(targetFolder, { recursive: true });
+
+  const targetPath = path.join(targetFolder, filename);
+
+  // Save the file
+  await fs.writeFile(targetPath, finalBuffer);
+
+  // Return the public URL
+  // Construct URL accessible via our Express static route
+  const publicUrl = `${process.env.API_URL || 'http://127.0.0.1:5001'}/uploads/${folder}/${filename}`;
+
+  return {
+    url: publicUrl,
+    publicId: `${folder}/${filename.split('.')[0]}`,
+    width: width || 800,
+    height: height || 800,
+    format: ext,
+    bytes: finalBuffer.length
+  };
 };
 
-// delete a file from Cloudinary by public ID.
+// delete a file from Local Storage by public ID.
 export const deleteFromCloudinary = async (publicId, resourceType = 'image') => {
   try {
-    const result = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
-    logger.debug('Cloudinary delete result', { publicId, result: result.result });
-    return result;
+    // publicId is expected to be "folder/filename_without_ext"
+    // Since we don't know the exact extension, we will search for it
+    const folderPath = path.dirname(path.join(UPLOADS_DIR, publicId));
+    const baseName = path.basename(publicId);
+    
+    // Simplistic delete: try deleting .jpg, .png, .webp, .pdf
+    const exts = ['.jpg', '.png', '.webp', '.pdf'];
+    for (const ext of exts) {
+      const fullPath = path.join(folderPath, baseName + ext);
+      try {
+        await fs.unlink(fullPath);
+        logger.debug('Local delete result', { fullPath });
+        return { result: 'ok' };
+      } catch (err) {
+        // Ignore if file doesn't exist
+      }
+    }
+    
+    return { result: 'not found' };
   } catch (error) {
-    logger.error('Cloudinary delete failed', { publicId, error: error.message });
+    logger.error('Local delete failed', { publicId, error: error.message });
     throw error;
   }
 };
 
-// upload a base64 data URI directly to Cloudinary (for legacy /api/upload endpoint).
+// upload a base64 data URI directly to Local File System.
 export const uploadBase64ToCloudinary = async (base64DataUri, { folder = 'restaurant-platform' } = {}) => {
   try {
-    const result = await cloudinary.uploader.upload(base64DataUri, {
-      folder,
-      resource_type: 'image',
-      transformation: [{ quality: 'auto', fetch_format: 'auto' }]
-    });
-    return {
-      url: result.secure_url,
-      publicId: result.public_id
-    };
+    // Strip the prefix (e.g. "data:image/png;base64,")
+    const matches = base64DataUri.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      throw new Error('Invalid input string');
+    }
+    
+    const buffer = Buffer.from(matches[2], 'base64');
+    
+    // Use our new local upload logic
+    return await uploadToCloudinary(buffer, { folder });
   } catch (error) {
-    logger.error('Cloudinary base64 upload failed', { error: error.message });
+    logger.error('Base64 local upload failed', { error: error.message });
     throw error;
   }
 };

@@ -140,6 +140,14 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // ── NoSQL Injection Protection ─────────────────────────────────────────────
 app.use(mongoSanitize());
 
+// ── Serve Local Uploads ─────────────────────────────────────────────────────
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // ── App Secret Security Middleware ──────────────────────────────────────────
 const APP_SECRET = process.env.APP_SECRET;
 if (!APP_SECRET) {
