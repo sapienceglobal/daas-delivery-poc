@@ -64,13 +64,14 @@ export const uploadToCloudinary = async (buffer, { folder = 'restaurant-platform
       height = metadata.height;
 
       // Always process the image to normalize it and strip metadata
+      // WebP supports transparency (unlike JPEG) and offers better compression
       finalBuffer = await sharp(buffer)
         .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 80 })
+        .webp({ quality: 85 })
         .toBuffer();
       
-      ext = 'jpg';
-      logger.info(`Compressed image from ${(buffer.length / 1024 / 1024).toFixed(2)}MB to ${(finalBuffer.length / 1024 / 1024).toFixed(2)}MB`);
+      ext = 'webp';
+      logger.info(`Compressed image from ${(buffer.length / 1024 / 1024).toFixed(2)}MB to ${(finalBuffer.length / 1024 / 1024).toFixed(2)}MB (webp)`);
     } catch (e) {
       logger.error('Sharp compression failed', { error: e.message });
       // Proceed with original buffer if compression fails
