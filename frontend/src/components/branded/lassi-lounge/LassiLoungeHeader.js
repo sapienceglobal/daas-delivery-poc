@@ -1,5 +1,5 @@
 'use client';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { User, ShoppingCart } from 'lucide-react';
@@ -17,17 +17,20 @@ function HeaderContent() {
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode');
 
+  const [logoError, setLogoError] = useState(false);
+
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-[5px] flex items-center justify-between">
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2 shrink-0 py-1">
-        {brand?.logo ? (
+        {brand?.logo && !logoError ? (
           <img
             src={brand.logo}
             alt={brand.name}
             className="h-[64px] md:h-[64px] w-auto scale-125 origin-left object-contain"
+            onError={() => setLogoError(true)}
           />
         ) : loading ? (
           <div className="h-9 md:h-[50px] w-28 animate-pulse bg-white/10 rounded" />

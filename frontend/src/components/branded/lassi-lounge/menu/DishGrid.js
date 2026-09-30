@@ -220,6 +220,13 @@ export default function DishGrid({
                   src={item.image || getDishImage(item.name)}
                   alt={item.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  onError={(e) => {
+                    // Fallback to local/unsplash images if Cloudinary fails (e.g. 401 unauthorized)
+                    const fallback = getDishImage(item.name);
+                    if (e.target.src !== fallback) {
+                      e.target.src = fallback;
+                    }
+                  }}
                 />
 
                 {/* Heart Button */}

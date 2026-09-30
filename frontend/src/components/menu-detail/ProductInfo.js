@@ -62,6 +62,12 @@ export default function ProductInfo({ item, isSingleRestaurant, isFavorite, onTo
             src={images[activeImageIdx]}
             alt={item.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={(e) => {
+              const fallback = getDishImage(item.name);
+              if (e.target.src !== fallback) {
+                e.target.src = fallback;
+              }
+            }}
           />
           {/* Favorite heart on image */}
           <button
@@ -98,7 +104,17 @@ export default function ProductInfo({ item, isSingleRestaurant, isFavorite, onTo
                       : 'border-transparent hover:border-[#d1d5db]'
                   }`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  <img 
+                    src={img} 
+                    alt="" 
+                    className="w-full h-full object-cover" 
+                    onError={(e) => {
+                      const fallback = getDishImage(item.name);
+                      if (e.target.src !== fallback) {
+                        e.target.src = fallback;
+                      }
+                    }}
+                  />
                 </button>
               ))}
             </div>

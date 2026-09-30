@@ -185,6 +185,21 @@ export default function YouMayAlsoLike({
                     src={getDishImage(rec)}
                     alt={rec.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    onError={(e) => {
+                      const fallback = (() => {
+                        const name = rec.name.toLowerCase();
+                        if (name.includes('butter chicken')) return '/images/branded/lassi-lounge/dishes/butter-chicken.jpg';
+                        if (name.includes('rogan josh') || name.includes('lamb')) return '/images/branded/lassi-lounge/dishes/lamb-rogan-josh.jpg';
+                        if (name.includes('paneer tikka')) return '/images/branded/lassi-lounge/dishes/paneer-tikka.jpg';
+                        if (name.includes('biryani')) return '/images/branded/lassi-lounge/dishes/chicken-biryani.jpg';
+                        if (name.includes('dal makhani')) return '/images/branded/lassi-lounge/dishes/dal-makhani.jpg';
+                        if (name.includes('lassi')) return '/images/branded/lassi-lounge/dishes/mango-lassi.jpg';
+                        return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
+                      })();
+                      if (e.target.src !== fallback) {
+                        e.target.src = fallback;
+                      }
+                    }}
                   />
                 </div>
 
