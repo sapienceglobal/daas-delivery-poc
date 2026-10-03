@@ -129,10 +129,31 @@ class TimeOfDayStat {
   }
 }
 
+class PaymentMethodStat {
+  final String method;
+  final int count;
+  final double revenue;
+
+  PaymentMethodStat({
+    required this.method,
+    required this.count,
+    required this.revenue,
+  });
+
+  factory PaymentMethodStat.fromJson(Map<String, dynamic> json) {
+    return PaymentMethodStat(
+      method: json['_id']?.toString() ?? 'Other',
+      count: json['count'] ?? 0,
+      revenue: (json['revenue'] ?? 0).toDouble(),
+    );
+  }
+}
+
 class AnalyticsData {
   final AnalyticsSummary summary;
   final List<DailyStat> dailyStats;
   final List<SalesByChannel> salesByChannel;
+  final List<PaymentMethodStat> paymentMethodBreakdown;
   final List<TopItem> topItems;
   final List<TimeOfDayStat> timeOfDayHeatmap;
 
@@ -140,6 +161,7 @@ class AnalyticsData {
     required this.summary,
     required this.dailyStats,
     required this.salesByChannel,
+    required this.paymentMethodBreakdown,
     required this.topItems,
     required this.timeOfDayHeatmap,
   });
@@ -153,6 +175,10 @@ class AnalyticsData {
           [],
       salesByChannel: (json['salesByChannel'] as List<dynamic>?)
               ?.map((e) => SalesByChannel.fromJson(e))
+              .toList() ??
+          [],
+      paymentMethodBreakdown: (json['paymentMethodBreakdown'] as List<dynamic>?)
+              ?.map((e) => PaymentMethodStat.fromJson(e))
               .toList() ??
           [],
       topItems: (json['topItems'] as List<dynamic>?)

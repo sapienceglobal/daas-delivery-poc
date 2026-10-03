@@ -1,9 +1,13 @@
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
+import { getItemSlug } from '@/lib/slugUtils';
 
-export default function sitemap() {
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const restaurantId = process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'lassi-lounge';
+
+export default async function sitemap() {
   const now = new Date();
 
-  return [
+  const staticRoutes = [
     {
       url: siteUrl,
       lastModified: now,
@@ -107,4 +111,31 @@ export default function sitemap() {
       priority: 0.7,
     },
   ];
+
+  // Dynamically include all menu items with their SEO slugs
+  let itemRoutes = [];
+  try {
+    const res = await fetch(`${apiUrl}/api/menu/restaurant/${restaurantId}`, {
+      next: { revalidate: 3600 },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const categories = json.data || [];
+      const allItems = categories.flatMap((cat) => cat.items || []);
+
+      itemRoutes = allItems.map((item) => {
+        const slug = getItemSlug(item);
+        return {
+          url: `${siteUrl}/item/${slug}`,
+          lastModified: item.updatedAt ? new Date(item.updatedAt) : now,
+          changeFrequency: 'weekly',
+          priority: 0.8,
+        };
+      });
+    }
+  } catch (err) {
+    // Graceful fallback to static routes if backend unavailable during build
+  }
+
+  return [...staticRoutes, ...itemRoutes];
 }

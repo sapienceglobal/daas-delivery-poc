@@ -21,8 +21,9 @@ class SharedBottomNav extends StatelessWidget {
         ],
       ),
       child: SafeArea(
+        top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -30,7 +31,7 @@ class SharedBottomNav extends StatelessWidget {
               _buildNavItem(context, 1, Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'Orders'),
               _buildNavItem(context, 2, Icons.kitchen_rounded, Icons.kitchen_outlined, 'KDS'),
               _buildNavItem(context, 3, Icons.calendar_month_rounded, Icons.calendar_month_outlined, 'Booking'),
-              _buildNavItem(context, 4, Icons.more_horiz_rounded, Icons.more_horiz_rounded, 'More'),
+              _buildNavItem(context, 4, Icons.restaurant_menu_rounded, Icons.restaurant_menu_outlined, 'Menu'),
             ],
           ),
         ),
@@ -60,7 +61,7 @@ class SharedBottomNav extends StatelessWidget {
               context.go('/reservations');
               break;
             case 4:
-              context.go('/more');
+              context.go('/menu-management');
               break;
           }
         },

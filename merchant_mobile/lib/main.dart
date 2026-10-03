@@ -9,6 +9,7 @@ import 'screens/dashboard_screen.dart';
 import 'screens/live_orders_screen.dart';
 import 'screens/order_details_screen.dart';
 import 'screens/all_orders_screen.dart';
+import 'screens/analytics_screen.dart';
 import 'screens/menu_management_screen.dart';
 import 'screens/promotions_screen.dart';
 import 'screens/kds_screen.dart';
@@ -21,6 +22,11 @@ import 'screens/notifications_screen.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
+import 'screens/restaurant_settings_screen.dart';
+import 'screens/cms_management_screen.dart';
+import 'screens/loyalty_rewards_screen.dart';
+import 'screens/marketing_screen.dart';
+import 'screens/support_messages_screen.dart';
 
 import 'services/api_service.dart';
 import 'services/socket_service.dart';
@@ -37,6 +43,11 @@ import 'providers/reservation_provider.dart';
 import 'providers/catering_provider.dart';
 import 'providers/analytics_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/restaurant_provider.dart';
+import 'providers/cms_provider.dart';
+import 'providers/loyalty_provider.dart';
+import 'providers/marketing_provider.dart';
+import 'providers/support_messages_provider.dart';
 
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -107,6 +118,21 @@ void main() async {
         ChangeNotifierProvider<NotificationProvider>(
           create: (_) => NotificationProvider()..fetchNotifications(),
         ),
+        ChangeNotifierProvider<RestaurantProvider>(
+          create: (_) => RestaurantProvider(),
+        ),
+        ChangeNotifierProvider<CmsProvider>(
+          create: (_) => CmsProvider(),
+        ),
+        ChangeNotifierProvider<LoyaltyProvider>(
+          create: (_) => LoyaltyProvider(),
+        ),
+        ChangeNotifierProvider<MarketingProvider>(
+          create: (_) => MarketingProvider(),
+        ),
+        ChangeNotifierProvider<SupportMessagesProvider>(
+          create: (_) => SupportMessagesProvider(),
+        ),
       ],
       child: const MerchantApp(),
     ),
@@ -134,6 +160,10 @@ final GoRouter _router = GoRouter(
       pageBuilder: (context, state) => const NoTransitionPage(child: DashboardScreen()),
     ),
     GoRoute(
+      path: '/analytics',
+      builder: (context, state) => const AnalyticsScreen(),
+    ),
+    GoRoute(
       path: '/crm',
       builder: (context, state) => const CrmScreen(),
     ),
@@ -151,7 +181,7 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/menu-management',
-      builder: (context, state) => const MenuManagementScreen(),
+      pageBuilder: (context, state) => const NoTransitionPage(child: MenuManagementScreen()),
     ),
     GoRoute(
       path: '/promotions',
@@ -180,6 +210,26 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/notifications',
       builder: (context, state) => const NotificationsScreen(),
+    ),
+    GoRoute(
+      path: '/restaurant-settings',
+      builder: (context, state) => const RestaurantSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/cms',
+      builder: (context, state) => const CmsManagementScreen(),
+    ),
+    GoRoute(
+      path: '/loyalty',
+      builder: (context, state) => const LoyaltyRewardsScreen(),
+    ),
+    GoRoute(
+      path: '/marketing',
+      builder: (context, state) => const MarketingScreen(),
+    ),
+    GoRoute(
+      path: '/support-messages',
+      builder: (context, state) => const SupportMessagesScreen(),
     ),
   ],
 );

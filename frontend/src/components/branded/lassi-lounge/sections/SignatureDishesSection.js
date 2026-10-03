@@ -8,6 +8,7 @@ import DishCard from '@/components/ui/DishCard';
 import { Skeleton } from '@/components/ui';
 import { signatureDishesContent } from '../config';
 import { restaurantAPI } from '@/lib/api';
+import { getItemUrl } from '@/lib/slugUtils';
 
 export default function SignatureDishesSection() {
   const eyebrow = signatureDishesContent?.eyebrow || 'Our Signature Dishes';
@@ -96,9 +97,7 @@ export default function SignatureDishesSection() {
               <div 
                 key={dish._id || dish.id} 
                 onClick={() => {
-                  const itemId = dish._id || dish.id;
-                  const resId = dish.restaurantId || 'lassi-lounge';
-                  router.push(`/restaurant/${resId}/item/${itemId}`);
+                  router.push(getItemUrl(dish));
                 }}
                 className="animate-in fade-in zoom-in-95 duration-500 ease-out fill-mode-both cursor-pointer h-full"
               >

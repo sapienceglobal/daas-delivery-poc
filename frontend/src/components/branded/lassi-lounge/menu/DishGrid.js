@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Star, Heart, Minus, Plus, Flame, Leaf, SearchX, LayoutGrid, List, ChevronDown, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { getItemUrl } from '@/lib/slugUtils';
 
 const getDishImage = (itemName) => {
   const name = itemName.toLowerCase();
@@ -206,12 +207,7 @@ export default function DishGrid({
               style={{ animationFillMode: 'both', animationDelay: `${(index % ITEMS_PER_LOAD) * 40}ms` }}
               className={`animate-in fade-in slide-in-from-bottom-8 duration-500 ease-out bg-[#fcfaf5] rounded-xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_34px_rgba(122,11,16,0.12)] flex overflow-hidden relative group ll-interactive cursor-pointer ${!isAvailable ? 'opacity-50 pointer-events-none' : ''} ${viewMode === 'grid' ? 'flex-col' : 'flex-col sm:flex-row sm:min-h-[210px] h-auto'}`}
               onClick={() => {
-                if (SINGLE_MODE) {
-                  router.push(`/item/${item._id}`);
-                } else {
-                  const rid = restaurantId || item.restaurantId;
-                  router.push(`/restaurant/${rid}/item/${item._id}`);
-                }
+                router.push(getItemUrl(item, restaurantId));
               }}
             >
               {/* Image header */}

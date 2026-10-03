@@ -155,7 +155,12 @@ export const restaurantAPI = {
 
 export const menuAPI = {
   getByRestaurant: (restaurantId) => api.get(`/api/menu/restaurant/${restaurantId}`),
-  getItem: (id) => api.get(`/api/menu/items/${id}`),
+  // `idOrSlug` may be a clean slug ("samosa") or a legacy ObjectId
+  getItem: (idOrSlug, restaurantId) =>
+    api.get(
+      `/api/menu/items/${encodeURIComponent(idOrSlug)}` +
+        (restaurantId ? `?restaurant=${encodeURIComponent(restaurantId)}` : '')
+    ),
   getCategories: (restaurantId) => api.get(`/api/menu/categories/${restaurantId}`),
   createCategory: (data) => api.post('/api/menu/categories', data),
   updateCategory: (id, data) => api.put(`/api/menu/categories/${id}`, data),

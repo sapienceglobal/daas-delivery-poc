@@ -333,12 +333,7 @@ class RevenueOrdersCard extends StatelessWidget {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please login to the website to view analytics.', style: GoogleFonts.inter()),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                context.push('/analytics');
               },
               child: Row(
                 children: [
@@ -514,14 +509,7 @@ class DashboardStatsGrid extends StatelessWidget {
               trendValue: _calculateTrend(customers, data?.prevCustomers ?? 0),
               selectedDays: selectedDays,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Please login to the website portal to use this feature.'),
-                    backgroundColor: const Color(0xFF111827),
-                    behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+                context.push('/analytics');
               },
             ),
             // 4. Catering Requests (Purple)
@@ -546,14 +534,7 @@ class DashboardStatsGrid extends StatelessWidget {
               trendValue: _calculateTrend(aov, data?.prevAov ?? 0),
               selectedDays: selectedDays,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Please login to the website portal to use this feature.'),
-                    backgroundColor: const Color(0xFF111827),
-                    behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+                context.push('/analytics');
               },
             ),
             // 6. Customer Rating (Blue)
@@ -566,14 +547,7 @@ class DashboardStatsGrid extends StatelessWidget {
               trendValue: 0.0, 
               selectedDays: selectedDays,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Please login to the website portal to use this feature.'),
-                    backgroundColor: const Color(0xFF111827),
-                    behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+                context.push('/analytics');
               },
             ),
           ],
@@ -760,13 +734,7 @@ class MomentumCard extends StatelessWidget {
           // Right Button
           OutlinedButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Please login to the website dashboard to view detailed reports.', style: GoogleFonts.inter()),
-                  behavior: SnackBarBehavior.floating,
-                  backgroundColor: const Color(0xFF1E3A8A),
-                ),
-              );
+              context.push('/analytics');
             },
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Color(0xFFF97316)),

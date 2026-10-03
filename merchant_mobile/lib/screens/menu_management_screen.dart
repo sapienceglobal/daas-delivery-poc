@@ -14,6 +14,8 @@ import '../constants/app_colors.dart';
 import '../providers/menu_provider.dart';
 import '../models/menu_model.dart';
 import '../services/api_service.dart';
+import '../widgets/app_drawer.dart';
+import '../widgets/shared_bottom_nav.dart';
 
 class MenuManagementScreen extends StatefulWidget {
   const MenuManagementScreen({Key? key}) : super(key: key);
@@ -539,20 +541,12 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 1,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/');
-            }
-          },
-        ),
-        title: Text('Menu Management', style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.bold)),
-        iconTheme: const IconThemeData(color: Colors.black),
+        elevation: 0.5,
+        title: Text('Menu Management', style: GoogleFonts.outfit(color: const Color(0xFF111827), fontWeight: FontWeight.bold, fontSize: 20)),
+        iconTheme: const IconThemeData(color: Color(0xFF111827)),
       ),
+      drawer: const AppDrawer(),
+      bottomNavigationBar: const SharedBottomNav(currentIndex: 4),
       body: RefreshIndicator(
         onRefresh: () => context.read<MenuProvider>().fetchMenu(force: true),
         child: CustomScrollView(

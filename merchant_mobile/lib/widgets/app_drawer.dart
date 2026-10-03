@@ -173,6 +173,16 @@ class AppDrawer extends StatelessWidget {
                   },
                 ),
                 _buildDrawerItem(
+                  icon: Icons.analytics_outlined,
+                  title: 'Analytics',
+                  iconColor: const Color(0xFF0EA5E9),
+                  isActive: location == '/analytics',
+                  onTap: () {
+                    context.pop();
+                    context.push('/analytics');
+                  },
+                ),
+                _buildDrawerItem(
                   icon: Icons.room_service_outlined,
                   title: 'All Orders',
                   iconColor: const Color(0xFF22C55E),
@@ -220,6 +230,56 @@ class AppDrawer extends StatelessWidget {
                   onTap: () {
                     context.pop();
                     context.push('/crm');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.web_rounded,
+                  title: 'Website CMS',
+                  iconColor: const Color(0xFF0EA5E9),
+                  isActive: location == '/cms',
+                  onTap: () {
+                    context.pop();
+                    context.push('/cms');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.settings_outlined,
+                  title: 'Restaurant Settings',
+                  iconColor: const Color(0xFF4F46E5),
+                  isActive: location == '/restaurant-settings',
+                  onTap: () {
+                    context.pop();
+                    context.push('/restaurant-settings');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.card_giftcard_rounded,
+                  title: 'Loyalty & Rewards',
+                  iconColor: const Color(0xFFF59E0B),
+                  isActive: location == '/loyalty',
+                  onTap: () {
+                    context.pop();
+                    context.push('/loyalty');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.campaign_outlined,
+                  title: 'Push Marketing',
+                  iconColor: const Color(0xFFEC4899),
+                  isActive: location == '/marketing',
+                  onTap: () {
+                    context.pop();
+                    context.push('/marketing');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.forum_outlined,
+                  title: 'Support Messages',
+                  iconColor: const Color(0xFFF43F5E),
+                  isActive: location == '/support-messages',
+                  onTap: () {
+                    context.pop();
+                    context.push('/support-messages');
                   },
                 ),
 

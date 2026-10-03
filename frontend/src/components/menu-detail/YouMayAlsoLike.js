@@ -4,6 +4,7 @@ import { Star, ShoppingCart, ChevronLeft, ChevronRight, Minus, Plus } from 'luci
 import { useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext'; // Cart Context Import kiya
+import { getItemUrl } from '@/lib/slugUtils';
 
 export default function YouMayAlsoLike({
   restaurantId,
@@ -15,12 +16,8 @@ export default function YouMayAlsoLike({
   const router = useRouter();
   const { items, updateQuantity, removeItem } = useCart(); // Cart methods nikale
 
-  const handleCardClick = (recId) => {
-    if (isSingleRestaurant) {
-      router.push(`/item/${recId}`);
-    } else {
-      router.push(`/restaurant/${restaurantId}/item/${recId}`);
-    }
+  const handleCardClick = (rec) => {
+    router.push(getItemUrl(rec, restaurantId));
   };
 
   const recommendations = menuItems
@@ -176,7 +173,7 @@ export default function YouMayAlsoLike({
             return (
               <div
                 key={rec._id || rec.id}
-                onClick={() => handleCardClick(rec._id || rec.id)}
+                onClick={() => handleCardClick(rec)}
                 className="shrink-0 w-[160px] md:w-[220px] lg:w-[240px] bg-[#ffffff] rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(122,11,16,0.12)] border border-[#e5e7eb] overflow-hidden cursor-pointer group transition-all duration-300 flex flex-col"
               >
                 {/* Product Image */}

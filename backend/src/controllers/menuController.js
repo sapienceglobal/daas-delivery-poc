@@ -1,9 +1,11 @@
+import mongoose from 'mongoose';
 import Category from '../models/Category.js';
 import MenuItem from '../models/MenuItem.js';
 import Restaurant from '../models/Restaurant.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
+import { slugify } from '../utils/slugify.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -24,9 +26,20 @@ const ensureOwner = async (restaurantId, user, RestaurantModel) => {
 
 // ── Public ──────────────────────────────────────────────────────────────────
 
+// Accepts either a Mongo ObjectId or a restaurant slug (e.g. "lassi-lounge").
+const resolveRestaurantId = async (identifier, RestaurantModel) => {
+  if (!identifier) return null;
+  if (mongoose.Types.ObjectId.isValid(identifier) && String(identifier).length === 24) {
+    return new mongoose.Types.ObjectId(identifier);
+  }
+  const restaurant = await RestaurantModel.findOne({ slug: identifier }).select('_id').lean();
+  return restaurant?._id || null;
+};
+
 export const getMenuByRestaurant = asyncHandler(async (req, response) => {
-  const { Category, MenuItem } = getModels(req);
-  const { restaurantId } = req.params;
+  const { Category, MenuItem, Restaurant } = getModels(req);
+  const restaurantId = await resolveRestaurantId(req.params.restaurantId, Restaurant);
+  if (!restaurantId) throw new AppError('Restaurant not found', 404);
 
   const categories = await Category.find({ restaurantId, isActive: true })
     .sort({ sortOrder: 1 }).lean();
@@ -42,12 +55,49 @@ export const getMenuByRestaurant = asyncHandler(async (req, response) => {
   res.success(response, { data: menu });
 });
 
+/**
+ * GET /api/menu/items/:id[?restaurant=<id|slug>]
+ *
+ * `:id` may be:
+ *   1. a clean slug           -> "samosa"            (canonical, preferred)
+ *   2. an old slug            -> "veg-samosa"        (item was renamed)
+ *   3. a raw ObjectId         -> "6a7c9a99..."       (legacy links)
+ *   4. legacy "slug-objectid" -> "samosa-6a7c9a99..." (legacy links)
+ *
+ * The response always contains the item's current canonical `slug`, so the
+ * frontend can 301 / replace the URL whenever the requested key differs.
+ */
 export const getMenuItem = asyncHandler(async (req, response) => {
-  const { MenuItem } = getModels(req);
-  const item = await MenuItem.findById(req.params.id)
-    .populate('categoryId', 'name')
-    .lean();
+  const { MenuItem, Restaurant } = getModels(req);
+  const identifier = String(req.params.id || '').trim();
+  const restaurantId = await resolveRestaurantId(req.query.restaurant, Restaurant);
+  const scope = restaurantId ? { restaurantId } : {};
+
+  const populate = (q) => q.populate('categoryId', 'name').lean();
+  let item = null;
+
+  // 1 & 2. Clean slug or previous slug (fast indexed lookup)
+  const key = identifier.toLowerCase();
+  item = await populate(MenuItem.findOne({ ...scope, slug: key }));
+  if (!item) item = await populate(MenuItem.findOne({ ...scope, previousSlugs: key }));
+
+  // 3 & 4. Legacy links containing an ObjectId
+  if (!item) {
+    const legacyId = identifier.match(/[0-9a-fA-F]{24}$/)?.[0];
+    if (legacyId) item = await populate(MenuItem.findOne({ ...scope, _id: legacyId }));
+  }
+
+  // 5. Items created before slugs existed (no stored slug yet) — match by slugified name
+  if (!item) {
+    const candidates = await MenuItem.find({ ...scope, $or: [{ slug: null }, { slug: { $exists: false } }] })
+      .select('_id name').lean();
+    const match = candidates.find(c => slugify(c.name) === key);
+    if (match) item = await populate(MenuItem.findById(match._id));
+  }
+
   if (!item) throw new AppError('Menu item not found', 404);
+  if (!item.slug) item.slug = slugify(item.name);
+
   res.success(response, { data: item });
 });
 

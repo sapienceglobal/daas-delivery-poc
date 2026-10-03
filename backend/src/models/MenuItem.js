@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { slugify } from '../utils/slugify.js';
 
 // size variation for a menu item (e.g. Small $9.99, Medium $12.99, Large $14.99).
 const SizeVariationSchema = new mongoose.Schema({
@@ -20,6 +21,14 @@ const MenuItemSchema = new mongoose.Schema({
     trim: true,
     maxlength: [200, 'Item name cannot exceed 200 characters']
   },
+  // Clean, human-readable URL key — unique per restaurant (e.g. "samosa", "mango-lassi").
+  slug: {
+    type: String,
+    trim: true,
+    lowercase: true
+  },
+  // Old slugs kept after a rename so previously shared / indexed links 301 to the new URL.
+  previousSlugs: [{ type: String, trim: true, lowercase: true }],
   description: {
     type: String,
     default: '',
@@ -86,7 +95,38 @@ const MenuItemSchema = new mongoose.Schema({
 // ── Indexes ─────────────────────────────────────────────────────────────────
 MenuItemSchema.index({ restaurantId: 1, categoryId: 1, sortOrder: 1 });
 MenuItemSchema.index({ restaurantId: 1, isAvailable: 1 });
+MenuItemSchema.index({ restaurantId: 1, slug: 1 });
+MenuItemSchema.index({ restaurantId: 1, previousSlugs: 1 });
 MenuItemSchema.index({ name: 'text', description: 'text', tags: 'text' });
+
+// ── Pre-save Slug Generation (unique per restaurant) ────────────────────────
+// "Samosa" -> "samosa"; a second "Samosa" in the same restaurant -> "samosa-2".
+MenuItemSchema.pre('save', async function () {
+  if (!this.isModified('name') && this.slug) return;
+
+  const base = slugify(this.name) || 'item';
+  if (this.slug === base) return;
+
+  const Model = this.constructor;
+  let candidate = base;
+  let counter = 2;
+  // eslint-disable-next-line no-await-in-loop
+  while (await Model.exists({
+    restaurantId: this.restaurantId,
+    _id: { $ne: this._id },
+    $or: [{ slug: candidate }, { previousSlugs: candidate }]
+  })) {
+    candidate = `${base}-${counter++}`;
+  }
+
+  // remember old slug so existing links keep working after a rename
+  if (this.slug && this.slug !== candidate) {
+    const history = new Set([...(this.previousSlugs || []), this.slug]);
+    history.delete(candidate);
+    this.previousSlugs = [...history];
+  }
+  this.slug = candidate;
+});
 
 // virtual: effective price after discount.
 MenuItemSchema.virtual('effectivePrice').get(function () {

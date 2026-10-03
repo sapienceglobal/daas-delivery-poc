@@ -136,12 +136,17 @@ const spacing = {
   4:  '1rem',     // 16px — default component padding/gap
   5:  '1.25rem',  // 20px — card padding
   6:  '1.5rem',   // 24px — section internal spacing
+  7:  '1.75rem',  // 28px — button padding, medium spacing
   8:  '2rem',     // 32px — spacing between stacked cards
+  9:  '2.25rem',  // 36px
   10: '2.5rem',   // 40px — spacing between form groups
+  11: '2.75rem',  // 44px
   12: '3rem',     // 48px — spacing between distinct page blocks
+  14: '3.5rem',   // 56px
   16: '4rem',     // 64px — section vertical padding (mobile)
   20: '5rem',     // 80px — section vertical padding (tablet)
   24: '6rem',     // 96px — section vertical padding (desktop)
+  28: '7rem',     // 112px
   32: '8rem',     // 128px — hero vertical padding
   40: '10rem',    // 160px — large hero/landing spacing
   48: '12rem',    // 192px — max page-section spacing

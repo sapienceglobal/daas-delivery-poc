@@ -163,12 +163,17 @@
   --space-4:  16px;     /* 1rem    — default component padding/gap */
   --space-5:  20px;     /* 1.25rem — card padding */
   --space-6:  24px;     /* 1.5rem  — section internal spacing */
+  --space-7:  28px;     /* 1.75rem — button padding, medium spacing */
   --space-8:  32px;     /* 2rem    — spacing between stacked cards */
+  --space-9:  36px;     /* 2.25rem */
   --space-10: 40px;     /* 2.5rem  — spacing between form groups */
+  --space-11: 44px;     /* 2.75rem */
   --space-12: 48px;     /* 3rem    — spacing between distinct page blocks */
+  --space-14: 56px;     /* 3.5rem */
   --space-16: 64px;     /* 4rem    — section vertical padding (mobile) */
   --space-20: 80px;     /* 5rem    — section vertical padding (tablet) */
   --space-24: 96px;     /* 6rem    — section vertical padding (desktop) */
+  --space-28: 112px;    /* 7rem */
   --space-32: 128px;    /* 8rem    — hero vertical padding */
   --space-40: 160px;    /* 10rem   — large hero/landing spacing */
   --space-48: 192px;    /* 12rem   — max page-section spacing */
@@ -182,12 +187,17 @@
   --space-4-rem:  1rem;
   --space-5-rem:  1.25rem;
   --space-6-rem:  1.5rem;
+  --space-7-rem:  1.75rem;
   --space-8-rem:  2rem;
+  --space-9-rem:  2.25rem;
   --space-10-rem: 2.5rem;
+  --space-11-rem: 2.75rem;
   --space-12-rem: 3rem;
+  --space-14-rem: 3.5rem;
   --space-16-rem: 4rem;
   --space-20-rem: 5rem;
   --space-24-rem: 6rem;
+  --space-28-rem: 7rem;
   --space-32-rem: 8rem;
   --space-40-rem: 10rem;
   --space-48-rem: 12rem;

@@ -18,6 +18,7 @@ import CustomizationForm from '@/components/menu-detail/CustomizationForm';
 import YouMayAlsoLike from '@/components/menu-detail/YouMayAlsoLike';
 
 import ValuePropsBar from '@/components/orders/ValuePropsBar';
+import { getItemSlug } from '@/lib/slugUtils';
 
 /**
  * ItemDetailContent — the full, rich item-detail page (breadcrumbs, product
@@ -56,12 +57,24 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
   useEffect(() => {
     async function loadData() {
       try {
+        // `itemId` is the URL key — a clean slug ("samosa") or a legacy ObjectId
         const [restRes, itemRes] = await Promise.all([
           restaurantAPI.getById(restaurantId),
-          menuAPI.getItem(itemId),
+          menuAPI.getItem(itemId, restaurantId),
         ]);
         setRestaurant(restRes.data);
         setItem(itemRes.data);
+
+        // Canonicalize browser URL to clean SEO slug if visited via legacy raw ID
+        if (typeof window !== 'undefined' && itemRes.data?.name) {
+          const canonicalSlug = getItemSlug(itemRes.data);
+          if (canonicalSlug && itemId !== canonicalSlug) {
+            const canonicalUrl = isSingleRestaurant
+              ? `/item/${canonicalSlug}`
+              : `/restaurant/${restaurantId}/item/${canonicalSlug}`;
+            window.history.replaceState(null, '', canonicalUrl);
+          }
+        }
 
         const flattened = restRes.data?.menu?.reduce((acc, cat) => acc.concat(cat.items || []), []) || [];
         setMenuItems(flattened);
@@ -82,7 +95,8 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
   }, [restaurantId, itemId]);
 
   // find matching cart items for active configuration
-  const targetId = itemId || item?._id || item?.id;
+  // always use the real DB id internally (URL key is a slug)
+  const targetId = item?._id || item?.id;
   const hasSizeVars = item?.sizeVariations && item.sizeVariations.length > 0;
 
   const matchingCartItems = items.filter(i => {
@@ -302,7 +316,7 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
             restaurantId={restaurantId}
             onQuickAdd={handleQuickAdd}
             isSingleRestaurant={isSingleRestaurant}
-            currentItemId={itemId}
+            currentItemId={item?._id}
             menuItems={menuItems}
           />
         </div>
