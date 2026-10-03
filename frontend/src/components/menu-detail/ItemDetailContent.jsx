@@ -245,8 +245,54 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
 
   const containerBg = isSingleRestaurant ? 'bg-[#faf6f0] text-[#201a15]' : 'bg-[#f7f8fa] text-[#1a1a1a]';
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
+  const itemSlug = getItemSlug(item);
+  const canonicalUrl = isSingleRestaurant
+    ? `${siteUrl}/item/${itemSlug}`
+    : `${siteUrl}/restaurant/${restaurantId}/item/${itemSlug}`;
+  const price = Number(item.price || 0).toFixed(2);
+  const imageUrl = item.image || `${siteUrl}/images/brand/logo.png`;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'MenuItem',
+    name: item.name,
+    description: item.description || `Fresh ${item.name} from Lassi Lounge NY`,
+    image: imageUrl,
+    url: canonicalUrl,
+    offers: {
+      '@type': 'Offer',
+      price,
+      priceCurrency: 'USD',
+      availability:
+        item.isAvailable !== false ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      url: canonicalUrl,
+    },
+    suitableForDiet: [
+      item.isVeg ? 'https://schema.org/VegetarianDiet' : null,
+      item.isVegan ? 'https://schema.org/VeganDiet' : null,
+      item.isGlutenFree ? 'https://schema.org/GlutenFreeDiet' : null,
+    ].filter(Boolean),
+  };
+
   return (
     <div className={`min-h-screen py-6 ${containerBg}`}>
+      <head>
+        <title>{`${item.name} | Lassi Lounge NY`}</title>
+        <meta
+          name="description"
+          content={
+            item.description
+              ? `${item.description.slice(0, 150)} — Order online at Lassi Lounge NY.`
+              : `Order ${item.name} ($${price}) online at Lassi Lounge NY. Fresh delivery & pickup.`
+          }
+        />
+        <link rel="canonical" href={canonicalUrl} />
+      </head>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="mx-auto max-w-[1400px] w-full px-4 md:px-6 lg:px-8 space-y-6">
 
         {/* Back navigation & Breadcrumbs */}
