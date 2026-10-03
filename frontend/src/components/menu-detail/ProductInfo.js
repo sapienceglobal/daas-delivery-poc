@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Star, Leaf, Flame, Clock, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
-
+import { resolveImageUrl } from '@/lib/slugUtils';
 
 export default function ProductInfo({ item, isSingleRestaurant, isFavorite, onToggleFavorite }) {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
@@ -40,9 +40,10 @@ export default function ProductInfo({ item, isSingleRestaurant, isFavorite, onTo
     return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
   };
 
-  const images = (item.images && item.images.length > 0) 
+  const rawImages = (item.images && item.images.length > 0) 
     ? item.images 
     : [item.image || getDishImage(item.name)];
+  const images = rawImages.map((img) => resolveImageUrl(img));
 
   const handlePrev = () => {
     setActiveImageIdx((prev) => (prev === 0 ? images.length - 1 : prev - 1));

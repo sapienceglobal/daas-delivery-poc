@@ -45,3 +45,38 @@ export function getItemUrl(item, restaurantId) {
     'lassi-lounge';
   return `/restaurant/${rid}/item/${slug}`;
 }
+
+/**
+ * Normalizes image URLs so localhost/127.0.0.1 URLs uploaded during development
+ * automatically resolve to the live production API URL on HTTPS without mixed-content errors.
+ */
+export function resolveImageUrl(url, fallback = '') {
+  if (!url || typeof url !== 'string') return fallback || '';
+  
+  // If the image is stored with a local loopback IP or localhost
+  if (url.includes('127.0.0.1') || url.includes('localhost')) {
+    if (url.includes('/uploads/')) {
+      const uploadPath = url.substring(url.indexOf('/uploads/'));
+      if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+        return uploadPath;
+      }
+      const liveApi = process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('localhost') && !process.env.NEXT_PUBLIC_API_URL.includes('127.0.0.1')
+        ? process.env.NEXT_PUBLIC_API_URL
+        : '';
+      return liveApi ? `${liveApi}${uploadPath}` : uploadPath;
+    }
+
+    const liveApi = process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('localhost') && !process.env.NEXT_PUBLIC_API_URL.includes('127.0.0.1')
+      ? process.env.NEXT_PUBLIC_API_URL
+      : 'https://api.lassiloungeny.com';
+    return url.replace(/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?/, liveApi);
+  }
+
+  // Ensure any other plain http:// URL is upgraded to https:// on production
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http://') && !url.includes('localhost') && !url.includes('127.0.0.1')) {
+    return url.replace(/^http:\/\//, 'https://');
+  }
+
+  return url;
+}
+

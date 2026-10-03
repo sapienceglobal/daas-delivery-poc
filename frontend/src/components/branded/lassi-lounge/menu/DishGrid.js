@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Star, Heart, Minus, Plus, Flame, Leaf, SearchX, LayoutGrid, List, ChevronDown, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { getItemUrl } from '@/lib/slugUtils';
+import { getItemUrl, resolveImageUrl } from '@/lib/slugUtils';
 
 const getDishImage = (itemName) => {
   const name = itemName.toLowerCase();
@@ -213,7 +213,7 @@ export default function DishGrid({
               {/* Image header */}
               <div className={`relative bg-[#f3f4f6] overflow-hidden shrink-0 ${viewMode === 'grid' ? 'h-[200px] w-full' : 'h-[180px] sm:h-auto w-full sm:w-[240px]'}`}>
                 <img
-                  src={item.image || getDishImage(item.name)}
+                  src={resolveImageUrl(item.image) || getDishImage(item.name)}
                   alt={item.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   onError={(e) => {

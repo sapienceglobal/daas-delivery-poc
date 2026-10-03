@@ -18,7 +18,7 @@ import CustomizationForm from '@/components/menu-detail/CustomizationForm';
 import YouMayAlsoLike from '@/components/menu-detail/YouMayAlsoLike';
 
 import ValuePropsBar from '@/components/orders/ValuePropsBar';
-import { getItemSlug } from '@/lib/slugUtils';
+import { getItemSlug, resolveImageUrl } from '@/lib/slugUtils';
 import ErrorView from '@/components/shared/ErrorView';
 
 /**
@@ -254,7 +254,7 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
     ? `${siteUrl}/item/${itemSlug}`
     : `${siteUrl}/restaurant/${restaurantId}/item/${itemSlug}`;
   const price = Number(item.price || 0).toFixed(2);
-  const imageUrl = item.image || `${siteUrl}/images/brand/logo.png`;
+  const imageUrl = resolveImageUrl(item.image) || `${siteUrl}/images/brand/logo.png`;
 
   const jsonLd = {
     '@context': 'https://schema.org',

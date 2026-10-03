@@ -36,6 +36,8 @@ const resolveRestaurantId = async (identifier, RestaurantModel) => {
   return restaurant?._id || null;
 };
 
+import { sanitizeMenuItem } from '../utils/imageUrl.js';
+
 export const getMenuByRestaurant = asyncHandler(async (req, response) => {
   const { Category, MenuItem, Restaurant } = getModels(req);
   const restaurantId = await resolveRestaurantId(req.params.restaurantId, Restaurant);
@@ -49,7 +51,9 @@ export const getMenuByRestaurant = asyncHandler(async (req, response) => {
 
   const menu = categories.map(cat => ({
     ...cat,
-    items: items.filter(item => item.categoryId.toString() === cat._id.toString())
+    items: items
+      .filter(item => item.categoryId.toString() === cat._id.toString())
+      .map(sanitizeMenuItem)
   }));
 
   res.success(response, { data: menu });
@@ -97,6 +101,7 @@ export const getMenuItem = asyncHandler(async (req, response) => {
 
   if (!item) throw new AppError('Menu item not found', 404);
   if (!item.slug) item.slug = slugify(item.name);
+  sanitizeMenuItem(item);
 
   res.success(response, { data: item });
 });

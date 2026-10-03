@@ -8,6 +8,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import { roundMoney } from '../services/orderPricing.js';
+import { sanitizeRestaurant } from '../utils/imageUrl.js';
 
 const canReadRestaurant = (restaurant, user) => {
   if (user.role === 'admin') return true;
@@ -67,7 +68,7 @@ export const getRestaurants = asyncHandler(async (req, response) => {
   ]);
 
   res.success(response, {
-    data: restaurants,
+    data: restaurants.map(sanitizeRestaurant),
     pagination: res.buildPagination(page, limit, total)
   });
 });
@@ -88,7 +89,7 @@ export const getNearbyRestaurants = asyncHandler(async (req, response) => {
     }
   }).limit(50).lean();
 
-  res.success(response, { data: restaurants });
+  res.success(response, { data: restaurants.map(sanitizeRestaurant) });
 });
 
 export const searchRestaurants = asyncHandler(async (req, response) => {
@@ -121,7 +122,7 @@ export const searchRestaurants = asyncHandler(async (req, response) => {
   }).limit(20).lean();
 
   res.success(response, {
-    data: [...restaurants, ...menuRestaurants]
+    data: [...restaurants, ...menuRestaurants].map(sanitizeRestaurant)
   });
 });
 
@@ -159,7 +160,7 @@ export const getRestaurantById = asyncHandler(async (req, response) => {
     items: items.filter(item => item.categoryId.toString() === cat._id.toString())
   }));
 
-  res.success(response, { data: { ...restaurant, menu } });
+  res.success(response, { data: sanitizeRestaurant({ ...restaurant, menu }) });
 });
 
 // ── Merchant ────────────────────────────────────────────────────────────────

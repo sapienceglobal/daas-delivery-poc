@@ -5,6 +5,7 @@ import { Plus, Minus } from 'lucide-react';
 import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import { showToast, ItemDetailModal } from '@/components/ui';
+import { resolveImageUrl } from '@/lib/slugUtils';
 
 const getDishImage = (itemName = '') => {
   const name = itemName.toLowerCase();
@@ -75,7 +76,7 @@ export default function DishCard({ item }) {
         menuItemId: targetId || 'dish-' + Date.now(),
         name: item.name,
         price: displayPrice,
-        image: item.image || getDishImage(item.name),
+        image: resolveImageUrl(item.image) || getDishImage(item.name),
         quantity: 1,
         qty: 1,
         selectedSize: null,
@@ -108,7 +109,7 @@ export default function DishCard({ item }) {
     <div className="bg-card rounded-2xl overflow-hidden shadow-md flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 group border border-border/40 select-none h-full">
       <div className="w-full h-32 relative overflow-hidden bg-surface">
         <Image
-          src={item.image || getDishImage(item.name)}
+          src={resolveImageUrl(item.image) || getDishImage(item.name)}
           alt={item.name || 'Dish'}
           fill
           sizes="(min-width: 1024px) 16vw, 45vw"
