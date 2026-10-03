@@ -277,18 +277,16 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
 
   return (
     <div className={`min-h-screen py-6 ${containerBg}`}>
-      <head>
-        <title>{`${item.name} | Lassi Lounge NY`}</title>
-        <meta
-          name="description"
-          content={
-            item.description
-              ? `${item.description.slice(0, 150)} — Order online at Lassi Lounge NY.`
-              : `Order ${item.name} ($${price}) online at Lassi Lounge NY. Fresh delivery & pickup.`
-          }
-        />
-        <link rel="canonical" href={canonicalUrl} />
-      </head>
+      <title>{`${item.name} | Lassi Lounge NY`}</title>
+      <meta
+        name="description"
+        content={
+          item.description
+            ? `${item.description.slice(0, 150)} — Order online at Lassi Lounge NY.`
+            : `Order ${item.name} ($${price}) online at Lassi Lounge NY. Fresh delivery & pickup.`
+        }
+      />
+      <link rel="canonical" href={canonicalUrl} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
