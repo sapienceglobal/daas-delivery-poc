@@ -19,6 +19,7 @@ import YouMayAlsoLike from '@/components/menu-detail/YouMayAlsoLike';
 
 import ValuePropsBar from '@/components/orders/ValuePropsBar';
 import { getItemSlug } from '@/lib/slugUtils';
+import ErrorView from '@/components/shared/ErrorView';
 
 /**
  * ItemDetailContent — the full, rich item-detail page (breadcrumbs, product
@@ -39,6 +40,7 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
 
   const [restaurant, setRestaurant] = useState(null);
   const [item, setItem] = useState(null);
+  const [notFoundState, setNotFoundState] = useState(false);
 
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,10 +61,16 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
       try {
         // `itemId` is the URL key — a clean slug ("samosa") or a legacy ObjectId
         const [restRes, itemRes] = await Promise.all([
-          restaurantAPI.getById(restaurantId),
+          restaurantAPI.getById(restaurantId).catch(() => null),
           menuAPI.getItem(itemId, restaurantId),
         ]);
-        setRestaurant(restRes.data);
+
+        if (!itemRes?.data) {
+          setNotFoundState(true);
+          return;
+        }
+
+        setRestaurant(restRes?.data || null);
         setItem(itemRes.data);
 
         // Canonicalize browser URL to clean SEO slug if visited via legacy raw ID
@@ -76,7 +84,7 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
           }
         }
 
-        const flattened = restRes.data?.menu?.reduce((acc, cat) => acc.concat(cat.items || []), []) || [];
+        const flattened = restRes?.data?.menu?.reduce((acc, cat) => acc.concat(cat.items || []), []) || [];
         setMenuItems(flattened);
 
         // pre-select default size (e.g. Full Portion or standard size)
@@ -86,7 +94,12 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
           setSelectedSize(null);
         }
       } catch (err) {
-        showToast('Failed to load item details', 'error');
+        const status = err?.status || err?.response?.status;
+        if (status === 404 || err?.message?.includes('404')) {
+          setNotFoundState(true);
+        } else {
+          showToast(err?.message || 'Failed to load item details', 'error');
+        }
       } finally {
         setLoading(false);
       }
@@ -229,18 +242,8 @@ export default function ItemDetailContent({ restaurantId, itemId }) {
 
   if (loading) return <Loading />;
 
-  if (!item) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
-        <h2 className="text-2xl font-serif font-black text-[#1a1a1a]">Item Not Found</h2>
-        <button
-          onClick={() => router.push(isSingleRestaurant ? '/menu' : `/restaurant/${restaurantId}`)}
-          className="px-6 py-2 bg-[#1a1a1a] text-[#ffffff] rounded-lg font-bold"
-        >
-          Back to Restaurant Menu
-        </button>
-      </div>
-    );
+  if (notFoundState || !item) {
+    return <ErrorView code={404} />;
   }
 
   const containerBg = isSingleRestaurant ? 'bg-[#faf6f0] text-[#201a15]' : 'bg-[#f7f8fa] text-[#1a1a1a]';
