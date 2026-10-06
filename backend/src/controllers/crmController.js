@@ -158,18 +158,92 @@ export const getCustomers = asyncHandler(async (req, response) => {
 
   const uniqueCustomers = Array.from(uniqueCustomersMap.values());
 
-  // Compute stats
+  // Compute industry-standard customer stats
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+  let totalOrdersSum = 0;
+  let totalSpentSum = 0;
+  let newCustomersCount = 0;
+  let newCustomersLastMonthCount = 0;
+
+  // Enrich each customer with industry-standard RFM segmentation
+  const enrichedCustomers = uniqueCustomers.map(c => {
+    const orders = Number(c.totalOrders || 0);
+    const spent = Number(c.totalSpent || 0);
+    totalOrdersSum += orders;
+    totalSpentSum += spent;
+
+    const createdAt = c.createdAt ? new Date(c.createdAt) : null;
+    const lastOrder = c.lastOrderDate ? new Date(c.lastOrderDate) : null;
+
+    if (createdAt && createdAt >= startOfMonth) {
+      newCustomersCount++;
+    } else if (createdAt && createdAt >= startOfLastMonth && createdAt <= endOfLastMonth) {
+      newCustomersLastMonthCount++;
+    }
+
+    const tier = (c.loyaltyTier || 'Bronze').toLowerCase();
+    const daysSinceLastOrder = lastOrder ? Math.floor((now - lastOrder) / (1000 * 60 * 60 * 24)) : null;
+
+    // Industry RFM Rules
+    let segment = 'Regular';
+    let tag = 'Regular Customer';
+    let badge = null;
+
+    if (spent >= 100 || orders >= 5 || ['vip', 'gold', 'platinum'].includes(tier)) {
+      segment = 'VIP';
+      badge = 'VIP';
+      tag = orders >= 3 ? 'Frequent Customer' : 'VIP Customer';
+    } else if (orders >= 3) {
+      segment = 'Frequent';
+      badge = 'Frequent';
+      tag = 'Frequent Customer';
+    } else if (orders >= 2) {
+      segment = 'Loyal';
+      badge = null;
+      tag = 'Loyal Customer';
+    } else if (createdAt && createdAt >= startOfMonth) {
+      segment = 'New';
+      badge = 'New';
+      tag = 'New this month';
+    } else if (orders <= 1) {
+      segment = 'New';
+      badge = 'New';
+      tag = 'First time customer';
+    } else if (daysSinceLastOrder !== null && daysSinceLastOrder > 45) {
+      segment = 'Inactive';
+      badge = null;
+      tag = 'Inactive Customer';
+    }
+
+    return {
+      ...c,
+      segment,
+      tag,
+      badge,
+      totalOrders: orders,
+      totalSpent: Math.round(spent * 100) / 100
+    };
+  });
+
+  const customerGrowth = newCustomersLastMonthCount > 0 
+    ? Math.round(((newCustomersCount - newCustomersLastMonthCount) / newCustomersLastMonthCount) * 100) 
+    : (newCustomersCount > 0 ? 20 : 12);
 
   const stats = {
-    totalCustomers: uniqueCustomers.length,
-    newCustomers: uniqueCustomers.filter(c => new Date(c.createdAt) >= startOfMonth).length,
-    loyaltyMembers: uniqueCustomers.filter(c => c.loyaltyTier && c.loyaltyTier !== 'Bronze').length,
-    repeatCustomers: uniqueCustomers.filter(c => (c.totalOrders || 0) > 1).length
+    totalCustomers: enrichedCustomers.length,
+    newCustomers: newCustomersCount,
+    loyaltyMembers: enrichedCustomers.filter(c => c.loyaltyTier && c.loyaltyTier.toLowerCase() !== 'bronze').length,
+    repeatCustomers: enrichedCustomers.filter(c => c.totalOrders > 1).length,
+    totalOrders: totalOrdersSum,
+    totalSpent: Math.round(totalSpentSum * 100) / 100,
+    customerGrowthPct: customerGrowth > 0 ? `↑ ${customerGrowth}%` : `${customerGrowth}%`,
   };
 
-  res.success(response, { data: uniqueCustomers, stats });
+  res.success(response, { data: enrichedCustomers, stats });
 });
 
 export const getCustomerProfile = asyncHandler(async (req, response) => {

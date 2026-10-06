@@ -65,6 +65,33 @@ class PromotionModel {
     );
   }
 
+  bool get isScheduled => startDate.isAfter(DateTime.now()) && isActive;
+  bool get isExpired => !isActive || endDate.isBefore(DateTime.now());
+  bool get isCurrentlyActive => isActive && !isScheduled && !isExpired;
+
+  String get statusText {
+    if (isScheduled) return 'Scheduled';
+    if (isCurrentlyActive) return 'Active';
+    return 'Expired';
+  }
+
+  String get formattedDiscount {
+    if (type == 'percentage') {
+      return '${value.toStringAsFixed(1)}% Off';
+    } else if (type == 'free_delivery') {
+      return 'Free Delivery';
+    } else if (type == 'bogo') {
+      return 'Buy 1 Get 1 Free';
+    } else {
+      return '\$${value.toStringAsFixed(2)} Off';
+    }
+  }
+
+  String get channelText {
+    if (channels.isEmpty) return 'Mobile, Web';
+    return channels.join(', ');
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'code': code,

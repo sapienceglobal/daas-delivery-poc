@@ -8,11 +8,8 @@ import '../providers/analytics_provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/push_notification_service.dart';
 import '../services/ota_update_service.dart';
-import 'dart:math';
-import 'package:google_fonts/google_fonts.dart';
-
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  const DashboardScreen({super.key});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -50,30 +47,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: const [
               // Welcome Text & Timeframe selector
               WelcomeBannerText(),
-              SizedBox(height: 16),
+              SizedBox(height: 18),
               
-              // Revenue & Orders Card
+              // Horizontally scrollable stats cards row (Total Revenue, Orders, Customers, Reservations, etc.)
               RevenueOrdersCard(),
               SizedBox(height: 20),
               
-              // 6-Card Stats Grid
-              DashboardStatsGrid(),
-              SizedBox(height: 20),
-              
-              // Momentum Card
-              MomentumCard(),
-              SizedBox(height: 24),
-              
               // Live Order Tracker
               LiveOrderTracker(),
-              SizedBox(height: 24),
+              SizedBox(height: 20),
               
-              // Quick Actions
+              // Quick Actions (4x2 grid)
               QuickActionsGrid(),
-              SizedBox(height: 24),
+              SizedBox(height: 20),
               
               // Charts / Analytics
               ChartsSection(),
+              SizedBox(height: 20),
+
+              // Momentum Card
+              MomentumCard(),
               SizedBox(height: 24),
             ],
           ),

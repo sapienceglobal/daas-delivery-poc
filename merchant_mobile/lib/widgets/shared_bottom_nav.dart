@@ -41,7 +41,7 @@ class SharedBottomNav extends StatelessWidget {
 
   Widget _buildNavItem(BuildContext context, int index, IconData activeIcon, IconData inactiveIcon, String label) {
     final isActive = currentIndex == index;
-    final color = isActive ? const Color(0xFFDC2626) : const Color(0xFF94A3B8);
+    final color = isActive ? const Color(0xFFEA580C) : const Color(0xFF94A3B8);
 
     return Expanded(
       child: GestureDetector(
@@ -81,6 +81,15 @@ class SharedBottomNav extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.visible,
+            ),
+            const SizedBox(height: 3),
+            Container(
+              width: 22,
+              height: 2.5,
+              decoration: BoxDecoration(
+                color: isActive ? const Color(0xFFEA580C) : Colors.transparent,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ],
         ),

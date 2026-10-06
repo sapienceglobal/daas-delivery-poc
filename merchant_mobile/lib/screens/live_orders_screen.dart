@@ -24,7 +24,7 @@ import '../providers/auth_provider.dart';
 import '../utils/time_utils.dart';
 
 class LiveOrdersScreen extends StatefulWidget {
-  const LiveOrdersScreen({Key? key}) : super(key: key);
+  const LiveOrdersScreen({super.key});
 
   @override
   State<LiveOrdersScreen> createState() => _LiveOrdersScreenState();
@@ -161,12 +161,13 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
             ? _buildSkeletonLoader()
             : SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,87 +176,122 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                               'Live Orders',
                               style: GoogleFonts.inter(
                                 fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF0F172A),
+                                letterSpacing: -0.5,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Track and manage orders in real time',
                               style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                                color: const Color(0xFF6B7280),
                               ),
                             ),
                           ],
                         ),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF991B1B),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: IconButton(
-                            onPressed: () =>
-                                context.read<OrderProvider>().fetchOrders(),
-                            icon: const Icon(
-                              Icons.refresh,
-                              color: Colors.white,
-                              size: 20,
+                        // Refresh button matching mockup
+                        GestureDetector(
+                          onTap: () => context.read<OrderProvider>().fetchOrders(force: true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEA580C), // Bright orange from UI mockup
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFEA580C).withValues(alpha: 0.25),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                            tooltip: 'Refresh',
-                            padding: const EdgeInsets.all(10),
-                            constraints: const BoxConstraints(),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.refresh_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Refresh',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
-                    // Order Status Sections
+                    // Order Status Sections (5 Stages matching UI Mockup)
                     _buildStatusSection(
-                      'New Orders',
-                      Icons.shopping_bag_outlined,
-                      newOrders,
-                      const Color(0xFF991B1B),
-                      const Color(0xFFFEF2F2),
-                      const Color(0xFFFEE2E2),
-                      const Color(0xFFFECACA),
+                      title: 'New Orders',
+                      icon: Icons.assignment_outlined,
+                      emptyIllustrationIcon: Icons.receipt_long_rounded,
+                      emptyTitle: 'No new orders',
+                      emptySubtitle: 'Orders placed by customers will appear here.',
+                      orders: newOrders,
+                      textColor: const Color(0xFF9A3412),
+                      bgColor: const Color(0xFFFFF7ED),
+                      badgeBgColor: const Color(0xFFFFEDD5),
+                      borderColor: const Color(0xFFFED7AA),
                     ),
                     _buildStatusSection(
-                      'Accepted',
-                      Icons.check_circle_outline,
-                      accepted,
-                      const Color(0xFF9A3412),
-                      const Color(0xFFFFF7ED),
-                      const Color(0xFFFFEDD5),
-                      const Color(0xFFFED7AA),
+                      title: 'Accepted',
+                      icon: Icons.check_circle_outline_rounded,
+                      emptyIllustrationIcon: Icons.fact_check_outlined,
+                      emptyTitle: 'No accepted orders',
+                      emptySubtitle: 'Orders that are accepted will appear here.',
+                      orders: accepted,
+                      textColor: const Color(0xFF854D0E),
+                      bgColor: const Color(0xFFFEFCE8),
+                      badgeBgColor: const Color(0xFFFEF9C3),
+                      borderColor: const Color(0xFFFEF08A),
                     ),
                     _buildStatusSection(
-                      'Preparing',
-                      Icons.access_time,
-                      preparing,
-                      const Color(0xFF5B21B6),
-                      const Color(0xFFF5F3FF),
-                      const Color(0xFFEDE9FE),
-                      const Color(0xFFDDD6FE),
+                      title: 'Preparing',
+                      icon: Icons.access_time_rounded,
+                      emptyIllustrationIcon: Icons.soup_kitchen_outlined,
+                      emptyTitle: 'No orders in preparation',
+                      emptySubtitle: 'Orders being prepared will appear here.',
+                      orders: preparing,
+                      textColor: const Color(0xFF6B21A8),
+                      bgColor: const Color(0xFFFAF5FF),
+                      badgeBgColor: const Color(0xFFF3E8FF),
+                      borderColor: const Color(0xFFE9D5FF),
                     ),
                     _buildStatusSection(
-                      'Ready',
-                      Icons.shopping_bag,
-                      ready,
-                      const Color(0xFF166534),
-                      const Color(0xFFF0FDF4),
-                      const Color(0xFFDCFCE7),
-                      const Color(0xFFBBF7D0),
+                      title: 'Ready',
+                      icon: Icons.shopping_bag_outlined,
+                      emptyIllustrationIcon: Icons.room_service_outlined,
+                      emptyTitle: 'No ready orders',
+                      emptySubtitle: 'Orders ready for pickup or delivery will appear here.',
+                      orders: ready,
+                      textColor: const Color(0xFF15803D),
+                      bgColor: const Color(0xFFF0FDF4),
+                      badgeBgColor: const Color(0xFFDCFCE7),
+                      borderColor: const Color(0xFFBBF7D0),
                     ),
                     _buildStatusSection(
-                      'Out for Delivery',
-                      Icons.directions_bike,
-                      outForDelivery,
-                      const Color(0xFF1E40AF),
-                      const Color(0xFFEFF6FF),
-                      const Color(0xFFDBEAFE),
-                      const Color(0xFFBFDBFE),
+                      title: 'Out for Delivery',
+                      icon: Icons.two_wheeler_rounded,
+                      emptyIllustrationIcon: Icons.delivery_dining_outlined,
+                      emptyTitle: 'No orders out for delivery',
+                      emptySubtitle: 'Orders that are out for delivery will appear here.',
+                      orders: outForDelivery,
+                      textColor: const Color(0xFF0369A1),
+                      bgColor: const Color(0xFFF0F9FF),
+                      badgeBgColor: const Color(0xFFE0F2FE),
+                      borderColor: const Color(0xFFBAE6FD),
                     ),
 
                     // Today's Summary
@@ -323,17 +359,20 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
     );
   }
 
-  Widget _buildStatusSection(
-    String title,
-    IconData icon,
-    List<OrderModel> orders,
-    Color textColor,
-    Color bgColor,
-    Color badgeBgColor,
-    Color borderColor,
-  ) {
+  Widget _buildStatusSection({
+    required String title,
+    required IconData icon,
+    required IconData emptyIllustrationIcon,
+    required String emptyTitle,
+    required String emptySubtitle,
+    required List<OrderModel> orders,
+    required Color textColor,
+    required Color bgColor,
+    required Color badgeBgColor,
+    required Color borderColor,
+  }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: bgColor,
@@ -349,10 +388,12 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
+                      color: badgeBgColor,
                       shape: BoxShape.circle,
-                      border: Border.all(color: borderColor),
+                      border: Border.all(color: borderColor.withValues(alpha: 0.8)),
                     ),
                     child: Icon(icon, color: textColor, size: 16),
                   ),
@@ -360,7 +401,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
                   Text(
                     title,
                     style: GoogleFonts.inter(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       color: textColor,
                       fontSize: 16,
                     ),
@@ -369,17 +410,18 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
+                  horizontal: 14,
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
                   color: badgeBgColor,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: borderColor.withValues(alpha: 0.6)),
                 ),
                 child: Text(
                   '${orders.length}',
                   style: GoogleFonts.inter(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
                     color: textColor,
                     fontSize: 14,
                   ),
@@ -387,40 +429,154 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           if (orders.isEmpty)
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 24),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(12),
-                // Using a regular border as placeholder for dashed border
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: borderColor,
-                  style: BorderStyle.solid,
+                  color: borderColor.withValues(alpha: 0.6),
                 ),
               ),
-              child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.inbox, color: Colors.grey.shade400, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      'No orders',
-                      style: GoogleFonts.inter(
-                        color: Colors.grey.shade500,
-                        fontSize: 12,
-                      ),
+              child: Row(
+                children: [
+                  _buildEmptyIllustration(emptyIllustrationIcon, textColor),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          emptyTitle,
+                          style: GoogleFonts.inter(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          emptySubtitle,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: const Color(0xFF64748B),
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             )
           else
             ...orders
                 .map((order) => _buildOrderCard(order, textColor))
                 .toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyIllustration(IconData icon, Color color) {
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Top-left sparkle dashes
+          Positioned(
+            top: 2,
+            left: 2,
+            child: Transform.rotate(
+              angle: -0.6,
+              child: Container(
+                width: 4,
+                height: 2,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 9,
+            child: Transform.rotate(
+              angle: -0.2,
+              child: Container(
+                width: 4,
+                height: 2,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ),
+          ),
+          // Top-right sparkle dashes
+          Positioned(
+            top: 2,
+            right: 2,
+            child: Transform.rotate(
+              angle: 0.6,
+              child: Container(
+                width: 4,
+                height: 2,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            right: 9,
+            child: Transform.rotate(
+              angle: 0.2,
+              child: Container(
+                width: 4,
+                height: 2,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ),
+          ),
+          // Bottom subtle sparkle
+          Positioned(
+            bottom: 4,
+            left: 6,
+            child: Container(
+              width: 3,
+              height: 3,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 4,
+            right: 6,
+            child: Container(
+              width: 3,
+              height: 3,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.5),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          // Center Icon
+          Icon(icon, size: 34, color: color),
         ],
       ),
     );
@@ -455,7 +611,7 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -1434,11 +1590,11 @@ class _PaymentModalContent extends StatefulWidget {
   final String? customerPhone;
 
   const _PaymentModalContent({
-    Key? key,
+    super.key,
     required this.paymentUrl,
     required this.createdAt,
     this.customerPhone,
-  }) : super(key: key);
+  });
 
   @override
   State<_PaymentModalContent> createState() => _PaymentModalContentState();
@@ -1559,7 +1715,7 @@ class _PaymentModalContentState extends State<_PaymentModalContent> {
                         foregroundColor: Colors.white,
                         disabledBackgroundColor: const Color(
                           0xFF25D366,
-                        ).withOpacity(0.5),
+                        ).withValues(alpha: 0.5),
                         disabledForegroundColor: Colors.white,
                       ),
                       onPressed:

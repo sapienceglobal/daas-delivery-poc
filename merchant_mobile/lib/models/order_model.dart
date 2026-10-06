@@ -5,6 +5,7 @@ class OrderItem {
   final List<String> addOns;
   final String? specialInstructions;
   final double lineTotal;
+  final String? image;
 
   OrderItem({
     required this.name,
@@ -13,6 +14,7 @@ class OrderItem {
     this.addOns = const [],
     this.specialInstructions,
     this.lineTotal = 0.0,
+    this.image,
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class OrderItem {
       addOns: addOnsList,
       specialInstructions: json['specialInstructions'],
       lineTotal: (json['lineTotal'] ?? 0.0).toDouble(),
+      image: json['image'] ?? json['imageUrl'],
     );
   }
 }

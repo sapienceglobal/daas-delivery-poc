@@ -32,52 +32,84 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       centerTitle: false,
       actions: [
-        // Global Search
-        IconButton(
-          icon: const Icon(Icons.search, color: Color(0xFF1F2937), size: 28),
-          onPressed: () {
-            showSearch(
-              context: context,
-              delegate: GlobalSearchDelegate(),
-            );
-          },
+        // Global Search Button
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: InkWell(
+            onTap: () {
+              showSearch(
+                context: context,
+                delegate: GlobalSearchDelegate(),
+              );
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FAFC),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: const Icon(Icons.search, color: Color(0xFF1E293B), size: 20),
+            ),
+          ),
         ),
         // Notification bell with badge
-        Consumer<NotificationProvider>(
-          builder: (context, notificationProvider, child) {
-            final unreadCount = notificationProvider.unreadCount;
-            return Stack(
-              alignment: Alignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF1F2937), size: 28),
-                  onPressed: () {
-                    context.push('/notifications');
-                  },
-                ),
-                if (unreadCount > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
+        Padding(
+          padding: const EdgeInsets.only(left: 4, right: 12),
+          child: Consumer<NotificationProvider>(
+            builder: (context, notificationProvider, child) {
+              final unreadCount = notificationProvider.unreadCount;
+              return Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  InkWell(
+                    onTap: () => context.push('/notifications'),
+                    borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: const EdgeInsets.all(4),
+                      width: 38,
+                      height: 38,
                       decoration: const BoxDecoration(
-                        color: Color(0xFFDC2626),
+                        color: Color(0xFFF8FAFC),
                         shape: BoxShape.circle,
                       ),
-                      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                      child: Text(
-                        unreadCount > 99 ? '99+' : unreadCount.toString(),
-                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.notifications_none_rounded,
+                        color: Color(0xFF1E293B),
+                        size: 20,
                       ),
                     ),
-                  )
-              ],
-            );
-          },
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: -2,
+                      top: -2,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFDC2626),
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          unreadCount > 99 ? '99+' : unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
         ),
-        const SizedBox(width: 12),
       ],
     );
   }

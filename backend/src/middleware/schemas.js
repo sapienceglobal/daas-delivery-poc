@@ -31,7 +31,11 @@ export const registerSchema = Joi.object({
       'any.required': 'Password is required'
     }),
   phone: Joi.string().allow('').optional(),
-  role: Joi.string().valid('customer', 'merchant').optional()
+  role: Joi.string().valid('customer', 'merchant').optional(),
+  agreedToTerms: Joi.boolean().valid(true).required().messages({
+    'any.only': 'You must agree to the Terms & Conditions and Privacy Policy to register.',
+    'any.required': 'You must agree to the Terms & Conditions and Privacy Policy to register.'
+  })
 });
 
 export const forgotPasswordSchema = Joi.object({

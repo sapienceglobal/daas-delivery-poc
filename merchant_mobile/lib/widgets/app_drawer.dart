@@ -5,11 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../constants/app_colors.dart';
 import '../providers/auth_provider.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({Key? key}) : super(key: key);
+  const AppDrawer({super.key});
 
   static const String privacyPolicyUrl = 'https://lassiloungeny.com/merchant-privacy-policy';
   static const String termsOfServiceUrl = 'https://lassiloungeny.com/terms';
@@ -44,368 +43,546 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final screenWidth = media.size.width;
+
+    // Responsive width calculation:
+    // Narrow phone (<360px) -> 88% screen
+    // Standard phone (360-600px) -> 82% screen (capped around 325-340px)
+    // Tablet / Desktop (>600px) -> max 350px so it remains sleek and usable
+    final drawerWidth = screenWidth < 360
+        ? screenWidth * 0.88
+        : (screenWidth < 600 ? (screenWidth * 0.82).clamp(280.0, 340.0) : 350.0);
+
     // Current route to highlight active tab
     final String location = GoRouterState.of(context).uri.toString();
 
     final user = context.watch<AuthProvider>().user;
     final name = (user?['name'] as String?)?.isNotEmpty == true
         ? user!['name'] as String
-        : 'Admin';
+        : 'Lassi Lounge Admin';
     final email = (user?['email'] as String?)?.isNotEmpty == true
         ? user!['email'] as String
-        : 'admin@lassilounge.com';
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'A';
+        : 'admin@lassiloungeny.com';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'L';
 
     return Drawer(
-      width: 280,
+      width: drawerWidth,
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
-      child: Column(
-        children: [
-          // 1. Header (Logo & Close button)
-          Container(
-            padding: const EdgeInsets.only(top: 38, left: 24, right: 16, bottom: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Logo
-                Image.asset(
-                  'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-                  height: 90,
-                  errorBuilder: (context, error, stackTrace) => Text(
-                    'Lassi Lounge',
-                    style: GoogleFonts.outfit(
-                      color: const Color(0xFFE63946),
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                // Close Button
-                InkWell(
-                  onTap: () => context.pop(),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF3F4F6),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.close, size: 16, color: Color(0xFF6B7280)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // 2. Profile Section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF97316),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    initial,
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFF111827),
-                          fontSize: 16,
+      elevation: 16,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topRight: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
+        child: SafeArea(
+          top: true,
+          bottom: true,
+          child: Column(
+            children: [
+              // ── 1. Top Header: Brand Logo & Circular Close Button ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 16, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Image.asset(
+                      'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
+                      height: 88,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Text(
+                        'Lassi Lounge',
+                        style: GoogleFonts.outfit(
+                          color: const Color(0xFFE63946),
+                          fontSize: 36,
                           fontWeight: FontWeight.bold,
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        email,
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFF6B7280),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w400,
+                    ),
+                    InkWell(
+                      onTap: () => Navigator.of(context).pop(),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFDEEE7),
+                          shape: BoxShape.circle,
                         ),
-                        overflow: TextOverflow.ellipsis,
+                        child: const Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: Color(0xFFC2410C),
+                        ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── 2. User Profile Card ──
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF6EE),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFFFFEDDE),
+                    width: 1,
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Divider(color: Color(0xFFF3F4F6), thickness: 1),
-          ),
-
-          // 3. Navigation List
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              physics: const BouncingScrollPhysics(),
-              children: [
-                _buildDrawerItem(
-                  icon: Icons.home_filled,
-                  title: 'Dashboard',
-                  iconColor: const Color(0xFFF97316),
-                  isActive: location == '/',
-                  onTap: () {
-                    context.pop();
-                    context.go('/');
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.analytics_outlined,
-                  title: 'Analytics',
-                  iconColor: const Color(0xFF0EA5E9),
-                  isActive: location == '/analytics',
-                  onTap: () {
-                    context.pop();
-                    context.push('/analytics');
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.room_service_outlined,
-                  title: 'All Orders',
-                  iconColor: const Color(0xFF22C55E),
-                  isActive: location == '/all-orders',
-                  onTap: () {
-                    context.pop();
-                    context.push('/all-orders');
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.calendar_month_outlined,
-                  title: 'Catering Enquiries',
-                  iconColor: const Color(0xFFA855F7),
-                  isActive: location == '/catering',
-                  onTap: () {
-                    context.pop();
-                    context.push('/catering');
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.sell_outlined,
-                  title: 'Menu Management',
-                  iconColor: const Color(0xFF8B5CF6),
-                  isActive: location == '/menu-management',
-                  onTap: () {
-                    context.pop();
-                    context.push('/menu-management');
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.discount_outlined,
-                  title: 'Promotions',
-                  iconColor: const Color(0xFF3B82F6),
-                  isActive: location == '/promotions',
-                  onTap: () {
-                    context.pop();
-                    context.push('/promotions');
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.people_alt_outlined,
-                  title: 'Customers & CRM',
-                  iconColor: const Color(0xFFEC4899),
-                  isActive: location == '/crm',
-                  onTap: () {
-                    context.pop();
-                    context.push('/crm');
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.web_rounded,
-                  title: 'Website CMS',
-                  iconColor: const Color(0xFF0EA5E9),
-                  isActive: location == '/cms',
-                  onTap: () {
-                    context.pop();
-                    context.push('/cms');
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.settings_outlined,
-                  title: 'Restaurant Settings',
-                  iconColor: const Color(0xFF4F46E5),
-                  isActive: location == '/restaurant-settings',
-                  onTap: () {
-                    context.pop();
-                    context.push('/restaurant-settings');
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.card_giftcard_rounded,
-                  title: 'Loyalty & Rewards',
-                  iconColor: const Color(0xFFF59E0B),
-                  isActive: location == '/loyalty',
-                  onTap: () {
-                    context.pop();
-                    context.push('/loyalty');
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.campaign_outlined,
-                  title: 'Push Marketing',
-                  iconColor: const Color(0xFFEC4899),
-                  isActive: location == '/marketing',
-                  onTap: () {
-                    context.pop();
-                    context.push('/marketing');
-                  },
-                ),
-                _buildDrawerItem(
-                  icon: Icons.forum_outlined,
-                  title: 'Support Messages',
-                  iconColor: const Color(0xFFF43F5E),
-                  isActive: location == '/support-messages',
-                  onTap: () {
-                    context.pop();
-                    context.push('/support-messages');
-                  },
-                ),
-
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Divider(color: Color(0xFFF3F4F6), thickness: 1),
-                ),
-
-                // Legal & Policy items
-                _buildDrawerItem(
-                  icon: Icons.shield_outlined,
-                  title: 'Privacy Policy',
-                  iconColor: const Color(0xFF6B7280),
-                  isActive: false,
-                  onTap: () => _launchUrl(privacyPolicyUrl),
-                ),
-                _buildDrawerItem(
-                  icon: Icons.description_outlined,
-                  title: 'Terms of Service',
-                  iconColor: const Color(0xFF6B7280),
-                  isActive: false,
-                  onTap: () => _launchUrl(termsOfServiceUrl),
-                ),
-                _buildDrawerItem(
-                  icon: Icons.delete_forever_outlined,
-                  title: 'Delete Account',
-                  iconColor: const Color(0xFFEF4444),
-                  isActive: false,
-                  onTap: () {
-                    context.pop();
-                    _showDeleteAccountSheet(context);
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          // 4. Footer section
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24),
-            child: Divider(color: Color(0xFFF3F4F6), thickness: 1),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            child: Column(
-              children: [
-                FutureBuilder<PackageInfo>(
-                  future: PackageInfo.fromPlatform(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: Text(
-                          'Version ${snapshot.data!.version}',
-                          style: GoogleFonts.inter(
-                            color: Colors.grey.shade500,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEA580C),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        initial,
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
                         ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            name,
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFF1E293B),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            email,
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFF64748B),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x08000000),
+                                  blurRadius: 3,
+                                  offset: Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.storefront_rounded,
+                                  size: 13,
+                                  color: Color(0xFFEA580C),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Main Branch',
+                                  style: GoogleFonts.inter(
+                                    color: const Color(0xFF334155),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                _buildDrawerItem(
-                  icon: Icons.logout,
-                  title: 'Logout',
-                  iconColor: const Color(0xFFEF4444),
-                  isActive: false,
-                  onTap: () async {
-                    await context.read<AuthProvider>().logout();
-                    if (context.mounted) {
-                      context.go('/login');
-                    }
-                  },
+              ),
+
+              const SizedBox(height: 4),
+
+              // ── 3. Navigation List ──
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    _buildNavItem(
+                      icon: Icons.grid_view_rounded,
+                      title: 'Dashboard',
+                      isActive: location == '/',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.go('/');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.room_service_outlined,
+                      title: 'All Orders',
+                      isActive: location == '/all-orders',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/all-orders');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.calendar_today_outlined,
+                      title: 'Catering Enquiries',
+                      isActive: location == '/catering',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/catering');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.sell_outlined,
+                      title: 'Menu Management',
+                      isActive: location == '/menu-management',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/menu-management');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.campaign_outlined,
+                      title: 'Promotions',
+                      isActive: location == '/promotions',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/promotions');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.people_outline_rounded,
+                      title: 'Customers & CRM',
+                      isActive: location == '/crm',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/crm');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.point_of_sale_rounded,
+                      title: 'Point of Sale',
+                      isActive: location == '/pos',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/pos');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.event_note_outlined,
+                      title: 'Bookings',
+                      isActive: location == '/reservations',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/reservations');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.pie_chart_outline_rounded,
+                      title: 'Reports & Analytics',
+                      isActive: location == '/analytics',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/analytics');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.settings_outlined,
+                      title: 'Settings',
+                      isActive: location == '/restaurant-settings',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/restaurant-settings');
+                      },
+                    ),
+
+                    // Additional Core Management Screens
+                    _buildNavItem(
+                      icon: Icons.timer_outlined,
+                      title: 'Live Orders',
+                      isActive: location == '/live-orders',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/live-orders');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.web_rounded,
+                      title: 'Website CMS',
+                      isActive: location == '/cms',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/cms');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.card_giftcard_rounded,
+                      title: 'Loyalty & Rewards',
+                      isActive: location == '/loyalty',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/loyalty');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.mark_email_unread_outlined,
+                      title: 'Push Marketing',
+                      isActive: location == '/marketing',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/marketing');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.forum_outlined,
+                      title: 'Support Messages',
+                      isActive: location == '/support-messages',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/support-messages');
+                      },
+                    ),
+
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      child: Divider(color: Color(0xFFF1F5F9), thickness: 1),
+                    ),
+
+                    // Legal & Policy Compliance
+                    _buildNavItem(
+                      icon: Icons.shield_outlined,
+                      title: 'Privacy Policy',
+                      isActive: false,
+                      onTap: () => _launchUrl(privacyPolicyUrl),
+                    ),
+                    _buildNavItem(
+                      icon: Icons.description_outlined,
+                      title: 'Terms of Service',
+                      isActive: false,
+                      onTap: () => _launchUrl(termsOfServiceUrl),
+                    ),
+                    _buildNavItem(
+                      icon: Icons.delete_forever_outlined,
+                      title: 'Delete Account',
+                      isActive: false,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _showDeleteAccountSheet(context);
+                      },
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+
+              // ── 4. Bottom Action Card (Settings & Logout) ──
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF6F0),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildBottomAction(
+                      icon: Icons.settings_outlined,
+                      label: 'Settings',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/restaurant-settings');
+                      },
+                    ),
+                    _buildBottomAction(
+                      icon: Icons.logout_rounded,
+                      label: 'Logout',
+                      onTap: () async {
+                        Navigator.of(context).pop();
+                        await context.read<AuthProvider>().logout();
+                        if (context.mounted) {
+                          context.go('/login');
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              // Subtle version caption
+              FutureBuilder<PackageInfo>(
+                future: PackageInfo.fromPlatform(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text(
+                        'v${snapshot.data!.version}',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF94A3B8),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildDrawerItem({
+  Widget _buildNavItem({
     required IconData icon,
     required String title,
-    required Color iconColor,
     required bool isActive,
     required VoidCallback onTap,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          hoverColor: const Color(0xFFF9FAFB),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isActive ? const Color(0xFFFFF7ED) : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  icon,
-                  color: isActive ? iconColor : iconColor.withOpacity(0.85),
-                  size: 22,
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Row(
+          children: [
+            // Left edge indicator bar matching the screenshot
+            Container(
+              width: 4,
+              height: 32,
+              decoration: BoxDecoration(
+                color: isActive ? const Color(0xFFEA580C) : Colors.transparent,
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(4),
+                  bottomRight: Radius.circular(4),
                 ),
-                const SizedBox(width: 16),
-                Text(
-                  title,
-                  style: GoogleFonts.inter(
-                    color: isActive ? iconColor : const Color(0xFF374151),
-                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                    fontSize: 14,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.only(right: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color:
+                      isActive ? const Color(0xFFFFF3EB) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      icon,
+                      color: const Color(0xFFEA580C),
+                      size: 21,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: GoogleFonts.outfit(
+                          color: isActive
+                              ? const Color(0xFFEA580C)
+                              : const Color(0xFF1E293B),
+                          fontWeight:
+                              isActive ? FontWeight.w700 : FontWeight.w500,
+                          fontSize: 15,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: isActive
+                          ? const Color(0xFFEA580C)
+                          : const Color(0xFFCBD5E1),
+                      size: isActive ? 20 : 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x0A000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
                   ),
-                ),
-              ],
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                icon,
+                color: const Color(0xFFEA580C),
+                size: 22,
+              ),
             ),
-          ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                color: const Color(0xFFEA580C),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -485,7 +662,7 @@ class _MerchantDeleteAccountSheetState
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFFDC2626).withOpacity(0.1),
+                color: const Color(0xFFDC2626).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -630,7 +807,7 @@ class _MerchantDeleteAccountSheetState
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDC2626).withOpacity(0.1),
+                    color: const Color(0xFFDC2626).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(

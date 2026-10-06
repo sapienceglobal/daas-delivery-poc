@@ -116,6 +116,17 @@ function LoginPageContent() {
     setFormError('');
   };
 
+  const handleToggleTerms = () => {
+    setAgreedToTerms(prev => {
+      const next = !prev;
+      if (next) {
+        setErrors(err => ({ ...err, terms: '' }));
+        setFormError('');
+      }
+      return next;
+    });
+  };
+
   const validate = () => {
     try {
       if (isRegister) {
@@ -145,7 +156,7 @@ function LoginPageContent() {
     if (!validate()) return;
 
     if (isRegister && !agreedToTerms) {
-      setErrors(prev => ({ ...prev, terms: 'You must agree to the Terms & Conditions' }));
+      setErrors(prev => ({ ...prev, terms: 'You must agree to the Terms & Conditions and Privacy Policy to register.' }));
       return;
     }
 
@@ -492,13 +503,17 @@ function LoginPageContent() {
                   {isRegister && (
                     <div className="flex items-start gap-2.5 pt-1">
                       <div
-                        onClick={() => setAgreedToTerms(p => !p)}
+                        role="checkbox"
+                        aria-checked={agreedToTerms}
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); handleToggleTerms(); } }}
+                        onClick={handleToggleTerms}
                         className={`mt-0.5 w-[18px] h-[18px] rounded-[4px] border-[1.5px] flex items-center justify-center cursor-pointer shrink-0 transition-colors ${agreedToTerms ? 'bg-[#4a090b] border-[#4a090b]' : 'bg-white border-[#d1d5db]'}`}
                       >
                         {agreedToTerms && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                       </div>
-                      <label onClick={() => setAgreedToTerms(p => !p)} className="text-[13px] text-[#4b5563] cursor-pointer select-none leading-snug">
-                        I agree to the <span className="text-[#4a090b] font-bold hover:underline cursor-pointer">Terms, Cancellation & Refund Policy</span> and <span className="text-[#4a090b] font-bold hover:underline cursor-pointer">Privacy Policy</span>
+                      <label onClick={handleToggleTerms} className="text-[13px] text-[#4b5563] cursor-pointer select-none leading-snug">
+                        I agree to the <Link href="/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[#4a090b] font-bold hover:underline cursor-pointer">Terms, Cancellation & Refund Policy</Link> and <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-[#4a090b] font-bold hover:underline cursor-pointer">Privacy Policy</Link>
                       </label>
                     </div>
                   )}
@@ -789,13 +804,17 @@ function LoginPageContent() {
             {isRegister && (
               <div className="flex items-start gap-2">
                 <div
-                  onClick={() => setAgreedToTerms(p => !p)}
+                  role="checkbox"
+                  aria-checked={agreedToTerms}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); handleToggleTerms(); } }}
+                  onClick={handleToggleTerms}
                   className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center cursor-pointer shrink-0 transition-colors ${agreedToTerms ? 'bg-brand-primary border-brand-primary' : 'bg-white border-brand-divider'}`}
                 >
                   {agreedToTerms && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                 </div>
-                <label onClick={() => setAgreedToTerms(p => !p)} className="text-sm text-brand-muted cursor-pointer select-none leading-snug">
-                  I agree to the <span className="text-brand-cyan font-bold hover:underline cursor-pointer">Terms, Cancellation & Refund Policy</span> and <span className="text-brand-cyan font-bold hover:underline cursor-pointer">Privacy Policy</span>
+                <label onClick={handleToggleTerms} className="text-sm text-brand-muted cursor-pointer select-none leading-snug">
+                  I agree to the <Link href="/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-brand-cyan font-bold hover:underline cursor-pointer">Terms, Cancellation & Refund Policy</Link> and <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-brand-cyan font-bold hover:underline cursor-pointer">Privacy Policy</Link>
                 </label>
               </div>
             )}
