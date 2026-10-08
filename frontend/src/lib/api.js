@@ -4,6 +4,8 @@
 * token management, and base URL resolution.
 */
 
+import { cleanUrl } from '@/lib/slugUtils';
+
 const getApiBaseUrl = () => {
   // always use relative URLs on the client so Next.js rewrites proxy it to the backend.
   // this solves ALL CORS and Cross-Origin Cookie problems for live deployments over HTTP.
@@ -14,7 +16,7 @@ const getApiBaseUrl = () => {
   // server-side rendering (SSR) needs absolute URL
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
   if (envUrl) {
-    return envUrl;
+    return cleanUrl(envUrl);
   }
 
   return 'http://127.0.0.1:5001';

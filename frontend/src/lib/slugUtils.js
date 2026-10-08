@@ -80,3 +80,19 @@ export function resolveImageUrl(url, fallback = '') {
   return url;
 }
 
+/**
+ * Cleans and normalizes URLs from environment variables, removing markdown links,
+ * trailing slashes, carriage returns (\r), newlines, wrapping quotes, and spaces.
+ */
+export function cleanUrl(url) {
+  if (!url) return '';
+  let str = String(url).trim().replace(/[\r\n\t]/g, '');
+  const mdMatch = str.match(/\((https?:\/\/[^)]+)\)/);
+  if (mdMatch) {
+    str = mdMatch[1];
+  } else {
+    str = str.replace(/^\[+/, '').replace(/\]+$/, '');
+  }
+  str = str.replace(/^["']+|["']+$/g, '').trim();
+  return str.replace(/\/+$/, '');
+}

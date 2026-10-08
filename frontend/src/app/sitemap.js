@@ -1,8 +1,9 @@
-import { getItemSlug } from '@/lib/slugUtils';
+import { getItemSlug, cleanUrl } from '@/lib/slugUtils';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-const restaurantId = process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'lassi-lounge';
+const siteUrl = cleanUrl(process.env.NEXT_PUBLIC_SITE_URL) || 'https://www.lassiloungeny.com';
+const apiUrl = cleanUrl(process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5001';
+const restaurantId = (process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'lassi-lounge').trim().replace(/[\r\n]/g, '');
+const appSecret = (process.env.APP_SECRET || process.env.NEXT_PUBLIC_APP_SECRET || 'mobile_app_secure_key_2026').trim().replace(/[\r\n]/g, '');
 
 /**
  * Next.js Dynamic Sitemap Generator (App Router)

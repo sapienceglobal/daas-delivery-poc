@@ -1,11 +1,12 @@
 import { ImageResponse } from 'next/og';
+import { cleanUrl } from '@/lib/slugUtils';
 
 export const runtime = 'nodejs';
 export const alt = 'Lassi Lounge NY - Authentic Indian Restaurant & Delivery';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
+const siteUrl = cleanUrl(process.env.NEXT_PUBLIC_SITE_URL) || 'https://www.lassiloungeny.com';
 const brandedLogoUrl = `${siteUrl}/assets/images/branded/lassi-lounge/og-image.png`;
 
 /**

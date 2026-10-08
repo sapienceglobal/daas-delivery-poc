@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation';
 import ItemDetailContent from '@/components/menu-detail/ItemDetailContent';
-import { resolveImageUrl, getItemSlug } from '@/lib/slugUtils';
+import { resolveImageUrl, getItemSlug, cleanUrl } from '@/lib/slugUtils';
 import { fetchItemData } from '@/lib/menuData';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
-const restaurantId = process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'lassi-lounge';
+const siteUrl = cleanUrl(process.env.NEXT_PUBLIC_SITE_URL) || 'https://www.lassiloungeny.com';
+const restaurantId = (process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'lassi-lounge').trim().replace(/[\r\n]/g, '');
 
 /**
  * Generates dynamic SEO metadata for Google, WhatsApp, Facebook, Twitter, etc.

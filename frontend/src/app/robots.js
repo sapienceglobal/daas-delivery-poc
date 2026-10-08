@@ -1,4 +1,6 @@
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
+import { cleanUrl } from '@/lib/slugUtils';
+
+const siteUrl = cleanUrl(process.env.NEXT_PUBLIC_SITE_URL) || 'https://www.lassiloungeny.com';
 
 /**
  * Next.js Robots.txt generation

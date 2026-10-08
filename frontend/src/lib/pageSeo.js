@@ -1,7 +1,8 @@
 import { cache } from 'react';
+import { cleanUrl } from '@/lib/slugUtils';
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const siteUrl = cleanUrl(process.env.NEXT_PUBLIC_SITE_URL) || 'https://www.lassiloungeny.com';
+const apiUrl = cleanUrl(process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5001';
 
 /**
  * Hardcoded fallback metadata for static pages when database has no entry.

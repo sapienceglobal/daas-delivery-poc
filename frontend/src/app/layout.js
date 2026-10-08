@@ -4,9 +4,10 @@ import Script from 'next/script';
 import { Providers } from '@/components/shared/Providers';
 import SiteChrome from '@/components/shared/SiteChrome';
 import ScrollToTop from '@/components/shared/ScrollToTop';
+import { cleanUrl } from '@/lib/slugUtils';
 
 const isLassiLounge = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
+const siteUrl = cleanUrl(process.env.NEXT_PUBLIC_SITE_URL) || 'https://www.lassiloungeny.com';
 export const metadata = {
   metadataBase: new URL(siteUrl),
   
