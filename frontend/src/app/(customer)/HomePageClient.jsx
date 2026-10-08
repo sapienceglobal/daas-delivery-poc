@@ -85,7 +85,7 @@ export default function HomePageClient() {
     }
     try {
       setIsLocating(true);
-      const res = await fetch(`http://localhost:5001/api/location/geocode?address=${encodeURIComponent(query)}`);
+      const res = await fetch(`/api/location/geocode?address=${encodeURIComponent(query)}`);
       const data = await res.json();
       if (data && data.lat && data.lng) {
         setLat(parseFloat(data.lat));

@@ -165,11 +165,31 @@ app.use('/api', (req, res, next) => {
   if (req.path.includes('upload') && req.method === 'GET') return next();
   // exempt invoice PDF downloads
   if (req.path.includes('/invoice-pdf') && req.method === 'GET') return next();
+
+  // exempt public read-only GET requests (menu, public SEO, CMS, restaurant info, categories, reviews)
+  if (req.method === 'GET') {
+    if (
+      req.path.startsWith('/menu') ||
+      req.path.startsWith('/seo') ||
+      req.path.startsWith('/cms') ||
+      req.path.startsWith('/restaurants') ||
+      req.path.startsWith('/categories') ||
+      req.path.startsWith('/reviews')
+    ) {
+      return next();
+    }
+  }
+
   // browser requests cannot keep an app secret confidential; use CORS + auth cookies.
   // same-origin GET requests often omit the Origin header, so we also check sec-fetch-mode or User-Agent
   const isBrowser = Boolean(
     req.headers.origin || 
-    req.headers['sec-fetch-mode']
+    req.headers['sec-fetch-mode'] ||
+    (req.headers['user-agent'] && (
+      req.headers['user-agent'].includes('Mozilla') ||
+      req.headers['user-agent'].includes('Google') ||
+      req.headers['user-agent'].includes('bing')
+    ))
   );
   if (isBrowser) return next();
   if (!APP_SECRET) return next();

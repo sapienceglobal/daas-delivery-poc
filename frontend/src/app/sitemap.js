@@ -47,9 +47,15 @@ export default async function sitemap() {
 
   // Dynamic menu item routes (All active & available food items)
   let itemRoutes = [];
+  const appSecret = process.env.APP_SECRET || process.env.NEXT_PUBLIC_APP_SECRET || 'mobile_app_secure_key_2026';
   try {
     const res = await fetch(`${apiUrl}/api/menu/restaurant/${restaurantId}`, {
       next: { revalidate: 3600 },
+      headers: {
+        'x-app-secret': appSecret,
+        'x-tenant-id': 'lassi-lounge',
+        'x-platform': 'web',
+      },
     });
 
     if (res.ok) {

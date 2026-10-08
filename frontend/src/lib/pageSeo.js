@@ -39,6 +39,8 @@ const DEFAULT_PAGE_META = {
   },
 };
 
+const appSecret = process.env.APP_SECRET || process.env.NEXT_PUBLIC_APP_SECRET || 'mobile_app_secure_key_2026';
+
 /**
  * Fetch editable SEO metadata for a static page from backend with React cache().
  * If backend is unavailable or no custom SEO is set, gracefully falls back to default.
@@ -50,6 +52,11 @@ export const fetchPageSeo = cache(async (path) => {
       `${apiUrl}/api/seo/page?path=${encodeURIComponent(cleanPath)}`,
       {
         cache: 'no-store',
+        headers: {
+          'x-app-secret': appSecret,
+          'x-tenant-id': 'lassi-lounge',
+          'x-platform': 'web',
+        },
       }
     );
 

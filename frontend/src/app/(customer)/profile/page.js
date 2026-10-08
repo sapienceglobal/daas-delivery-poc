@@ -257,7 +257,7 @@ function AddressesTab({ user, updateUser }) {
     setSuggestionsLoading(true);
     const to = setTimeout(async () => {
       try {
-        const res = await fetch(`http://localhost:5001/api/location/autocomplete?q=${encodeURIComponent(val)}`);
+        const res = await fetch(`/api/location/autocomplete?q=${encodeURIComponent(val)}`);
         const data = await res.json();
         setSuggestions(Array.isArray(data) ? data : []);
       } catch (err) {
@@ -272,7 +272,7 @@ function AddressesTab({ user, updateUser }) {
   const handleSelectSuggestion = async (suggestion) => {
     try {
       setSuggestionsLoading(true); // Reuse loading state for geocoding
-      const res = await fetch(`http://localhost:5001/api/location/place?place_id=${suggestion.place_id}`);
+      const res = await fetch(`/api/location/place?place_id=${suggestion.place_id}`);
       const details = await res.json();
 
       const addr = details.address || {};
