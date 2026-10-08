@@ -1,6 +1,5 @@
 import 'dart:io';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -12,10 +11,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../providers/menu_provider.dart';
 import '../models/menu_model.dart';
-import '../services/api_service.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/shared_app_bar.dart';
 import '../widgets/shared_bottom_nav.dart';
+import 'add_edit_menu_item_screen.dart';
 
 class MenuManagementScreen extends StatefulWidget {
   const MenuManagementScreen({super.key});
@@ -145,6 +144,8 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
       localAsset = 'assets/images/branded/lassi-lounge/dishes/mango-lassi.jpg';
     } else if (lower.contains('salt') && lower.contains('lassi')) {
       localAsset = 'assets/images/branded/lassi-lounge/dishes/mango-lassi.jpg';
+    } else if (lower.contains('kesar') || (lower.contains('badam') && lower.contains('milk'))) {
+      localAsset = 'assets/images/branded/lassi-lounge/dishes/kesar-badam-milk.jpg';
     } else if (lower.contains('butter') && lower.contains('chicken')) {
       localAsset = 'assets/images/branded/lassi-lounge/dishes/butter-chicken.jpg';
     } else if (lower.contains('chicken') && lower.contains('tikka')) {
@@ -209,11 +210,13 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (ctx) {
+        final bottomPad = math.max(MediaQuery.of(ctx).padding.bottom, MediaQuery.of(ctx).viewPadding.bottom);
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 16 + bottomPad),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Import / Export Menu', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A))),
             const SizedBox(height: 20),
@@ -231,7 +234,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   type: FileType.custom,
                   allowedExtensions: ['csv'],
                 );
-                if (result != null && result.isNotEmpty && mounted) {
+                if (result.isNotEmpty && mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Importing ${result.first.name}...')));
                 }
               },
@@ -254,9 +257,10 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
             const SizedBox(height: 16),
           ],
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   Future<void> _exportMenuToCSV(List<CategoryModel> categories) async {
     final buffer = StringBuffer();
@@ -287,11 +291,18 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 20, right: 20, top: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (ctx) {
+        final bottomPad = math.max(MediaQuery.of(ctx).padding.bottom, MediaQuery.of(ctx).viewPadding.bottom);
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + (MediaQuery.of(ctx).viewInsets.bottom > 0 ? 12 : 16 + bottomPad),
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(existingCat == null ? 'Add Category' : 'Edit Category', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A))),
             const SizedBox(height: 16),
@@ -321,12 +332,13 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                 child: Text(existingCat == null ? 'Save Category' : 'Update Category', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
           ],
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   void _confirmDeleteCategory(CategoryModel cat) {
     if (cat.items.isNotEmpty) {
@@ -356,304 +368,15 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     );
   }
 
-  List<ItemModifier> _parseModifiers(String text) {
-    if (text.isEmpty) return [];
-    final lines = text.split('\n');
-    final List<ItemModifier> result = [];
-    for (var line in lines) {
-      if (line.trim().isEmpty) continue;
-      final parts = line.split(':');
-      if (parts.length == 2) {
-        final name = parts[0].trim();
-        final price = double.tryParse(parts[1].trim()) ?? 0.0;
-        result.add(ItemModifier(name: name, price: price));
-      }
-    }
-    return result;
-  }
 
-  String _modifiersToText(List<ItemModifier> mods) {
-    return mods.map((m) => '${m.name}:${m.price}').join('\n');
-  }
 
-  // --- Add/Edit Menu Item Modal Sheet ---
+  // --- Add/Edit Menu Item Full Screen Navigation ---
   void _showAddItemSheet([MenuItemModel? existingItem]) {
-    final nameCtrl = TextEditingController(text: existingItem?.name ?? '');
-    final priceCtrl = TextEditingController(text: existingItem?.price.toString() ?? '');
-    final descCtrl = TextEditingController(text: existingItem?.description ?? '');
-    final prepCtrl = TextEditingController(text: existingItem?.prepTime ?? '');
-    final imageCtrl = TextEditingController(text: existingItem?.imageUrl ?? '');
-    final tagsCtrl = TextEditingController(text: existingItem?.tags ?? '');
-    final sizeVariationsCtrl = TextEditingController(text: _modifiersToText(existingItem?.sizeVariations ?? []));
-    final addOnsCtrl = TextEditingController(text: _modifiersToText(existingItem?.addOns ?? []));
-
-    String selectedCatId = existingItem?.categoryId ?? (context.read<MenuProvider>().categories.isNotEmpty ? context.read<MenuProvider>().categories.first.id : '');
-
-    bool isVeg = existingItem?.isVeg ?? true;
-    bool isVegan = existingItem?.isVegan ?? false;
-    bool isSpicy = existingItem?.isSpicy ?? false;
-    bool isGlutenFree = existingItem?.isGlutenFree ?? false;
-    bool isBestseller = existingItem?.isBestseller ?? false;
-    bool isAvailable = existingItem?.isAvailable ?? true;
-
-    bool isUploadingImage = false;
-
-    Future<void> uploadImage(StateSetter setModalState, TextEditingController imageCtrl) async {
-      final result = await FilePicker.pickFiles(type: FileType.image);
-      if (result != null && result.isNotEmpty) {
-        setModalState(() => isUploadingImage = true);
-        try {
-          final file = result.first;
-          final request = http.MultipartRequest('POST', Uri.parse('${ApiService.baseUrl}/api/upload/multiple'));
-          request.headers.addAll(ApiService.buildHeaders());
-
-          if (file.path != null) {
-            request.files.add(await http.MultipartFile.fromPath('images', file.path!));
-          } else {
-            throw Exception('File path not found');
-          }
-
-          final response = await request.send();
-          final responseData = await response.stream.bytesToString();
-          final decoded = jsonDecode(responseData);
-
-          if (response.statusCode == 200 && decoded['data'] != null && decoded['data'].isNotEmpty) {
-            imageCtrl.text = decoded['data'][0]['url'];
-          } else {
-            throw Exception(decoded['error'] ?? 'Upload failed');
-          }
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to upload image: $e')));
-          }
-        } finally {
-          setModalState(() => isUploadingImage = false);
-        }
-      }
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return Container(
-              height: MediaQuery.of(context).size.height * 0.9,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Column(
-                children: [
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    decoration: BoxDecoration(
-                      border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(existingItem == null ? 'Add Menu Item' : 'Edit Menu Item', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A))),
-                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
-                      ],
-                    ),
-                  ),
-
-                  // Scrollable Form
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // 1. Basic Information
-                          Text('Basic Information', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFFEA580C))),
-                          const SizedBox(height: 12),
-                          TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Item Name *', border: OutlineInputBorder())),
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            decoration: const InputDecoration(labelText: 'Category *', border: OutlineInputBorder()),
-                            value: selectedCatId.isNotEmpty ? selectedCatId : null,
-                            items: context.read<MenuProvider>().categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                            onChanged: (val) {
-                              if (val != null) setModalState(() => selectedCatId = val);
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()), maxLines: 2),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(child: TextField(controller: priceCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price (\$) *', border: OutlineInputBorder()))),
-                              const SizedBox(width: 12),
-                              Expanded(child: TextField(controller: prepCtrl, decoration: const InputDecoration(labelText: 'Prep Time (e.g. 15 min)', border: OutlineInputBorder()))),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-
-                          // 2. Media & Tags
-                          Text('Media & Tags', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFFEA580C))),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(controller: imageCtrl, decoration: const InputDecoration(labelText: 'Image URL', hintText: 'https://...', border: OutlineInputBorder())),
-                              ),
-                              const SizedBox(width: 8),
-                              isUploadingImage
-                                  ? const Padding(
-                                      padding: EdgeInsets.all(12.0),
-                                      child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFEA580C))),
-                                    )
-                                  : IconButton(
-                                      onPressed: () => uploadImage(setModalState, imageCtrl),
-                                      icon: const Icon(Icons.upload_file),
-                                      color: const Color(0xFFEA580C),
-                                      tooltip: 'Upload Image',
-                                    ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(controller: tagsCtrl, decoration: const InputDecoration(labelText: 'Search Tags', hintText: 'spicy, popular, lassi', border: OutlineInputBorder())),
-                          const SizedBox(height: 24),
-
-                          // 3. Properties & Dietary
-                          Text('Properties', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFFEA580C))),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              FilterChip(
-                                label: const Text('Veg'),
-                                selected: isVeg,
-                                selectedColor: const Color(0xFFDCFCE7),
-                                onSelected: (val) => setModalState(() => isVeg = val),
-                              ),
-                              FilterChip(
-                                label: const Text('Vegan'),
-                                selected: isVegan,
-                                selectedColor: const Color(0xFFDCFCE7),
-                                onSelected: (val) => setModalState(() => isVegan = val),
-                              ),
-                              FilterChip(
-                                label: const Text('Spicy'),
-                                selected: isSpicy,
-                                selectedColor: const Color(0xFFFEE2E2),
-                                onSelected: (val) => setModalState(() => isSpicy = val),
-                              ),
-                              FilterChip(
-                                label: const Text('Gluten Free'),
-                                selected: isGlutenFree,
-                                selectedColor: const Color(0xFFFEF3C7),
-                                onSelected: (val) => setModalState(() => isGlutenFree = val),
-                              ),
-                              FilterChip(
-                                label: const Text('Bestseller'),
-                                selected: isBestseller,
-                                selectedColor: const Color(0xFFFFEDD5),
-                                onSelected: (val) => setModalState(() => isBestseller = val),
-                              ),
-                              FilterChip(
-                                label: const Text('Available'),
-                                selected: isAvailable,
-                                selectedColor: const Color(0xFFDCFCE7),
-                                onSelected: (val) => setModalState(() => isAvailable = val),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-
-                          // 4. Customizations & Modifiers
-                          Text('Customizations', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFFEA580C))),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: sizeVariationsCtrl,
-                            maxLines: 3,
-                            decoration: const InputDecoration(
-                              labelText: 'Size Variations',
-                              hintText: 'e.g. Small:5.99\nLarge:9.99',
-                              helperText: 'Type each option on a new line. Format -> Name:Price',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: addOnsCtrl,
-                            maxLines: 3,
-                            decoration: const InputDecoration(
-                              labelText: 'Add-ons',
-                              hintText: 'e.g. Extra Malai:1.00\nDry Fruits:1.50',
-                              helperText: 'Type each option on a new line. Format -> Name:Price',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                          SizedBox(height: MediaQuery.of(ctx).viewInsets.bottom + 20),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Footer Actions
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey.shade200))),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFEA580C),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: () {
-                          if (nameCtrl.text.trim().isEmpty || priceCtrl.text.trim().isEmpty || selectedCatId.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill required fields (Name, Price, Category)')));
-                            return;
-                          }
-
-                          final newItem = MenuItemModel(
-                            id: existingItem?.id ?? '',
-                            name: nameCtrl.text.trim(),
-                            description: descCtrl.text.trim(),
-                            price: double.tryParse(priceCtrl.text) ?? 0,
-                            imageUrl: imageCtrl.text.trim().isEmpty ? null : imageCtrl.text.trim(),
-                            categoryId: selectedCatId,
-                            isVeg: isVeg,
-                            isVegan: isVegan,
-                            isSpicy: isSpicy,
-                            isGlutenFree: isGlutenFree,
-                            isBestseller: isBestseller,
-                            isAvailable: isAvailable,
-                            prepTime: prepCtrl.text.trim(),
-                            tags: tagsCtrl.text.trim(),
-                            sizeVariations: _parseModifiers(sizeVariationsCtrl.text),
-                            addOns: _parseModifiers(addOnsCtrl.text),
-                          );
-
-                          if (existingItem == null) {
-                            context.read<MenuProvider>().addMenuItem(newItem);
-                          } else {
-                            context.read<MenuProvider>().updateMenuItem(existingItem.id, newItem);
-                          }
-                          Navigator.pop(ctx);
-                        },
-                        child: Text(
-                          existingItem == null ? 'Save Item' : 'Update Item',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddEditMenuItemScreen(existingItem: existingItem),
+      ),
     );
   }
 
@@ -919,98 +642,122 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
 
   // --- Search and Filters Control Row ---
   Widget _buildSearchAndFiltersRow(List<CategoryModel> categories) {
-    return Row(
+    return Column(
       children: [
-        // Search Box
-        Expanded(
-          flex: 5,
-          child: Container(
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: TextField(
-              controller: _searchController,
-              style: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF0F172A)),
-              decoration: InputDecoration(
-                hintText: 'Search by item name...',
-                hintStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF94A3B8), size: 18),
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                border: InputBorder.none,
-                isDense: true,
-              ),
-              onChanged: (val) => setState(() => _searchQuery = val),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-
-        // Category Filter Button (Opens Bottom Sheet)
-        _buildCategoryFilterButton(categories),
-        const SizedBox(width: 6),
-
-        // Status Pill Dropdown
-        _buildCompactDropdown(
-          value: _statusFilter,
-          items: const ['All Status', 'Available', 'Sold Out'],
-          displayMap: const {
-            'All Status': 'All Status',
-            'Available': 'Available',
-            'Sold Out': 'Sold Out',
-          },
-          onChanged: (val) => setState(() => _statusFilter = val ?? 'All Status'),
-        ),
-        const SizedBox(width: 6),
-
-        // View Toggle Buttons: Grid & List
+        // 1. Full-width Search Box
         Container(
-          height: 40,
+          height: 42,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          padding: const EdgeInsets.all(2),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                onTap: () => setState(() => _isGridView = true),
-                child: Container(
-                  width: 32,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: _isGridView ? const Color(0xFFEA580C) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.grid_view_rounded,
-                    size: 16,
-                    color: _isGridView ? Colors.white : const Color(0xFF94A3B8),
-                  ),
-                ),
-              ),
-              GestureDetector(
-                onTap: () => setState(() => _isGridView = false),
-                child: Container(
-                  width: 32,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: !_isGridView ? const Color(0xFFEA580C) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.format_list_bulleted_rounded,
-                    size: 18,
-                    color: !_isGridView ? Colors.white : const Color(0xFF94A3B8),
-                  ),
-                ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
+          child: TextField(
+            controller: _searchController,
+            style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF0F172A)),
+            decoration: InputDecoration(
+              hintText: 'Search dishes, drinks, or items...',
+              hintStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12.5),
+              prefixIcon: const Icon(Icons.search, color: Color(0xFF94A3B8), size: 19),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear_rounded, size: 18, color: Color(0xFF94A3B8)),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              border: InputBorder.none,
+              isDense: true,
+            ),
+            onChanged: (val) => setState(() => _searchQuery = val),
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // 2. Filter Row: Categories + Status Dropdown + View Toggle
+        Row(
+          children: [
+            // Category Filter Button
+            Expanded(
+              flex: 5,
+              child: _buildCategoryFilterButton(categories),
+            ),
+            const SizedBox(width: 8),
+
+            // Status Pill Dropdown
+            Expanded(
+              flex: 5,
+              child: _buildCompactDropdown(
+                value: _statusFilter,
+                items: const ['All Status', 'Available', 'Sold Out'],
+                displayMap: const {
+                  'All Status': 'All Status',
+                  'Available': 'Available',
+                  'Sold Out': 'Sold Out',
+                },
+                onChanged: (val) => setState(() => _statusFilter = val ?? 'All Status'),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // View Toggle Buttons: Grid & List
+            Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              padding: const EdgeInsets.all(2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () => setState(() => _isGridView = true),
+                    child: Container(
+                      width: 32,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: _isGridView ? const Color(0xFFEA580C) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.grid_view_rounded,
+                        size: 16,
+                        color: _isGridView ? Colors.white : const Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => setState(() => _isGridView = false),
+                    child: Container(
+                      width: 32,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: !_isGridView ? const Color(0xFFEA580C) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.format_list_bulleted_rounded,
+                        size: 18,
+                        color: !_isGridView ? Colors.white : const Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -1087,8 +834,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
               color: isCustomSelected ? const Color(0xFFEA580C) : const Color(0xFF64748B),
             ),
             const SizedBox(width: 5),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 82),
+            Expanded(
               child: Text(
                 currentLabel,
                 style: GoogleFonts.inter(
@@ -1224,7 +970,12 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(
+                height: math.max(
+                      MediaQuery.of(ctx).padding.bottom,
+                      MediaQuery.of(ctx).viewPadding.bottom,
+                    ) + 16,
+              ),
             ],
           ),
         );
@@ -1531,77 +1282,143 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
   Widget _buildItemRow(MenuItemModel item, String catName) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12, left: 16, right: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF1F5F9), width: 1),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.2),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.025), blurRadius: 6, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Left: Image Thumbnail (72x72)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: _buildItemImage(item, width: 72, height: 72),
-          ),
-          const SizedBox(width: 14),
-
-          // Middle: Title, Category pill, Price
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  item.name,
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                    color: const Color(0xFF0F172A),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    catName,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF64748B),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '\$${item.price.toStringAsFixed(2)}',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15.5,
-                    color: const Color(0xFFDC2626),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Right: Availability badge, Orange switch, 3-dots
+          // Top Tier: Thumbnail + Item Details (Name, Tags) + Price
           Row(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image Thumbnail (62x62)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: _buildItemImage(item, width: 62, height: 62),
+              ),
+              const SizedBox(width: 12),
+
+              // Title and Meta Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: const Color(0xFF0F172A),
+                        height: 1.25,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 5),
+                    Wrap(
+                      spacing: 5,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        // Category Chip
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            catName,
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                        // Veg / Non-Veg Indicator
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: item.isVeg ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                              width: 1.2,
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: item.isVeg ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        if (item.isBestseller)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.star_rounded, size: 10, color: Color(0xFFD97706)),
+                                const SizedBox(width: 2),
+                                Text(
+                                  'BESTSELLER',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFD97706),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Price (Top-Right Aligned)
+              Text(
+                '\$${item.price.toStringAsFixed(2)}',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: const Color(0xFFDC2626),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 8),
+
+          // Bottom Tier: Availability Pill + Quick Stock Toggle + 3-dots Menu
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Availability Pill
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
                   color: item.isAvailable ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
                   borderRadius: BorderRadius.circular(20),
@@ -1629,26 +1446,37 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
 
-              // Orange Switch Toggle
-              Transform.scale(
-                scale: 0.8,
-                child: Switch(
-                  value: item.isAvailable,
-                  activeColor: const Color(0xFFEA580C),
-                  activeTrackColor: const Color(0xFFFFEDD5),
-                  inactiveThumbColor: const Color(0xFF94A3B8),
-                  inactiveTrackColor: const Color(0xFFE2E8F0),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  onChanged: (val) {
-                    context.read<MenuProvider>().toggleItemAvailability(item.id, val);
-                  },
-                ),
+              // Quick Actions: Status Label + Switch + 3 Dots
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.isAvailable ? 'In Stock' : 'Out of Stock',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Transform.scale(
+                    scale: 0.78,
+                    child: Switch(
+                      value: item.isAvailable,
+                      activeColor: const Color(0xFFEA580C),
+                      activeTrackColor: const Color(0xFFFFEDD5),
+                      inactiveThumbColor: const Color(0xFF94A3B8),
+                      inactiveTrackColor: const Color(0xFFE2E8F0),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      onChanged: (val) {
+                        context.read<MenuProvider>().toggleItemAvailability(item.id, val);
+                      },
+                    ),
+                  ),
+                  _buildActionsMenu(item),
+                ],
               ),
-
-              // 3-dots Popup Menu
-              _buildActionsMenu(item),
             ],
           ),
         ],

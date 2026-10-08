@@ -65,15 +65,10 @@ class PromotionModel {
     );
   }
 
-  bool get isScheduled => startDate.isAfter(DateTime.now()) && isActive;
   bool get isExpired => !isActive || endDate.isBefore(DateTime.now());
-  bool get isCurrentlyActive => isActive && !isScheduled && !isExpired;
+  bool get isCurrentlyActive => !isExpired;
 
-  String get statusText {
-    if (isScheduled) return 'Scheduled';
-    if (isCurrentlyActive) return 'Active';
-    return 'Expired';
-  }
+  String get statusText => isCurrentlyActive ? 'Active' : 'Expired';
 
   String get formattedDiscount {
     if (type == 'percentage') {

@@ -11,6 +11,8 @@ class ReservationModel {
   final String? specialRequests;
   final String status;
 
+  final String? tableNumber;
+
   ReservationModel({
     required this.id,
     required this.customerName,
@@ -22,6 +24,7 @@ class ReservationModel {
     required this.location,
     this.occasion,
     this.specialRequests,
+    this.tableNumber,
     required this.status,
   });
 
@@ -37,6 +40,7 @@ class ReservationModel {
       location: json['location'] ?? json['seatingArea'] ?? 'Any',
       occasion: json['occasion'],
       specialRequests: json['specialRequests'],
+      tableNumber: json['tableNumber'] ?? json['table'],
       status: json['status'] ?? 'pending',
     );
   }
@@ -52,6 +56,7 @@ class ReservationModel {
       'location': location,
       'occasion': occasion,
       'specialRequests': specialRequests,
+      'tableNumber': tableNumber,
       'status': status,
     };
   }
@@ -67,6 +72,7 @@ class ReservationModel {
     String? location,
     String? occasion,
     String? specialRequests,
+    String? tableNumber,
     String? status,
   }) {
     return ReservationModel(
@@ -80,6 +86,7 @@ class ReservationModel {
       location: location ?? this.location,
       occasion: occasion ?? this.occasion,
       specialRequests: specialRequests ?? this.specialRequests,
+      tableNumber: tableNumber ?? this.tableNumber,
       status: status ?? this.status,
     );
   }

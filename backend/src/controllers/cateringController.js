@@ -41,7 +41,9 @@ export const createInquiry = async (req, res) => {
       eventDate,
       guestCount,
       packagePreference: packagePreference || 'Custom / Unsure',
-      additionalNotes
+      additionalNotes: additionalNotes || '',
+      budgetRange: req.body.budgetRange || '',
+      status: req.body.status || 'new'
     });
 
     // -- Background Notifications --
@@ -163,3 +165,41 @@ export const updateInquiryStatus = async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+// @desc    update catering inquiry details
+// @route   PUT /api/catering/:id
+// @access  Private (Merchant/Admin)
+export const updateInquiry = async (req, res) => {
+  try {
+    const { CateringInquiry, Restaurant } = getModels(req);
+    let inquiry = await CateringInquiry.findById(req.params.id);
+
+    if (!inquiry) {
+      return res.status(404).json({ success: false, message: 'Inquiry not found' });
+    }
+
+    if (req.user.role === 'merchant') {
+      const restaurant = await Restaurant.findById(inquiry.restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ success: false, message: 'Restaurant not found' });
+      }
+      if (restaurant.ownerId?.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ success: false, message: 'Not authorized to update this inquiry' });
+      }
+    }
+
+    const updatedInquiry = await CateringInquiry.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      data: updatedInquiry
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+

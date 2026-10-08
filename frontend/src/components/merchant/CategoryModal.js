@@ -1,5 +1,8 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, Loader2, FolderPlus, Info } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, CheckCircle2, Loader2, FolderPlus } from 'lucide-react';
 import { showToast } from '@/components/ui';
 
 export default function CategoryModal({ 
@@ -8,6 +11,7 @@ export default function CategoryModal({
   onClose, 
   onSave 
 }) {
+  const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -15,6 +19,10 @@ export default function CategoryModal({
   });
   
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (category) {
@@ -55,14 +63,25 @@ export default function CategoryModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
-        
+  if (!mounted) return null;
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200"
+      style={{ colorScheme: 'light' }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div 
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] text-[#111827] animate-in fade-in zoom-in-95 duration-200 border border-[#e5e7eb]"
+        style={{ colorScheme: 'light', color: '#111827', backgroundColor: '#ffffff' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#f3f4f6] shrink-0 bg-gradient-to-br from-[#fef2f2] to-white">
+        <div className="flex items-center justify-between p-6 border-b border-[#e5e7eb] shrink-0 bg-white">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-[#8B0000] border border-[#fecaca]">
+            <div className="w-10 h-10 rounded-xl bg-[#fef2f2] shadow-sm flex items-center justify-center text-[#8B0000] border border-[#fecaca]">
               <FolderPlus className="w-5 h-5" />
             </div>
             <div>
@@ -74,18 +93,18 @@ export default function CategoryModal({
               </p>
             </div>
           </div>
-          <button 
+          <button
+            type="button"
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-white hover:bg-[#f3f4f6] text-[#6b7280] transition-colors border border-transparent hover:border-[#e5e7eb] shadow-sm"
+            className="text-[#9ca3af] hover:text-[#111827] p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Form Content */}
-        <div className="p-6 overflow-y-auto">
+        <div className="p-6 overflow-y-auto bg-white custom-scrollbar text-[#111827]">
           <form id="categoryForm" onSubmit={handleSubmit} className="space-y-6">
-            
             {/* Name Input */}
             <div>
               <label className="block text-sm font-bold text-[#374151] mb-2">Category Name <span className="text-[#8B0000]">*</span></label>
@@ -95,7 +114,8 @@ export default function CategoryModal({
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="e.g. Starters, Main Course, Desserts"
-                className="w-full bg-[#f9fafb] border border-[#e5e7eb] rounded-xl px-4 py-3 text-sm text-[#1f2937] font-semibold focus:outline-none focus:ring-2 focus:ring-[#8B0000] focus:border-transparent transition-all placeholder:text-[#9ca3af] placeholder:font-medium"
+                style={{ colorScheme: 'light', color: '#111827', backgroundColor: '#ffffff' }}
+                className="w-full bg-white border border-[#d1d5db] rounded-xl px-4 py-3 text-sm text-[#111827] font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] transition-all placeholder:text-[#9ca3af] shadow-sm"
                 required
                 autoFocus
               />
@@ -104,7 +124,7 @@ export default function CategoryModal({
             {/* Description Input */}
             <div>
               <label className="block text-sm font-bold text-[#374151] mb-2 flex items-center justify-between">
-                <span>Description <span className="text-[#9ca3af] font-medium">(Optional)</span></span>
+                <span>Description <span className="text-[#9ca3af] font-normal">(Optional)</span></span>
               </label>
               <textarea
                 name="description"
@@ -112,7 +132,8 @@ export default function CategoryModal({
                 onChange={handleChange}
                 placeholder="Brief description of items in this category..."
                 rows="3"
-                className="w-full bg-[#f9fafb] border border-[#e5e7eb] rounded-xl px-4 py-3 text-sm text-[#1f2937] font-semibold focus:outline-none focus:ring-2 focus:ring-[#8B0000] focus:border-transparent transition-all placeholder:text-[#9ca3af] placeholder:font-medium resize-none"
+                style={{ colorScheme: 'light', color: '#111827', backgroundColor: '#ffffff' }}
+                className="w-full bg-white border border-[#d1d5db] rounded-xl px-4 py-3 text-sm text-[#111827] font-normal focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] transition-all placeholder:text-[#9ca3af] shadow-sm resize-none"
               />
             </div>
 
@@ -130,22 +151,22 @@ export default function CategoryModal({
                   onChange={handleChange}
                   className="sr-only" 
                 />
-                <div className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 ${formData.isActive ? 'bg-[#10B981]' : 'bg-gray-300'}`}>
+                <div className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 ${formData.isActive ? 'bg-[#10B981]' : 'bg-[#d1d5db]'}`}>
                   <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${formData.isActive ? 'translate-x-6' : 'translate-x-0'}`}></div>
                 </div>
               </label>
             </div>
-
           </form>
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-[#f3f4f6] bg-[#f9fafb] shrink-0 flex items-center justify-end gap-3 rounded-b-2xl">
+        <div className="p-6 border-t border-[#e5e7eb] bg-[#f9fafb] shrink-0 flex items-center justify-end gap-3 rounded-b-2xl">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-5 py-2.5 rounded-xl text-sm font-bold text-[#4b5563] bg-white border border-[#e5e7eb] hover:bg-[#f3f4f6] transition-colors shadow-sm"
+            style={{ color: '#374151', backgroundColor: '#ffffff' }}
+            className="px-5 py-2.5 rounded-xl text-sm font-bold text-[#374151] bg-white border border-[#d1d5db] hover:bg-[#f3f4f6] transition-colors shadow-sm"
           >
             Cancel
           </button>
@@ -153,7 +174,7 @@ export default function CategoryModal({
             type="submit"
             form="categoryForm"
             disabled={loading}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-[#8B0000] hover:bg-red-900 transition-all shadow-sm disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-[#8B0000] hover:bg-[#700000] transition-all shadow-md disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -163,8 +184,8 @@ export default function CategoryModal({
             {loading ? 'Saving...' : category ? 'Update Category' : 'Create Category'}
           </button>
         </div>
-
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

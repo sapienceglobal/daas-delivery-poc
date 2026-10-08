@@ -1,20 +1,21 @@
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
+
 export const metadata = {
-  title: 'Order Online',
+  title: 'Order Online | Lassi Lounge NY',
   description:
-    'Order authentic Indian food online from Lassi Lounge NY. Fast delivery and easy pickup — biryani, curry, tandoori, naan, lassi, and more!',
-  keywords: [
-    'order Indian food online',
-    'Lassi Lounge delivery',
-    'Indian food delivery New York',
-    'order biryani online NY',
-    'Indian takeout near me',
-    'Lassi Lounge order online',
-  ],
+    'Order authentic Indian food online from Lassi Lounge NY. Fast delivery and easy pickup in NY.',
+  alternates: {
+    canonical: `${siteUrl}/menu`,
+  },
+  robots: {
+    index: false,
+    follow: true,
+  },
   openGraph: {
     title: 'Order Online | Lassi Lounge NY',
     description:
-      'Craving authentic Indian food? Order online from Lassi Lounge NY for fast delivery or pickup.',
-    url: '/order-online',
+      'Order authentic Indian food online from Lassi Lounge NY. Fast delivery and easy pickup in NY.',
+    url: `${siteUrl}/menu`,
   },
 };
 

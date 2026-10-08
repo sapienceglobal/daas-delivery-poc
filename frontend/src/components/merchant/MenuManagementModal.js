@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Sparkles, Image as ImageIcon, Tag, Activity, Upload, Loader2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Save, Sparkles, Image as ImageIcon, Tag, Activity, Upload, Loader2, Globe, Search } from 'lucide-react';
 import { menuAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
+import { getItemSlug } from '@/lib/slugUtils';
+import { useAuth } from '@/context/AuthContext';
 
 export default function MenuManagementModal({
   item,
@@ -10,15 +13,26 @@ export default function MenuManagementModal({
   onClose,
   onSave
 }) {
+  const { user, isAdmin, isMerchant } = useAuth();
+  const isAuthorizedForSEO = Boolean(
+    isAdmin ||
+    isMerchant ||
+    user?.role === 'admin' ||
+    user?.role === 'merchant'
+  );
+
   const [itemForm, setItemForm] = useState({
     name: '', categoryId: '', description: '', price: '', preparationTime: '15',
     image: '', images: [], tags: '', sizeVariationsText: '', addOnsText: '',
     isVeg: false, isVegan: false, isSpicy: false, isGlutenFree: false,
-    isBestseller: false, isAvailable: true
+    isBestseller: false, isAvailable: true,
+    seoTitle: '', seoDescription: '', seoKeywordsText: ''
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [errors, setErrors] = useState({});
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -30,7 +44,10 @@ export default function MenuManagementModal({
         price: item.price?.toString() || '',
         preparationTime: item.preparationTime?.toString() || '15',
         sizeVariationsText: item.sizeVariations?.map(s => `${s.name}:${s.price}`).join('\n') || '',
-        addOnsText: item.addOns?.map(a => `${a.name}:${a.price}`).join('\n') || ''
+        addOnsText: item.addOns?.map(a => `${a.name}:${a.price}`).join('\n') || '',
+        seoTitle: item.seoTitle || '',
+        seoDescription: item.seoDescription || '',
+        seoKeywordsText: Array.isArray(item.seoKeywords) ? item.seoKeywords.join(', ') : (item.seoKeywords || '')
       });
     }
   }, [item, categories]);
@@ -64,7 +81,12 @@ export default function MenuManagementModal({
         addOns: itemForm.addOnsText?.split('\n').filter(Boolean).map(l => {
           const [name, price] = l.split(':');
           return { name, price: Number(price) };
-        }) || []
+        }) || [],
+        seoTitle: itemForm.seoTitle ? itemForm.seoTitle.trim().slice(0, 60) : '',
+        seoDescription: itemForm.seoDescription ? itemForm.seoDescription.trim().slice(0, 155) : '',
+        seoKeywords: itemForm.seoKeywordsText
+          ? itemForm.seoKeywordsText.split(',').map(s => s.trim()).filter(Boolean)
+          : []
       };
 
       if (item?._id) {
@@ -136,10 +158,17 @@ export default function MenuManagementModal({
     showToast(`AI Suggested Price: $${optimized} (+15% based on demand)`, 'success');
   };
 
-  return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
+      style={{ colorScheme: 'light' }}
+      onClick={onClose}
+    >
       <div 
         className="bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.25)] border border-[#e5e7eb] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+        style={{ colorScheme: 'light' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -346,7 +375,118 @@ export default function MenuManagementModal({
                   />
                 </div>
               </div>
-            </div>
+
+              {/* Section: Google Search & SEO (Authorized roles only) */}
+              {isAuthorizedForSEO && (
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#e5e7eb] space-y-5">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-[#eff6ff] p-1.5 rounded-lg text-[#2563eb]">
+                        <Globe className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-[#111827]">Google Search & SEO</h3>
+                        <p className="text-xs text-[#6b7280]">Edit title & description for Google search and social media sharing</p>
+                      </div>
+                    </div>
+                  </div>
+
+                {/* SEO Title with Counter */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider">
+                      Meta Title
+                    </label>
+                    <span className={`text-xs font-semibold ${
+                      (itemForm.seoTitle || '').length > 60
+                        ? 'text-[#dc2626]'
+                        : (itemForm.seoTitle || '').length > 50
+                        ? 'text-[#ea580c]'
+                        : 'text-[#6b7280]'
+                    }`}>
+                      {(itemForm.seoTitle || '').length} / 60
+                    </span>
+                  </div>
+                  <input
+                    maxLength={60}
+                    value={itemForm.seoTitle || ''}
+                    onChange={(e) => setItemForm(f => ({ ...f, seoTitle: e.target.value }))}
+                    placeholder={`e.g. ${itemForm.name || 'Mango Lassi'} - Fresh & Creamy | Order Online`}
+                    className="w-full rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] transition-all"
+                  />
+                  <p className="text-[11px] text-[#9ca3af] mt-1">
+                    Appears as the clickable title in Google search results. Leave blank to use default item name.
+                  </p>
+                </div>
+
+                {/* SEO Description with Counter */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider">
+                      Meta Description
+                    </label>
+                    <span className={`text-xs font-semibold ${
+                      (itemForm.seoDescription || '').length > 155
+                        ? 'text-[#dc2626]'
+                        : (itemForm.seoDescription || '').length > 130
+                        ? 'text-[#ea580c]'
+                        : 'text-[#6b7280]'
+                    }`}>
+                      {(itemForm.seoDescription || '').length} / 155
+                    </span>
+                  </div>
+                  <textarea
+                    rows={3}
+                    maxLength={155}
+                    value={itemForm.seoDescription || ''}
+                    onChange={(e) => setItemForm(f => ({ ...f, seoDescription: e.target.value }))}
+                    placeholder={`e.g. Order delicious ${itemForm.name || 'Mango Lassi'} online from Lassi Lounge NY. Made fresh daily with authentic ingredients.`}
+                    className="w-full rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] transition-all resize-none"
+                  />
+                  <p className="text-[11px] text-[#9ca3af] mt-1">
+                    Appears below the title in Google search results. Recommended: 120-155 characters.
+                  </p>
+                </div>
+
+                {/* Google Search Live SERP Preview Box */}
+                <div className="p-4 rounded-xl bg-[#f8fafc] border border-[#cbd5e1] space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2">
+                    <Search className="w-3.5 h-3.5 text-[#2563eb]" />
+                    <span>Google Search Live Preview</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-[#8B0000] flex items-center justify-center text-[9px] text-white font-bold shrink-0">
+                      LL
+                    </div>
+                    <a
+                      href={`/item/${itemForm.slug || (itemForm.name ? itemForm.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') : (item?._id || 'item-preview'))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#202124] leading-tight truncate hover:underline"
+                      title="Open live dish page in new tab"
+                    >
+                      <span className="font-medium text-[#202124]">Lassi Lounge NY</span>
+                      <span className="text-[#5f6368] ml-1">· https://www.lassiloungeny.com › item › {
+                        itemForm.slug || (itemForm.name ? itemForm.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') : 'dish-item')
+                      }</span>
+                    </a>
+                  </div>
+                  <a
+                    href={`/item/${itemForm.slug || (itemForm.name ? itemForm.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') : (item?._id || 'item-preview'))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[17px] font-normal text-[#1a0dab] hover:underline cursor-pointer leading-snug line-clamp-1 pt-0.5 block"
+                    title="Open live dish page in new tab"
+                  >
+                    {itemForm.seoTitle?.trim() || `${itemForm.name || 'Dish Name'} - Order Online`} | Lassi Lounge NY
+                  </a>
+                  <p className="text-[13px] text-[#4d5156] leading-relaxed line-clamp-2">
+                    {itemForm.seoDescription?.trim() || (itemForm.description ? itemForm.description.slice(0, 155) : 'Order fresh and authentic Indian cuisine online from Lassi Lounge NY. Fast delivery and easy pickup in New York.')}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
 
             {/* Right Column - Modifiers & Properties */}
             <div className="lg:col-span-5 space-y-8">
@@ -451,6 +591,7 @@ export default function MenuManagementModal({
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

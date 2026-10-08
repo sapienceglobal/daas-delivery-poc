@@ -28,7 +28,7 @@ class SharedBottomNav extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(context, 0, Icons.home_rounded, Icons.home_outlined, 'Dashboard'),
-              _buildNavItem(context, 1, Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'Orders'),
+              _buildNavItem(context, 1, Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'Live'),
               _buildNavItem(context, 2, Icons.kitchen_rounded, Icons.kitchen_outlined, 'KDS'),
               _buildNavItem(context, 3, Icons.calendar_month_rounded, Icons.calendar_month_outlined, 'Booking'),
               _buildNavItem(context, 4, Icons.restaurant_menu_rounded, Icons.restaurant_menu_outlined, 'Menu'),

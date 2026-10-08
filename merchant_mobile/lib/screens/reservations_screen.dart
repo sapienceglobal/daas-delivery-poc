@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
 
 import '../providers/reservation_provider.dart';
 import '../models/reservation_model.dart';
+import 'add_edit_reservation_screen.dart';
 import '../widgets/reservation_bottom_sheet.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/shared_app_bar.dart';
@@ -23,7 +23,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   String _seatingFilter = 'All Seating Areas';
 
   final List<String> _statuses = ['All Status', 'Confirmed', 'Pending', 'Seated', 'Completed', 'Cancelled'];
-  final List<String> _seatings = ['All Seating Areas', 'Indoor', 'Outdoor Seating', 'Private Room', 'Main Dining Area'];
+  final List<String> _seatings = ['All Seating Areas', 'Indoor', 'Outdoor', 'Private', 'Any'];
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +38,11 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
       
       bool matchStatus = _statusFilter == 'All Status' || r.status.toLowerCase() == _statusFilter.toLowerCase();
       
-      bool matchSeating = _seatingFilter == 'All Seating Areas' || r.location.toLowerCase() == _seatingFilter.toLowerCase();
+      bool matchSeating = _seatingFilter == 'All Seating Areas' || 
+          r.location.toLowerCase() == _seatingFilter.toLowerCase() ||
+          (_seatingFilter == 'Indoor' && r.location == 'Main Dining Area') ||
+          (_seatingFilter == 'Outdoor' && r.location == 'Outdoor Seating') ||
+          (_seatingFilter == 'Private' && r.location == 'Private Room');
 
       return matchDate && matchStatus && matchSeating;
     }).toList();
@@ -68,13 +72,14 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
             ],
           ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF8B0000),
+        backgroundColor: const Color(0xFFEA580C),
+        elevation: 3,
         onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (ctx) => const ReservationBottomSheet(),
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (ctx) => const AddEditReservationScreen(),
+            ),
           );
         },
         icon: const Icon(Icons.add, color: Colors.white),
@@ -246,26 +251,179 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
     );
   }
 
+  Widget _buildFilterSelector({
+    required String label,
+    required String value,
+    required List<String> items,
+    required ValueChanged<String> onChanged,
+    required IconData icon,
+  }) {
+    return InkWell(
+      onTap: () {
+        showModalBottomSheet<String>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (sheetCtx) {
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(sheetCtx).size.height * 0.60,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 12, bottom: 8),
+                        width: 38,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCBD5E1),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 12, 12),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF1F2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(icon, color: const Color(0xFF881337), size: 18),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              label,
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF0F172A),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                            onPressed: () => Navigator.pop(sheetCtx),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        itemCount: items.length,
+                        separatorBuilder: (_, index) => const Divider(height: 1, color: Color(0xFFF8FAFC)),
+                        itemBuilder: (ctx, i) {
+                          final opt = items[i];
+                          final isSel = opt.toLowerCase() == value.toLowerCase();
+                          return InkWell(
+                            onTap: () => Navigator.pop(sheetCtx, opt),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isSel ? const Color(0xFFFFF1F2) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                                border: isSel ? Border.all(color: const Color(0xFFFECDD3)) : null,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      opt,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13.5,
+                                        fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                        color: isSel ? const Color(0xFF881337) : const Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSel)
+                                    const Icon(Icons.check_circle_rounded, color: Color(0xFF881337), size: 18),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            );
+          },
+        ).then((chosen) {
+          if (chosen != null) onChanged(chosen);
+        });
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: const Color(0xFF881337)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+            ),
+            const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B), size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildFilters() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           Expanded(
-            child: DropdownButtonFormField<String>(
+            child: _buildFilterSelector(
+              label: 'Filter by Status',
               value: _statusFilter,
-              decoration: const InputDecoration(isDense: true, border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
-              items: _statuses.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13)))).toList(),
-              onChanged: (v) => setState(() => _statusFilter = v!),
+              items: _statuses,
+              icon: Icons.filter_alt_outlined,
+              onChanged: (v) => setState(() => _statusFilter = v),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: DropdownButtonFormField<String>(
+            child: _buildFilterSelector(
+              label: 'Filter by Seating Area',
               value: _seatingFilter,
-              decoration: const InputDecoration(isDense: true, border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
-              items: _seatings.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis))).toList(),
-              onChanged: (v) => setState(() => _seatingFilter = v!),
+              items: _seatings,
+              icon: Icons.table_restaurant_outlined,
+              onChanged: (v) => setState(() => _seatingFilter = v),
             ),
           ),
         ],
@@ -318,10 +476,34 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                     Text(r.time, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                  child: Text(r.status.toUpperCase(), style: GoogleFonts.inter(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                      child: Text(r.status.toUpperCase(), style: GoogleFonts.inter(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (ctx) => AddEditReservationScreen(existingReservation: r),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF64748B)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

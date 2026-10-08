@@ -18,6 +18,7 @@ class GlobalSearchDelegate extends SearchDelegate<String?> {
   final List<SearchScreenItem> _screens = [
     SearchScreenItem(title: 'Dashboard', route: '/', icon: Icons.dashboard, description: 'Overview and analytics'),
     SearchScreenItem(title: 'Live Orders', route: '/live-orders', icon: Icons.receipt_long, description: 'Manage active orders'),
+    SearchScreenItem(title: 'Create Order', route: '/pos', icon: Icons.point_of_sale_rounded, description: 'Counter billing and new order creation'),
     SearchScreenItem(title: 'All Orders', route: '/all-orders', icon: Icons.history, description: 'View order history'),
     SearchScreenItem(title: 'Menu Management', route: '/menu-management', icon: Icons.restaurant_menu, description: 'Edit categories and items'),
     SearchScreenItem(title: 'Promotions', route: '/promotions', icon: Icons.local_offer, description: 'Manage discounts and offers'),

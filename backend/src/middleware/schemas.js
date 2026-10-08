@@ -183,7 +183,8 @@ export const createReservationSchema = Joi.object({
   specialRequests: Joi.string().max(500).allow('', null).optional(),
   occasion: Joi.string().max(100).allow('', null).optional(),
   location: Joi.string().allow('', null).optional(),
-  tableId: Joi.string().hex().length(24).allow('', null).optional()
+  tableId: Joi.string().hex().length(24).allow('', null).optional(),
+  status: Joi.string().valid('pending', 'confirmed', 'seated', 'cancelled', 'completed').optional()
 });
 
 // ── Catering Schemas ────────────────────────────────────────────────────────
@@ -203,7 +204,10 @@ export const createCateringSchema = Joi.object({
   menuPreferences: Joi.alternatives().try(
     Joi.array().items(Joi.string()),
     Joi.string()
-  ).optional()
+  ).optional(),
+  packagePreference: Joi.string().allow('', null).optional(),
+  budgetRange: Joi.string().allow('', null).optional(),
+  status: Joi.string().allow('', null).optional()
 });
 
 // ── Review Schemas ──────────────────────────────────────────────────────────

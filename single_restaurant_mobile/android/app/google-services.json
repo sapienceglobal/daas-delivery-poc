@@ -51,6 +51,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "960808501824-7it029kj6d6suj6bnu0dtmlu50skkcod.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lassilounge.customer",
+            "certificate_hash": "18c2dc970b418d7cee8fbb607db8cacdde4f39ca"
+          }
+        },
+        {
+          "client_id": "960808501824-rho0fcpvkmpptitunhr2u3p85ng5qels.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lassilounge.customer",
+            "certificate_hash": "ccda596253e960bd676257de43ac164e817846e7"
+          }
+        },
+        {
           "client_id": "960808501824-4lm2mhn15aq3lnis7bfs97gdmv193cgm.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -89,6 +89,29 @@ const MenuItemSchema = new mongoose.Schema({
   discount: {
     type: { type: String, enum: ['flat', 'percentage'], default: null },
     value: { type: Number, default: 0, min: 0 }
+  },
+
+  // ── SEO & Social Sharing ──────────────────────────────────────────────
+  seoTitle: {
+    type: String,
+    trim: true,
+    maxlength: [60, 'SEO Title cannot exceed 60 characters'],
+    default: ''
+  },
+  seoDescription: {
+    type: String,
+    trim: true,
+    maxlength: [155, 'SEO Description cannot exceed 155 characters'],
+    default: ''
+  },
+  seoKeywords: [{
+    type: String,
+    trim: true
+  }],
+  seoImage: {
+    type: String,
+    trim: true,
+    default: ''
   }
 }, { timestamps: true });
 

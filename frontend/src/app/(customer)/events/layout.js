@@ -1,19 +1,21 @@
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.lassiloungeny.com';
+
 export const metadata = {
-  title: 'Events',
+  title: 'Events & Parties | Lassi Lounge NY',
   description:
-    'Host your special events at Lassi Lounge NY. From private dining to cultural celebrations, enjoy authentic Indian cuisine in an elegant setting.',
-  keywords: [
-    'Lassi Lounge events',
-    'Indian restaurant events NY',
-    'private dining New York',
-    'Indian food party venue',
-    'cultural events Indian restaurant',
-  ],
+    'Host special events and private parties at Lassi Lounge NY. Enjoy authentic Indian catering in an elegant setting.',
+  alternates: {
+    canonical: `${siteUrl}/events`,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   openGraph: {
-    title: 'Events | Lassi Lounge NY',
+    title: 'Events & Parties | Lassi Lounge NY',
     description:
       'Celebrate special moments with authentic Indian cuisine at Lassi Lounge NY.',
-    url: '/events',
+    url: `${siteUrl}/events`,
   },
 };
 

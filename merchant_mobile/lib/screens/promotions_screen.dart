@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/promotion_provider.dart';
 import '../models/promotion_model.dart';
+import 'add_edit_promotion_screen.dart';
 
 class PromotionsScreen extends StatefulWidget {
   const PromotionsScreen({super.key});
@@ -32,7 +34,7 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
     'Seasonal Offer',
     'Referral Offer'
   ];
-  final List<String> _statuses = ['All Status', 'Active', 'Scheduled', 'Expired'];
+  final List<String> _statuses = ['All Status', 'Active', 'Expired'];
   final List<String> _channels = ['All Channels', 'Mobile, Web', 'Mobile', 'Web', 'Dine-In'];
 
   @override
@@ -71,8 +73,8 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
     final stats = provider.stats;
     final isLoading = provider.isLoading && promotions.isEmpty;
 
-    final totalPromotions = stats?['totalPromotions'] ?? (promotions.isNotEmpty ? promotions.length : 12);
-    final activePromotions = stats?['activePromotions'] ?? (promotions.isNotEmpty ? promotions.where((p) => p.isCurrentlyActive).length : 8);
+    final totalPromotions = stats?['totalPromotions'] ?? promotions.length;
+    final activePromotions = stats?['activePromotions'] ?? promotions.where((p) => p.isCurrentlyActive).length;
 
     // Filter logic
     final filteredPromotions = promotions.where((p) {
@@ -95,8 +97,6 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
       bool statusMatch = true;
       if (_filterStatus == 'Active') {
         statusMatch = p.isCurrentlyActive;
-      } else if (_filterStatus == 'Scheduled') {
-        statusMatch = p.isScheduled;
       } else if (_filterStatus == 'Expired') {
         statusMatch = p.isExpired;
       }
@@ -164,7 +164,12 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
         ],
       ),
       bottomNavigationBar: Container(
-        padding: EdgeInsets.fromLTRB(16, 10, 16, MediaQuery.of(context).padding.bottom + 12),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          10,
+          16,
+          math.max(MediaQuery.of(context).padding.bottom, MediaQuery.of(context).viewPadding.bottom) + 12,
+        ),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
@@ -690,11 +695,13 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       backgroundColor: Colors.white,
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (ctx) {
+        final bottomPad = math.max(MediaQuery.of(ctx).padding.bottom, MediaQuery.of(ctx).viewPadding.bottom);
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 16 + bottomPad),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -759,14 +766,14 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   // Exact Promotion Card implementation from UI Mockup
   Widget _buildPromotionCard(PromotionModel promo, PromotionProvider provider, int index) {
     final theme = _getCardTheme(promo, index);
-    final isScheduled = promo.isScheduled;
     final isExpired = promo.isExpired;
 
     return Container(
@@ -921,35 +928,29 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Left: Date (Ends or Starts)
+              // Left: Date (Ends or Ended)
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.access_time_rounded,
                     size: 14,
-                    color: isScheduled
-                        ? const Color(0xFF0284C7) // Blue for scheduled
-                        : (isExpired ? const Color(0xFFDC2626) : const Color(0xFFD97706)), // Amber for active ends
+                    color: isExpired ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
                   ),
                   const SizedBox(width: 5),
                   Text(
-                    isScheduled
-                        ? 'Starts ${_formatDate(promo.startDate)}'
-                        : (isExpired ? 'Ended ${_formatDate(promo.endDate)}' : 'Ends ${_formatDate(promo.endDate)}'),
+                    isExpired ? 'Ended ${_formatDate(promo.endDate)}' : 'Ends ${_formatDate(promo.endDate)}',
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: isScheduled
-                          ? const Color(0xFF0284C7)
-                          : (isExpired ? const Color(0xFFDC2626) : const Color(0xFFD97706)),
+                      color: isExpired ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
                     ),
                   ),
                 ],
               ),
 
               // Right: Status Pill
-              _buildStatusPill(isScheduled: isScheduled, isExpired: isExpired),
+              _buildStatusPill(isExpired: isExpired),
             ],
           ),
         ],
@@ -968,41 +969,8 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
     return Icon(Icons.local_offer_outlined, size: 14, color: color);
   }
 
-  Widget _buildStatusPill({required bool isScheduled, required bool isExpired}) {
-    if (isScheduled) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFEE2E2), // Light peach/red
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 3 vertical lines icon
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(width: 2.2, height: 10, decoration: BoxDecoration(color: const Color(0xFFDC2626), borderRadius: BorderRadius.circular(1))),
-                const SizedBox(width: 2),
-                Container(width: 2.2, height: 10, decoration: BoxDecoration(color: const Color(0xFFDC2626), borderRadius: BorderRadius.circular(1))),
-                const SizedBox(width: 2),
-                Container(width: 2.2, height: 10, decoration: BoxDecoration(color: const Color(0xFFDC2626), borderRadius: BorderRadius.circular(1))),
-              ],
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'Scheduled',
-              style: GoogleFonts.inter(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFFDC2626),
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (!isExpired) {
+  Widget _buildStatusPill({required bool isExpired}) {
+    if (!isExpired) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
         decoration: BoxDecoration(
@@ -1029,20 +997,20 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
+          color: const Color(0xFFFEE2E2), // Light red
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cancel_rounded, size: 13, color: Color(0xFF64748B)),
+            const Icon(Icons.cancel_rounded, size: 13, color: Color(0xFFDC2626)),
             const SizedBox(width: 5),
             Text(
               'Expired',
               style: GoogleFonts.inter(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF64748B),
+                color: const Color(0xFFDC2626),
               ),
             ),
           ],
@@ -1179,400 +1147,11 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
   }
 
   void _showPromotionForm(BuildContext context, PromotionModel? existingPromo) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _PromotionFormBottomSheet(promo: existingPromo),
-    );
-  }
-}
-
-class _PromotionFormBottomSheet extends StatefulWidget {
-  final PromotionModel? promo;
-  const _PromotionFormBottomSheet({this.promo});
-
-  @override
-  State<_PromotionFormBottomSheet> createState() => _PromotionFormBottomSheetState();
-}
-
-class _PromotionFormBottomSheetState extends State<_PromotionFormBottomSheet> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _codeController;
-  late TextEditingController _nameController;
-  late TextEditingController _descController;
-  late TextEditingController _valueController;
-  late TextEditingController _minCartController;
-  late TextEditingController _minOrdersController;
-  late TextEditingController _maxUsesController;
-  
-  String _promoType = 'Coupon';
-  String _discountType = 'percentage';
-  String _paymentMethod = 'All';
-  String _targetAudience = 'All Users';
-  String _targetGroup = 'Family';
-  DateTime? _endDate;
-  bool _isSaving = false;
-  bool _firstOrderOnly = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final p = widget.promo;
-    _codeController = TextEditingController(text: p?.code ?? '');
-    _nameController = TextEditingController(text: p?.name ?? '');
-    _descController = TextEditingController(text: p?.description ?? '');
-    _valueController = TextEditingController(text: p?.value.toString() ?? '');
-    _minCartController = TextEditingController(text: p?.minCartValue.toString() ?? '');
-    _minOrdersController = TextEditingController(text: p?.minOrdersRequired.toString() ?? '');
-    _maxUsesController = TextEditingController(text: p?.maxUses?.toString() ?? '');
-    
-    if (p != null) {
-      _promoType = p.promoType;
-      _discountType = (p.type == 'fixed' || p.type.isEmpty) ? 'flat' : p.type;
-      _paymentMethod = p.allowedPaymentMethods.isNotEmpty ? p.allowedPaymentMethods.first : 'All';
-      _targetAudience = p.targetGroup == 'All Users' ? 'All Users' : 'Specific Group';
-      _targetGroup = p.targetGroup == 'All Users' ? 'Family' : p.targetGroup;
-      _endDate = p.endDate;
-      _firstOrderOnly = p.firstOrderOnly;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(widget.promo == null ? 'Create Promotion' : 'Edit Promotion', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context))
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Coupon Code *'),
-                              TextFormField(
-                                controller: _codeController,
-                                textCapitalization: TextCapitalization.characters,
-                                decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'e.g. SUMMER30'),
-                                validator: (v) => v!.isEmpty ? 'Required' : null,
-                              ),
-                            ],
-                          )
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Promo Type'),
-                              DropdownButtonFormField<String>(
-                                isExpanded: true,
-                                initialValue: _promoType,
-                                decoration: const InputDecoration(border: OutlineInputBorder()),
-                                items: ['Coupon', 'Offer', 'Seasonal Offer', 'Combo Offer'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                                onChanged: (v) => setState(() => _promoType = v!),
-                              ),
-                            ],
-                          )
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildLabel('Name'),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'e.g. Summer Special 30% Off'),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Discount Type *'),
-                              DropdownButtonFormField<String>(
-                                isExpanded: true,
-                                initialValue: _discountType,
-                                decoration: const InputDecoration(border: OutlineInputBorder()),
-                                items: const [DropdownMenuItem(value: 'percentage', child: Text('Percentage (%)')), DropdownMenuItem(value: 'flat', child: Text('Flat Amount'))],
-                                onChanged: (v) => setState(() => _discountType = v!),
-                              ),
-                            ],
-                          )
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Value *'),
-                              TextFormField(
-                                controller: _valueController,
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(border: OutlineInputBorder(), hintText: _discountType == 'percentage' ? 'e.g. 30' : 'e.g. 10'),
-                                validator: (v) => v!.isEmpty ? 'Required' : null,
-                              ),
-                            ],
-                          )
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Min. Cart Value'),
-                              TextFormField(
-                                controller: _minCartController,
-                                keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'e.g. 20'),
-                              ),
-                            ],
-                          )
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Min. Past Orders'),
-                              TextFormField(
-                                controller: _minOrdersController,
-                                keyboardType: TextInputType.number,
-                                enabled: !_firstOrderOnly,
-                                decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'e.g. 5 (0 for all)'),
-                              ),
-                            ],
-                          )
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    CheckboxListTile(
-                      title: Text('Valid for First Order Only', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
-                      value: _firstOrderOnly,
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      activeColor: const Color(0xFF8B0000),
-                      onChanged: (val) {
-                        setState(() {
-                          _firstOrderOnly = val ?? false;
-                          if (_firstOrderOnly) {
-                            _minOrdersController.text = '0';
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Required Payment'),
-                              DropdownButtonFormField<String>(
-                                isExpanded: true,
-                                initialValue: _paymentMethod,
-                                decoration: const InputDecoration(border: OutlineInputBorder()),
-                                items: ['All', 'Credit Card', 'Apple Pay', 'Cash on Delivery'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                                onChanged: (v) => setState(() => _paymentMethod = v!),
-                              ),
-                            ],
-                          )
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Expiry Date *'),
-                              InkWell(
-                                onTap: () async {
-                                  final date = await showDatePicker(
-                                    context: context,
-                                    initialDate: _endDate ?? DateTime.now().add(const Duration(days: 30)),
-                                    firstDate: DateTime.now(),
-                                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                                  );
-                                  if (date != null) {
-                                    setState(() => _endDate = date);
-                                  }
-                                },
-                                child: InputDecorator(
-                                  decoration: InputDecoration(
-                                    border: const OutlineInputBorder(),
-                                    errorText: _endDate == null ? 'Required' : null,
-                                  ),
-                                  child: Text(_endDate != null ? "${_endDate!.year}-${_endDate!.month.toString().padLeft(2,'0')}-${_endDate!.day.toString().padLeft(2,'0')}" : 'Select expiry date'),
-                                ),
-                              ),
-                            ],
-                          )
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Target Audience'),
-                              DropdownButtonFormField<String>(
-                                isExpanded: true,
-                                initialValue: _targetAudience,
-                                decoration: const InputDecoration(border: OutlineInputBorder()),
-                                items: ['All Users', 'Specific Group'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                                onChanged: (v) => setState(() => _targetAudience = v!),
-                              ),
-                            ],
-                          )
-                        ),
-                        if (_targetAudience == 'Specific Group') ...[
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildLabel('Select Group'),
-                                DropdownButtonFormField<String>(
-                                  isExpanded: true,
-                                  initialValue: _targetGroup,
-                                  decoration: const InputDecoration(border: OutlineInputBorder()),
-                                  items: ['Family', 'Friends', 'Corporate', 'Others'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                                  onChanged: (v) => setState(() => _targetGroup = v!),
-                                ),
-                              ],
-                            )
-                          ),
-                        ] else const Spacer(),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel('Max Uses (Limit)'),
-                              TextFormField(
-                                controller: _maxUsesController,
-                                keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'e.g. 100 (blank for unlimited)'),
-                              ),
-                            ],
-                          )
-                        ),
-                        const Spacer(),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildLabel('Description'),
-                    TextFormField(
-                      controller: _descController,
-                      maxLines: 2,
-                      decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Add a description...'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B0000), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                onPressed: _isSaving ? null : _save,
-                child: _isSaving 
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : Text(widget.promo == null ? 'Create Promotion' : 'Update Promotion', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-              ),
-            ),
-          )
-        ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => AddEditPromotionScreen(promo: existingPromo),
       ),
     );
-  }
-
-  Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13)),
-    );
-  }
-
-  void _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Expiry date is required')));
-      return;
-    }
-
-    setState(() => _isSaving = true);
-    final data = {
-      'code': _codeController.text.trim().toUpperCase(),
-      'name': _nameController.text.trim(),
-      'promoType': _promoType,
-      'type': _discountType,
-      'value': double.tryParse(_valueController.text) ?? 0,
-      'minCartValue': double.tryParse(_minCartController.text) ?? 0,
-      'firstOrderOnly': _firstOrderOnly,
-      'minOrdersRequired': _firstOrderOnly ? 0 : (int.tryParse(_minOrdersController.text) ?? 0),
-      'allowedPaymentMethods': _paymentMethod == 'All' ? ['All'] : [_paymentMethod],
-      'endDate': _endDate!.toIso8601String(),
-      'maxUses': _maxUsesController.text.isNotEmpty ? int.tryParse(_maxUsesController.text) : null,
-      'targetGroup': _targetAudience == 'All Users' ? 'All Users' : _targetGroup,
-      'description': _descController.text.trim(),
-    };
-
-    try {
-      if (widget.promo == null) {
-        await context.read<PromotionProvider>().createPromotion(data);
-      } else {
-        await context.read<PromotionProvider>().updatePromotion(widget.promo!.id, data);
-      }
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.promo == null ? 'Created successfully' : 'Updated successfully')));
-      }
-    } catch(e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
   }
 }

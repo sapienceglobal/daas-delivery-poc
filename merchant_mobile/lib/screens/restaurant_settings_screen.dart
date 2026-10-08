@@ -7,7 +7,6 @@ import 'package:shimmer/shimmer.dart';
 import '../providers/restaurant_provider.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/shared_bottom_nav.dart';
-import '../constants/app_colors.dart';
 
 class RestaurantSettingsScreen extends StatefulWidget {
   const RestaurantSettingsScreen({Key? key}) : super(key: key);
@@ -312,17 +311,141 @@ class _RestaurantSettingsScreenState extends State<RestaurantSettingsScreen> wit
         children: [
           Text(label, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF374151), letterSpacing: 0.5)),
           const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            value: value,
-            items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: GoogleFonts.inter(fontSize: 14)))).toList(),
-            onChanged: onChanged,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF8B0000))),
+          InkWell(
+            onTap: () {
+              FocusScope.of(context).unfocus();
+              showModalBottomSheet<String>(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (sheetCtx) {
+                  return Container(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(sheetCtx).size.height * 0.65,
+                    ),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                    ),
+                    child: SafeArea(
+                      top: false,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Center(
+                            child: Container(
+                              margin: const EdgeInsets.only(top: 12, bottom: 8),
+                              width: 38,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFCBD5E1),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 8, 12, 12),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF1F2),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(Icons.tune_rounded, color: Color(0xFF881337), size: 18),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    label,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                                  onPressed: () => Navigator.pop(sheetCtx),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                          Flexible(
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              itemCount: items.length,
+                              separatorBuilder: (_, index) => const Divider(height: 1, color: Color(0xFFF8FAFC)),
+                              itemBuilder: (ctx, i) {
+                                final opt = items[i];
+                                final isSel = opt == value;
+                                return InkWell(
+                                  onTap: () => Navigator.pop(sheetCtx, opt),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: isSel ? const Color(0xFFFFF1F2) : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: isSel ? Border.all(color: const Color(0xFFFECDD3)) : null,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            opt,
+                                            style: GoogleFonts.inter(
+                                              fontSize: 13.5,
+                                              fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                              color: isSel ? const Color(0xFF881337) : const Color(0xFF1E293B),
+                                            ),
+                                          ),
+                                        ),
+                                        if (isSel)
+                                          const Icon(Icons.check_circle_rounded, color: Color(0xFF881337), size: 18),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ).then((chosen) {
+                if (chosen != null) onChanged(chosen);
+              });
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      value,
+                      style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF1E293B), fontWeight: FontWeight.w500),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B), size: 20),
+                ],
+              ),
             ),
           ),
         ],

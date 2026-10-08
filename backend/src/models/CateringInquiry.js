@@ -36,7 +36,16 @@ const CateringInquirySchema = new mongoose.Schema({
   },
   packagePreference: {
     type: String,
-    enum: ['Basic Package', 'Premium Package', 'Deluxe Package', 'Custom / Unsure'],
+    enum: [
+      'Basic Package',
+      'Premium Package',
+      'Deluxe Package',
+      'Custom / Unsure',
+      'Lunch + High Tea',
+      'Dinner Buffet',
+      'Veg Deluxe',
+      'Special Feast'
+    ],
     default: 'Custom / Unsure'
   },
   additionalNotes: {

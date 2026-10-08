@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Save, Image as ImageIcon, Loader2, Plus, Trash2, 
-  LayoutTemplate, Info, Utensils, CalendarDays, Camera, GripVertical, Ticket 
+  LayoutTemplate, Info, Utensils, CalendarDays, Camera, GripVertical, Ticket, Globe
 } from 'lucide-react';
+import StaticPagesSeoModal from '@/components/merchant/StaticPagesSeoModal';
 import { api, authAPI, couponAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -13,6 +14,7 @@ export default function CmsManagementView() {
   const [activeTab, setActiveTab] = useState('hero');
   const [uploadingImage, setUploadingImage] = useState(null);
   const [activeCoupons, setActiveCoupons] = useState([]);
+  const [isSeoModalOpen, setIsSeoModalOpen] = useState(false);
 
   const [cmsData, setCmsData] = useState({
     heroBanners: { home: '', menu: '', orderOnline: '', checkout: '', catering: '', bookTable: '' },
@@ -204,14 +206,23 @@ export default function CmsManagementView() {
           <h1 className="text-2xl font-bold text-[#111827]">Website Content</h1>
           <p className="text-sm text-[#6b7280] mt-1">Manage dynamic content, banners, and settings for your customer website.</p>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 bg-[#8B0000] text-white px-6 py-2.5 rounded-xl font-bold hover:bg-[#660000] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {saving ? 'Saving...' : 'Save Changes'}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsSeoModalOpen(true)}
+            className="flex items-center gap-2 bg-white border border-[#e5e7eb] px-4 py-2.5 rounded-xl text-sm font-bold text-[#2563eb] hover:bg-[#eff6ff] hover:border-[#bfdbfe] transition-all shadow-sm"
+          >
+            <Globe className="w-4 h-4" /> Static Pages SEO
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 bg-[#8B0000] text-white px-6 py-2.5 rounded-xl font-bold hover:bg-[#660000] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
@@ -638,6 +649,11 @@ export default function CmsManagementView() {
           </div>
         </div>
       </div>
+
+      <StaticPagesSeoModal
+        isOpen={isSeoModalOpen}
+        onClose={() => setIsSeoModalOpen(false)}
+      />
     </div>
   );
 }

@@ -42,16 +42,16 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
                 delegate: GlobalSearchDelegate(),
               );
             },
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(22),
             child: Container(
-              width: 38,
-              height: 38,
+              width: 42,
+              height: 42,
               decoration: const BoxDecoration(
                 color: Color(0xFFF8FAFC),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: const Icon(Icons.search, color: Color(0xFF1E293B), size: 20),
+              child: const Icon(Icons.search, color: Color(0xFF1E293B), size: 24),
             ),
           ),
         ),
@@ -67,10 +67,10 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
                 children: [
                   InkWell(
                     onTap: () => context.push('/notifications'),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(22),
                     child: Container(
-                      width: 38,
-                      height: 38,
+                      width: 42,
+                      height: 42,
                       decoration: const BoxDecoration(
                         color: Color(0xFFF8FAFC),
                         shape: BoxShape.circle,
@@ -79,21 +79,21 @@ class SharedAppBar extends StatelessWidget implements PreferredSizeWidget {
                       child: const Icon(
                         Icons.notifications_none_rounded,
                         color: Color(0xFF1E293B),
-                        size: 20,
+                        size: 24,
                       ),
                     ),
                   ),
                   if (unreadCount > 0)
                     Positioned(
-                      right: -2,
-                      top: -2,
+                      right: -1,
+                      top: -1,
                       child: Container(
                         padding: const EdgeInsets.all(3),
                         decoration: const BoxDecoration(
                           color: Color(0xFFDC2626),
                           shape: BoxShape.circle,
                         ),
-                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        constraints: const BoxConstraints(minWidth: 17, minHeight: 17),
                         child: Text(
                           unreadCount > 99 ? '99+' : unreadCount.toString(),
                           style: const TextStyle(

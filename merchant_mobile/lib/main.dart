@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
 import 'package:go_router/go_router.dart';
@@ -28,7 +29,6 @@ import 'screens/loyalty_rewards_screen.dart';
 import 'screens/marketing_screen.dart';
 import 'screens/support_messages_screen.dart';
 
-import 'services/api_service.dart';
 import 'services/socket_service.dart';
 import 'services/push_notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -65,37 +65,133 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
+Future<void> _guard(
+    String name, Future<void> Function() fn, Duration timeout) async {
+  try {
+    await fn().timeout(timeout);
+    debugPrint('$name initialized successfully.');
+  } catch (e) {
+    debugPrint('Warning: $name init failed or timed out: $e');
+  }
+}
+
+Future<void> _initFirebase() async {
+  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+}
+
+Future<void> _initTimezone() async {
+  tz.initializeTimeZones();
+  try {
+    final String tzStr =
+        (await FlutterTimezone.getLocalTimezone()).identifier;
+    if (tzStr.isNotEmpty) {
+      try {
+        tz.setLocalLocation(tz.getLocation(tzStr));
+        return; // Device native timezone anywhere in the world successfully applied!
+      } catch (_) {
+        // Fallback for New York / US Eastern non-standard strings
+        if (tzStr.contains('New_York') ||
+            tzStr.contains('Eastern') ||
+            tzStr.contains('EDT') ||
+            tzStr.contains('EST') ||
+            tzStr.contains('-05') ||
+            tzStr.contains('-04')) {
+          tz.setLocalLocation(tz.getLocation('America/New_York'));
+          return;
+        }
+        // Fallback for Indian testers / legacy IDs
+        if (tzStr.contains('Calcutta') ||
+            tzStr.contains('+05') ||
+            tzStr.contains('IST')) {
+          tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
+          return;
+        }
+      }
+    }
+    // Default fallback for New York restaurants
+    tz.setLocalLocation(tz.getLocation('America/New_York'));
+  } catch (e) {
+    debugPrint('Timezone lookup error ($e) - falling back to America/New_York');
+    try {
+      tz.setLocalLocation(tz.getLocation('America/New_York'));
+    } catch (_) {
+      try {
+        tz.setLocalLocation(tz.getLocation('UTC'));
+      } catch (_) {}
+    }
+  }
+}
+
+Future<void> _initStripe() async {
+  Stripe.publishableKey =
+      'pk_live_51U0Oy3FY8ihGsgg4uTvqPaO7SHZHn9kwl0cb08mLmelJxJGBpV2U8OCR6JiTbipPlivdKqjmcCnrOlzcATl12x7G004CSSZ3AT';
+  Stripe.merchantIdentifier = 'merchant.com.lassilounge';
+  Stripe.urlScheme = 'lassilounge';
+  try {
+    await Stripe.instance.applySettings();
+  } catch (e) {
+    debugPrint('Stripe applySettings warning: $e');
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Stripe.publishableKey = 'pk_test_51Tqvb7HxSFxyqGbKxYaqXnfCOCEDuxSoZyxrMA46oSFzNJ9PGhAu9ggeOOUMKotyx1iblp3dG77GX879vnUBqjiI00SX1sCKi7';
-  Stripe.publishableKey =  'pk_live_51U0Oy3FY8ihGsgg4uTvqPaO7SHZHn9kwl0cb08mLmelJxJGBpV2U8OCR6JiTbipPlivdKqjmcCnrOlzcATl12x7G004CSSZ3AT';
-  
-  await Firebase.initializeApp();
-  
-  tz.initializeTimeZones();
-  final String currentTimeZone = (await FlutterTimezone.getLocalTimezone()).identifier;
-  tz.setLocalLocation(tz.getLocation(currentTimeZone));
-  
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  
-  // Initialize SharedPreferences
-  final prefs = await SharedPreferences.getInstance();
-  
-  // Create shared instances
+
+  // Global error handlers: prevent native crashing or black screen on uncaught errors
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('FlutterError: ${details.exceptionAsString()}');
+  };
+  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    debugPrint('Uncaught error: $error');
+    return true;
+  };
+
+  // Graceful fallback instead of grey/black screen in release builds
+  if (kReleaseMode) {
+    ErrorWidget.builder = (FlutterErrorDetails details) => const Material(
+          color: Colors.white,
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'Something went wrong. Please restart the app.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        );
+  }
+
+  SharedPreferences? prefs;
   final socketService = SocketService();
   final authProvider = AuthProvider();
-  
-  // Check initial login state
-  await authProvider.checkLoginStatus();
-  socketService.init();
+
+  // Initialize critical services in parallel with timeouts to guarantee quick boot
+  await Future.wait<void>([
+    _guard('Firebase', _initFirebase, const Duration(seconds: 8)),
+    _guard('Timezone', _initTimezone, const Duration(seconds: 3)),
+    _guard('Stripe', _initStripe, const Duration(seconds: 5)),
+    _guard('Prefs', () async {
+      prefs = await SharedPreferences.getInstance();
+    }, const Duration(seconds: 4)),
+    _guard('Auth', () async {
+      await authProvider.checkLoginStatus();
+    }, const Duration(seconds: 4)),
+  ]);
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
-        Provider<SharedPreferences>.value(value: prefs),
-        // Provider<ApiService>.value(value: apiService),
+        if (prefs != null)
+          Provider<SharedPreferences>.value(value: prefs!)
+        else
+          FutureProvider<SharedPreferences?>(
+            create: (_) => SharedPreferences.getInstance(),
+            initialData: null,
+          ),
         Provider<SocketService>.value(value: socketService),
         ChangeNotifierProvider<OrderProvider>(
           create: (_) => OrderProvider(socketService)..fetchOrders(), // Attempt to fetch on boot
@@ -137,6 +233,15 @@ void main() async {
       child: const MerchantApp(),
     ),
   );
+
+  // Initialize socket connection after first frame has rendered so it never blocks UI boot
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    try {
+      socketService.init();
+    } catch (e) {
+      debugPrint('Socket init post-frame warning: $e');
+    }
+  });
 }
 
 final GoRouter _router = GoRouter(

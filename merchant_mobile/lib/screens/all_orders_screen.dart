@@ -1487,41 +1487,52 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
             context.push('/order-details/${order.id}');
           }
         },
+        onLongPress: () {
+          setState(() {
+            if (isSelected) {
+              _selectedOrderIds.remove(order.id);
+            } else {
+              _selectedOrderIds.add(order.id);
+            }
+          });
+        },
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Checkbox
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (isSelected) {
-                      _selectedOrderIds.remove(order.id);
-                    } else {
-                      _selectedOrderIds.add(order.id);
-                    }
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 2, right: 10),
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF991B1B) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(
-                        color: isSelected ? const Color(0xFF991B1B) : const Color(0xFFCBD5E1),
-                        width: 1.5,
+              // Checkbox (Only shown during multi-selection mode to save horizontal space)
+              if (_selectedOrderIds.isNotEmpty) ...[
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedOrderIds.remove(order.id);
+                      } else {
+                        _selectedOrderIds.add(order.id);
+                      }
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 2, right: 10),
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFF991B1B) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(5),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFF991B1B) : const Color(0xFFCBD5E1),
+                          width: 1.5,
+                        ),
                       ),
+                      child: isSelected
+                          ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                          : null,
                     ),
-                    child: isSelected
-                        ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
-                        : null,
                   ),
                 ),
-              ),
+              ],
 
               // Dish Image Thumbnail
               _buildOrderDishImage(order),

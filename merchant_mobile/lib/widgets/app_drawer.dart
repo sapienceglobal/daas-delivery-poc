@@ -243,6 +243,24 @@ class AppDrawer extends StatelessWidget {
                       },
                     ),
                     _buildNavItem(
+                      icon: Icons.timer_outlined,
+                      title: 'Live Orders',
+                      isActive: location == '/live-orders',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/live-orders');
+                      },
+                    ),
+                    _buildNavItem(
+                      icon: Icons.point_of_sale_rounded,
+                      title: 'Create Order',
+                      isActive: location == '/pos',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/pos');
+                      },
+                    ),
+                    _buildNavItem(
                       icon: Icons.room_service_outlined,
                       title: 'All Orders',
                       isActive: location == '/all-orders',
@@ -288,15 +306,6 @@ class AppDrawer extends StatelessWidget {
                       },
                     ),
                     _buildNavItem(
-                      icon: Icons.point_of_sale_rounded,
-                      title: 'Point of Sale',
-                      isActive: location == '/pos',
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        context.push('/pos');
-                      },
-                    ),
-                    _buildNavItem(
                       icon: Icons.event_note_outlined,
                       title: 'Bookings',
                       isActive: location == '/reservations',
@@ -325,15 +334,6 @@ class AppDrawer extends StatelessWidget {
                     ),
 
                     // Additional Core Management Screens
-                    _buildNavItem(
-                      icon: Icons.timer_outlined,
-                      title: 'Live Orders',
-                      isActive: location == '/live-orders',
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        context.push('/live-orders');
-                      },
-                    ),
                     _buildNavItem(
                       icon: Icons.web_rounded,
                       title: 'Website CMS',

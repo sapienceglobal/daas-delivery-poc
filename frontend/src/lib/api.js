@@ -414,3 +414,10 @@ export const marketingAPI = {
   getCampaigns: (params = '') => api.get(`/api/marketing${params ? '?' + params : ''}`),
   broadcastCampaign: (data) => api.post('/api/marketing', data)
 };
+
+// ── SEO API ──────────────────────────────────────────────────────────────────
+export const seoAPI = {
+  getPage: (path) => api.get(`/api/seo/page?path=${encodeURIComponent(path)}`),
+  getAllPages: () => api.get('/api/seo/pages'),
+  updatePage: (data) => api.put('/api/seo/page', data),
+};

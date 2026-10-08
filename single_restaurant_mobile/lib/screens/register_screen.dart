@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/screens/login_screen.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
@@ -54,18 +56,58 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _errorMessage;
   String? _emailServerError;
 
+  TapGestureRecognizer? _termsRecognizer;
+  TapGestureRecognizer? _privacyRecognizer;
+  bool _termsError = false;
+
   final RegExp _passwordRegex = RegExp(
     r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$',
   );
 
   @override
+  void initState() {
+    super.initState();
+    _termsRecognizer = TapGestureRecognizer()..onTap = _openTerms;
+    _privacyRecognizer = TapGestureRecognizer()..onTap = _openPrivacyPolicy;
+  }
+
+  @override
   void dispose() {
+    _termsRecognizer?.dispose();
+    _privacyRecognizer?.dispose();
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openTerms() async {
+    final uri = Uri.parse('https://lassiloungeny.com/terms');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _openPrivacyPolicy() async {
+    final uri = Uri.parse('https://lassiloungeny.com/privacy-policy');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void _toggleTerms([bool? value]) {
+    setState(() {
+      _agreedToTerms = value ?? !_agreedToTerms;
+      if (_agreedToTerms) {
+        _termsError = false;
+        if (_errorMessage != null &&
+            _errorMessage!.toLowerCase().contains('agree')) {
+          _errorMessage = null;
+        }
+      }
+    });
   }
 
   Future<void> _register() async {
@@ -76,7 +118,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (!_agreedToTerms) {
-      setState(() => _errorMessage = 'Please agree to the Terms & Conditions to continue.');
+      setState(() {
+        _termsError = true;
+        _errorMessage = 'Please agree to the Terms & Conditions and Privacy Policy to continue.';
+      });
       return;
     }
 
@@ -406,53 +451,76 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 24),
 
                     // Terms & Conditions Checkbox
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: Checkbox(
-                            value: _agreedToTerms,
-                            activeColor: AppColors.secondary,
-                            onChanged: (val) => setState(() {
-                              _agreedToTerms = val ?? false;
-                              _errorMessage = null;
-                            }),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: RichText(
-                            text: const TextSpan(
-                              style: TextStyle(
-                                color: Colors.black87,
-                                fontSize: 12,
-                                height: 1.4,
+                    InkWell(
+                      onTap: _toggleTerms,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: Checkbox(
+                                value: _agreedToTerms,
+                                activeColor: AppColors.secondary,
+                                isError: _termsError && !_agreedToTerms,
+                                onChanged: (val) => _toggleTerms(val),
                               ),
-                              children: [
-                                TextSpan(text: 'I agree to the '),
-                                TextSpan(
-                                  text: 'Terms, Cancellation & Refund Policy',
-                                  style: TextStyle(
-                                    color: AppColors.secondary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                TextSpan(text: ' and '),
-                                TextSpan(
-                                  text: 'Privacy Policy',
-                                  style: TextStyle(
-                                    color: AppColors.secondary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
                             ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(
+                                    color: Colors.black87,
+                                    fontSize: 12,
+                                    height: 1.4,
+                                  ),
+                                  children: [
+                                    const TextSpan(text: 'I agree to the '),
+                                    TextSpan(
+                                      text: 'Terms, Cancellation & Refund Policy',
+                                      recognizer: _termsRecognizer,
+                                      style: const TextStyle(
+                                        color: AppColors.secondary,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                    const TextSpan(text: ' and '),
+                                    TextSpan(
+                                      text: 'Privacy Policy',
+                                      recognizer: _privacyRecognizer,
+                                      style: const TextStyle(
+                                        color: AppColors.secondary,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_termsError && !_agreedToTerms) ...[
+                      const SizedBox(height: 6),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 34),
+                        child: Text(
+                          'You must agree to the Terms & Conditions and Privacy Policy to register.',
+                          style: TextStyle(
+                            color: Colors.red.shade700,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
 
                     // Register Button

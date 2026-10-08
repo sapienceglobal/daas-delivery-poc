@@ -34,23 +34,21 @@ class CrmModals {
                 TextField(controller: titleController, decoration: _inputDec('e.g. Special VIP Discount')),
                 const SizedBox(height: 12),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLabel('Discount Type'),
-                          DropdownButtonFormField<String>(
-                            value: discountType,
-                            isExpanded: true,
-                            items: const [
-                              DropdownMenuItem(value: 'percentage', child: Text('Percentage (%)', overflow: TextOverflow.ellipsis)),
-                              DropdownMenuItem(value: 'fixed', child: Text('Fixed Amount (\$)', overflow: TextOverflow.ellipsis)),
-                            ],
-                            onChanged: (v) => setState(() => discountType = v!),
-                            decoration: _inputDec(''),
-                          ),
-                        ],
+                      child: _buildSheetDropdownField(
+                        context: context,
+                        label: 'Discount Type',
+                        value: discountType,
+                        sheetTitle: 'Select Discount Type',
+                        prefixIcon: Icons.percent_rounded,
+                        options: const ['percentage', 'fixed'],
+                        displayLabels: const {
+                          'percentage': 'Percentage (%)',
+                          'fixed': 'Fixed Amount (\$)',
+                        },
+                        onSelected: (v) => setState(() => discountType = v),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -59,7 +57,7 @@ class CrmModals {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildLabel('Value'),
-                          TextField(controller: discountValueController, keyboardType: TextInputType.number, decoration: _inputDec('')),
+                          TextField(controller: discountValueController, keyboardType: TextInputType.number, decoration: _inputDec('10')),
                         ],
                       ),
                     ),
@@ -135,11 +133,14 @@ class CrmModals {
             children: [
               Text('Select a group for ${targetIds.length} customer(s).', style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade600)),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
+              _buildSheetDropdownField(
+                context: context,
+                label: 'Customer Group',
                 value: selectedGroup,
-                items: groups.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-                onChanged: (v) => setState(() => selectedGroup = v!),
-                decoration: _inputDec('Group'),
+                sheetTitle: 'Select Customer Group',
+                prefixIcon: Icons.group_outlined,
+                options: groups,
+                onSelected: (v) => setState(() => selectedGroup = v),
               ),
             ],
           ),
@@ -190,11 +191,14 @@ class CrmModals {
             children: [
               Text('Update status for ${targetIds.length} customer(s).', style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade600)),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
+              _buildSheetDropdownField(
+                context: context,
+                label: 'Status',
                 value: selectedStatus,
-                items: ['Active', 'Inactive'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-                onChanged: (v) => setState(() => selectedStatus = v!),
-                decoration: _inputDec('Status'),
+                sheetTitle: 'Select Customer Status',
+                prefixIcon: Icons.verified_user_outlined,
+                options: const ['Active', 'Inactive'],
+                onSelected: (v) => setState(() => selectedStatus = v),
               ),
             ],
           ),
@@ -295,12 +299,14 @@ class CrmModals {
                 _buildLabel('Phone'),
                 TextField(controller: phoneController, decoration: _inputDec('+1 234 567 8900'), keyboardType: TextInputType.phone),
                 const SizedBox(height: 12),
-                _buildLabel('Group'),
-                DropdownButtonFormField<String>(
+                _buildSheetDropdownField(
+                  context: context,
+                  label: 'Customer Group',
                   value: selectedGroup,
-                  items: groups.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-                  onChanged: (v) => setState(() => selectedGroup = v!),
-                  decoration: _inputDec('Group'),
+                  sheetTitle: 'Select Customer Group',
+                  prefixIcon: Icons.group_outlined,
+                  options: groups,
+                  onSelected: (v) => setState(() => selectedGroup = v),
                 ),
               ],
             ),
@@ -355,18 +361,177 @@ class CrmModals {
   static Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Text(text, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
+      child: Text(text, style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF1E293B))),
+    );
+  }
+
+  static Widget _buildSheetDropdownField({
+    required BuildContext context,
+    required String label,
+    required String value,
+    required String sheetTitle,
+    required List<String> options,
+    required ValueChanged<String> onSelected,
+    Map<String, String>? displayLabels,
+    IconData? prefixIcon,
+  }) {
+    final displayText = displayLabels != null ? (displayLabels[value] ?? value) : value;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLabel(label),
+        InkWell(
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            showModalBottomSheet<String>(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (sheetCtx) {
+                return Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(sheetCtx).size.height * 0.65,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Center(
+                          child: Container(
+                            margin: const EdgeInsets.only(top: 12, bottom: 8),
+                            width: 38,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFCBD5E1),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 12, 12),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF1F2),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(prefixIcon ?? Icons.tune_rounded, color: const Color(0xFF881337), size: 18),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  sheetTitle,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF0F172A),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                                onPressed: () => Navigator.pop(sheetCtx),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        Flexible(
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            itemCount: options.length,
+                            separatorBuilder: (_, index) => const Divider(height: 1, color: Color(0xFFF8FAFC)),
+                            itemBuilder: (ctx, i) {
+                              final opt = options[i];
+                              final isSel = opt == value;
+                              final labelStr = displayLabels != null ? (displayLabels[opt] ?? opt) : opt;
+                              return InkWell(
+                                onTap: () => Navigator.pop(sheetCtx, opt),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: isSel ? const Color(0xFFFFF1F2) : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: isSel ? Border.all(color: const Color(0xFFFECDD3)) : null,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          labelStr,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 13.5,
+                                            fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                            color: isSel ? const Color(0xFF881337) : const Color(0xFF1E293B),
+                                          ),
+                                        ),
+                                      ),
+                                      if (isSel)
+                                        const Icon(Icons.check_circle_rounded, color: Color(0xFF881337), size: 18),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ).then((chosen) {
+              if (chosen != null) onSelected(chosen);
+            });
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    displayText,
+                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: const Color(0xFF0F172A)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B), size: 20),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   static InputDecoration _inputDec(String hint) {
     return InputDecoration(
       hintText: hint,
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF8B0000))),
+      hintStyle: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF881337), width: 1.8)),
     );
   }
 }

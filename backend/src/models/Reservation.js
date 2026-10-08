@@ -41,7 +41,7 @@ const ReservationSchema = new mongoose.Schema({
   },
   location: {
     type: String,
-    enum: ['Main Dining Area', 'Indoor', 'Private Room', 'Outdoor Seating', 'Any'],
+    enum: ['Main Dining Area', 'Indoor', 'Private Room', 'Private', 'Outdoor Seating', 'Outdoor', 'Any'],
     default: 'Any'
   },
   occasion: {
@@ -54,7 +54,7 @@ const ReservationSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'cancelled', 'completed'],
+    enum: ['pending', 'confirmed', 'seated', 'cancelled', 'completed'],
     default: 'pending' // Industry standard: starts as pending until auto-confirmed or merchant confirmed
   },
   tableId: {

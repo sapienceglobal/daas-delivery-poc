@@ -2,7 +2,8 @@ import express from 'express';
 import {
   createInquiry,
   getRestaurantInquiries,
-  updateInquiryStatus
+  updateInquiryStatus,
+  updateInquiry
 } from '../controllers/cateringController.js';
 import { protect, authorize } from '../middleware/auth.js';
 import validate from '../middleware/validate.js';
@@ -15,6 +16,7 @@ router.post('/', validate(createCateringSchema), createInquiry);
 
 // merchant/Admin routes for managing inquiries
 router.get('/restaurant/:restaurantId', protect, authorize('merchant', 'admin'), getRestaurantInquiries);
+router.put('/:id', protect, authorize('merchant', 'admin'), updateInquiry);
 router.put('/:id/status', protect, authorize('merchant', 'admin'), updateInquiryStatus);
 
 export default router;

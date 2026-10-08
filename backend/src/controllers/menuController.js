@@ -6,6 +6,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import { slugify } from '../utils/slugify.js';
+import { triggerFrontendRevalidation } from '../utils/revalidateFrontend.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -26,15 +27,24 @@ const ensureOwner = async (restaurantId, user, RestaurantModel) => {
 
 // ── Public ──────────────────────────────────────────────────────────────────
 
-// Accepts either a Mongo ObjectId or a restaurant slug (e.g. "lassi-lounge").
+// Accepts either a Mongo ObjectId, exact slug, slug prefix, or restaurant name
 const resolveRestaurantId = async (identifier, RestaurantModel) => {
   if (!identifier) return null;
   if (mongoose.Types.ObjectId.isValid(identifier) && String(identifier).length === 24) {
     return new mongoose.Types.ObjectId(identifier);
   }
-  const restaurant = await RestaurantModel.findOne({ slug: identifier }).select('_id').lean();
+  let restaurant = await RestaurantModel.findOne({ slug: identifier }).select('_id').lean();
+  if (!restaurant) {
+    restaurant = await RestaurantModel.findOne({
+      $or: [
+        { slug: new RegExp(`^${identifier}`, 'i') },
+        { name: new RegExp(identifier.replace(/[-_]/g, ' '), 'i') },
+      ],
+    }).select('_id').lean();
+  }
   return restaurant?._id || null;
 };
+
 
 import { sanitizeMenuItem } from '../utils/imageUrl.js';
 
@@ -171,6 +181,22 @@ export const createMenuItem = asyncHandler(async (req, response) => {
   if (!categoryExists) throw new AppError('Category not found', 404);
 
   const item = await MenuItem.create(req.body);
+
+  // Trigger frontend revalidation for the new item, its OG images, and menu listing
+  const slug = item.slug;
+  const id = item._id.toString();
+  const revalPaths = [
+    `/item/${id}`,
+    `/item/${id}/opengraph-image`,
+    '/menu',
+    '/sitemap.xml',
+  ];
+  if (slug) {
+    revalPaths.push(`/item/${slug}`);
+    revalPaths.push(`/item/${slug}/opengraph-image`);
+  }
+  triggerFrontendRevalidation(revalPaths);
+
   res.created(response, { data: item });
 });
 
@@ -181,12 +207,18 @@ export const updateMenuItem = asyncHandler(async (req, response) => {
 
   await ensureOwner(item.restaurantId, req.user, Restaurant);
 
+  // Authorization check: Only authorized roles (merchant, admin) can edit menu items & SEO
+  if (!['admin', 'merchant'].includes(req.user?.role)) {
+    throw new AppError('Forbidden: Only merchants and admins are authorized to edit menu items', 403);
+  }
+
   const allowed = [
     'name', 'description', 'price', 'image', 'images', 'categoryId',
     'sizeVariations', 'addOns', 'calories', 'preparationTime',
     'cookingMethod', 'ingredients',
     'tags', 'isVeg', 'isVegan', 'isSpicy', 'isGlutenFree', 'isBestseller',
-    'isAvailable', 'sortOrder', 'discount'
+    'isAvailable', 'sortOrder', 'discount',
+    'seoTitle', 'seoDescription', 'seoKeywords', 'seoImage'
   ];
 
   for (const key of allowed) {
@@ -194,6 +226,22 @@ export const updateMenuItem = asyncHandler(async (req, response) => {
   }
 
   await item.save();
+
+  // Trigger frontend on-demand revalidation for both slug, id, OG images, and sitemap
+  const slug = item.slug;
+  const id = item._id.toString();
+  const revalPaths = [
+    `/item/${id}`,
+    `/item/${id}/opengraph-image`,
+    '/menu',
+    '/sitemap.xml',
+  ];
+  if (slug) {
+    revalPaths.push(`/item/${slug}`);
+    revalPaths.push(`/item/${slug}/opengraph-image`);
+  }
+  triggerFrontendRevalidation(revalPaths);
+
   res.success(response, { data: item, message: 'Menu item updated' });
 });
 
@@ -204,7 +252,26 @@ export const deleteMenuItem = asyncHandler(async (req, response) => {
 
   await ensureOwner(item.restaurantId, req.user, Restaurant);
 
+  if (!['admin', 'merchant'].includes(req.user?.role)) {
+    throw new AppError('Forbidden: Only merchants and admins are authorized to delete menu items', 403);
+  }
+
+  const slug = item.slug;
+  const id = item._id.toString();
   await item.deleteOne();
+
+  const revalPaths = [
+    `/item/${id}`,
+    `/item/${id}/opengraph-image`,
+    '/menu',
+    '/sitemap.xml',
+  ];
+  if (slug) {
+    revalPaths.push(`/item/${slug}`);
+    revalPaths.push(`/item/${slug}/opengraph-image`);
+  }
+  triggerFrontendRevalidation(revalPaths);
+
   res.success(response, { message: 'Menu item deleted' });
 });
 
@@ -215,8 +282,26 @@ export const toggleItemAvailability = asyncHandler(async (req, response) => {
 
   await ensureOwner(item.restaurantId, req.user, Restaurant);
 
+  if (!['admin', 'merchant'].includes(req.user?.role)) {
+    throw new AppError('Forbidden: Only merchants and admins are authorized to toggle availability', 403);
+  }
+
   item.isAvailable = !item.isAvailable;
   await item.save();
+
+  const slug = item.slug;
+  const id = item._id.toString();
+  const revalPaths = [
+    `/item/${id}`,
+    `/item/${id}/opengraph-image`,
+    '/menu',
+    '/sitemap.xml',
+  ];
+  if (slug) {
+    revalPaths.push(`/item/${slug}`);
+    revalPaths.push(`/item/${slug}/opengraph-image`);
+  }
+  triggerFrontendRevalidation(revalPaths);
 
   res.success(response, { data: item, message: `Menu item is now ${item.isAvailable ? 'active' : 'inactive'}` });
 });

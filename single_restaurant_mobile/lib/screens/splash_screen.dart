@@ -3,8 +3,7 @@ import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/login_screen.dart';
 import 'package:single_restaurant_mobile/screens/book_table_screen.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
-import 'package:provider/provider.dart';
-import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+
 
 import 'package:single_restaurant_mobile/widgets/three_dots_loading.dart';
 
@@ -34,6 +33,9 @@ class _SplashScreenState extends State<SplashScreen> {
               fit: BoxFit.cover,
               color: Colors.black.withOpacity(0.6),
               colorBlendMode: BlendMode.darken,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: Colors.black,
+              ),
             ),
           ),
 

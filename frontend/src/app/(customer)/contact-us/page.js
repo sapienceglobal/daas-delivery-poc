@@ -1,10 +1,10 @@
 import React from 'react';
 import ContactUsSection from '@/components/branded/lassi-lounge/sections/ContactUsSection';
+import { getPageMetadata } from '@/lib/pageSeo';
 
-export const metadata = {
-  title: 'Contact Us - Lassi Lounge',
-  description: 'Get in touch with Lassi Lounge for catering, events, or general inquiries.',
-};
+export async function generateMetadata() {
+  return getPageMetadata('/contact-us');
+}
 
 export default function ContactUsPage() {
   return (

@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Use the same fallback IP or a defined environment variable
@@ -85,6 +87,115 @@ class ApiService {
   static Future<http.Response> delete(String endpoint, {dynamic body, Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
     return _send(() => http.delete(uri, headers: buildHeaders(headers), body: body != null ? json.encode(body) : null));
+  }
+
+  static Future<String?> uploadImage(String filePath, {String folder = 'restaurant-platform/dishes'}) async {
+    try {
+      // 1. Resolve token (in-memory first, SharedPreferences fallback)
+      String? token = _authToken;
+      if (token == null || token.isEmpty) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          token = prefs.getString('token');
+          if (token != null && token.isNotEmpty) {
+            _authToken = token;
+          }
+        } catch (_) {}
+      }
+
+      // 2. Prepare file & MIME MediaType (crucial for Multer validation on backend)
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw HttpException('Image file does not exist at path: $filePath');
+      }
+
+      final filename = filePath.split(Platform.isWindows ? '\\' : '/').last;
+      final ext = filename.contains('.') ? filename.split('.').last.toLowerCase() : 'jpg';
+
+      String mimeSubtype = 'jpeg';
+      if (ext == 'png') {
+        mimeSubtype = 'png';
+      } else if (ext == 'webp') {
+        mimeSubtype = 'webp';
+      } else if (ext == 'gif') {
+        mimeSubtype = 'gif';
+      } else if (ext == 'pdf') {
+        mimeSubtype = 'pdf';
+      }
+      final mediaType = MediaType('image', mimeSubtype);
+
+      // Read file bytes for cross-platform safe multipart streaming
+      final bytes = await file.readAsBytes();
+      final uploadFilename = filename.contains('.') ? filename : '$filename.jpg';
+
+      // Clean headers without Content-Type so MultipartRequest sets boundary
+      final headers = buildHeaders();
+      headers.remove('Content-Type');
+      headers.remove('content-type');
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      // 3. Primary endpoint: POST /api/upload (field: 'image') - standard across web portal
+      try {
+        final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/upload'));
+        request.headers.addAll(headers);
+        request.fields['folder'] = folder;
+        request.files.add(http.MultipartFile.fromBytes(
+          'image',
+          bytes,
+          filename: uploadFilename,
+          contentType: mediaType,
+        ));
+
+        final streamed = await request.send().timeout(_requestTimeout);
+        final res = await http.Response.fromStream(streamed);
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          final decoded = json.decode(res.body);
+          if (decoded['data'] is Map && decoded['data']['url'] != null) {
+            return decoded['data']['url'] as String;
+          } else if (decoded['data'] is List && (decoded['data'] as List).isNotEmpty) {
+            final first = decoded['data'][0];
+            if (first is Map && first['url'] != null) {
+              return first['url'] as String;
+            }
+          }
+        }
+      } catch (_) {
+        // Fall through to fallback endpoint if /api/upload failed
+      }
+
+      // 4. Fallback endpoint: POST /api/upload/multiple (field: 'images')
+      final fallbackRequest = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/upload/multiple'));
+      fallbackRequest.headers.addAll(headers);
+      fallbackRequest.fields['folder'] = folder;
+      fallbackRequest.files.add(http.MultipartFile.fromBytes(
+        'images',
+        bytes,
+        filename: uploadFilename,
+        contentType: mediaType,
+      ));
+
+      final streamedResponse = await fallbackRequest.send().timeout(_requestTimeout);
+      final response = await http.Response.fromStream(streamedResponse);
+      final decoded = json.decode(response.body);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (decoded['data'] is List && (decoded['data'] as List).isNotEmpty) {
+          final first = decoded['data'][0];
+          if (first is Map && first['url'] != null) {
+            return first['url'] as String;
+          }
+        } else if (decoded['data'] is Map && decoded['data']['url'] != null) {
+          return decoded['data']['url'] as String;
+        }
+      }
+
+      final errorMsg = decoded['message'] ?? decoded['error'] ?? 'Upload failed (${response.statusCode})';
+      throw HttpException(errorMsg);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   // --- CRM & Customers ---

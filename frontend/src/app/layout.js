@@ -32,7 +32,7 @@ export const metadata = {
   
   // canonical URL
   alternates: {
-    canonical: '/',
+    canonical: `${siteUrl}/`,
   },
   
   // robots
@@ -52,7 +52,7 @@ export const metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: siteUrl,
+    url: `${siteUrl}/`,
     siteName: isLassiLounge ? 'Lassi Lounge NY' : 'Restaurant Commerce Platform',
     title: isLassiLounge ? 'Lassi Lounge NY | Authentic Indian Cuisine' : 'Restaurant Commerce Platform',
     description: isLassiLounge
@@ -60,7 +60,7 @@ export const metadata = {
       : 'Order food from your favorite local restaurants.',
     images: [
       {
-        url: '/assets/images/branded/lassi-lounge/og-image.png',
+        url: `${siteUrl}/assets/images/branded/lassi-lounge/og-image.png`,
         width: 1200,
         height: 630,
         alt: isLassiLounge ? 'Lassi Lounge NY - Authentic Indian Food' : 'Restaurant Cover Image',
@@ -75,7 +75,7 @@ export const metadata = {
     description: isLassiLounge
       ? 'Order the best Indian food in New York from Lassi Lounge. Delivery, pickup, and reservations available.'
       : 'Order food from your favorite local restaurants.',
-    images: ['/assets/images/branded/lassi-lounge/og-image.png'],
+    images: [`${siteUrl}/assets/images/branded/lassi-lounge/og-image.png`],
   },
   
   icons: {

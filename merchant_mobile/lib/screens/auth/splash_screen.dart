@@ -83,15 +83,24 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     
     if (!mounted) return;
     
-    final authProvider = context.read<AuthProvider>();
-    await authProvider.checkLoginStatus();
-    
-    if (!mounted) return;
+    try {
+      final authProvider = context.read<AuthProvider>();
+      await authProvider
+          .checkLoginStatus()
+          .timeout(const Duration(seconds: 4));
+      
+      if (!mounted) return;
 
-    if (authProvider.isAuthenticated) {
-      context.go('/');
-    } else {
-      context.go('/login');
+      if (authProvider.isAuthenticated) {
+        context.go('/');
+      } else {
+        context.go('/login');
+      }
+    } catch (e) {
+      debugPrint('SplashScreen auth check error: $e');
+      if (mounted) {
+        context.go('/login');
+      }
     }
   }
 

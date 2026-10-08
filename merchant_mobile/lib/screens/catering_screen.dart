@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../providers/catering_provider.dart';
 import '../providers/auth_provider.dart';
+import 'add_edit_enquiry_screen.dart';
 
 class CateringScreen extends StatefulWidget {
   const CateringScreen({super.key});
@@ -259,309 +260,17 @@ class _CateringScreenState extends State<CateringScreen> {
     );
   }
 
-  void _showAddEnquiryModal(BuildContext context) {
+  void _showAddEnquiryModal(BuildContext context, [CateringModel? existing]) {
     _unfocusSearch();
-    final nameCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
-    final guestsCtrl = TextEditingController(text: '50');
-    final notesCtrl = TextEditingController();
-    DateTime selectedDate = DateTime.now().add(const Duration(days: 7));
-    String selectedType = 'Birthday Party';
-    String selectedPackage = 'Custom / Unsure';
-    bool isSaving = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final dateStr =
-                '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}';
-
-            return Container(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Add Catering Enquiry',
-                            style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => Navigator.pop(ctx),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Customer Name
-                      Text('Customer Name *', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF334155))),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: nameCtrl,
-                        decoration: _inputDec('e.g. Ramesh Kumar'),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Phone & Email Row
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Phone *', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF334155))),
-                                const SizedBox(height: 6),
-                                TextField(
-                                  controller: phoneCtrl,
-                                  keyboardType: TextInputType.phone,
-                                  decoration: _inputDec('+1 234 567 8900'),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Email', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF334155))),
-                                const SizedBox(height: 6),
-                                TextField(
-                                  controller: emailCtrl,
-                                  keyboardType: TextInputType.emailAddress,
-                                  decoration: _inputDec('email@example.com'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Event Date & Guests
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Event Date', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF334155))),
-                                const SizedBox(height: 6),
-                                InkWell(
-                                  onTap: () async {
-                                    final picked = await showDatePicker(
-                                      context: context,
-                                      initialDate: selectedDate,
-                                      firstDate: DateTime.now(),
-                                      lastDate: DateTime.now().add(const Duration(days: 365)),
-                                      builder: (context, child) {
-                                        return Theme(
-                                          data: ThemeData.light().copyWith(
-                                            colorScheme: const ColorScheme.light(primary: Color(0xFF881337)),
-                                          ),
-                                          child: child!,
-                                        );
-                                      },
-                                    );
-                                    if (picked != null) {
-                                      setModalState(() => selectedDate = picked);
-                                    }
-                                  },
-                                  child: Container(
-                                    height: 48,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                                    ),
-                                    alignment: Alignment.centerLeft,
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF881337)),
-                                        const SizedBox(width: 8),
-                                        Text(dateStr, style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF0F172A))),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Guest Count', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF334155))),
-                                const SizedBox(height: 6),
-                                TextField(
-                                  controller: guestsCtrl,
-                                  keyboardType: TextInputType.number,
-                                  decoration: _inputDec('50'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Event Type & Package
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Event Type', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF334155))),
-                                const SizedBox(height: 6),
-                                DropdownButtonFormField<String>(
-                                  initialValue: selectedType,
-                                  isExpanded: true,
-                                  items: [
-                                    'Birthday Party',
-                                    'Family Gathering',
-                                    'Corporate Event',
-                                    'Wedding',
-                                    'Anniversary',
-                                    'Other'
-                                  ].map((t) => DropdownMenuItem(value: t, child: Text(t, style: GoogleFonts.inter(fontSize: 13)))).toList(),
-                                  onChanged: (val) => setModalState(() => selectedType = val!),
-                                  decoration: _inputDec(''),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Package', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF334155))),
-                                const SizedBox(height: 6),
-                                DropdownButtonFormField<String>(
-                                  initialValue: selectedPackage,
-                                  isExpanded: true,
-                                  items: [
-                                    'Custom / Unsure',
-                                    'Lunch + High Tea',
-                                    'Dinner Buffet',
-                                    'Veg Deluxe',
-                                    'Special Feast'
-                                  ].map((t) => DropdownMenuItem(value: t, child: Text(t, style: GoogleFonts.inter(fontSize: 13)))).toList(),
-                                  onChanged: (val) => setModalState(() => selectedPackage = val!),
-                                  decoration: _inputDec(''),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Notes / Message
-                      Text('Message / Special Request', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF334155))),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: notesCtrl,
-                        maxLines: 2,
-                        decoration: _inputDec('Details about menu or event requirements...'),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Submit button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: isSaving ? null : () async {
-                            if (nameCtrl.text.trim().isEmpty) {
-                              ScaffoldMessenger.of(ctx).showSnackBar(
-                                const SnackBar(content: Text('Please enter customer name'), backgroundColor: Colors.red),
-                              );
-                              return;
-                            }
-                            if (phoneCtrl.text.trim().isEmpty) {
-                              ScaffoldMessenger.of(ctx).showSnackBar(
-                                const SnackBar(content: Text('Please enter phone number'), backgroundColor: Colors.red),
-                              );
-                              return;
-                            }
-
-                            setModalState(() => isSaving = true);
-                            try {
-                              await context.read<CateringProvider>().createEnquiry({
-                                'customerName': nameCtrl.text.trim(),
-                                'customerPhone': phoneCtrl.text.trim(),
-                                'customerEmail': emailCtrl.text.trim(),
-                                'eventDate': selectedDate.toIso8601String(),
-                                'eventType': selectedType,
-                                'guestCount': int.tryParse(guestsCtrl.text.trim()) ?? 50,
-                                'packagePreference': selectedPackage,
-                                'additionalNotes': notesCtrl.text.trim(),
-                              });
-                              if (ctx.mounted) Navigator.pop(ctx);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Catering enquiry recorded successfully!')),
-                                );
-                              }
-                            } catch (e) {
-                              if (ctx.mounted) {
-                                ScaffoldMessenger.of(ctx).showSnackBar(
-                                  SnackBar(content: Text('Error saving enquiry: $e'), backgroundColor: Colors.red),
-                                );
-                              }
-                            } finally {
-                              if (ctx.mounted) setModalState(() => isSaving = false);
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF881337),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          child: isSaving
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : Text('Save Enquiry', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => AddEditEnquiryScreen(existingEnquiry: existing),
+      ),
     );
   }
 
-  InputDecoration _inputDec(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF881337), width: 1.5)),
-    );
-  }
+
 
   void _showManageBottomSheet(BuildContext context, CateringModel enquiry) {
     _unfocusSearch();
@@ -631,6 +340,22 @@ class _CateringScreenState extends State<CateringScreen> {
                           ),
                         ),
                       ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _showAddEnquiryModal(context, enquiry);
+                          },
+                          icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF881337)),
+                          label: Text('Edit', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF881337))),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFFECDD3)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -1354,53 +1079,69 @@ class _CateringScreenState extends State<CateringScreen> {
               // Call Button
               Expanded(
                 child: SizedBox(
-                  height: 42,
-                  child: OutlinedButton.icon(
+                  height: 44,
+                  child: OutlinedButton(
                     onPressed: () => _makePhoneCall(enquiry.customerPhone),
-                    icon: const Icon(Icons.phone_rounded, color: Color(0xFFDC2626), size: 16),
-                    label: Text(
-                      'Call',
-                      style: GoogleFonts.inter(
-                        color: const Color(0xFFDC2626),
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.5,
-                      ),
-                    ),
                     style: OutlinedButton.styleFrom(
                       backgroundColor: Colors.white,
                       side: const BorderSide(color: Color(0xFFFCA5A5), width: 1.2),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.phone_rounded, color: Color(0xFFDC2626), size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Call',
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFFDC2626),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13.5,
+                              height: 1.1,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 12),
 
-              // Manage Button
+              // Manage Button (fixed: descender 'g' is never cut off)
               Expanded(
                 child: SizedBox(
-                  height: 42,
+                  height: 44,
                   child: ElevatedButton(
                     onPressed: () => _showManageBottomSheet(context, enquiry),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF881337),
                       elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Manage',
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13.5,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Manage',
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13.5,
+                              height: 1.1,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 18),
-                      ],
+                          const SizedBox(width: 4),
+                          const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 18),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -1416,8 +1157,9 @@ class _CateringScreenState extends State<CateringScreen> {
   // Pinned Bottom Action Bar: [ ⬇ Export Enquiries ]  and  [ + Add Enquiry ]
   // ---------------------------------------------------------------------------
   Widget _buildBottomBar(List<CateringModel> enquiries) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomInset),
       decoration: BoxDecoration(
         color: Colors.white,
         border: const Border(
@@ -1436,47 +1178,73 @@ class _CateringScreenState extends State<CateringScreen> {
           // Left: Export Enquiries Button
           Expanded(
             child: SizedBox(
-              height: 46,
-              child: OutlinedButton.icon(
+              height: 48,
+              child: OutlinedButton(
                 onPressed: () => _exportToCsv(enquiries),
-                icon: const Icon(Icons.file_download_outlined, color: Color(0xFF881337), size: 19),
-                label: Text(
-                  'Export Enquiries',
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFF881337),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13.5,
-                  ),
-                ),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
                   side: const BorderSide(color: Color(0xFF881337), width: 1.5),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.file_download_outlined, color: Color(0xFF881337), size: 19),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Export Enquiries',
+                        maxLines: 1,
+                        softWrap: false,
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF881337),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                          height: 1.15,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 12),
 
-          // Right: Add Enquiry Button
+          // Right: Add Enquiry Button (Never wraps, never clips 'y')
           Expanded(
             child: SizedBox(
-              height: 46,
-              child: ElevatedButton.icon(
+              height: 48,
+              child: ElevatedButton(
                 onPressed: () => _showAddEnquiryModal(context),
-                icon: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                label: Text(
-                  'Add Enquiry',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF881337),
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Add Enquiry',
+                        maxLines: 1,
+                        softWrap: false,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                          height: 1.15,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

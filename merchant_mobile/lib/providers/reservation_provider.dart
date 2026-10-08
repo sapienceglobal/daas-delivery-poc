@@ -53,6 +53,17 @@ class ReservationProvider extends ChangeNotifier {
 
   Future<void> createReservation(Map<String, dynamic> data) async {
     try {
+      if (_restaurantId == null) {
+        try {
+          final res = await ApiService.get('/api/restaurants/merchant/my');
+          final decoded = jsonDecode(res.body);
+          if (decoded != null && decoded['data'] != null) {
+            _restaurantId = decoded['data']['_id'];
+          }
+        } catch (e) {
+          debugPrint("Could not fetch restaurant ID: $e");
+        }
+      }
       if (_restaurantId != null) {
         data['restaurantId'] = _restaurantId;
       }
@@ -61,6 +72,25 @@ class ReservationProvider extends ChangeNotifier {
       if (decoded != null && decoded['data'] != null) {
         _reservations.insert(0, ReservationModel.fromJson(decoded['data']));
         notifyListeners();
+      } else {
+        await fetchReservations();
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateReservation(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await ApiService.put('/api/reservations/$id', data);
+      final decoded = jsonDecode(response.body);
+      if (decoded != null && decoded['data'] != null) {
+        final updated = ReservationModel.fromJson(decoded['data']);
+        final index = _reservations.indexWhere((r) => r.id == id);
+        if (index != -1) {
+          _reservations[index] = updated;
+          notifyListeners();
+        }
       } else {
         await fetchReservations();
       }

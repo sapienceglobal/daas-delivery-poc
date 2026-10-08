@@ -366,7 +366,7 @@ class WelcomeBannerText extends StatelessWidget {
 
           // 3. Left Text Content & Timeframe Pill
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 18, 134, 18),
+            padding: const EdgeInsets.fromLTRB(18, 18, 122, 18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -384,15 +384,18 @@ class WelcomeBannerText extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Flexible(
-                      child: Text(
-                        'Lassi Lounge Admin',
-                        style: GoogleFonts.inter(
-                          color: const Color(0xFF0F265C),
-                          fontSize: 21,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Lassi Lounge',
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFF0F265C),
+                            fontSize: 21,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                          ),
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 5),
@@ -1315,8 +1318,8 @@ class QuickActionsGrid extends StatefulWidget {
     ),
     QuickActionItem(
       id: 'pos',
-      label: 'Point of Sale',
-      description: 'Counter billing & walk-in POS',
+      label: 'Create Order',
+      description: 'Counter billing & walk-in order',
       icon: Icons.shopping_cart_outlined,
       iconColor: Color(0xFFD97706),
       iconBg: Color(0xFFFEF3C7),

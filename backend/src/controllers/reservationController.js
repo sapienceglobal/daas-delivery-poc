@@ -46,7 +46,7 @@ export const createReservation = async (req, res) => {
       occasion,
       specialRequests,
       tableId,
-      status: 'pending', // Starts as pending, can be auto-confirmed based on restaurant settings in the future
+      status: req.body.status || 'pending', // Merchant or system specified, defaults to pending
       userId: req.user ? req.user._id : null // If logged in, attach to user
     };
 

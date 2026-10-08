@@ -39,6 +39,7 @@ import auditRoutes from './routes/auditRoutes.js';
 import marketingRoutes from './routes/marketingRoutes.js';
 import cmsRoutes from './routes/cmsRoutes.js';
 import webPushRoutes from './routes/webPushRoutes.js';
+import seoRoutes from './routes/seoRoutes.js';
 
 // ── Environment ─────────────────────────────────────────────────────────────
 const isProduction = process.env.NODE_ENV === 'production';
@@ -238,6 +239,7 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/marketing', marketingRoutes);
 app.use('/api/cms', cmsRoutes);
 app.use('/api/web-push', webPushRoutes);
+app.use('/api/seo', seoRoutes);
 
 // ── Not Found & Error Handlers ──────────────────────────────────────────────────────────
 app.get('/', (_req, res) => {

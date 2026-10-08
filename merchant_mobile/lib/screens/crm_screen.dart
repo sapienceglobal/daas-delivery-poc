@@ -1062,7 +1062,6 @@ class _CrmScreenState extends State<CrmScreen> {
     // Dynamic styling mapped cleanly to real lifecycle segment
     Color cardBg;
     Color cardBorder;
-    Widget? topBadge;
     String tagLabel = c.tag;
     IconData tagIcon;
     Color tagBg;
@@ -1072,12 +1071,6 @@ class _CrmScreenState extends State<CrmScreen> {
       case 'VIP':
         cardBg = const Color(0xFFFFF9F5);
         cardBorder = const Color(0xFFFFE4D6);
-        topBadge = _buildPillBadge(
-          label: c.badge ?? 'VIP',
-          icon: Icons.workspace_premium_rounded,
-          bg: const Color(0xFFFEF3C7),
-          textColor: const Color(0xFFD97706),
-        );
         tagIcon = Icons.workspace_premium_rounded;
         tagBg = const Color(0xFFFEE2E2);
         tagTextColor = const Color(0xFFDC2626);
@@ -1086,12 +1079,6 @@ class _CrmScreenState extends State<CrmScreen> {
       case 'Frequent':
         cardBg = const Color(0xFFF0FDF4);
         cardBorder = const Color(0xFFDCFCE7);
-        topBadge = _buildPillBadge(
-          label: c.badge ?? 'Frequent',
-          icon: Icons.local_fire_department_rounded,
-          bg: const Color(0xFFFEE2E2),
-          textColor: const Color(0xFFDC2626),
-        );
         tagIcon = Icons.local_fire_department_rounded;
         tagBg = const Color(0xFFDCFCE7);
         tagTextColor = const Color(0xFF16A34A);
@@ -1100,7 +1087,6 @@ class _CrmScreenState extends State<CrmScreen> {
       case 'Loyal':
         cardBg = const Color(0xFFF0F9FF);
         cardBorder = const Color(0xFFE0F2FE);
-        topBadge = null;
         tagIcon = Icons.workspace_premium_rounded;
         tagBg = const Color(0xFFE0F2FE);
         tagTextColor = const Color(0xFF0284C7);
@@ -1109,12 +1095,6 @@ class _CrmScreenState extends State<CrmScreen> {
       case 'New':
         cardBg = const Color(0xFFFAF5FF);
         cardBorder = const Color(0xFFF3E8FF);
-        topBadge = _buildPillBadge(
-          label: c.badge ?? 'New',
-          icon: Icons.star_rounded,
-          bg: const Color(0xFFDCFCE7),
-          textColor: const Color(0xFF16A34A),
-        );
         tagIcon = c.totalOrders <= 1 ? Icons.person_rounded : Icons.star_rounded;
         tagBg = const Color(0xFFF3E8FF);
         tagTextColor = const Color(0xFF9333EA);
@@ -1123,7 +1103,6 @@ class _CrmScreenState extends State<CrmScreen> {
       case 'Inactive':
         cardBg = const Color(0xFFF8FAFC);
         cardBorder = const Color(0xFFE2E8F0);
-        topBadge = null;
         tagIcon = Icons.bedtime_outlined;
         tagBg = const Color(0xFFF1F5F9);
         tagTextColor = const Color(0xFF64748B);
@@ -1133,7 +1112,6 @@ class _CrmScreenState extends State<CrmScreen> {
       default:
         cardBg = const Color(0xFFFFFBF5);
         cardBorder = const Color(0xFFFED7AA);
-        topBadge = null;
         tagIcon = Icons.access_time_rounded;
         tagBg = const Color(0xFFFEF3C7);
         tagTextColor = const Color(0xFFD97706);
@@ -1162,31 +1140,41 @@ class _CrmScreenState extends State<CrmScreen> {
       ),
       child: Column(
         children: [
-          // Top Row: Checkbox, Avatar, Info, Orders/Spent, Chevron
+          // Top Row: Checkbox (conditional), Avatar, Info, Orders/Spent
           InkWell(
-            onTap: () => _showProfileModal(c),
+            onTap: () {
+              if (_selectedCustomerIds.isNotEmpty) {
+                _toggleSelection(c.id);
+              } else {
+                _showProfileModal(c);
+              }
+            },
+            onLongPress: () => _toggleSelection(c.id),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             child: Padding(
-              padding: const EdgeInsets.only(left: 8, right: 12, top: 12, bottom: 8),
+              padding: const EdgeInsets.only(left: 10, right: 12, top: 12, bottom: 8),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Checkbox
-                  Theme(
-                    data: ThemeData(unselectedWidgetColor: const Color(0xFF94A3B8)),
-                    child: Checkbox(
-                      value: isSelected,
-                      onChanged: (_) => _toggleSelection(c.id),
-                      activeColor: const Color(0xFF881337),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  // Checkbox (Only shown during multi-selection mode to save horizontal space)
+                  if (_selectedCustomerIds.isNotEmpty) ...[
+                    Theme(
+                      data: ThemeData(unselectedWidgetColor: const Color(0xFF94A3B8)),
+                      child: Checkbox(
+                        value: isSelected,
+                        onChanged: (_) => _toggleSelection(c.id),
+                        activeColor: const Color(0xFF881337),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 4),
+                  ],
 
                   // Avatar Circle
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 42,
+                    height: 42,
                     decoration: const BoxDecoration(
                       color: Color(0xFF881337),
                       shape: BoxShape.circle,
@@ -1196,7 +1184,7 @@ class _CrmScreenState extends State<CrmScreen> {
                       initialLetter,
                       style: GoogleFonts.outfit(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 19,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1208,26 +1196,16 @@ class _CrmScreenState extends State<CrmScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Name + Top Badge Row
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                c.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
-                                  color: const Color(0xFF0F172A),
-                                ),
-                              ),
-                            ),
-                            if (topBadge != null) ...[
-                              const SizedBox(width: 6),
-                              topBadge,
-                            ],
-                          ],
+                        // Customer Name (Full width, no cramped badges next to it)
+                        Text(
+                          c.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: const Color(0xFF0F172A),
+                          ),
                         ),
                         const SizedBox(height: 3),
 
@@ -1276,65 +1254,38 @@ class _CrmScreenState extends State<CrmScreen> {
                     ),
                   ),
 
-                  // Orders & Spent summary column + Chevron
-                  Row(
+                  const SizedBox(width: 8),
+
+                  // Orders & Spent summary column (Compact & clean)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Shopping bag icon box
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFE4E6),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.shopping_bag_outlined,
-                          color: Color(0xFFE11D48),
-                          size: 16,
+                      Text(
+                        '${c.totalOrders} ${c.totalOrders == 1 ? 'Order' : 'Orders'}',
+                        style: GoogleFonts.inter(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0F172A),
                         ),
                       ),
-                      const SizedBox(width: 8),
-
-                      // Orders count & total spent
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${c.totalOrders}',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF0F172A),
-                            ),
-                          ),
-                          Text(
-                            'Orders',
-                            style: GoogleFonts.inter(
-                              fontSize: 10,
-                              color: const Color(0xFF64748B),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '\$${c.totalSpent.toStringAsFixed(2)}',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF16A34A),
-                            ),
-                          ),
-                          Text(
-                            'Total Spent',
-                            style: GoogleFonts.inter(
-                              fontSize: 9.5,
-                              color: const Color(0xFF94A3B8),
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 2),
+                      Text(
+                        '\$${c.totalSpent.toStringAsFixed(2)}',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF16A34A),
+                        ),
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 20),
+                      Text(
+                        'Total Spent',
+                        style: GoogleFonts.inter(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -1349,20 +1300,20 @@ class _CrmScreenState extends State<CrmScreen> {
               children: [
                 // Segment Tag
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
                   decoration: BoxDecoration(
                     color: tagBg,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(7),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(tagIcon, size: 12, color: tagTextColor),
+                      Icon(tagIcon, size: 11, color: tagTextColor),
                       const SizedBox(width: 4),
                       Text(
                         tagLabel,
                         style: GoogleFonts.inter(
-                          fontSize: 11,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.w600,
                           color: tagTextColor,
                         ),
@@ -1375,24 +1326,24 @@ class _CrmScreenState extends State<CrmScreen> {
                 // Last Order Tag (Real relative date calculation)
                 Flexible(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(7),
                       border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.calendar_today_outlined, size: 11, color: Color(0xFF64748B)),
+                        const Icon(Icons.access_time_rounded, size: 11, color: Color(0xFF64748B)),
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
-                            'Last order: $lastOrderFormatted',
+                            'Last: $lastOrderFormatted',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.inter(
-                              fontSize: 11,
+                              fontSize: 10.5,
                               color: const Color(0xFF64748B),
                             ),
                           ),
@@ -1404,7 +1355,7 @@ class _CrmScreenState extends State<CrmScreen> {
 
                 const SizedBox(width: 6),
 
-                // Action buttons: Edit, Eye, 3-dots
+                // Action buttons: Edit, View Eye, 3-dots
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1440,35 +1391,7 @@ class _CrmScreenState extends State<CrmScreen> {
     );
   }
 
-  Widget _buildPillBadge({
-    required String label,
-    required IconData icon,
-    required Color bg,
-    required Color textColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 10, color: textColor),
-          const SizedBox(width: 3),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: textColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildActionButton({
     required IconData icon,
@@ -1506,7 +1429,9 @@ class _CrmScreenState extends State<CrmScreen> {
         child: const Icon(Icons.more_vert_rounded, color: Color(0xFF475569), size: 16),
       ),
       onSelected: (val) {
-        if (val == 'promo') {
+        if (val == 'view') {
+          _showProfileModal(c);
+        } else if (val == 'promo') {
           CrmModals.showSendPromoModal(context, restaurantId, [c.id], () {
             _fetchCustomers();
           });
@@ -1525,6 +1450,7 @@ class _CrmScreenState extends State<CrmScreen> {
         }
       },
       itemBuilder: (ctx) => [
+        const PopupMenuItem(value: 'view', child: Text('View Profile')),
         const PopupMenuItem(value: 'promo', child: Text('Send Promo')),
         const PopupMenuItem(value: 'group', child: Text('Assign Group')),
         const PopupMenuItem(value: 'status', child: Text('Change Status')),

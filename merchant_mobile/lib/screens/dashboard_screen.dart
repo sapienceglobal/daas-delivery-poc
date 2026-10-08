@@ -41,7 +41,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         controller: _scrollController,
         physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 6.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: const [
@@ -67,7 +67,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               // Momentum Card
               MomentumCard(),
-              SizedBox(height: 24),
+              SizedBox(height: 4),
             ],
           ),
         ),

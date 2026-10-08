@@ -207,6 +207,17 @@ class CateringProvider extends ChangeNotifier {
 
   Future<void> createEnquiry(Map<String, dynamic> data) async {
     try {
+      if (_restaurantId == null || _restaurantId!.isEmpty) {
+        try {
+          final res = await ApiService.get('/api/restaurants/merchant/my');
+          final decoded = jsonDecode(res.body);
+          if (decoded != null && decoded['data'] != null) {
+            _restaurantId = decoded['data']['_id']?.toString();
+          }
+        } catch (e) {
+          debugPrint("[CateringProvider] Could not fetch restaurant ID: $e");
+        }
+      }
       final payload = {
         if (_restaurantId != null) 'restaurantId': _restaurantId,
         ...data,
@@ -218,40 +229,29 @@ class CateringProvider extends ChangeNotifier {
         _enquiries.insert(0, newEnquiry);
         notifyListeners();
       } else {
-        // Fallback local insertion
-        final newEnquiry = CateringModel(
-          id: 'cat_${DateTime.now().millisecondsSinceEpoch}',
-          customerName: data['customerName'] ?? 'Guest',
-          customerPhone: data['customerPhone'] ?? '',
-          customerEmail: data['customerEmail'] ?? '',
-          eventDate: data['eventDate'] != null ? DateTime.parse(data['eventDate']) : DateTime.now(),
-          eventType: data['eventType'] ?? 'Event',
-          guestCount: int.tryParse(data['guestCount'].toString()) ?? 50,
-          message: data['additionalNotes'] ?? '',
-          status: 'new',
-          packagePreference: data['packagePreference'] ?? 'Custom / Unsure',
-          budgetRange: data['budgetRange'] ?? '',
-        );
-        _enquiries.insert(0, newEnquiry);
-        notifyListeners();
+        await fetchEnquiries(force: true);
       }
     } catch (e) {
-      // Optimistic local add
-      final newEnquiry = CateringModel(
-        id: 'cat_${DateTime.now().millisecondsSinceEpoch}',
-        customerName: data['customerName'] ?? 'Guest',
-        customerPhone: data['customerPhone'] ?? '',
-        customerEmail: data['customerEmail'] ?? '',
-        eventDate: data['eventDate'] != null ? DateTime.parse(data['eventDate']) : DateTime.now(),
-        eventType: data['eventType'] ?? 'Event',
-        guestCount: int.tryParse(data['guestCount'].toString()) ?? 50,
-        message: data['additionalNotes'] ?? '',
-        status: 'new',
-        packagePreference: data['packagePreference'] ?? 'Custom / Unsure',
-        budgetRange: data['budgetRange'] ?? '',
-      );
-      _enquiries.insert(0, newEnquiry);
-      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<void> updateEnquiry(String id, Map<String, dynamic> data) async {
+    try {
+      final res = await ApiService.put('/api/catering/$id', data);
+      final decoded = jsonDecode(res.body);
+      if (decoded != null && decoded['data'] != null) {
+        final updated = CateringModel.fromJson(decoded['data']);
+        final index = _enquiries.indexWhere((e) => e.id == id);
+        if (index != -1) {
+          _enquiries[index] = updated;
+          notifyListeners();
+        }
+      } else {
+        await fetchEnquiries(force: true);
+      }
+    } catch (e) {
+      rethrow;
     }
   }
 }

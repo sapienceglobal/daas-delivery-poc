@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 
 class CmsProvider with ChangeNotifier {
@@ -176,23 +175,11 @@ class CmsProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final request = http.MultipartRequest('POST', Uri.parse('${ApiService.baseUrl}/api/upload/multiple'));
-      final headers = ApiService.buildHeaders();
-      headers.remove('Content-Type'); // Allow http client to set multipart boundary
-      request.headers.addAll(headers);
-
-      request.fields['folder'] = 'restaurant-platform/cms';
-      request.files.add(await http.MultipartFile.fromPath('images', filePath));
-
-      final streamedResponse = await request.send();
-      final res = await http.Response.fromStream(streamedResponse);
-      final decoded = jsonDecode(res.body);
-
-      if (res.statusCode == 200 && decoded['data'] != null && (decoded['data'] as List).isNotEmpty) {
-        final url = decoded['data'][0]['url'] as String;
+      final url = await ApiService.uploadImage(filePath, folder: 'restaurant-platform/cms');
+      if (url != null && url.isNotEmpty) {
         return url;
       } else {
-        _error = decoded['error'] ?? decoded['message'] ?? 'Image upload failed';
+        _error = 'Image upload failed';
         return null;
       }
     } catch (e) {
