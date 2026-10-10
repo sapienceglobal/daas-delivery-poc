@@ -250,6 +250,24 @@ const OrderSchema = new mongoose.Schema({
     default: null
   },
 
+  // ── Delayed Dispatch (Shipday) ──────────────────────────────────────────
+  dispatchStatus: {
+    type: String,
+    enum: ['not_applicable', 'scheduled', 'dispatching', 'dispatched', 'failed', 'cancelled'],
+    default: 'not_applicable'
+  },
+  dispatchAt: { type: Date, default: null },
+  dispatchedAt: { type: Date, default: null },
+  dispatchedBy: {
+    type: String,
+    enum: ['auto', 'manual', 'ready', 'immediate', null],
+    default: null
+  },
+  dispatchAttempts: { type: Number, default: 0 },
+  dispatchError: { type: String, default: null },
+  delayMinutesApplied: { type: Number, default: 0 },
+  dispatchNextAttemptAt: { type: Date, default: null },
+
   // ── Legacy field kept for DoorDash API compatibility ──────────────────
   productName: { type: String, default: null },
   productPrice: { type: Number, default: null }
@@ -259,6 +277,7 @@ const OrderSchema = new mongoose.Schema({
 OrderSchema.index({ userId: 1, createdAt: -1 });
 OrderSchema.index({ restaurantId: 1, createdAt: -1 });
 OrderSchema.index({ status: 1 });
+OrderSchema.index({ dispatchStatus: 1, dispatchAt: 1 });
 
 
 

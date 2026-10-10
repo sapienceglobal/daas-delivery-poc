@@ -8,6 +8,7 @@ import connectDB from './src/config/db.js';
 import { initChangeStreams } from './src/config/changeStreams.js';
 import { startDeliveryPolling } from './src/services/deliverySyncService.js';
 import { initCronJobs } from './src/services/cronService.js';
+import { startDispatchScheduler } from './src/services/dispatch/dispatchScheduler.js';
 import logger from './src/utils/logger.js';
 import { getTenantModel, resolveTenantId } from './src/utils/tenant.js';
 import { initFirebase } from './src/config/firebase.js';
@@ -198,6 +199,7 @@ const startServer = async () => {
   initChangeStreams(io);
   startDeliveryPolling(io, (model) => getTenantModel('lassi-lounge', model));
   initCronJobs(io, (model) => getTenantModel('lassi-lounge', model));
+  startDispatchScheduler(io, (model) => getTenantModel('lassi-lounge', model));
 
   server.listen(PORT, '0.0.0.0', () => {
       // 9. Init Firebase Admin

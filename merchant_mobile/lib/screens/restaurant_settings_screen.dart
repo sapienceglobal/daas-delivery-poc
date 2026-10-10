@@ -38,6 +38,7 @@ class _RestaurantSettingsScreenState extends State<RestaurantSettingsScreen> wit
   bool _autoAcceptOrders = false;
   bool _autoRefundEnabled = false;
   int _preparationTime = 20;
+  int _deliveryDispatchDelayMinutes = 0;
   double _minimumOrder = 15.0;
   
   bool _whatsappEnabled = true;
@@ -96,6 +97,7 @@ class _RestaurantSettingsScreenState extends State<RestaurantSettingsScreen> wit
       _autoAcceptOrders = restaurant['autoAcceptOrders'] ?? false;
       _autoRefundEnabled = restaurant['autoRefundEnabled'] ?? true;
       _preparationTime = restaurant['preparationTime'] ?? 20;
+      _deliveryDispatchDelayMinutes = restaurant['deliveryDispatchDelayMinutes'] ?? 0;
       _minimumOrder = (restaurant['minimumOrder'] ?? 15.0).toDouble();
       
       _taxType = restaurant['taxType'] ?? 'Sales Tax';
@@ -158,6 +160,7 @@ class _RestaurantSettingsScreenState extends State<RestaurantSettingsScreen> wit
       'autoAcceptOrders': _autoAcceptOrders,
       'autoRefundEnabled': _autoRefundEnabled,
       'preparationTime': _preparationTime,
+      'deliveryDispatchDelayMinutes': _deliveryDispatchDelayMinutes,
       'minimumOrder': _minimumOrder,
       'taxType': _taxType,
       'taxRate': _taxRate,
@@ -874,6 +877,55 @@ class _RestaurantSettingsScreenState extends State<RestaurantSettingsScreen> wit
                   keyboardType: TextInputType.number,
                   controller: TextEditingController(text: _preparationTime.toString())..selection = TextSelection.collapsed(offset: _preparationTime.toString().length),
                   onChanged: (val) => _preparationTime = int.tryParse(val) ?? 20,
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    suffixText: 'min',
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        Container(
+          margin: const EdgeInsets.only(bottom: 16.0),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Rider request delay (minutes)',
+                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF111827)),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Order accept hone ke itne minute baad delivery partner ko request jayegi. 0 = turant.',
+                      style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 80,
+                child: TextField(
+                  keyboardType: TextInputType.number,
+                  controller: TextEditingController(text: _deliveryDispatchDelayMinutes.toString())
+                    ..selection = TextSelection.collapsed(offset: _deliveryDispatchDelayMinutes.toString().length),
+                  onChanged: (val) {
+                    final parsed = int.tryParse(val) ?? 0;
+                    _deliveryDispatchDelayMinutes = parsed.clamp(0, 180);
+                  },
                   textAlign: TextAlign.center,
                   decoration: InputDecoration(
                     suffixText: 'min',

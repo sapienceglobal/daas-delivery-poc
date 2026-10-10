@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/order_model.dart';
 import '../services/api_service.dart';
 import '../services/socket_service.dart';
+import '../services/server_clock.dart';
 
 class OrderProvider extends ChangeNotifier {
   final SocketService socketService;
@@ -15,6 +16,9 @@ class OrderProvider extends ChangeNotifier {
 
   OrderProvider(this.socketService) {
     _initSocketListeners();
+    socketService.onReconnect(() {
+      fetchOrders(force: true);
+    });
   }
 
   List<OrderModel> get orders => _orders;
@@ -58,6 +62,9 @@ class OrderProvider extends ChangeNotifier {
       final response = await ApiService.get('/api/orders/restaurant/$_restaurantId');
       final decoded = jsonDecode(response.body);
       if (decoded != null && decoded['data'] != null) {
+        if (decoded['serverTime'] != null) {
+          ServerClock.instance.sync(decoded['serverTime']);
+        }
         final List<dynamic> data = decoded['data'];
         _orders = data.map((json) => OrderModel.fromJson(json)).toList();
       }
@@ -172,6 +179,46 @@ class OrderProvider extends ChangeNotifier {
     socketService.on('new_order', handleUpdate);
     socketService.on('order_updated', handleUpdate);
     socketService.on('order_status_changed', handleUpdate);
+    socketService.on('order:dispatch-updated', (data) {
+      if (data == null) return;
+      try {
+        Map<String, dynamic> payload;
+        if (data is String) {
+          payload = jsonDecode(data);
+        } else if (data is Map) {
+          payload = Map<String, dynamic>.from(data);
+        } else {
+          return;
+        }
+
+        final orderId = payload['orderId']?.toString();
+        if (orderId == null) return;
+
+        if (payload['serverTime'] != null) {
+          ServerClock.instance.sync(payload['serverTime']);
+        }
+
+        final idx = _orders.indexWhere((o) => o.id == orderId);
+        if (idx != -1) {
+          final existing = _orders[idx];
+          _orders[idx] = existing.copyWith(
+            dispatchStatus: payload['dispatchStatus']?.toString(),
+            dispatchAt: payload['dispatchAt'] != null ? DateTime.tryParse(payload['dispatchAt'].toString()) : null,
+            dispatchedAt: payload['dispatchedAt'] != null ? DateTime.tryParse(payload['dispatchedAt'].toString()) : null,
+            dispatchedBy: payload['dispatchedBy']?.toString(),
+            dispatchAttempts: (payload['dispatchAttempts'] is num) ? (payload['dispatchAttempts'] as num).toInt() : existing.dispatchAttempts,
+            dispatchError: payload['dispatchError']?.toString(),
+            delayMinutesApplied: (payload['delayMinutesApplied'] is num) ? (payload['delayMinutesApplied'] as num).toInt() : existing.delayMinutesApplied,
+            deliveryId: payload['deliveryId']?.toString() ?? existing.deliveryId,
+          );
+          notifyListeners();
+        } else {
+          fetchOrderById(orderId);
+        }
+      } catch (e) {
+        debugPrint('Error handling dispatch socket update: $e');
+      }
+    });
   }
 
   Future<void> updateOrderStatus(String orderId, String status) async {
@@ -219,6 +266,46 @@ class OrderProvider extends ChangeNotifier {
       _error = 'Failed to accept order: $e';
       notifyListeners();
       fetchOrders(force: true);
+      rethrow;
+    }
+  }
+
+  /// Request rider now for a scheduled or failed order.
+  Future<void> dispatchNow(String orderId) async {
+    try {
+      final res = await ApiService.post('/api/orders/$orderId/dispatch-now', {});
+      final decoded = jsonDecode(res.body);
+      if (decoded != null && decoded['data'] != null) {
+        final updated = OrderModel.fromJson(decoded['data']);
+        final idx = _orders.indexWhere((o) => o.id == orderId);
+        if (idx != -1) {
+          _orders[idx] = updated;
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      _error = 'Failed to request rider: $e';
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  /// Postpone dispatch by specified minutes (+5 min or +10 min).
+  Future<void> dispatchPostpone(String orderId, int minutes) async {
+    try {
+      final res = await ApiService.post('/api/orders/$orderId/dispatch-postpone', {'minutes': minutes});
+      final decoded = jsonDecode(res.body);
+      if (decoded != null && decoded['data'] != null) {
+        final updated = OrderModel.fromJson(decoded['data']);
+        final idx = _orders.indexWhere((o) => o.id == orderId);
+        if (idx != -1) {
+          _orders[idx] = updated;
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      _error = 'Failed to postpone rider request: $e';
+      notifyListeners();
       rethrow;
     }
   }

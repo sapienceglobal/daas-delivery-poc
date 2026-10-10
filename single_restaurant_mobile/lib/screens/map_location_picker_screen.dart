@@ -1,13 +1,13 @@
-import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
-import 'package:single_restaurant_mobile/widgets/address_autocomplete_field.dart';
 import 'package:single_restaurant_mobile/services/location_service.dart';
+import 'package:single_restaurant_mobile/widgets/address_autocomplete_field.dart';
+import 'package:single_restaurant_mobile/widgets/map/map_bottom_sheet.dart';
+import 'package:single_restaurant_mobile/widgets/map/map_location_pin.dart';
 
 class MapLocationPickerScreen extends StatefulWidget {
   final LatLng? initialCenter;
@@ -25,10 +25,9 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
   bool _isGeocoding = false;
   String _currentAddress = '';
   Map<String, dynamic>? _addressDetails;
-  
+
   final TextEditingController _searchController = TextEditingController();
   final LocationService _locationService = LocationService();
-
   Timer? _debounce;
 
   @override
@@ -85,20 +84,20 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
     setState(() => _isGeocoding = true);
     try {
       final data = await _locationService.reverseGeocode(position.latitude, position.longitude);
-      
+
       if (data != null) {
         setState(() {
           _currentAddress = data['display_name'] ?? 'Unknown Location';
           _addressDetails = data['address'];
-          
+
           if (_addressDetails != null) {
             final road = _addressDetails!['road'] ?? _addressDetails!['pedestrian'] ?? _addressDetails!['neighbourhood'] ?? '';
             final house = _addressDetails!['house_number'] ?? '';
             String shortAddr = [house, road].where((e) => e.toString().trim().isNotEmpty).join(' ');
-            
+
             final city = _addressDetails!['city'] ?? _addressDetails!['town'] ?? _addressDetails!['village'] ?? '';
             if (shortAddr.isEmpty) shortAddr = city;
-            
+
             if (shortAddr.isNotEmpty) {
               _currentAddress = '$shortAddr, $city';
             }
@@ -130,10 +129,8 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
   }
 
   void _handleConfirm() {
-    String finalAddress = _currentAddress;
-
     Navigator.pop(context, {
-      'address': finalAddress,
+      'address': _currentAddress,
       'lat': _center.latitude,
       'lng': _center.longitude,
       'addressDetails': _addressDetails,
@@ -159,7 +156,6 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
       ),
       body: Column(
         children: [
-          // Search Bar Container
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -171,11 +167,11 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
               ),
               child: AddressAutocompleteField(
                 controller: _searchController,
-                label: '', // No label needed
+                label: '',
                 onSelected: (data) async {
                   String? latStr = data['lat']?.toString();
                   String? lonStr = data['lon']?.toString() ?? data['lng']?.toString();
-                  
+
                   if (data['place_id'] != null) {
                     setState(() => _isGeocoding = true);
                     final details = await _locationService.geocodeAddress(data['place_id'], isPlaceId: true);
@@ -202,152 +198,44 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
               ),
             ),
           ),
-          
           Expanded(
             child: Stack(
               children: [
-                    FlutterMap(
-                      mapController: _mapController,
-                      options: MapOptions(
-                        initialCenter: _center,
-                        initialZoom: 17.0,
-                        onMapEvent: _onMapEvent,
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                          userAgentPackageName: 'com.sapienceglobal.daas.poc',
-                        ),
-                      ],
-                    ),
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 30.0), // Adjust to center the pin point
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: AppColors.secondary,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(Icons.location_on, color: Colors.white, size: 24),
-                            ),
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.5),
-                                shape: BoxShape.circle,
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Locate Me FAB
-                    Positioned(
-                      right: 16,
-                      bottom: 16,
-                      child: FloatingActionButton(
-                        heroTag: 'locate_me_fab',
-                        backgroundColor: Colors.white,
-                        onPressed: _getCurrentLocation,
-                        child: _isLoadingLocation 
-                            ? const CircularProgressIndicator(color: AppColors.secondary)
-                            : const Icon(Icons.my_location, color: AppColors.secondary),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Bottom Details Sheet
-              Container(
-                padding: EdgeInsets.fromLTRB(20, 24, 20, MediaQuery.of(context).padding.bottom + 20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, -5),
-                    )
-                  ],
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _center,
+                    initialZoom: 17.0,
+                    onMapEvent: _onMapEvent,
+                  ),
                   children: [
-                    // Location Address Display
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.location_on, color: AppColors.secondary, size: 24),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Delivery Location', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                const SizedBox(height: 4),
-                                if (_isGeocoding)
-                                  const Row(
-                                    children: [
-                                      SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2)),
-                                      SizedBox(width: 8),
-                                      Text('Fetching address...', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                                    ],
-                                  )
-                                else
-                                  Text(
-                                    _currentAddress,
-                                    style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    
-                    // Confirm Button
-                    SizedBox(
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: (_isGeocoding || _currentAddress.isEmpty) ? null : _handleConfirm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: const Text('Confirm Location', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      ),
+                    TileLayer(
+                      urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                      userAgentPackageName: 'com.sapienceglobal.daas.poc',
                     ),
                   ],
                 ),
-              ),
+                const MapLocationPin(),
+                Positioned(
+                  right: 16,
+                  bottom: 16,
+                  child: FloatingActionButton(
+                    heroTag: 'locate_me_fab',
+                    backgroundColor: Colors.white,
+                    onPressed: _getCurrentLocation,
+                    child: _isLoadingLocation
+                        ? const CircularProgressIndicator(color: AppColors.secondary)
+                        : const Icon(Icons.my_location, color: AppColors.secondary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          MapBottomSheet(
+            currentAddress: _currentAddress,
+            isGeocoding: _isGeocoding,
+            onConfirm: _handleConfirm,
+          ),
         ],
       ),
     );

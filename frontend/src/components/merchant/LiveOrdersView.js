@@ -13,6 +13,7 @@ import { QrCode, CreditCard } from 'lucide-react';
 import PaymentSimulatorModal from '@/components/checkout/PaymentSimulatorModal';
 import { api } from '@/lib/api';
 import { showToast } from '@/components/ui';
+import DispatchControl from '@/components/merchant/DispatchControl';
 
 export default function LiveOrdersView({ 
   orders = [], 
@@ -20,7 +21,8 @@ export default function LiveOrdersView({
   onRejectOrder, 
   onUpdateStatus,
   onRefresh,
-  onViewAll
+  onViewAll,
+  serverTime
 }) {
   const { restaurant } = useMerchantContext();
   const router = useRouter();
@@ -238,6 +240,8 @@ export default function LiveOrdersView({
             )}
           </div>
         )}
+
+        <DispatchControl order={order} onRefresh={onRefresh} serverTime={serverTime} />
 
         <div className="mt-auto flex flex-col gap-2">
             {col.id === 'new' && (

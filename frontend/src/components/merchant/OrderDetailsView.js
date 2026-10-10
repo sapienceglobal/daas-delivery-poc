@@ -650,6 +650,24 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                       <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">{order.thirdPartyDeliveryName}</span>
                     </div>
                   )}
+                  {order.dispatchStatus && order.dispatchStatus !== 'not_applicable' && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-[#6b7280]">Rider Dispatch</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
+                        order.dispatchStatus === 'scheduled' ? 'text-amber-800 bg-amber-50 border-amber-200' :
+                        order.dispatchStatus === 'dispatching' ? 'text-blue-800 bg-blue-50 border-blue-200' :
+                        order.dispatchStatus === 'dispatched' ? 'text-emerald-800 bg-emerald-50 border-emerald-200' :
+                        order.dispatchStatus === 'failed' ? 'text-rose-800 bg-rose-50 border-rose-200' :
+                        'text-gray-700 bg-gray-50 border-gray-200'
+                      }`}>
+                        {order.dispatchStatus === 'scheduled' ? `Scheduled${order.dispatchAt ? ` (${new Date(order.dispatchAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : ''}` :
+                         order.dispatchStatus === 'dispatching' ? 'Requesting rider...' :
+                         order.dispatchStatus === 'dispatched' ? 'Dispatched' :
+                         order.dispatchStatus === 'failed' ? 'Dispatch Failed' :
+                         order.dispatchStatus}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center mt-2 pt-3 border-t border-dashed border-[#e5e7eb]">
                     <span className="text-xs font-bold text-[#6b7280]">Assigned Rider</span>
                     <div className="flex items-center gap-2">

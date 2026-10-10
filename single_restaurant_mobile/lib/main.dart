@@ -97,8 +97,11 @@ Future<void> _initTimezone() async {
 }
 
 Future<void> _initStripe() async {
-  Stripe.publishableKey =
-      'pk_live_51U0Oy3FY8ihGsgg4uTvqPaO7SHZHn9kwl0cb08mLmelJxJGBpV2U8OCR6JiTbipPlivdKqjmcCnrOlzcATl12x7G004CSSZ3AT';
+  // Stripe.publishableKey =
+  //     'pk_live_51U0Oy3FY8ihGsgg4uTvqPaO7SHZHn9kwl0cb08mLmelJxJGBpV2U8OCR6JiTbipPlivdKqjmcCnrOlzcATl12x7G004CSSZ3AT';
+
+   Stripe.publishableKey =
+      'pk_test_51Tqvb7HxSFxyqGbKxYaqXnfCOCEDuxSoZyxrMA46oSFzNJ9PGhAu9ggeOOUMKotyx1iblp3dG77GX879vnUBqjiI00SX1sCKi7';
   Stripe.merchantIdentifier = 'merchant.com.lassilounge';
   Stripe.urlScheme = 'lassilounge';
   await Stripe.instance.applySettings();
@@ -217,7 +220,15 @@ class LassiLoungeApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       builder: (context, child) {
-        return NetworkOverlay(child: child!);
+        final mediaQuery = MediaQuery.of(context);
+        final clampedScaler = mediaQuery.textScaler.clamp(
+          minScaleFactor: 0.85,
+          maxScaleFactor: 1.20,
+        );
+        return MediaQuery(
+          data: mediaQuery.copyWith(textScaler: clampedScaler),
+          child: NetworkOverlay(child: child!),
+        );
       },
       home: SplashScreen(isLoggedIn: isLoggedIn),
     );

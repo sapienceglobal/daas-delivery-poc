@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:single_restaurant_mobile/constants/colors.dart';
-import 'package:single_restaurant_mobile/widgets/order_card.dart';
 import 'package:provider/provider.dart';
-import 'package:single_restaurant_mobile/providers/order_provider.dart';
-import 'package:single_restaurant_mobile/services/socket_service.dart';
-import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
+import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
-import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
-import 'package:single_restaurant_mobile/widgets/empty_state_widget.dart';
+import 'package:single_restaurant_mobile/providers/order_provider.dart';
+import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
+import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
+import 'package:single_restaurant_mobile/widgets/common/app_dialog.dart';
+import 'package:single_restaurant_mobile/widgets/empty_state_widget.dart';
+import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
+import 'package:single_restaurant_mobile/widgets/order_card.dart';
+import 'package:single_restaurant_mobile/widgets/orders/orders_filter_bar.dart';
 
 class OrdersScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -23,7 +25,7 @@ class OrdersScreen extends StatefulWidget {
 class _OrdersScreenState extends State<OrdersScreen> {
   final List<String> _filters = ['All Orders', 'Ongoing', 'Delivered', 'Cancelled'];
   String _selectedFilter = 'All Orders';
-  
+
   bool _isSearching = false;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -57,7 +59,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         statusParam = 'cancelled';
         break;
     }
-    
+
     final orderProvider = Provider.of<OrderProvider>(context, listen: false);
     await orderProvider.fetchMyOrders(status: statusParam, silent: silent);
   }
@@ -98,26 +100,26 @@ class _OrdersScreenState extends State<OrdersScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
           onPressed: widget.onBack,
         ),
-        title: _isSearching 
-          ? TextField(
-              controller: _searchController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Search orders...',
-                border: InputBorder.none,
-                hintStyle: TextStyle(color: Colors.black54),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Search orders...',
+                  border: InputBorder.none,
+                  hintStyle: TextStyle(color: Colors.black54),
+                ),
+                style: const TextStyle(color: Colors.black, fontSize: 18),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+              )
+            : const Text(
+                'My Orders',
+                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 24),
               ),
-              style: const TextStyle(color: Colors.black, fontSize: 18),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            )
-          : const Text(
-              'My Orders',
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 24),
-            ),
         centerTitle: false,
         actions: [
           IconButton(
@@ -163,21 +165,30 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       )
                   ],
                 );
-              }
+              },
             ),
           )
         ],
       ),
       body: Column(
         children: [
-          _buildFilters(),
+          OrdersFilterBar(
+            filters: _filters,
+            selectedFilter: _selectedFilter,
+            onFilterSelected: (filter) {
+              setState(() {
+                _selectedFilter = filter;
+              });
+              _fetchOrders();
+            },
+          ),
           Expanded(
             child: Consumer<OrderProvider>(
               builder: (context, provider, child) {
                 if (provider.isLoading && provider.orders.isEmpty) {
                   return const Center(child: CircularProgressIndicator(color: AppColors.primary));
                 }
-                
+
                 if (provider.error != null && provider.orders.isEmpty) {
                   return EmptyStateWidget(
                     icon: Icons.error_outline,
@@ -194,9 +205,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   displayOrders = displayOrders.where((order) {
                     final orderId = order['_id']?.toString().toLowerCase() ?? '';
                     final items = (order['items'] as List<dynamic>?) ?? [];
-                    final hasMatchingItem = items.any((item) => 
-                      (item['menuItemId']?['name']?.toString().toLowerCase() ?? '').contains(query)
-                    );
+                    final hasMatchingItem = items.any((item) =>
+                        (item['menuItemId']?['name']?.toString().toLowerCase() ?? '').contains(query));
                     return orderId.contains(query) || hasMatchingItem;
                   }).toList();
                 }
@@ -212,43 +222,18 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 return RefreshIndicator(
                   color: AppColors.primary,
                   onRefresh: () => _fetchOrders(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: displayOrders.length,
-                    itemBuilder: (context, index) {
-                      return OrderCard(
-                        order: displayOrders[index],
-                        onCancelOrder: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Cancel Order'),
-                              content: const Text('Are you sure you want to cancel this order? This action cannot be undone.'),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true), 
-                                  child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
-                                ),
-                              ],
-                            ),
-                          );
-                          
-                          if (confirm == true) {
-                            try {
-                              await provider.cancelOrder(displayOrders[index]['_id']);
-                              if (context.mounted) {
-                                ToastUtils.showSuccess(context, 'Order cancelled successfully');
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ToastUtils.showError(context, e.toString());
-                              }
-                            }
-                          }
-                        },
-                      );
-                    },
+                  child: ResponsiveCenter(
+                    maxWidth: 700,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: displayOrders.length,
+                      itemBuilder: (context, index) {
+                        return OrderCard(
+                          order: displayOrders[index],
+                          onCancelOrder: () => _handleCancelOrder(provider, displayOrders[index]['_id']),
+                        );
+                      },
+                    ),
                   ),
                 );
               },
@@ -259,43 +244,33 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
-  Widget _buildFilters() {
-    return SizedBox(
-      height: 48,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        itemCount: _filters.length,
-        itemBuilder: (context, index) {
-          final filter = _filters[index];
-          final isSelected = _selectedFilter == filter;
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedFilter = filter;
-              });
-              _fetchOrders();
-            },
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.secondary : const Color(0xFFF5F5F5), // Light grey/beige for unselected
-                borderRadius: BorderRadius.circular(16),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                filter,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black87,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          );
-        },
+  Future<void> _handleCancelOrder(OrderProvider provider, String orderId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AppDialog(
+        title: 'Cancel Order',
+        message: 'Are you sure you want to cancel this order? This action cannot be undone.',
+        icon: Icons.cancel_outlined,
+        iconColor: AppColors.brandRed,
+        isDestructive: true,
+        primaryActionText: 'Yes, Cancel',
+        onPrimaryAction: () => Navigator.pop(dialogCtx, true),
+        secondaryActionText: 'No',
+        onSecondaryAction: () => Navigator.pop(dialogCtx, false),
       ),
     );
+
+    if (confirm == true) {
+      try {
+        await provider.cancelOrder(orderId);
+        if (mounted) {
+          ToastUtils.showSuccess(context, 'Order cancelled successfully');
+        }
+      } catch (e) {
+        if (mounted) {
+          ToastUtils.showError(context, e.toString());
+        }
+      }
+    }
   }
 }

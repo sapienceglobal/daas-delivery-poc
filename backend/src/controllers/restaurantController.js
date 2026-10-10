@@ -201,11 +201,19 @@ export const updateRestaurant = asyncHandler(async (req, response) => {
     'preparationTime', 'prepTime', 'currency', 'timezone', 'dateFormat', 
     'timeFormat', 'language', 'enableTips', 'cancellationTime', 
     'taxType', 'taxRate', 'serviceCharge', 'packagingCharge', 'roundOff', 'logo',
-    'loyaltySettings', 'notificationSettings', 'autoRefundEnabled'
+    'loyaltySettings', 'notificationSettings', 'autoRefundEnabled',
+    'deliveryDispatchDelayMinutes'
   ];
 
   for (const key of allowed) {
-    if (req.body[key] !== undefined) restaurant[key] = req.body[key];
+    if (req.body[key] !== undefined) {
+      if (key === 'deliveryDispatchDelayMinutes') {
+        const parsed = parseInt(req.body[key], 10);
+        restaurant[key] = isNaN(parsed) ? 0 : Math.max(0, Math.min(180, parsed));
+      } else {
+        restaurant[key] = req.body[key];
+      }
+    }
   }
 
   await restaurant.save();

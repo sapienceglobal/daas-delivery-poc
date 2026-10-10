@@ -22,6 +22,8 @@ import '../widgets/shared_app_bar.dart';
 import '../widgets/shared_bottom_nav.dart';
 import '../providers/auth_provider.dart';
 import '../utils/time_utils.dart';
+import '../widgets/live_orders/dispatch_status_chip.dart';
+import '../widgets/live_orders/dispatch_action_buttons.dart';
 
 class LiveOrdersScreen extends StatefulWidget {
   const LiveOrdersScreen({super.key});
@@ -30,11 +32,25 @@ class LiveOrdersScreen extends StatefulWidget {
   State<LiveOrdersScreen> createState() => _LiveOrdersScreenState();
 }
 
-class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
+class _LiveOrdersScreenState extends State<LiveOrdersScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Orders are already fetched and kept alive by SocketService globally
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      context.read<OrderProvider>().fetchOrders(force: true);
+    }
   }
 
   Future<void> _processStripePayment(OrderModel order) async {
@@ -664,6 +680,16 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+            if (order.orderType == 'delivery' &&
+                order.dispatchStatus != null &&
+                order.dispatchStatus != 'not_applicable') ...[
+              const SizedBox(height: 8),
+              DispatchStatusChip(order: order),
+              if (order.dispatchStatus == 'scheduled' || order.dispatchStatus == 'failed') ...[
+                const SizedBox(height: 8),
+                DispatchActionButtons(order: order),
+              ],
+            ],
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),

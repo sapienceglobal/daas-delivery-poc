@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:single_restaurant_mobile/screens/main_screen.dart';
-import 'package:single_restaurant_mobile/screens/login_screen.dart';
 import 'package:single_restaurant_mobile/screens/book_table_screen.dart';
-import 'package:single_restaurant_mobile/constants/colors.dart';
-
-
-import 'package:single_restaurant_mobile/widgets/three_dots_loading.dart';
+import 'package:single_restaurant_mobile/screens/login_screen.dart';
+import 'package:single_restaurant_mobile/screens/main_screen.dart';
+import 'package:single_restaurant_mobile/theme/app_responsive.dart';
+import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
+import 'package:single_restaurant_mobile/widgets/welcome/welcome_action_button.dart';
+import 'package:single_restaurant_mobile/widgets/welcome/welcome_card_clipper.dart';
+import 'package:single_restaurant_mobile/widgets/welcome/welcome_food_header.dart';
+import 'package:single_restaurant_mobile/widgets/welcome/welcome_icons.dart';
+import 'package:single_restaurant_mobile/widgets/welcome/welcome_monuments_watermark.dart';
 
 class SplashScreen extends StatefulWidget {
   final bool isLoggedIn;
@@ -17,266 +20,240 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  bool _isExploreLoading = false;
   bool _isOrderLoading = false;
   bool _isReserveLoading = false;
+
+  bool get _isAnyLoading =>
+      _isExploreLoading || _isOrderLoading || _isReserveLoading;
+
+  Future<void> _onExploreMenu() async {
+    if (_isAnyLoading) return;
+    setState(() => _isExploreLoading = true);
+
+    await Future.delayed(const Duration(milliseconds: 350));
+    if (!mounted) return;
+    setState(() => _isExploreLoading = false);
+
+    // Both authenticated and non-authenticated (guest) users enter Menu tab
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MainScreen(initialIndex: 1),
+      ),
+    );
+  }
+
+  Future<void> _onOrderOnline() async {
+    if (_isAnyLoading) return;
+    setState(() => _isOrderLoading = true);
+
+    await Future.delayed(const Duration(milliseconds: 350));
+    if (!mounted) return;
+    setState(() => _isOrderLoading = false);
+
+    if (widget.isLoggedIn) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const MainScreen(initialIndex: 0),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginScreen(),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onReserveTable() async {
+    if (_isAnyLoading) return;
+    setState(() => _isReserveLoading = true);
+
+    await Future.delayed(const Duration(milliseconds: 350));
+    if (!mounted) return;
+    setState(() => _isReserveLoading = false);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const BookTableScreen(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Background Image
-          Positioned.fill(
-            child: Image.network(
-              'https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&q=80&w=1200',
-              fit: BoxFit.cover,
-              color: Colors.black.withOpacity(0.6),
-              colorBlendMode: BlendMode.darken,
-              errorBuilder: (context, error, stackTrace) => Container(
-                color: Colors.black,
-              ),
-            ),
-          ),
+      backgroundColor: const Color(0xFF1B0C06),
+      body: ResponsiveCenter(
+        maxWidth: AppResponsive.maxFormWidth,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final screenHeight = constraints.maxHeight;
+            final isCompact = screenHeight < 640;
+            final headerHeight = (screenHeight * 0.46).clamp(
+              isCompact ? 220.0 : 275.0,
+              440.0,
+            );
+            const waveOverlap = 30.0;
+            final cardMinHeight = screenHeight - (headerHeight - waveOverlap);
 
-          // Content
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 40.0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 40),
+            return Stack(
+              children: [
+                // Top Hero Food Banner (Copper Kadai, Biryani, Naan & Lassi Lounge branding)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: WelcomeFoodHeader(height: headerHeight),
+                ),
 
-                  // 1. YAHAN TEXT PLACEHOLDER HATA KAR ORIGINAL LOGO LAGA DIYA HAI
-                  Image.asset(
-                    'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-                    height: 135, // Splash screen ke hisaab se bada size
-                    fit: BoxFit.contain,
-                    errorBuilder: (c, e, s) => Column(
-                      // Agar image load hone me error aaye to fallback
+                // Scrollable Content with Overlapping Wavy White Card
+                Positioned.fill(
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Icon(
-                          Icons.local_bar,
-                          color: AppColors.primary,
-                          size: 40,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'LASSI LOUNGE',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                        SizedBox(height: headerHeight - waveOverlap),
+
+                        // Curved White Container Card
+                        ClipPath(
+                          clipper: const WelcomeCardClipper(),
+                          child: Container(
+                            width: double.infinity,
+                            constraints: BoxConstraints(
+                              minHeight: cardMinHeight,
+                            ),
+                            color: Colors.white,
+                            child: Stack(
+                              children: [
+                                // Indian Monuments Silhouette Watermark (Taj Mahal & Mandalas)
+                                const WelcomeMonumentsWatermark(
+                                  height: 120,
+                                  opacity: 0.95,
+                                ),
+
+                                // Card Content: Headings & 3 Action Buttons
+                                Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isCompact ? 20.0 : 24.0,
+                                    vertical: 20.0,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      SizedBox(height: isCompact ? 18 : 24),
+
+                                      // Headline: "Welcome to"
+                                      const Text(
+                                        'Welcome to',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Color(0xFF1F1F1F),
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.5,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+
+                                      // Headline: "Lassi Lounge"
+                                      const Text(
+                                        'Lassi Lounge',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Color(0xFF800A12),
+                                          fontSize: 34,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: -0.6,
+                                          height: 1.15,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+
+                                      // Subtitle
+                                      const Text(
+                                        'Authentic Indian Cuisine\nDelivered to Your Doorstep',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Color(0xFF555555),
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w500,
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                      SizedBox(height: isCompact ? 18 : 24),
+
+                                      // 1. EXPLORE OUR MENU Button
+                                      WelcomeActionButton(
+                                        title: 'EXPLORE OUR MENU',
+                                        isUppercase: true,
+                                        icon: const MenuDocumentIcon(
+                                          color: Color(0xFF800A12),
+                                          size: 26,
+                                        ),
+                                        backgroundColor: const Color(0xFFFEEDE6),
+                                        textColor: const Color(0xFF800A12),
+                                        arrowColor: const Color(0xFF800A12),
+                                        isLoading: _isExploreLoading,
+                                        onTap: _onExploreMenu,
+                                      ),
+                                      const SizedBox(height: 14),
+
+                                      // 2. ORDER ONLINE Button
+                                      WelcomeActionButton(
+                                        title: 'ORDER ONLINE',
+                                        isUppercase: true,
+                                        icon: const ClochePlatterIcon(
+                                          color: Color(0xFF1F1F1F),
+                                          size: 26,
+                                        ),
+                                        backgroundColor: const Color(0xFFFAB82C),
+                                        textColor: const Color(0xFF1F1F1F),
+                                        arrowColor: const Color(0xFF1F1F1F),
+                                        isLoading: _isOrderLoading,
+                                        onTap: _onOrderOnline,
+                                      ),
+                                      const SizedBox(height: 14),
+
+                                      // 3. RESERVE A TABLE Button
+                                      WelcomeActionButton(
+                                        title: 'RESERVE A TABLE',
+                                        isUppercase: true,
+                                        icon: const DiningTableIcon(
+                                          color: Color(0xFF800A12),
+                                          size: 26,
+                                        ),
+                                        backgroundColor: Colors.white,
+                                        borderColor: const Color(0xFF800A12),
+                                        textColor: const Color(0xFF800A12),
+                                        arrowColor: const Color(0xFF800A12),
+                                        isLoading: _isReserveLoading,
+                                        onTap: _onReserveTable,
+                                      ),
+
+                                      const SizedBox(height: 32),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-
-                  // Divider with Indian Restaurant text
-                  // Row(
-                  //   mainAxisAlignment: MainAxisAlignment.center,
-                  //   children: [
-                  //     Container(width: 30, height: 1, color: AppColors.primary),
-                  //     const Padding(
-                  //       padding: EdgeInsets.symmetric(horizontal: 8.0),
-                  //       child: Text(
-                  //         'INDIAN RESTAURANT',
-                  //         style: TextStyle(
-                  //           color: Colors.white70,
-                  //           fontSize: 10,
-                  //           letterSpacing: 2.0,
-                  //         ),
-                  //       ),
-                  //     ),
-                  //     Container(width: 30, height: 1, color: AppColors.primary),
-                  //   ],
-                  // ),
-                  const SizedBox(height: 60),
-
-                  // Welcome Text
-                  const Text(
-                    'Welcome to',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'LASSI\nLOUNGE',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 48,
-                      fontWeight: FontWeight.w900,
-                      height: 1.1,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade900,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'INDIAN RESTAURANT',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        letterSpacing: 2.0,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // // Description
-                  // const Text(
-                  //   'From iconic street favorites to rich\ncurries and refreshing drinks, we bring\nyou the true essence of India.',
-                  //   textAlign: TextAlign.center,
-                  //   style: TextStyle(
-                  //     color: Colors.white70,
-                  //     fontSize: 14,
-                  //     height: 1.5,
-                  //   ),
-                  // ),
-
-                  const Spacer(),
-
-                  // Buttons
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        if (_isOrderLoading || _isReserveLoading) return;
-                        setState(() => _isOrderLoading = true);
-
-                        // Short delay for premium feel
-                        await Future.delayed(const Duration(milliseconds: 800));
-
-                        if (!mounted) return;
-                        // Routing based on authentication state
-                        if (widget.isLoggedIn) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const MainScreen(),
-                            ),
-                          );
-                        } else {
-                          setState(() => _isOrderLoading = false);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginScreen(),
-                            ),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: _isOrderLoading
-                          ? const ThreeDotsLoading(
-                              color: Colors.black,
-                              size: 10,
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Text(
-                                  'ORDER ONLINE',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                                SizedBox(width: 8),
-                                Icon(Icons.arrow_forward_ios, size: 16),
-                              ],
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        if (_isOrderLoading || _isReserveLoading) return;
-                        setState(() => _isReserveLoading = true);
-
-                        await Future.delayed(const Duration(milliseconds: 800));
-
-                        if (!mounted) return;
-                        setState(() => _isReserveLoading = false);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const BookTableScreen(),
-                          ),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.primary, width: 2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: _isReserveLoading
-                          ? const ThreeDotsLoading(
-                              color: AppColors.primary,
-                              size: 10,
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  'RESERVE A TABLE',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Icon(
-                                  Icons.arrow_forward_ios,
-                                  size: 16,
-                                  color: AppColors.primary,
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
-        ],
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
+import 'package:single_restaurant_mobile/theme/app_radius.dart';
+import 'package:single_restaurant_mobile/theme/app_responsive.dart';
+import 'package:single_restaurant_mobile/theme/app_spacing.dart';
 
 class OtaUpdateService {
   static const String packageName = 'com.lassilounge.customer';
@@ -74,61 +77,68 @@ class OtaUpdateService {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
+      builder: (dialogCtx) => PopScope(
+        canPop: false,
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: AppResponsive.maxDialogWidth),
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.xxl),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+                  color: AppColors.resolveSurface(dialogCtx),
+                  borderRadius: AppRadius.borderXl,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.14),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                child: const SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    const Text(
+                      'Checking for updates...',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textDark,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    const Text(
+                      'Connecting to Google Play Store',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        color: AppColors.textLight,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'Checking for updates...',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D3436),
-                  letterSpacing: 0.5,
-                  decoration: TextDecoration.none,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Connecting to Google Play Store',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade500,
-                  decoration: TextDecoration.none,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

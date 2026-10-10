@@ -11,6 +11,7 @@ import 'package:single_restaurant_mobile/screens/orders_screen.dart';
 import 'package:single_restaurant_mobile/screens/referral_screen.dart';
 import 'dart:math' as math;
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
+import 'package:single_restaurant_mobile/widgets/common/app_dialog.dart';
 
 class LoyaltyRewardsScreen extends StatefulWidget {
   const LoyaltyRewardsScreen({super.key});
@@ -92,110 +93,72 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        contentPadding: EdgeInsets.zero,
-        content: Container(
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [Colors.green.shade600, Colors.teal.shade500]),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                ),
-                child: Column(children: [
-                  const Icon(Icons.check_circle, color: Colors.white, size: 48),
-                  const SizedBox(height: 8),
-                  const Text('Coupon Generated!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                  Text('\$$discountValue OFF your next order', style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                ]),
+      builder: (ctx) => AppDialog(
+        icon: Icons.check_circle_outline_rounded,
+        iconColor: Colors.green,
+        title: 'Coupon Generated!',
+        message: '\$$discountValue OFF your next order',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
               ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(couponCode, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 2)),
-                          GestureDetector(
-                            onTap: () {
-                              Clipboard.setData(ClipboardData(text: couponCode));
-                              ToastUtils.showSuccess(context, 'Coupon code copied!');
-                            },
-                            child: const Icon(Icons.copy, color: AppColors.primary, size: 20),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text('Valid for 30 days • Single use only', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.shopping_cart, size: 18),
-                        label: const Text('Apply to Cart', style: TextStyle(fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: () async {
-                          checkout.setCouponCode(couponCode);
-                          
-                          if (cart.items.isEmpty) {
-                            Navigator.of(ctx).pop();
-                            messenger.showSnackBar(
-                              const SnackBar(content: Text('Coupon copied! Add items to cart to apply.'), backgroundColor: Colors.orange),
-                            );
-                            return;
-                          }
-                          
-                          try {
-                            await checkout.handleApplyCoupon(cart);
-                            if (ctx.mounted) Navigator.of(ctx).pop();
-                            if (checkout.couponApplied) {
-                              messenger.showSnackBar(
-                                const SnackBar(content: Text('Coupon applied successfully to your cart!'), backgroundColor: Colors.green),
-                              );
-                            } else {
-                              messenger.showSnackBar(
-                                const SnackBar(content: Text('Coupon set, but could not be applied.'), backgroundColor: Colors.orange),
-                              );
-                            }
-                          } catch (e) {
-                            if (ctx.mounted) Navigator.of(ctx).pop();
-                            messenger.showSnackBar(
-                              SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text('Use Later', style: TextStyle(color: Colors.grey)),
-                    ),
-                  ],
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(couponCode, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 2)),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: couponCode));
+                      ToastUtils.showSuccess(context, 'Coupon code copied!');
+                    },
+                    child: const Icon(Icons.copy, color: AppColors.primary, size: 20),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+            Text('Valid for 30 days • Single use only', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+          ],
         ),
+        primaryActionText: 'Apply to Cart',
+        secondaryActionText: 'Use Later',
+        onSecondaryAction: () => Navigator.of(ctx).pop(),
+        onPrimaryAction: () async {
+          checkout.setCouponCode(couponCode);
+          
+          if (cart.items.isEmpty) {
+            Navigator.of(ctx).pop();
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Coupon copied! Add items to cart to apply.'), backgroundColor: Colors.orange),
+            );
+            return;
+          }
+          
+          try {
+            await checkout.handleApplyCoupon(cart);
+            if (ctx.mounted) Navigator.of(ctx).pop();
+            if (checkout.couponApplied) {
+              messenger.showSnackBar(
+                const SnackBar(content: Text('Coupon applied successfully to your cart!'), backgroundColor: Colors.green),
+              );
+            } else {
+              messenger.showSnackBar(
+                const SnackBar(content: Text('Coupon set, but could not be applied.'), backgroundColor: Colors.orange),
+              );
+            }
+          } catch (e) {
+            if (ctx.mounted) Navigator.of(ctx).pop();
+            messenger.showSnackBar(
+              SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
+            );
+          }
+        },
       ),
     );
   }
@@ -941,21 +904,11 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
   void _showRulesInfoDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: [
-              const Icon(Icons.info_outline, color: AppColors.primary),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Program Rules',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-              ),
-            ],
-          ),
+      builder: (ctx) {
+        return AppDialog(
+          icon: Icons.info_outline_rounded,
+          iconColor: AppColors.secondary,
+          title: 'Program Rules',
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -974,12 +927,8 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Got it', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-            ),
-          ],
+          primaryActionText: 'Got it',
+          onPrimaryAction: () => Navigator.pop(ctx),
         );
       },
     );

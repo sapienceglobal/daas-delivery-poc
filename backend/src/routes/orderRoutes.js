@@ -3,6 +3,7 @@ import { protect, authorize } from '../middleware/auth.js';
 import validate from '../middleware/validate.js';
 import { createOrderSchema, rateOrderSchema, deliveryQuoteSchema, replyToReviewSchema, refundOrderSchema } from '../middleware/schemas.js';
 import * as orderController from '../controllers/orderController.js';
+import * as dispatchController from '../controllers/dispatchController.js';
 
 const router = Router();
 
@@ -32,6 +33,8 @@ router.post('/:id/note', protect, authorize('merchant', 'admin'), orderControlle
 router.post('/:id/remake', protect, authorize('merchant'), orderController.remakeOrder);
 router.post('/:id/send-invoice', protect, authorize('merchant'), orderController.sendInvoice);
 router.post('/:id/send-payment-link', protect, authorize('merchant'), orderController.sendPaymentLink);
+router.post('/:id/dispatch-now', protect, authorize('merchant', 'admin'), dispatchController.dispatchNow);
+router.post('/:id/dispatch-postpone', protect, authorize('merchant', 'admin'), dispatchController.dispatchPostpone);
 
 // ── Payment Audit & Document Generation ────────────────────────────────────
 // payment events audit trail (JSON)

@@ -4,6 +4,7 @@ import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
+import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -85,8 +86,10 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: ResponsiveCenter(
+        maxWidth: 650,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -134,7 +137,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildSettingSection({

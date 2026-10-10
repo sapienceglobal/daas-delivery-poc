@@ -197,6 +197,7 @@ const RestaurantSchema = new mongoose.Schema({
   autoAcceptOrders: { type: Boolean, default: false },
   autoRefundEnabled: { type: Boolean, default: true },
   preparationTime: { type: Number, default: 20 },  // default prep minutes
+  deliveryDispatchDelayMinutes: { type: Number, default: 0, min: 0, max: 180 },
   
   // ── Loyalty Program Settings ────────────────────────────────────────────
   loyaltySettings: {

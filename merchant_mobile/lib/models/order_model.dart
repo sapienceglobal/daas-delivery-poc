@@ -134,6 +134,15 @@ class OrderModel {
   final bool isRemake;
   final String? parentOrderId;
 
+  // Delayed Dispatch (Shipday) Fields
+  final String? dispatchStatus;
+  final DateTime? dispatchAt;
+  final DateTime? dispatchedAt;
+  final String? dispatchedBy;
+  final int dispatchAttempts;
+  final String? dispatchError;
+  final int delayMinutesApplied;
+
   OrderModel({
     required this.id,
     required this.orderNumber,
@@ -187,6 +196,13 @@ class OrderModel {
     this.rating,
     this.isRemake = false,
     this.parentOrderId,
+    this.dispatchStatus,
+    this.dispatchAt,
+    this.dispatchedAt,
+    this.dispatchedBy,
+    this.dispatchAttempts = 0,
+    this.dispatchError,
+    this.delayMinutesApplied = 0,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -267,11 +283,27 @@ class OrderModel {
       rating: json['rating'] != null ? (json['rating'] as num).toDouble() : null,
       isRemake: json['isRemake'] ?? false,
       parentOrderId: json['parentOrderId'],
+      dispatchStatus: json['dispatchStatus']?.toString(),
+      dispatchAt: json['dispatchAt'] != null ? DateTime.tryParse(json['dispatchAt'].toString()) : null,
+      dispatchedAt: json['dispatchedAt'] != null ? DateTime.tryParse(json['dispatchedAt'].toString()) : null,
+      dispatchedBy: json['dispatchedBy']?.toString(),
+      dispatchAttempts: (json['dispatchAttempts'] is num) ? (json['dispatchAttempts'] as num).toInt() : 0,
+      dispatchError: json['dispatchError']?.toString(),
+      delayMinutesApplied: (json['delayMinutesApplied'] is num) ? (json['delayMinutesApplied'] as num).toInt() : 0,
     );
   }
 
   OrderModel copyWith({
     String? status,
+    String? dispatchStatus,
+    DateTime? dispatchAt,
+    DateTime? dispatchedAt,
+    String? dispatchedBy,
+    int? dispatchAttempts,
+    String? dispatchError,
+    int? delayMinutesApplied,
+    String? deliveryId,
+    String? trackingUrl,
   }) {
     return OrderModel(
       id: id,
@@ -316,8 +348,8 @@ class OrderModel {
       autoRefundFailed: autoRefundFailed,
       autoRefundSkipped: autoRefundSkipped,
       deliveryProvider: deliveryProvider,
-      deliveryId: deliveryId,
-      trackingUrl: trackingUrl,
+      deliveryId: deliveryId ?? this.deliveryId,
+      trackingUrl: trackingUrl ?? this.trackingUrl,
       thirdPartyTrackingUrl: thirdPartyTrackingUrl,
       pickupTime: pickupTime,
       deliveryTime: deliveryTime,
@@ -325,6 +357,13 @@ class OrderModel {
       rating: rating,
       isRemake: isRemake,
       parentOrderId: parentOrderId,
+      dispatchStatus: dispatchStatus ?? this.dispatchStatus,
+      dispatchAt: dispatchAt ?? this.dispatchAt,
+      dispatchedAt: dispatchedAt ?? this.dispatchedAt,
+      dispatchedBy: dispatchedBy ?? this.dispatchedBy,
+      dispatchAttempts: dispatchAttempts ?? this.dispatchAttempts,
+      dispatchError: dispatchError ?? this.dispatchError,
+      delayMinutesApplied: delayMinutesApplied ?? this.delayMinutesApplied,
     );
   }
 }

@@ -2073,18 +2073,42 @@ class _PosScreenState extends State<PosScreen> {
                               ],
                             ),
                           )
-                        : GridView.builder(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 14,
-                              childAspectRatio: 0.65,
-                            ),
-                            itemCount: displayedItems.length,
-                            itemBuilder: (ctx, i) {
-                              final item = displayedItems[i];
-                              return _buildFoodCard(item);
+                        : LayoutBuilder(
+                            builder: (ctx, constraints) {
+                              final availableWidth = constraints.maxWidth;
+                              final textScale = MediaQuery.textScalerOf(ctx).scale(1.0).clamp(1.0, 1.3);
+
+                              // Responsive crossAxisCount based on screen width:
+                              // Phones (< 600): 2 columns
+                              // Tablets (600 - 899): 3 columns
+                              // Large screens (>= 900): 4 columns
+                              final crossAxisCount = availableWidth >= 900 ? 4 : (availableWidth >= 600 ? 3 : 2);
+                              const spacing = 12.0;
+                              const padding = 16.0;
+                              final itemWidth = (availableWidth - (padding * 2) - ((crossAxisCount - 1) * spacing)) / crossAxisCount;
+
+                              // Responsive image height proportional to card width
+                              final imageHeight = (itemWidth * 0.65).clamp(100.0, 135.0);
+
+                              // Content area height (title + price + button + paddings) dynamically adapts to font scale
+                              final contentHeight = (126.0 * textScale).clamp(126.0, 155.0);
+                              final totalHeight = imageHeight + contentHeight;
+                              final childAspectRatio = itemWidth / totalHeight;
+
+                              return GridView.builder(
+                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  crossAxisSpacing: spacing,
+                                  mainAxisSpacing: 14,
+                                  childAspectRatio: childAspectRatio,
+                                ),
+                                itemCount: displayedItems.length,
+                                itemBuilder: (ctx, i) {
+                                  final item = displayedItems[i];
+                                  return _buildFoodCard(item, imageHeight: imageHeight);
+                                },
+                              );
                             },
                           ),
                   ),
@@ -2097,8 +2121,9 @@ class _PosScreenState extends State<PosScreen> {
     );
   }
 
-  Widget _buildFoodCard(MenuItemModel item) {
+  Widget _buildFoodCard(MenuItemModel item, {double? imageHeight}) {
     final isFav = _favoriteItemIds.contains(item.id);
+    final desc = _getDishDescription(item).trim();
 
     return GestureDetector(
       onTap: () => _handleItemTap(item),
@@ -2120,7 +2145,7 @@ class _PosScreenState extends State<PosScreen> {
           children: [
             // Image with top-left favorite & top-right veg/non-veg badge
             SizedBox(
-              height: 135,
+              height: imageHeight ?? 125,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -2193,48 +2218,58 @@ class _PosScreenState extends State<PosScreen> {
                 ],
               ),
             ),
-            // Item info & action button
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '\$${item.price.toStringAsFixed(2)}',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13.5,
-                      color: const Color(0xFF991B1B),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  SizedBox(
-                    height: 28,
-                    child: Text(
-                      _getDishDescription(item),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        fontSize: 10.5,
-                        color: const Color(0xFF64748B),
-                        height: 1.25,
+            // Item info & action button (Expanded to fill card, spaceBetween pins button cleanly to bottom)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            item.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13.0,
+                              color: const Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '\$${item.price.toStringAsFixed(2)}',
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12.5,
+                              color: const Color(0xFF991B1B),
+                            ),
+                          ),
+                          if (desc.isNotEmpty) ...[
+                            const SizedBox(height: 1),
+                            Text(
+                              desc,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 9.5,
+                                color: const Color(0xFF64748B),
+                                height: 1.15,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildItemAction(item),
-                ],
+                    const SizedBox(height: 4),
+                    _buildItemAction(item),
+                  ],
+                ),
               ),
             ),
           ],
@@ -2256,7 +2291,7 @@ class _PosScreenState extends State<PosScreen> {
             backgroundColor: const Color(0xFF991B1B),
             foregroundColor: Colors.white,
             elevation: 0,
-            padding: EdgeInsets.zero,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
           onPressed: () => _handleItemTap(item),
@@ -2265,12 +2300,18 @@ class _PosScreenState extends State<PosScreen> {
             children: [
               Icon(hasCustomizations ? Icons.tune_rounded : Icons.shopping_cart_outlined, size: 14, color: Colors.white),
               const SizedBox(width: 5),
-              Text(
-                hasCustomizations ? 'Customize' : 'Add to Cart',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    hasCustomizations ? 'Customize' : 'Add to Cart',
+                    maxLines: 1,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -2285,22 +2326,25 @@ class _PosScreenState extends State<PosScreen> {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
               decoration: BoxDecoration(
                 color: const Color(0xFFFEF2F2),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: const Color(0xFFFECDD3)),
               ),
-              child: Text(
-                '$totalItemQty in cart',
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF991B1B),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '$totalItemQty in cart',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF991B1B),
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             Expanded(
               child: SizedBox(
                 height: 34,
@@ -2309,21 +2353,27 @@ class _PosScreenState extends State<PosScreen> {
                     backgroundColor: const Color(0xFF991B1B),
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: EdgeInsets.zero,
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: () => _showCustomizationModal(item),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.add_rounded, size: 14, color: Colors.white),
+                      const Icon(Icons.add_rounded, size: 13, color: Colors.white),
                       const SizedBox(width: 2),
-                      Text(
-                        'Add / Sizes',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Add / Sizes',
+                            maxLines: 1,
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                     ],

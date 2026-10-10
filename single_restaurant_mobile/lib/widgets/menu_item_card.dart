@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:single_restaurant_mobile/constants/colors.dart';
-import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
@@ -22,8 +21,6 @@ class MenuItemCard extends StatelessWidget {
     required this.onDecrement,
   });
 
-  // Helper removed in favor of ImageHelper
-
   @override
   Widget build(BuildContext context) {
     final isVeg = item['isVeg'] ?? true;
@@ -32,6 +29,8 @@ class MenuItemCard extends StatelessWidget {
     final price = item['price'] ?? 0.0;
     final name = item['name'] ?? 'Unknown Dish';
     final description = item['description'] ?? 'Crispy rolls stuffed with fresh vegetables & served hot.';
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final imageSize = (screenWidth * 0.32).clamp(96.0, 130.0);
     
     return GestureDetector(
       onTap: () {
@@ -42,150 +41,158 @@ class MenuItemCard extends StatelessWidget {
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image Left
-          SizedBox(
-            width: 130,
-            height: 130,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ImageHelper.buildDishImage(item, fit: BoxFit.cover),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Consumer<AuthProvider>(
-                    builder: (context, authProvider, _) {
-                      final itemId = item['_id'] ?? item['id'] ?? '';
-                      final isFavorite = authProvider.isFavoriteItem(itemId);
-                      return GestureDetector(
-                        onTap: () async {
-                          if (authProvider.isAuthenticated) {
-                            await authProvider.toggleFavoriteItem(itemId);
-                          } else {
-                            ToastUtils.showError(context, 'Please login to add favorites');
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            isFavorite ? Icons.favorite : Icons.favorite_border,
-                            size: 16,
-                            color: isFavorite ? Colors.red.shade900 : Colors.grey.shade600,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-          
-          // Content Right
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Proportional Image Left (Rule 3)
+            SizedBox(
+              width: imageSize,
+              height: imageSize,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Veg/NonVeg Indicator
-                      Container(
-                        margin: const EdgeInsets.only(top: 2, right: 6),
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: isVeg ? Colors.green : Colors.red, width: 1.5),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: CircleAvatar(
-                          radius: 3,
-                          backgroundColor: isVeg ? Colors.green : Colors.red,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          name,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Serif'),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Spice Levels
-                  Row(
-                    children: [
-                      Row(
-                        children: List.generate(3, (index) {
-                          final isActive = isSpicy ? index < 2 : index < 1;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 2),
-                            child: Image.asset(
-                              'assets/images/chili.png', // Assuming chili icon exists, fallback to Icon
-                              width: 12,
-                              height: 12,
-                              color: isActive ? Colors.red.shade900 : Colors.grey.shade300,
-                              errorBuilder: (c,e,s) => Icon(Icons.local_fire_department, size: 14, color: isActive ? Colors.red.shade900 : Colors.grey.shade300),
+                  ImageHelper.buildDishImage(item, fit: BoxFit.cover),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Consumer<AuthProvider>(
+                      builder: (context, authProvider, _) {
+                        final itemId = item['_id'] ?? item['id'] ?? '';
+                        final isFavorite = authProvider.isFavoriteItem(itemId);
+                        return GestureDetector(
+                          onTap: () async {
+                            if (authProvider.isAuthenticated) {
+                              await authProvider.toggleFavoriteItem(itemId);
+                            } else {
+                              ToastUtils.showError(context, 'Please login to add favorites');
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
                             ),
-                          );
-                        }),
-                      ),
-                      const SizedBox(width: 4),
-                      Text('($spiceText)', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 12),
-                  
-                  // Price and Add Button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '\$${price.toStringAsFixed(2)}',
-                        style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      _buildCartButton(),
-                    ],
+                            child: Icon(
+                              isFavorite ? Icons.favorite : Icons.favorite_border,
+                              size: 16,
+                              color: isFavorite ? Colors.red.shade900 : Colors.grey.shade600,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            
+            // Content Right
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Veg/NonVeg Indicator
+                        Container(
+                          margin: const EdgeInsets.only(top: 2, right: 6),
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: isVeg ? Colors.green : Colors.red, width: 1.5),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: CircleAvatar(
+                            radius: 3,
+                            backgroundColor: isVeg ? Colors.green : Colors.red,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            name,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Serif'),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    // Spice Levels
+                    Row(
+                      children: [
+                        Row(
+                          children: List.generate(3, (index) {
+                            final isActive = isSpicy ? index < 2 : index < 1;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 2),
+                              child: Image.asset(
+                                'assets/images/chili.png',
+                                width: 12,
+                                height: 12,
+                                color: isActive ? Colors.red.shade900 : Colors.grey.shade300,
+                                errorBuilder: (c, e, s) => Icon(Icons.local_fire_department, size: 14, color: isActive ? Colors.red.shade900 : Colors.grey.shade300),
+                              ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(width: 4),
+                        Text('($spiceText)', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    // Price and Add Button (Responsive)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              '\$${price.toStringAsFixed(2)}',
+                              style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildCartButton(),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),);
+    );
   }
 
   Widget _buildCartButton() {
@@ -228,14 +235,12 @@ class MenuItemCard extends StatelessWidget {
           backgroundColor: Colors.red.shade900,
           foregroundColor: Colors.white,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('+ Add', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
+        child: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text('+ Add', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ),
     );

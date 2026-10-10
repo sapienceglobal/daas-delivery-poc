@@ -41,11 +41,14 @@ export const initCronJobs = (io, getModel) => {
         );
       }
 
-      // --- Rule 2: Preparation Neglect (2 hours) ---
       // 2a. Auto-cancel accepted/preparing orders (all types) stuck for 2+ hours
+      // Do not auto-cancel orders whose rider dispatch is legitimately scheduled for the future
       const stalePrepOrders = await Order.find({
         status: { $in: ['accepted', 'preparing'] },
-        updatedAt: { $lt: prepCutoff }
+        updatedAt: { $lt: prepCutoff },
+        $nor: [
+          { dispatchStatus: 'scheduled', dispatchAt: { $gt: new Date() } }
+        ]
       });
 
       for (const order of stalePrepOrders) {

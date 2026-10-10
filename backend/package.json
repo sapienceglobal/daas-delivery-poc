@@ -13,6 +13,7 @@
     "start:legacy": "node server.js",
     "dev:legacy": "nodemon server.js",
     "seed": "node src/config/seed.js",
+    "backup": "node backup_db.js",
     "test": "node --test"
   },
   "keywords": [

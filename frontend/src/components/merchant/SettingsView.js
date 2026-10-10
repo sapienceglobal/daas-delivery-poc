@@ -63,7 +63,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
     name: '', cuisine: '', currency: 'USD ($) - US Dollar', timezone: '(UTC-05:00) Eastern Time (ET)',
     dateFormat: 'MM/DD/YYYY', timeFormat: '12 Hour (AM/PM)', language: 'English',
     email: '', phone: '', address: '', website: '', logo: '',
-    preparationTime: 0, minimumOrder: 0,
+    preparationTime: 0, minimumOrder: 0, deliveryDispatchDelayMinutes: 0,
     taxType: 'Sales Tax', taxRate: 0, serviceCharge: 0, packagingCharge: 0,
     enableTips: false, acceptsOnlineOrders: false, autoAcceptOrders: false, roundOff: false,
     whatsappEnabled: true, whatsappNumber: '+1 (347) 755-1370', pushEnabled: true
@@ -104,6 +104,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
         autoAcceptOrders: restaurant.autoAcceptOrders || false,
         autoRefundEnabled: restaurant.autoRefundEnabled !== false,
         preparationTime: restaurant.preparationTime ?? 20,
+        deliveryDispatchDelayMinutes: restaurant.deliveryDispatchDelayMinutes ?? 0,
         minimumOrder: restaurant.minimumOrder ?? 15.00,
 
         taxType: restaurant.taxType || 'Sales Tax',
@@ -632,6 +633,24 @@ export default function SettingsView({ restaurant, onRefresh }) {
                   </div>
                   <div className="flex items-center gap-2">
                     <input type="number" value={formData.preparationTime} onChange={(e) => handleChange('preparationTime', Number(e.target.value))} className={`w-20 px-2 py-1.5 text-sm text-center ${fieldBase}`} />
+                    <span className="text-sm text-[#6b7280] font-medium">mins</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
+                  <div>
+                    <p className="text-sm font-bold text-[#111827]">Rider Request Delay</p>
+                    <p className="text-xs text-[#6b7280] mt-1">Wait time before automatically requesting a rider after accepting (0 = immediate request)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="number" 
+                      min="0" 
+                      max="180" 
+                      value={formData.deliveryDispatchDelayMinutes} 
+                      onChange={(e) => handleChange('deliveryDispatchDelayMinutes', Math.max(0, Math.min(180, Number(e.target.value) || 0)))} 
+                      className={`w-20 px-2 py-1.5 text-sm text-center ${fieldBase}`} 
+                    />
                     <span className="text-sm text-[#6b7280] font-medium">mins</span>
                   </div>
                 </div>

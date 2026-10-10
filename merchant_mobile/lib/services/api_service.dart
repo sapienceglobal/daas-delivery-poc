@@ -10,7 +10,7 @@ class ApiService {
   static const String _configuredBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: 'https://api.lassiloungeny.com',
-    // defaultValue: 'http://192.168.1.5:5001',
+    // defaultValue: 'http://192.168.1.3:5001',
   );
   
   static const Duration _requestTimeout = Duration(seconds: 20);

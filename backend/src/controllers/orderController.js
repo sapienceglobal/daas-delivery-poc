@@ -23,6 +23,9 @@ import { createNotification } from './notificationController.js';
 import { sendPushNotification } from '../services/webPushService.js';
 import { sendOrderAlert, sendInvoiceWhatsApp } from '../services/whatsappService.js';
 import logger from '../utils/logger.js';
+import { scheduleOrDispatch, dispatchOrder } from '../services/dispatch/dispatchService.js';
+import { emitDispatchUpdated } from '../services/dispatch/dispatchEvents.js';
+import { DISPATCH_BY, DISPATCH_STATUSES } from '../services/dispatch/dispatchConfig.js';
 
 const CUSTOMER_PAYMENT_METHODS = ['credit_card', 'apple_pay', 'google_pay', 'stripe_online'];
 const STRIPE_REFUND_PAYMENT_METHODS = ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'];
@@ -65,7 +68,7 @@ const canManageRestaurant = (user, restaurantId) => {
   return user.restaurantId?.toString() === restaurantId?.toString();
 };
 
-const ensureCanManageRestaurant = (user, restaurantId) => {
+export const ensureCanManageRestaurant = (user, restaurantId) => {
   if (!canManageRestaurant(user, restaurantId)) {
     throw new AppError('You can only manage orders for your own restaurant', 403);
   }
@@ -369,29 +372,9 @@ const verifyCardPayment = async ({ paymentMethod, stripePaymentIntentId, expecte
   return { paymentStatus: 'paid' };
 };
 
-const createShipdayDeliveryForOrder = async (order) => {
+export const createShipdayDeliveryForOrder = async (order, reason = DISPATCH_BY.IMMEDIATE) => {
   if (order.orderType !== 'delivery' || order.deliveryId) return order;
-
-  try {
-    const delivery = await triggerDelivery(order);
-    order.deliveryId = delivery.deliveryId;
-    order.trackingUrl = delivery.trackingUrl;
-    order.pickupTime = delivery.pickupTime;
-    order.deliveryTime = delivery.deliveryTime;
-    await order.save();
-  } catch (err) {
-    order.statusUpdates.push({
-      status: order.status,
-      description: `Shipday delivery creation failed: ${err.message}`
-    });
-    await order.save();
-    logger.warn('Shipday delivery trigger failed after restaurant acceptance', {
-      orderId: order._id,
-      error: err.message
-    });
-  }
-
-  return order;
+  return await dispatchOrder(order._id, reason, { orderDoc: order });
 };
 
 const getTrustedDeliveryQuote = async ({ restaurant, address, subtotal, scheduledTime }) => {
@@ -1007,7 +990,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     }
 
     if (order.status === 'accepted') {
-      createShipdayDeliveryForOrder(order).catch(err => logger.error('Shipday background error during createOrder', err));
+      scheduleOrDispatch(order, { io, restaurant, getModel: req.getModel }).catch(err => logger.error('Shipday background error during createOrder', err));
     }
 
     res.created(response, { data: order });
@@ -1243,11 +1226,16 @@ export const cancelOrder = asyncHandler(async (req, response) => {
     });
   }
 
+  if (order.dispatchStatus === 'scheduled' || order.dispatchStatus === 'dispatching') {
+    order.dispatchStatus = 'cancelled';
+  }
+
   order.status = 'cancelled';
   order.statusUpdates.push({ status: 'cancelled', description: 'Cancelled by customer' });
   await order.save();
 
   const io = req.app.get('io');
+  emitDispatchUpdated(order, io);
   processAutoRefund(order, 'Cancelled by customer', io, req.getModel).catch(err => logger.error('Auto refund error', err));
 
   await rollbackLoyaltyPoints(order, 'customer_cancel');
@@ -1383,7 +1371,11 @@ export const getRestaurantOrders = asyncHandler(async (req, response) => {
     Order.countDocuments(filter)
   ]);
 
-  res.success(response, { data: orders, pagination: res.buildPagination(page, limit, total) });
+  res.success(response, {
+    data: orders,
+    pagination: res.buildPagination(page, limit, total),
+    serverTime: new Date().toISOString()
+  });
 });
 
 export const getMerchantOrders = asyncHandler(async (req, response) => {
@@ -1404,7 +1396,11 @@ export const getMerchantOrders = asyncHandler(async (req, response) => {
     Order.countDocuments(filter)
   ]);
 
-  res.success(response, { data: orders, pagination: res.buildPagination(page, limit, total) });
+  res.success(response, {
+    data: orders,
+    pagination: res.buildPagination(page, limit, total),
+    serverTime: new Date().toISOString()
+  });
 });
 
 export const updateOrderStatus = asyncHandler(async (req, response) => {
@@ -1464,10 +1460,19 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
   status = finalStatus;
   order = finalOrder;
   if (status === 'accepted') {
-    createShipdayDeliveryForOrder(order).catch(err => logger.error('Shipday background error', err));
-  } else if (status === 'cancelled') {
-    rollbackLoyaltyPoints(order, 'status_update_cancel').catch(err => logger.error('Rollback points error', err));
     const io = req.app.get('io');
+    scheduleOrDispatch(order, { io, getModel: req.getModel }).catch(err => logger.error('Shipday background error', err));
+  } else if (status === 'ready' && order.orderType === 'delivery' && order.dispatchStatus === DISPATCH_STATUSES.SCHEDULED) {
+    const io = req.app.get('io');
+    dispatchOrder(order._id, DISPATCH_BY.READY, { io, getModel: req.getModel, orderDoc: order }).catch(err => logger.error('Ready dispatch error', err));
+  } else if (status === 'cancelled') {
+    const io = req.app.get('io');
+    if (order.dispatchStatus === DISPATCH_STATUSES.SCHEDULED || order.dispatchStatus === DISPATCH_STATUSES.DISPATCHING) {
+      order.dispatchStatus = DISPATCH_STATUSES.CANCELLED;
+      await order.save();
+      emitDispatchUpdated(order, io);
+    }
+    rollbackLoyaltyPoints(order, 'status_update_cancel').catch(err => logger.error('Rollback points error', err));
     processAutoRefund(order, 'Cancelled by restaurant', io, req.getModel).catch(err => logger.error('Auto refund error', err));
     if (order.deliveryId) {
       cancelDelivery(order, 'Cancelled via status update').catch(err => logger.error('Shipday cancel error', err));
@@ -1517,7 +1522,7 @@ export const acceptOrder = asyncHandler(async (req, response) => {
   order.status = 'accepted';
   order.statusUpdates.push({ status: 'accepted', description: 'Order accepted by restaurant' });
   await order.save();
-  createShipdayDeliveryForOrder(order).catch(err => logger.error('Shipday background error', err));
+  scheduleOrDispatch(order, { io: req.app.get('io'), getModel: req.getModel, restaurantId: order.restaurantId }).catch(err => logger.error('Shipday background error', err));
 
   const io = req.app.get('io');
   if (io) {
@@ -1558,8 +1563,17 @@ export const rejectOrder = asyncHandler(async (req, response) => {
     throw new AppError(`Order cannot be rejected at ${order.status}`, 400);
   }
 
+  if (order.dispatchStatus === DISPATCH_STATUSES.SCHEDULED || order.dispatchStatus === DISPATCH_STATUSES.DISPATCHING) {
+    order.dispatchStatus = DISPATCH_STATUSES.CANCELLED;
+  }
+
   order.status = 'cancelled';
   order.statusUpdates.push({ status: 'cancelled', description: xss(String(req.body.reason || '')) || 'Rejected by restaurant' });
+  await order.save();
+
+  const ioReject = req.app.get('io');
+  emitDispatchUpdated(order, ioReject);
+
   if (order.deliveryId) {
     try {
       await cancelDelivery(order, xss(String(req.body.reason || '')) || 'Rejected by restaurant');

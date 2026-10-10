@@ -14,12 +14,14 @@ export default function MerchantLiveOrdersPage() {
   const { joinRoom, on, off } = useSocket();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState([]);
+  const [serverTime, setServerTime] = useState(null);
 
   const loadData = async () => {
     try {
 
       const res = await orderAPI.getRestaurantOrders(roomId).catch(() => ({ data: [] }));
       setOrders(res.data || []);
+      if (res.serverTime) setServerTime(res.serverTime);
     } catch (err) {
       console.error('Orders Load Error:', err);
       showToast('Failed to load orders', 'error');
@@ -45,10 +47,12 @@ export default function MerchantLiveOrdersPage() {
 
     on('new_order', handleRealtimeOrder);
     on('order_updated', handleRealtimeOrder);
+    on('order:dispatch-updated', handleRealtimeOrder);
 
     return () => {
       off('new_order', handleRealtimeOrder);
       off('order_updated', handleRealtimeOrder);
+      off('order:dispatch-updated', handleRealtimeOrder);
     };
   }, [roomId, joinRoom, on, off]);
 
@@ -85,6 +89,7 @@ export default function MerchantLiveOrdersPage() {
     <LiveOrdersView
       orders={orders}
       restaurant={restaurant}
+      serverTime={serverTime}
       onUpdateStatus={handleUpdateStatus}
       onAcceptOrder={handleAcceptOrder}
       onRejectOrder={handleRejectOrder}

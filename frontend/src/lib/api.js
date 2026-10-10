@@ -205,6 +205,9 @@ export const orderAPI = {
   refund: (id, data) => api.post(`/api/orders/${id}/refund`, data),
   // dev
   simulate: (id) => api.post(`/api/orders/${id}/simulate`),
+  // delayed dispatch
+  dispatchNow: (id) => api.post(`/api/orders/${id}/dispatch-now`),
+  dispatchPostpone: (id, minutes) => api.post(`/api/orders/${id}/dispatch-postpone`, { minutes }),
 };
 
 

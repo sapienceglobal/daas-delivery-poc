@@ -28,6 +28,24 @@ class SocketService {
     _createSocket();
   }
 
+  String? _currentRestaurantId;
+  final Map<String, Set<Function(dynamic)>> _listenerRegistry = {};
+  final List<void Function()> _reconnectCallbacks = [];
+
+  void onReconnect(void Function() callback) {
+    _reconnectCallbacks.add(callback);
+  }
+
+  void _rebindListeners() {
+    if (_socket == null) return;
+    _listenerRegistry.forEach((event, callbacks) {
+      for (final cb in callbacks) {
+        _socket!.off(event, cb);
+        _socket!.on(event, cb);
+      }
+    });
+  }
+
   void _createSocket() {
     final String baseUrl = ApiService.baseUrl;
     final String? token = ApiService.authToken;
@@ -59,6 +77,14 @@ class SocketService {
       if (_currentRestaurantId != null) {
         _socket!.emit('join_restaurant', _currentRestaurantId);
       }
+      _rebindListeners();
+      for (final cb in _reconnectCallbacks) {
+        try {
+          cb();
+        } catch (e) {
+          print('Error in reconnect callback: $e');
+        }
+      }
     });
 
     _socket!.onDisconnect((_) {
@@ -70,8 +96,6 @@ class SocketService {
     });
   }
 
-  String? _currentRestaurantId;
-
   void joinRestaurantRoom(String restaurantId) {
     _currentRestaurantId = restaurantId;
     if (_socket == null) init();
@@ -82,24 +106,27 @@ class SocketService {
 
   // Listeners tailored for merchant operations
   void onNewOrder(Function(dynamic) callback) {
-    if (_socket == null) init();
-    _socket!.on('new_order', callback);
+    on('new_order', callback);
   }
 
   void onOrderUpdated(Function(dynamic) callback) {
-    if (_socket == null) init();
-    _socket!.on('order_updated', callback);
+    on('order_updated', callback);
   }
 
   void on(String event, Function(dynamic) callback) {
+    _listenerRegistry.putIfAbsent(event, () => <Function(dynamic)>{}).add(callback);
     if (_socket == null) init();
-    _socket!.on(event, callback);
+    if (_socket != null) {
+      _socket!.on(event, callback);
+    }
   }
 
   void off(String event, [Function(dynamic)? callback]) {
     if (callback != null) {
+      _listenerRegistry[event]?.remove(callback);
       _socket?.off(event, callback);
     } else {
+      _listenerRegistry.remove(event);
       _socket?.off(event);
     }
   }
