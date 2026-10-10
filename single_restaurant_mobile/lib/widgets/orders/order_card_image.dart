@@ -18,7 +18,7 @@ class OrderCardImage extends StatelessWidget {
         : 'assets/images/branded/lassi-lounge/categories/appetizers.jpg';
 
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final imageSize = screenWidth < 360 ? 80.0 : 100.0;
+    final imageSize = (screenWidth * 0.23).clamp(74.0, 92.0);
 
     return Stack(
       children: [

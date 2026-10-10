@@ -107,7 +107,6 @@ class _OffersScreenState extends State<OffersScreen> {
           style: TextStyle(
             color: Color(0xFF1E1E1E),
             fontWeight: FontWeight.bold,
-            fontFamily: 'serif',
             fontSize: 20,
           ),
         ),

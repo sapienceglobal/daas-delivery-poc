@@ -74,7 +74,6 @@ class AboutChefSection extends StatelessWidget {
           'Simarjeet Gill',
           style: TextStyle(
             fontSize: 24,
-            fontFamily: 'Cursive',
             color: AppColors.secondary,
             fontWeight: FontWeight.w600,
           ),

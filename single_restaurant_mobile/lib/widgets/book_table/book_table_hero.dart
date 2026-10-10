@@ -6,13 +6,15 @@ class BookTableHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      constraints: const BoxConstraints(minHeight: 250),
+      constraints: const BoxConstraints(minHeight: 240),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         image: const DecorationImage(
           image: AssetImage('assets/images/branded/lassi-lounge/menu-hero.jpg'),
           fit: BoxFit.cover,
+          alignment: Alignment.center,
         ),
       ),
       child: Container(

@@ -116,7 +116,6 @@ class LoyaltyPromoCard extends StatelessWidget {
                                 color: Color(0xFF1B1B1B),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
-                                fontFamily: 'serif',
                                 height: 1.2,
                               ),
                               maxLines: 3,

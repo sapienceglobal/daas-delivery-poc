@@ -135,7 +135,6 @@ class _WelcomeOfferCardState extends State<WelcomeOfferCard>
                         color: Colors.white,
                         fontSize: 27,
                         fontWeight: FontWeight.w900,
-                        fontFamily: 'serif',
                         height: 1.05,
                       ),
                     ),

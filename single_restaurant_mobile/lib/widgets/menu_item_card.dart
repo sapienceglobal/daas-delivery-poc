@@ -103,85 +103,106 @@ class MenuItemCard extends StatelessWidget {
             // Content Right
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Veg/NonVeg Indicator
-                        Container(
-                          margin: const EdgeInsets.only(top: 2, right: 6),
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: isVeg ? Colors.green : Colors.red, width: 1.5),
-                            borderRadius: BorderRadius.circular(4),
+                    // Center details: Veg dot + title, description, spice level
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Veg/NonVeg Indicator
+                              Container(
+                                margin: const EdgeInsets.only(top: 2, right: 6),
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: isVeg ? Colors.green : Colors.red,
+                                      width: 1.5),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 3,
+                                  backgroundColor:
+                                      isVeg ? Colors.green : Colors.red,
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
-                          child: CircleAvatar(
-                            radius: 3,
-                            backgroundColor: isVeg ? Colors.green : Colors.red,
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            name,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Serif'),
+                          const SizedBox(height: 4),
+                          Text(
+                            description,
+                            style: TextStyle(
+                                color: Colors.grey.shade600, fontSize: 11.5),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    
-                    // Spice Levels
-                    Row(
-                      children: [
-                        Row(
-                          children: List.generate(3, (index) {
-                            final isActive = isSpicy ? index < 2 : index < 1;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 2),
-                              child: Image.asset(
-                                'assets/images/chili.png',
-                                width: 12,
-                                height: 12,
-                                color: isActive ? Colors.red.shade900 : Colors.grey.shade300,
-                                errorBuilder: (c, e, s) => Icon(Icons.local_fire_department, size: 14, color: isActive ? Colors.red.shade900 : Colors.grey.shade300),
+                          const SizedBox(height: 6),
+
+                          // Spice Levels
+                          Row(
+                            children: [
+                              Row(
+                                children: List.generate(3, (index) {
+                                  final isActive =
+                                      isSpicy ? index < 2 : index < 1;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 2),
+                                    child: Image.asset(
+                                      'assets/images/chili.png',
+                                      width: 12,
+                                      height: 12,
+                                      color: isActive
+                                          ? Colors.red.shade900
+                                          : Colors.grey.shade300,
+                                      errorBuilder: (c, e, s) => Icon(
+                                          Icons.local_fire_department,
+                                          size: 13,
+                                          color: isActive
+                                              ? Colors.red.shade900
+                                              : Colors.grey.shade300),
+                                    ),
+                                  );
+                                }),
                               ),
-                            );
-                          }),
-                        ),
-                        const SizedBox(width: 4),
-                        Text('($spiceText)', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 12),
-                    
-                    // Price and Add Button (Responsive)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              '\$${price.toStringAsFixed(2)}',
-                              style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
+                              const SizedBox(width: 4),
+                              Text('($spiceText)',
+                                  style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 11)),
+                            ],
                           ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Right column: Price top, Add button bottom
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '\$${price.toStringAsFixed(2)}',
+                          style: TextStyle(
+                              color: Colors.red.shade900,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(height: 16),
                         _buildCartButton(),
                       ],
                     ),

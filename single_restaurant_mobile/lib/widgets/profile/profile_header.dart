@@ -123,7 +123,7 @@ class ProfileHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                 ],
-                if (user?.email != null && user!.email.isNotEmpty) ...[
+                if (user?.email != null && user!.email.isNotEmpty)
                   Row(
                     children: [
                       const Icon(Icons.mail_outline,
@@ -142,36 +142,6 @@ class ProfileHeader extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                ] else
-                  const SizedBox(height: 4),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3.5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF6D8),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('👑', style: TextStyle(fontSize: 11)),
-                        const SizedBox(width: 4),
-                        Text(
-                          user?.role == 'merchant' ? 'Merchant' : 'Gold Member',
-                          style: const TextStyle(
-                            color: Color(0xFF8A5F05),
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

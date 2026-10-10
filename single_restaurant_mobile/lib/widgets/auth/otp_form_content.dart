@@ -43,7 +43,6 @@ class OtpFormContent extends StatelessWidget {
             color: AppColors.secondary,
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            fontFamily: 'serif',
           ),
         ),
         const SizedBox(height: 16),

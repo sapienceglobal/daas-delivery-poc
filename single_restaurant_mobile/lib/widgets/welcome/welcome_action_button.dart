@@ -30,14 +30,15 @@ class WelcomeActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSmall = height < 50.0;
     return Container(
       width: double.infinity,
       height: height,
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(14.0),
+        borderRadius: BorderRadius.circular(isSmall ? 12.0 : 14.0),
         border: borderColor != null
-            ? Border.all(color: borderColor!, width: 1.6)
+            ? Border.all(color: borderColor!, width: isSmall ? 1.4 : 1.6)
             : null,
         boxShadow: [
           BoxShadow(
@@ -51,18 +52,18 @@ class WelcomeActionButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: isLoading ? null : onTap,
-          borderRadius: BorderRadius.circular(14.0),
+          borderRadius: BorderRadius.circular(isSmall ? 12.0 : 14.0),
           splashColor: textColor.withValues(alpha: 0.12),
           highlightColor: textColor.withValues(alpha: 0.06),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: EdgeInsets.symmetric(horizontal: isSmall ? 14.0 : 16.0),
             child: isLoading
                 ? Center(
                     child: SizedBox(
-                      width: 22,
-                      height: 22,
+                      width: isSmall ? 20 : 22,
+                      height: isSmall ? 20 : 22,
                       child: CircularProgressIndicator(
-                        strokeWidth: 2.2,
+                        strokeWidth: isSmall ? 2.0 : 2.2,
                         valueColor: AlwaysStoppedAnimation<Color>(textColor),
                       ),
                     ),
@@ -71,8 +72,8 @@ class WelcomeActionButton extends StatelessWidget {
                     children: [
                       // Leading Custom Icon
                       SizedBox(
-                        width: 36,
-                        height: 36,
+                        width: isSmall ? 30 : 36,
+                        height: isSmall ? 30 : 36,
                         child: Center(child: icon),
                       ),
                       const SizedBox(width: 8),
@@ -87,7 +88,7 @@ class WelcomeActionButton extends StatelessWidget {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: textColor,
-                                fontSize: 16.0,
+                                fontSize: isSmall ? 14.5 : 16.0,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: isUppercase ? 0.6 : 0.2,
                               ),
@@ -99,10 +100,10 @@ class WelcomeActionButton extends StatelessWidget {
 
                       // Trailing Arrow Icon
                       SizedBox(
-                        width: 28,
+                        width: isSmall ? 24 : 28,
                         child: Icon(
                           Icons.arrow_forward,
-                          size: 20,
+                          size: isSmall ? 18 : 20,
                           color: arrowColor,
                         ),
                       ),

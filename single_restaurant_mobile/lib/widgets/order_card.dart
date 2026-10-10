@@ -36,7 +36,7 @@ class OrderCard extends StatelessWidget {
         border: Border.all(color: borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -46,12 +46,12 @@ class OrderCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 OrderCardImage(order: order, isActive: isActive),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _buildOrderDetails(
                     context,
@@ -101,66 +101,65 @@ class OrderCard extends StatelessWidget {
                 'Order #${order['orderNumber'] ?? order['_id']?.toString().substring(0, 6) ?? '...'}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 15,
                   color: Colors.black87,
                 ),
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(width: 4),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    OrderCardStatusBadge(status: displayStatus),
-                    const SizedBox(width: 2),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: Colors.black87,
-                      size: 18,
-                    ),
-                  ],
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                OrderCardStatusBadge(status: displayStatus),
+                const SizedBox(width: 2),
+                const Icon(
+                  Icons.chevron_right,
+                  color: Colors.black87,
+                  size: 16,
                 ),
-              ),
+              ],
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 5),
         Text(
           _formatDate(context, order['createdAt'] ?? ''),
           style: TextStyle(
             color: Colors.grey.shade600,
-            fontSize: 13,
+            fontSize: 12.5,
             fontWeight: FontWeight.w500,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         if (status != 'delivered' && status != 'cancelled' && !isRefunded) ...[
           Row(
             children: [
               Icon(
                 isDelivery ? Icons.moped : Icons.shopping_bag_outlined,
                 color: AppColors.secondary,
-                size: 18,
+                size: 17,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   _getStatusText(status, isDelivery),
                   style: const TextStyle(
                     color: AppColors.secondary,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 13.5,
                   ),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 26.0, top: 4),
+            padding: const EdgeInsets.only(left: 23.0, top: 4),
             child: Text(
               order['estimatedDelivery'] ?? 'Arriving soon',
               style: TextStyle(
@@ -168,6 +167,8 @@ class OrderCard extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ] else if (status == 'delivered') ...[
@@ -176,17 +177,19 @@ class OrderCard extends StatelessWidget {
               const Icon(
                 Icons.check_circle_outline,
                 color: Colors.green,
-                size: 18,
+                size: 17,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   'Delivered on ${_formatDate(context, order['deliveredAt'] ?? order['createdAt'])}',
                   style: TextStyle(
                     color: Colors.grey.shade600,
-                    fontSize: 13,
+                    fontSize: 12.5,
                     fontWeight: FontWeight.w500,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -194,29 +197,37 @@ class OrderCard extends StatelessWidget {
         ] else if (status == 'cancelled' || isRefunded) ...[
           Row(
             children: [
-              const Icon(Icons.cancel_outlined, color: Colors.red, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                isRefunded ? 'Order has been refunded' : 'Order was cancelled',
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+              const Icon(Icons.cancel_outlined, color: Colors.red, size: 17),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  isRefunded ? 'Order has been refunded' : 'Order was cancelled',
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13.5,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.only(left: 26.0, top: 4),
-            child: Text(
-              _formatDate(context, order['cancelledAt'] ?? order['createdAt']),
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+          if (order['cancelledAt'] != null &&
+              order['cancelledAt'] != order['createdAt'])
+            Padding(
+              padding: const EdgeInsets.only(left: 23.0, top: 4),
+              child: Text(
+                _formatDate(context, order['cancelledAt']),
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
         ],
       ],
     );

@@ -4,7 +4,6 @@ import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
-import 'package:single_restaurant_mobile/screens/cart_screen.dart';
 import 'package:single_restaurant_mobile/theme/app_responsive.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
@@ -30,13 +29,21 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   final Set<int> _selectedAddOnIndices = {};
   int? _selectedSizeIndex;
   int _currentImageIndex = 0;
+  late String _selectedSpiceLevel;
 
   @override
   void initState() {
     super.initState();
+    final customSpice = widget.item['spiceLevel'] ?? widget.item['spicyLevel'];
+    final isSpicy = widget.item['isSpicy'] ?? false;
+    _selectedSpiceLevel = customSpice != null
+        ? customSpice.toString()
+        : (isSpicy ? 'Medium' : 'Mild');
+
     final sizeVariations =
         widget.item['sizeVariations'] as List<dynamic>? ?? [];
     if (sizeVariations.isNotEmpty) _selectedSizeIndex = 0;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
       final itemId = widget.item['_id'] ?? widget.item['id'];
@@ -46,6 +53,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         final cartItem = cartProvider.items[cartIndex];
         setState(() {
           _localQuantity = cartItem['quantity'] ?? cartItem['qty'] ?? 1;
+          if (cartItem['selectedSpiceLevel'] != null) {
+            _selectedSpiceLevel = cartItem['selectedSpiceLevel'];
+          }
           final addons = _getAddOns();
           final cartAddons = cartItem['addOns'] as List<dynamic>? ?? [];
           for (int i = 0; i < addons.length; i++) {
@@ -80,8 +90,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   }
 
   bool _areAddonsEqual(List<dynamic>? cartAddons,
-      List<Map<String, dynamic>> selectedAddons, dynamic cartSize, dynamic currentSize) {
-    if (cartSize?['name'] != currentSize?['name']) return false;
+      List<Map<String, dynamic>> selectedAddons, dynamic cSize, dynamic curSize) {
+    if (cSize?['name'] != curSize?['name']) return false;
     final cAdd = cartAddons ?? [];
     if (cAdd.length != selectedAddons.length) return false;
     return selectedAddons.every((sa) => cAdd.any((ca) => ca['name'] == sa['name']));
@@ -89,12 +99,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
   double _calculateTotal(int qty) {
     final sizes = widget.item['sizeVariations'] as List<dynamic>? ?? [];
-    double base = (widget.item['price'] ?? 0.0).toDouble();
-    if (sizes.isNotEmpty &&
-        _selectedSizeIndex != null &&
-        _selectedSizeIndex! < sizes.length) {
-      base = (sizes[_selectedSizeIndex!]['price'] ?? 0.0).toDouble();
-    }
+    double base = (sizes.isNotEmpty &&
+            _selectedSizeIndex != null &&
+            _selectedSizeIndex! < sizes.length)
+        ? (sizes[_selectedSizeIndex!]['price'] ?? 0.0).toDouble()
+        : (widget.item['price'] ?? 0.0).toDouble();
     final addons = _getAddOns();
     final addonsTotal = _selectedAddOnIndices.fold<double>(
         0.0, (sum, idx) => sum + (addons[idx]['price'] ?? 0.0).toDouble());
@@ -109,7 +118,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     final isSpicy = item['isSpicy'] ?? false;
     final isVeg = item['isVeg'] ?? true;
     final description = item['description'] ??
-        'Cottage cheese cubes marinated in a blend of yogurt, spices and herbs, grilled to perfection in a tandoor for a smoky and flavorful taste.';
+        'A delightful specialty prepared fresh with premium aromatic herbs and spices.';
 
     final images = (widget.item['images'] != null &&
             (widget.item['images'] as List).isNotEmpty)
@@ -123,7 +132,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         ? (sizes[_selectedSizeIndex!]['price'] ?? 0.0).toDouble()
         : (item['price'] ?? 0.0).toDouble();
     final addons = _getAddOns();
-    final prepTime = item['preparationTime'] ?? 20;
+    final prepTime = (item['preparationTime'] as num?)?.toInt() ?? 15;
 
     final authProvider = Provider.of<AuthProvider>(context);
     final cartProvider = Provider.of<CartProvider>(context);
@@ -162,16 +171,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
           .cast<Map<String, dynamic>>()
           .toList();
     }
-    if (recommended.isEmpty) {
-      recommended = [
-        {'id': '1', 'name': 'Malai Paneer Tikka', 'price': 14.99, 'isVeg': true},
-        {'id': '2', 'name': 'Hara Bhara Kabab', 'price': 10.99, 'isVeg': true},
-        {'id': '3', 'name': 'Veg Seekh Kabab', 'price': 11.99, 'isVeg': true},
-      ];
-    }
 
     final screenHeight = MediaQuery.sizeOf(context).height;
-    final expandedHeight = (screenHeight * 0.35).clamp(240.0, 360.0);
+    final expandedHeight = (screenHeight * 0.38).clamp(260.0, 380.0);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -197,7 +199,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
             child: ResponsiveCenter(
               maxWidth: AppResponsive.maxContentWidth,
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -208,6 +211,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       basePrice: basePrice,
                       description: description,
                       prepTime: prepTime,
+                      item: widget.item,
                     ),
                     ItemDetailOptions(
                       sizes: sizes,
@@ -236,6 +240,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           }
                         });
                       },
+                      selectedSpiceLevel: _selectedSpiceLevel,
                     ),
                     ItemDetailRecommendations(
                       recommended: recommended,
@@ -261,10 +266,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
               totalPrice: _calculateTotal(displayQuantity),
               inCart: inCart,
               displayQuantity: displayQuantity,
-              onViewDetails: () {
-                Navigator.push(
-                    context, MaterialPageRoute(builder: (_) => const CartScreen()));
-              },
               onIncrement: () {
                 cartProvider.updateQuantity(cartIndex, displayQuantity + 1);
               },
@@ -276,6 +277,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 newItem['quantity'] = 1;
                 newItem['qty'] = 1;
                 newItem['addOns'] = selectedAddonsList;
+                newItem['selectedSpiceLevel'] = _selectedSpiceLevel;
                 newItem['price'] = (sizes.isNotEmpty && _selectedSizeIndex != null)
                     ? (sizes[_selectedSizeIndex!]['price'] as num?)?.toDouble() ?? 0.0
                     : basePrice;

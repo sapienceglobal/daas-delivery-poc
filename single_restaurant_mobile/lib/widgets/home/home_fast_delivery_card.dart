@@ -60,7 +60,6 @@ class FastDeliveryCard extends StatelessWidget {
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
-                        fontFamily: 'serif',
                       ),
                     ),
                   ],

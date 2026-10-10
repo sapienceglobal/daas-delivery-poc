@@ -160,9 +160,6 @@ class PopOutCapsuleImage extends StatelessWidget {
       height: h,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.all(Radius.elliptical(w / 2, h / 2)),
-        border: isSelected
-            ? Border.all(color: const Color(0xFF8B1E1E), width: 2.0)
-            : null,
         gradient: const RadialGradient(
           center: Alignment.center,
           radius: 0.78,

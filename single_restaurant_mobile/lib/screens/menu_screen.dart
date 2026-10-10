@@ -186,7 +186,7 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
         title: Image.asset(
           'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-          height: 80,
+          height: 88,
           errorBuilder: (c, e, s) =>
               const Text('LASSI LOUNGE', style: TextStyle(color: Colors.black)),
         ),
@@ -234,7 +234,6 @@ class _MenuScreenState extends State<MenuScreen> {
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.red.shade900,
-                      fontFamily: 'Serif',
                     ),
                   ),
                   const SizedBox(height: 4),

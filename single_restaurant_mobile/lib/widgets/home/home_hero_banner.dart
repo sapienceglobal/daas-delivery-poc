@@ -162,7 +162,6 @@ class _HomeHeroBannerState extends State<HomeHeroBanner> {
                             Text(
                               slide['tag']!,
                               style: const TextStyle(
-                                fontFamily: 'serif',
                                 color: Colors.white,
                                 fontSize: 22,
                                 fontWeight: FontWeight.normal,

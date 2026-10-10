@@ -94,7 +94,7 @@ class _SplashScreenState extends State<SplashScreen> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final screenHeight = constraints.maxHeight;
-            final isCompact = screenHeight < 640;
+            final isCompact = screenHeight < 720 || constraints.maxWidth < 380;
             final headerHeight = (screenHeight * 0.46).clamp(
               isCompact ? 220.0 : 275.0,
               440.0,
@@ -148,55 +148,58 @@ class _SplashScreenState extends State<SplashScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.center,
                                     children: [
-                                      SizedBox(height: isCompact ? 18 : 24),
+                                      SizedBox(height: isCompact ? 14 : 20),
 
                                       // Headline: "Welcome to"
-                                      const Text(
+                                      Text(
                                         'Welcome to',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          color: Color(0xFF1F1F1F),
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: -0.5,
+                                          color: const Color(0xFF1F1F1F),
+                                          fontSize: isCompact ? 24 : 28,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: -0.4,
+                                          height: isCompact ? 1.05 : 1.15,
                                         ),
                                       ),
-                                      const SizedBox(height: 2),
+                                      SizedBox(height: isCompact ? 1 : 2),
 
                                       // Headline: "Lassi Lounge"
-                                      const Text(
+                                      Text(
                                         'Lassi Lounge',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          color: Color(0xFF800A12),
-                                          fontSize: 34,
+                                          color: const Color(0xFF800A12),
+                                          fontSize: isCompact ? 29 : 34,
                                           fontWeight: FontWeight.w900,
-                                          letterSpacing: -0.6,
-                                          height: 1.15,
+                                          letterSpacing:
+                                              isCompact ? -0.5 : -0.6,
+                                          height: isCompact ? 1.05 : 1.15,
                                         ),
                                       ),
-                                      const SizedBox(height: 10),
+                                      SizedBox(height: isCompact ? 7 : 10),
 
                                       // Subtitle
-                                      const Text(
+                                      Text(
                                         'Authentic Indian Cuisine\nDelivered to Your Doorstep',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          color: Color(0xFF555555),
-                                          fontSize: 14.5,
+                                          color: const Color(0xFF555555),
+                                          fontSize: isCompact ? 13 : 14.5,
                                           fontWeight: FontWeight.w500,
-                                          height: 1.35,
+                                          height: isCompact ? 1.3 : 1.35,
                                         ),
                                       ),
-                                      SizedBox(height: isCompact ? 18 : 24),
+                                      SizedBox(height: isCompact ? 14 : 24),
 
-                                      // 1. EXPLORE OUR MENU Button
+                                      // 1. Explore Our Menu Button
                                       WelcomeActionButton(
                                         title: 'EXPLORE OUR MENU',
                                         isUppercase: true,
-                                        icon: const MenuDocumentIcon(
-                                          color: Color(0xFF800A12),
-                                          size: 26,
+                                        height: isCompact ? 46.0 : 54.0,
+                                        icon: MenuDocumentIcon(
+                                          color: const Color(0xFF800A12),
+                                          size: isCompact ? 22 : 26,
                                         ),
                                         backgroundColor: const Color(0xFFFEEDE6),
                                         textColor: const Color(0xFF800A12),
@@ -204,15 +207,16 @@ class _SplashScreenState extends State<SplashScreen> {
                                         isLoading: _isExploreLoading,
                                         onTap: _onExploreMenu,
                                       ),
-                                      const SizedBox(height: 14),
+                                      SizedBox(height: isCompact ? 11 : 14),
 
                                       // 2. ORDER ONLINE Button
                                       WelcomeActionButton(
                                         title: 'ORDER ONLINE',
                                         isUppercase: true,
-                                        icon: const ClochePlatterIcon(
-                                          color: Color(0xFF1F1F1F),
-                                          size: 26,
+                                        height: isCompact ? 46.0 : 54.0,
+                                        icon: ClochePlatterIcon(
+                                          color: const Color(0xFF1F1F1F),
+                                          size: isCompact ? 22 : 26,
                                         ),
                                         backgroundColor: const Color(0xFFFAB82C),
                                         textColor: const Color(0xFF1F1F1F),
@@ -220,15 +224,16 @@ class _SplashScreenState extends State<SplashScreen> {
                                         isLoading: _isOrderLoading,
                                         onTap: _onOrderOnline,
                                       ),
-                                      const SizedBox(height: 14),
+                                      SizedBox(height: isCompact ? 11 : 14),
 
                                       // 3. RESERVE A TABLE Button
                                       WelcomeActionButton(
                                         title: 'RESERVE A TABLE',
                                         isUppercase: true,
-                                        icon: const DiningTableIcon(
-                                          color: Color(0xFF800A12),
-                                          size: 26,
+                                        height: isCompact ? 46.0 : 54.0,
+                                        icon: DiningTableIcon(
+                                          color: const Color(0xFF800A12),
+                                          size: isCompact ? 22 : 26,
                                         ),
                                         backgroundColor: Colors.white,
                                         borderColor: const Color(0xFF800A12),

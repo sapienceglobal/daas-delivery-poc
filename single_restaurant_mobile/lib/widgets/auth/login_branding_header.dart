@@ -9,17 +9,54 @@ class LoginBrandingHeader extends StatelessWidget {
     this.isSignIn = true,
   });
 
+  Widget _buildLogo(bool isCompact) {
+    if (!isCompact) {
+      return Image.asset(
+        'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
+        height: 120,
+        fit: BoxFit.contain,
+      );
+    }
+
+    final double targetHeight = isSignIn ? 64.0 : 50.0;
+    return SizedBox(
+      height: targetHeight,
+      child: FittedBox(
+        fit: BoxFit.contain,
+        alignment: Alignment.center,
+        child: ClipRect(
+          child: SizedBox(
+            width: 4400,
+            height: 2250,
+            child: OverflowBox(
+              minWidth: 0,
+              maxWidth: 4500,
+              minHeight: 0,
+              maxHeight: 4500,
+              alignment: Alignment.center,
+              child: Image.asset(
+                'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
+                width: 4500,
+                height: 4500,
+                fit: BoxFit.fill,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isCompact = size.height < 720 || size.width < 380;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Image.asset(
-          'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-          height: 120,
-          fit: BoxFit.contain,
-        ),
+        _buildLogo(isCompact),
         const SizedBox(height: 1),
         AnimatedSize(
           duration: const Duration(milliseconds: 260),
@@ -37,11 +74,10 @@ class LoginBrandingHeader extends StatelessWidget {
                     child: Text.rich(
                       TextSpan(
                         text: isSignIn ? 'Welcome ' : 'Create ',
-                        style: const TextStyle(
-                          fontSize: 26,
+                        style: TextStyle(
+                          fontSize: isCompact ? (isSignIn ? 24 : 22) : 26,
                           fontWeight: FontWeight.bold,
-                          fontFamily: 'serif',
-                          color: Color(0xFF0F1A24),
+                          color: const Color(0xFF0F1A24),
                           letterSpacing: -0.5,
                         ),
                         children: [
@@ -56,15 +92,15 @@ class LoginBrandingHeader extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  SizedBox(height: isCompact ? 2 : 3),
                   Text(
                     isSignIn
                         ? 'Sign in to your Lassi Lounge account\nand enjoy your favorite food.'
                         : 'Join Lassi Lounge and enjoy\ndelicious food & exclusive offers.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 12.0,
+                    style: TextStyle(
+                      color: const Color(0xFF6B7280),
+                      fontSize: isCompact ? 11.0 : 12.0,
                       height: 1.25,
                     ),
                   ),

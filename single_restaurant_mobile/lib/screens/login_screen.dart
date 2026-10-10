@@ -206,9 +206,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
                     children: [
-                      const SizedBox(height: 4),
+                      SizedBox(
+                        height: (MediaQuery.of(context).size.height < 720 ||
+                                MediaQuery.of(context).size.width < 380)
+                            ? 2
+                            : 4,
+                      ),
                       LoginBrandingHeader(isSignIn: _isSignIn),
-                      const SizedBox(height: 10),
+                      SizedBox(
+                        height: (MediaQuery.of(context).size.height < 720 ||
+                                MediaQuery.of(context).size.width < 380)
+                            ? 6
+                            : 10,
+                      ),
                       LoginFormCard(
                         isSignIn: _isSignIn,
                         onTabChanged: (val) => setState(() => _isSignIn = val),

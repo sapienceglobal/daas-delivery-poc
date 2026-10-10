@@ -85,14 +85,14 @@ class AppTypography {
         color: AppColors.textLight,
       );
 
-  // Culinary / Signature serif heading style for authentic branding
+  // Unified heading style matching HomeScreen font
   static TextStyle serifHeading({
     double fontSize = 22,
     FontWeight fontWeight = FontWeight.bold,
     Color color = AppColors.secondary,
     double height = 1.2,
   }) {
-    return GoogleFonts.playfairDisplay(
+    return GoogleFonts.inter(
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,

@@ -227,8 +227,9 @@ class _BookTableScreenState extends State<BookTableScreen> {
               child: ResponsiveCenter(
                 maxWidth: 650,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const SizedBox(height: 8),
                     const BookTableHero(),
                     Padding(
                       padding: const EdgeInsets.all(20.0),

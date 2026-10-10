@@ -108,7 +108,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       color: AppColors.secondary,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      fontFamily: 'serif',
                     ),
                   ),
                   const SizedBox(height: 12),

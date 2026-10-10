@@ -157,7 +157,7 @@ class DeliveryPartnersScreen extends StatelessWidget {
                   const Text(
                     'Lassi\nLounge',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontFamily: 'Cursive', fontSize: 12, fontWeight: FontWeight.bold, color: Colors.brown),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.brown),
                   ),
                 ],
               ),

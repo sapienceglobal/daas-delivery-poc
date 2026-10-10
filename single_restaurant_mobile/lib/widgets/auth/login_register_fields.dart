@@ -53,6 +53,9 @@ class LoginRegisterFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isCompact = size.height < 720 || size.width < 380;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -204,39 +207,43 @@ class LoginRegisterFields extends StatelessWidget {
             return null;
           },
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Confirm Password',
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF111827),
-          ),
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          controller: confirmPasswordController,
-          obscureText: !isConfirmPasswordVisible,
-          style: const TextStyle(fontSize: 13.5, color: Color(0xFF1F2937)),
-          decoration: AuthInputHelper.inputDecoration(
-            hint: 'Confirm your password',
-            icon: Icons.lock_outline,
-            suffix: IconButton(
-              icon: Icon(
-                isConfirmPasswordVisible
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                color: const Color(0xFF6B7280),
-                size: 19,
-              ),
-              onPressed: onToggleConfirmPasswordVisibility,
+        if (!isCompact) ...[
+          const SizedBox(height: 8),
+          const Text(
+            'Confirm Password',
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF111827),
             ),
           ),
-          validator: (val) {
-            if (val != passwordController.text) return 'Passwords do not match';
-            return null;
-          },
-        ),
+          const SizedBox(height: 4),
+          TextFormField(
+            controller: confirmPasswordController,
+            obscureText: !isConfirmPasswordVisible,
+            style: const TextStyle(fontSize: 13.5, color: Color(0xFF1F2937)),
+            decoration: AuthInputHelper.inputDecoration(
+              hint: 'Confirm your password',
+              icon: Icons.lock_outline,
+              suffix: IconButton(
+                icon: Icon(
+                  isConfirmPasswordVisible
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  color: const Color(0xFF6B7280),
+                  size: 19,
+                ),
+                onPressed: onToggleConfirmPasswordVisibility,
+              ),
+            ),
+            validator: (val) {
+              if (val != passwordController.text) {
+                return 'Passwords do not match';
+              }
+              return null;
+            },
+          ),
+        ],
         const SizedBox(height: 12),
         AuthTermsCheckbox(
           agreedToTerms: agreedToTerms,

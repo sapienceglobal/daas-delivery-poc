@@ -58,7 +58,7 @@ class WelcomeFoodHeader extends StatelessWidget {
             ),
           ),
 
-          // Standalone Crisp Lassi Lounge Logo & Authentic Subtitle
+          // Standalone Crisp Lassi Lounge Logo
           Positioned(
             top: 0,
             left: 0,
@@ -66,78 +66,13 @@ class WelcomeFoodHeader extends StatelessWidget {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
-                      height: height < 260 ? 112.0 : 145.0,
-                      fit: BoxFit.contain,
-                    ),
-                    Transform.translate(
-                      offset: const Offset(0, -24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'AUTHENTIC INDIAN CUISINE',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Color(0xFFF7EFE4),
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2.2,
-                              shadows: [
-                                Shadow(
-                                  offset: Offset(0, 1),
-                                  blurRadius: 4,
-                                  color: Colors.black54,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 22,
-                                height: 1,
-                                color: const Color(0xFFFAB82C).withValues(alpha: 0.85),
-                              ),
-                              const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 7.0),
-                                child: Text(
-                                  'NEW YORK',
-                                  style: TextStyle(
-                                    color: Color(0xFFFAB82C),
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 2.8,
-                                    shadows: [
-                                      Shadow(
-                                        offset: Offset(0, 1),
-                                        blurRadius: 4,
-                                        color: Colors.black54,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                width: 22,
-                                height: 1,
-                                color: const Color(0xFFFAB82C).withValues(alpha: 0.85),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                padding: const EdgeInsets.only(top: 10.0),
+                child: Center(
+                  child: Image.asset(
+                    'assets/images/branded/lassi-lounge/Lassi-Lounge-logo.png',
+                    height: height < 260 ? 110.0 : 142.0,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
             ),
