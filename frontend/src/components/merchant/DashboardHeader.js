@@ -6,7 +6,7 @@ import {
   Search, Menu, ShoppingBag, Bell, HelpCircle, Settings, LogOut,
   ClipboardList, Utensils, CalendarCheck, Users, Ticket, BarChart3,
   ChefHat, Store, X, ArrowRight, Loader2, UserCircle, MessageSquare,
-  Layout, Send, Activity, Trash2, AlertCircle
+  Layout, Send, Activity, Trash2, AlertCircle, Gift
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useMerchantContext } from '@/context/MerchantContext';
@@ -27,6 +27,7 @@ const NAV_ACTIONS = [
   { id: 'crm', label: 'Customers & CRM', hint: 'Customer profiles', href: '/merchant/crm', icon: Users, keywords: 'customer phone email loyalty' },
   { id: 'messages', label: 'Support Messages', hint: 'Customer inquiries and support tickets', href: '/merchant/messages', icon: MessageSquare, keywords: 'message support contact inbox ticket' },
   { id: 'promotions', label: 'Promotions & Coupons', hint: 'Discount campaigns', href: '/merchant/promotions', icon: Ticket, keywords: 'coupon discount promo offer' },
+  { id: 'referrals', label: 'Referral Program', hint: 'Referral program & invite stats', href: '/merchant/referrals', icon: Gift, keywords: 'referral invite friend reward program' },
   { id: 'analytics', label: 'Reports & Analytics', hint: 'Finance and performance', href: '/merchant/analytics', icon: BarChart3, keywords: 'reports revenue sales finance' },
   { id: 'settings', label: 'Restaurant Settings', hint: 'Business settings', href: '/merchant/settings', icon: Settings, keywords: 'profile hours tax payment setup' },
   { id: 'cms', label: 'CMS Website Pages', hint: 'Manage website content', href: '/merchant/cms', icon: Layout, keywords: 'cms website pages content' },

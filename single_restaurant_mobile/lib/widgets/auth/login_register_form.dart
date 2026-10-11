@@ -27,16 +27,14 @@ class _LoginRegisterFormState extends State<LoginRegisterForm> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
 
   bool _isPasswordVisible = false;
-  bool _isConfirmPasswordVisible = false;
   bool _agreedToTerms = false;
   bool _termsError = false;
   bool _isLoading = false;
 
-  String _selectedCountryCode = '+91';
-  String _selectedCountryFlag = '🇮🇳';
+  String _selectedCountryCode = '+1';
+  String _selectedCountryFlag = '🇺🇸';
   int _phoneMaxLength = 10;
   String? _errorMessage;
 
@@ -58,7 +56,6 @@ class _LoginRegisterFormState extends State<LoginRegisterForm> {
     _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -151,13 +148,9 @@ class _LoginRegisterFormState extends State<LoginRegisterForm> {
             phoneController: _phoneController,
             emailController: _emailController,
             passwordController: _passwordController,
-            confirmPasswordController: _confirmPasswordController,
             isPasswordVisible: _isPasswordVisible,
-            isConfirmPasswordVisible: _isConfirmPasswordVisible,
             onTogglePasswordVisibility: () =>
                 setState(() => _isPasswordVisible = !_isPasswordVisible),
-            onToggleConfirmPasswordVisibility: () => setState(() =>
-                _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
             selectedCountryCode: _selectedCountryCode,
             selectedCountryFlag: _selectedCountryFlag,
             phoneMaxLength: _phoneMaxLength,

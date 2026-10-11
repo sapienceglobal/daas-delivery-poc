@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../providers/reservation_provider.dart';
 import '../models/reservation_model.dart';
 import 'add_edit_reservation_screen.dart';
-import '../widgets/reservation_bottom_sheet.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/shared_app_bar.dart';
 import '../widgets/shared_bottom_nav.dart';
@@ -83,7 +82,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
           );
         },
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('New Reservation', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text('Book A Table', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
       bottomNavigationBar: _buildBottomNav(context),
     );

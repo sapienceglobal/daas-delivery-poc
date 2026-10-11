@@ -223,6 +223,14 @@ const UserSchema = new mongoose.Schema({
     ref: 'User',
     default: null
   },
+  // 'none' = existing/legacy user, 'pending' = new sign-up that should see the
+  // "Have a referral code?" screen, 'applied' = code redeemed, 'skipped' = dismissed.
+  referralOnboarding: {
+    type: String,
+    enum: ['none', 'pending', 'applied', 'skipped'],
+    default: 'none'
+  },
+  signupIp: { type: String, default: null, select: false },
 
   // ── Password Reset ───────────────────────────────────────────────────────
   resetPasswordToken: {
@@ -284,6 +292,7 @@ UserSchema.methods.toSafeJSON = function () {
   delete obj.failedLoginAttempts;
   delete obj.loginLockedUntil;
   delete obj.emailOtp;
+  delete obj.signupIp;
   delete obj.emailOtpExpiry;
   delete obj.__v;
   return obj;

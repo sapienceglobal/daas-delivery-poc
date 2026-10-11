@@ -23,7 +23,7 @@ class AddToCartHelper {
       final newItem = Map<String, dynamic>.from(item);
       newItem['quantity'] = quantity;
       cartProvider.addItem(newItem, restaurantData: restaurantProvider.restaurant);
-      ToastUtils.showSuccess(context, 'Item added to cart!');
+      ToastUtils.showCartSuccess(context);
       return;
     }
 
@@ -57,7 +57,7 @@ class AddToCartHelper {
             final repeatItem = Map<String, dynamic>.from(lastItem);
             repeatItem['quantity'] = 1;
             cartProvider.addItem(repeatItem, restaurantData: restaurantProvider.restaurant);
-            ToastUtils.showSuccess(context, 'Item added to cart!');
+            ToastUtils.showCartSuccess(context);
           },
         ),
       );

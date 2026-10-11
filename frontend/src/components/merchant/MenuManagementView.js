@@ -129,6 +129,13 @@ export default function MenuManagementView({
 
   const isAllSelected = filteredItems.length > 0 && selectedItems.size === filteredItems.length;
 
+  const selectedItemsList = useMemo(() => {
+    return allItems.filter(item => selectedItems.has(item._id));
+  }, [allItems, selectedItems]);
+
+  const allSelectedActive = selectedItemsList.length > 0 && selectedItemsList.every(it => it.isAvailable !== false);
+  const allSelectedInactive = selectedItemsList.length > 0 && selectedItemsList.every(it => it.isAvailable === false);
+
   if (!mounted) return null;
 
   return (
@@ -437,24 +444,38 @@ export default function MenuManagementView({
           
           <div className="flex items-center gap-3">
             <button 
-              disabled={isProcessingBulk}
+              disabled={isProcessingBulk || allSelectedActive}
               onClick={async () => {
+                if (allSelectedActive) return;
                 setIsProcessingBulk(true);
                 if (onBulkUpdate) await onBulkUpdate(Array.from(selectedItems), { isAvailable: true });
+                setSelectedItems(new Set());
                 setIsProcessingBulk(false);
               }}
-              className={`flex items-center gap-2 text-sm font-bold text-[#d1fae5] px-3 py-1.5 rounded-lg transition-colors ${isProcessingBulk ? 'opacity-50 cursor-not-allowed' : 'hover:text-[#ecfdf5] hover:bg-[#065f46]'}`}
+              title={allSelectedActive ? 'Selected item(s) are already active' : 'Mark Active'}
+              className={`flex items-center gap-2 text-sm font-bold text-[#d1fae5] px-3 py-1.5 rounded-lg transition-all ${
+                isProcessingBulk || allSelectedActive
+                  ? 'opacity-30 cursor-not-allowed'
+                  : 'hover:text-[#ecfdf5] hover:bg-[#065f46]'
+              }`}
             >
               {isProcessingBulk ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Mark Active
             </button>
             <button 
-              disabled={isProcessingBulk}
+              disabled={isProcessingBulk || allSelectedInactive}
               onClick={async () => {
+                if (allSelectedInactive) return;
                 setIsProcessingBulk(true);
                 if (onBulkUpdate) await onBulkUpdate(Array.from(selectedItems), { isAvailable: false });
+                setSelectedItems(new Set());
                 setIsProcessingBulk(false);
               }}
-              className={`flex items-center gap-2 text-sm font-bold text-[#fef3c7] px-3 py-1.5 rounded-lg transition-colors ${isProcessingBulk ? 'opacity-50 cursor-not-allowed' : 'hover:text-[#fffbeb] hover:bg-[#92400e]'}`}
+              title={allSelectedInactive ? 'Selected item(s) are already inactive' : 'Mark Inactive'}
+              className={`flex items-center gap-2 text-sm font-bold text-[#fef3c7] px-3 py-1.5 rounded-lg transition-all ${
+                isProcessingBulk || allSelectedInactive
+                  ? 'opacity-30 cursor-not-allowed'
+                  : 'hover:text-[#fffbeb] hover:bg-[#92400e]'
+              }`}
             >
               {isProcessingBulk ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />} Mark Inactive
             </button>

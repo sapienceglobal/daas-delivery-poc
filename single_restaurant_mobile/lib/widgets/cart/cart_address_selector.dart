@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
+import 'package:single_restaurant_mobile/utils/formatters.dart';
 
 class CartAddressSelector extends StatelessWidget {
   final CartProvider cart;
@@ -16,35 +17,58 @@ class CartAddressSelector extends StatelessWidget {
     required this.onChangeAddress,
   });
 
-  bool _isRestaurantClosed(Map<String, dynamic>? res) {
-    if (res == null) return false;
-    if (res['isClosed'] == true || res['isOpen'] == false) return true;
-    final openStr = res['openTime']?.toString();
-    final closeStr = res['closeTime']?.toString();
-    if (openStr != null && closeStr != null) {
-      try {
-        final now = DateTime.now();
-        final openParts = openStr.split(':');
-        final closeParts = closeStr.split(':');
-        final openMinutes = int.parse(openParts[0]) * 60 + int.parse(openParts[1]);
-        final closeMinutes = int.parse(closeParts[0]) * 60 + int.parse(closeParts[1]);
-        final currentMinutes = now.hour * 60 + now.minute;
-        if (currentMinutes < openMinutes || currentMinutes >= closeMinutes) {
-          return true;
+  String _getTodayHoursText(Map<String, dynamic>? res) {
+    if (res == null) return '';
+    final opHours = res['operatingHours'];
+    if (opHours is Map) {
+      const days = [
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+        'sunday',
+      ];
+      final now = DateTime.now();
+      final todayKey = days[(now.weekday - 1).clamp(0, 6)];
+      final todayData = opHours[todayKey];
+      if (todayData is Map) {
+        if (todayData['isClosed'] == true) {
+          return 'Operating hours today: Closed';
         }
-      } catch (_) {}
+        final open = todayData['open']?.toString();
+        final close = todayData['close']?.toString();
+        if (open != null && close != null && open.isNotEmpty && close.isNotEmpty) {
+          return 'Operating hours today: ${_formatTimeStr(open, res['timeFormat']?.toString())} - ${_formatTimeStr(close, res['timeFormat']?.toString())}';
+        }
+      }
     }
-    return false;
+    final openTime = res['openTime']?.toString();
+    final closeTime = res['closeTime']?.toString();
+    if (openTime != null && closeTime != null && openTime.isNotEmpty && closeTime.isNotEmpty) {
+      return 'Operating hours today: ${_formatTimeStr(openTime, res['timeFormat']?.toString())} - ${_formatTimeStr(closeTime, res['timeFormat']?.toString())}';
+    }
+    return '';
+  }
+
+  static String _formatTimeStr(String timeStr, String? timeFormat) {
+    final parts = timeStr.split(':');
+    if (parts.isEmpty) return timeStr;
+    final hour = int.tryParse(parts[0]) ?? 0;
+    final minute = parts.length > 1 ? parts[1] : '00';
+    if (timeFormat == '24 Hour') {
+      return '${hour.toString().padLeft(2, '0')}:$minute';
+    }
+    final ampm = hour >= 12 ? 'PM' : 'AM';
+    final h12 = hour % 12 == 0 ? 12 : hour % 12;
+    return '$h12:$minute $ampm';
   }
 
   @override
   Widget build(BuildContext context) {
     final activeRestaurant = restaurant ?? cart.restaurant;
-    final isClosed = _isRestaurantClosed(activeRestaurant);
-
-    final openTime = activeRestaurant?['openTime']?.toString() ?? '10:00';
-    final closeTime = activeRestaurant?['closeTime']?.toString() ?? '22:00';
-    final hoursText = 'Operating hours today: $openTime - $closeTime';
+    final hoursText = _getTodayHoursText(activeRestaurant);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -102,19 +126,24 @@ class CartAddressSelector extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 3),
-                if (isClosed)
-                  const Text(
-                    'Restaurant is closed',
-                    style: TextStyle(
-                      color: Color(0xFFB91C1C),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  )
-                else if (checkout.quoteLoading)
-                  const Text(
-                    'Calculating delivery fee...',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                if (checkout.quoteLoading)
+                  const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF6B111C),
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Calculating delivery fee...',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ],
                   )
                 else if (checkout.quoteError != null)
                   Text(
@@ -124,8 +153,19 @@ class CartAddressSelector extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   )
-                else
+                else if (checkout.deliveryQuote != null && checkout.addressVerified)
+                  Text(
+                    'Delivery Available (${Formatters.formatCurrency(checkout.getDeliveryFee(cart, activeRestaurant), activeRestaurant?['currency'])})',
+                    style: const TextStyle(
+                      color: Color(0xFF15803D),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  )
+                else if (checkout.addressVerified)
                   const Text(
                     'Delivery Available',
                     style: TextStyle(
@@ -133,17 +173,24 @@ class CartAddressSelector extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
+                  )
+                else
+                  const Text(
+                    'Select address to calculate delivery fee',
+                    style: TextStyle(color: Color(0xFF8A807E), fontSize: 11),
                   ),
-                const SizedBox(height: 3),
-                Text(
-                  hoursText,
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 11,
+                if (hoursText.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    hoursText,
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                ],
               ],
             ),
           ),

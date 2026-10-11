@@ -86,7 +86,7 @@ export default function MerchantMenuPage() {
         }}
         onBulkUpdate={async (ids, updates) => {
           try {
-            await menuAPI.bulkUpdate({ itemIds: ids, updates });
+            await menuAPI.bulkUpdate({ itemIds: ids, updateData: updates, updates });
             showToast(`${ids.length} items updated`, 'success');
             loadData();
           } catch (err) {

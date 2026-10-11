@@ -8,26 +8,20 @@ class BookTableForm extends StatelessWidget {
   final DateTime? selectedDate;
   final TimeOfDay? selectedTime;
   final int guests;
-  final String selectedArea;
-  final List<String> areas;
   final TextEditingController specialRequestController;
   final VoidCallback onSelectDate;
   final VoidCallback onSelectTime;
   final ValueChanged<int> onGuestsChanged;
-  final ValueChanged<String> onAreaChanged;
 
   const BookTableForm({
     super.key,
     required this.selectedDate,
     required this.selectedTime,
     required this.guests,
-    required this.selectedArea,
-    required this.areas,
     required this.specialRequestController,
     required this.onSelectDate,
     required this.onSelectTime,
     required this.onGuestsChanged,
-    required this.onAreaChanged,
   });
 
   @override
@@ -58,102 +52,49 @@ class BookTableForm extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildDropdownField(
-                'Number of Guests',
-                '$guests Guests',
-                Icons.person_outline,
-                () {
-                  AppBottomSheet.show(
-                    context: context,
-                    builder: (sheetCtx) => AppBottomSheet(
-                      title: 'Number of Guests',
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: 20,
-                        separatorBuilder: (_, index) => const Divider(height: 1),
-                        itemBuilder: (c, i) {
-                          final guestCount = i + 1;
-                          final isSelected = guests == guestCount;
-                          return ListTile(
-                            title: Text(
-                              '$guestCount Guests',
-                              style: TextStyle(
-                                fontWeight:
-                                    isSelected ? FontWeight.bold : FontWeight.normal,
-                                color: isSelected
-                                    ? AppColors.secondary
-                                    : AppColors.textDark,
-                              ),
-                            ),
-                            trailing: isSelected
-                                ? const Icon(Icons.check_circle_rounded,
-                                    color: AppColors.secondary)
-                                : null,
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                            onTap: () {
-                              onGuestsChanged(guestCount);
-                              Navigator.pop(sheetCtx);
-                            },
-                          );
-                        },
+        _buildDropdownField(
+          'Number of Guests',
+          '$guests Guests',
+          Icons.people_alt_outlined,
+          () {
+            AppBottomSheet.show(
+              context: context,
+              builder: (sheetCtx) => AppBottomSheet(
+                title: 'Number of Guests',
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: 20,
+                  separatorBuilder: (_, index) => const Divider(height: 1),
+                  itemBuilder: (c, i) {
+                    final guestCount = i + 1;
+                    final isSelected = guests == guestCount;
+                    return ListTile(
+                      title: Text(
+                        '$guestCount Guests',
+                        style: TextStyle(
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected
+                              ? AppColors.secondary
+                              : AppColors.textDark,
+                        ),
                       ),
-                    ),
-                  );
-                },
+                      trailing: isSelected
+                          ? const Icon(Icons.check_circle_rounded,
+                              color: AppColors.secondary)
+                          : null,
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                      onTap: () {
+                        onGuestsChanged(guestCount);
+                        Navigator.pop(sheetCtx);
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildDropdownField(
-                'Preferred Area (Optional)',
-                selectedArea,
-                Icons.table_restaurant_outlined,
-                () {
-                  AppBottomSheet.show(
-                    context: context,
-                    builder: (sheetCtx) => AppBottomSheet(
-                      title: 'Preferred Area',
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: areas.length,
-                        separatorBuilder: (_, index) => const Divider(height: 1),
-                        itemBuilder: (c, i) {
-                          final area = areas[i];
-                          final isSelected = selectedArea == area;
-                          return ListTile(
-                            title: Text(
-                              area,
-                              style: TextStyle(
-                                fontWeight:
-                                    isSelected ? FontWeight.bold : FontWeight.normal,
-                                color: isSelected
-                                    ? AppColors.secondary
-                                    : AppColors.textDark,
-                              ),
-                            ),
-                            trailing: isSelected
-                                ? const Icon(Icons.check_circle_rounded,
-                                    color: AppColors.secondary)
-                                : null,
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                            onTap: () {
-                              onAreaChanged(area);
-                              Navigator.pop(sheetCtx);
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+            );
+          },
         ),
         const SizedBox(height: 12),
         Container(
@@ -170,7 +111,7 @@ class BookTableForm extends StatelessWidget {
             decoration: const InputDecoration(
               border: InputBorder.none,
               hintText:
-                  'Special Request (Optional)\nE.g. Birthday celebration, window seat, etc.',
+                  'Special Request (Optional)\nE.g. Birthday celebration, high chair, etc.',
               hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
               counterText: '',
             ),
@@ -200,7 +141,7 @@ class BookTableForm extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey.shade200),
           borderRadius: BorderRadius.circular(12),

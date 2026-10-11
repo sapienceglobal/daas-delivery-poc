@@ -11,14 +11,18 @@ import { reservationAPI, restaurantAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 
 export default function BookTablePage({ restaurantId, initialUser }) {
+  const [restaurant, setRestaurant] = useState(null);
   const [realRestaurantId, setRealRestaurantId] = useState(null);
 
   useEffect(() => {
     async function fetchRestaurant() {
       try {
         const res = await restaurantAPI.getById(restaurantId);
-        if (res.data?._id) {
-          setRealRestaurantId(res.data._id);
+        if (res.data) {
+          setRestaurant(res.data);
+          if (res.data._id) {
+            setRealRestaurantId(res.data._id);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch restaurant', err);
@@ -64,7 +68,7 @@ export default function BookTablePage({ restaurantId, initialUser }) {
 
           {/* Right Column: Why Dine With Us & Promo */}
           <div className="w-full space-y-6 lg:sticky lg:top-24">
-            <WhyDineWithUs />
+            <WhyDineWithUs restaurant={restaurant} />
             <MakeItSpecialPromo />
           </div>
           

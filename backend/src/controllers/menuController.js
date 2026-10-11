@@ -327,7 +327,8 @@ export const bulkDeleteItems = asyncHandler(async (req, response) => {
 
 export const bulkUpdateItems = asyncHandler(async (req, response) => {
   const { MenuItem, Restaurant } = getModels(req);
-  const { itemIds, updateData } = req.body;
+  const { itemIds } = req.body || {};
+  const updateData = (req.body && (req.body.updateData || req.body.updates)) || {};
   if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
     throw new AppError('Please provide an array of item IDs to update', 400);
   }

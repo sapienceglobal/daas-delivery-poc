@@ -8,7 +8,6 @@ import 'package:single_restaurant_mobile/screens/track_order_screen.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
 import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
-import 'package:single_restaurant_mobile/widgets/notifications/notification_bottom_banner.dart';
 import 'package:single_restaurant_mobile/widgets/notifications/notification_filter_bar.dart';
 import 'package:single_restaurant_mobile/widgets/notifications/notification_item_card.dart';
 
@@ -99,47 +98,82 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       );
     }
 
+    const creamBg = Color(0xFFFAF7F2);
+    const maroonColor = Color(0xFF6B111C);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: creamBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: creamBg,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
+          icon: const Icon(Icons.arrow_back, color: maroonColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Notifications',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: Color(0xFF1A1A1A),
+            fontWeight: FontWeight.w900,
+            fontSize: 21,
+            letterSpacing: -0.3,
+          ),
         ),
-        centerTitle: true,
+        centerTitle: false,
         actions: [
-          Consumer<NotificationProvider>(
-            builder: (context, notificationProvider, _) {
-              if (notificationProvider.hasUnread) {
-                return TextButton(
-                  onPressed: () => notificationProvider.markAsRead('all'),
-                  child: const Text('Mark all read', style: TextStyle(color: AppColors.secondary, fontSize: 12)),
-                );
-              }
-              return const SizedBox.shrink();
-            },
+          Padding(
+            padding: const EdgeInsets.only(right: 14),
+            child: InkWell(
+              onTap: () {
+                Provider.of<NotificationProvider>(context, listen: false).fetchNotifications();
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.refresh,
+                      size: 19,
+                      color: maroonColor,
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'Refresh',
+                      style: TextStyle(
+                        color: maroonColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
       body: Consumer<NotificationProvider>(
         builder: (context, notificationProvider, _) {
           if (notificationProvider.isLoading && notificationProvider.notifications.isEmpty) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.secondary));
+            return const Center(child: CircularProgressIndicator(color: maroonColor));
           }
 
           var filteredList = notificationProvider.notifications;
-          if (_selectedFilter != 'All') {
+          if (_selectedFilter == 'Unread') {
+            filteredList = filteredList.where((n) => !n.isRead).toList();
+          } else if (_selectedFilter == 'Orders') {
             filteredList = filteredList.where((n) {
-              if (_selectedFilter == 'Orders' && (n.type == 'order_update' || n.type == 'delivery_update')) return true;
-              if (_selectedFilter == 'Offers' && n.type == 'promotion') return true;
-              if (_selectedFilter == 'System' && n.type == 'system') return true;
-              return false;
+              final t = n.type.toLowerCase();
+              final b = n.body.toLowerCase();
+              final title = n.title.toLowerCase();
+              return t.contains('order') ||
+                  b.contains('order') ||
+                  title.contains('order') ||
+                  b.contains('delivery') ||
+                  b.contains('pickup');
             }).toList();
           }
 
@@ -150,6 +184,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 NotificationFilterBar(
                   selectedFilter: _selectedFilter,
                   onFilterSelected: (val) => setState(() => _selectedFilter = val),
+                  allCount: notificationProvider.notifications.length,
+                  unreadCount: notificationProvider.unreadCount,
                 ),
                 Expanded(
                   child: filteredList.isEmpty
@@ -157,43 +193,77 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey.shade300),
-                              const SizedBox(height: 16),
-                              Text('No notifications found', style: TextStyle(color: Colors.grey.shade600)),
+                              Container(
+                                padding: const EdgeInsets.all(22),
+                                decoration: BoxDecoration(
+                                  color: maroonColor.withValues(alpha: 0.06),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.notifications_off_outlined,
+                                  size: 56,
+                                  color: maroonColor,
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              const Text(
+                                'No notifications yet',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1A1A1A),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'When new orders or updates arrive,\nthey will show up here.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF7A726B),
+                                  height: 1.4,
+                                ),
+                              ),
                             ],
                           ),
                         )
-                      : ListView.builder(
-                          padding: const EdgeInsets.only(top: 8, bottom: 16),
-                          itemCount: filteredList.length,
-                          itemBuilder: (context, index) {
-                            final notification = filteredList[index];
-                            return Dismissible(
-                              key: Key(notification.id),
-                              direction: DismissDirection.endToStart,
-                              onDismissed: (_) {
-                                notificationProvider.deleteNotification(notification.id);
-                                ToastUtils.showSuccess(context, 'Notification deleted');
-                              },
-                              background: Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                alignment: Alignment.centerRight,
-                                padding: const EdgeInsets.only(right: 20),
-                                child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
-                              ),
-                              child: NotificationItemCard(
-                                notification: notification,
-                                onTap: () => _handleNotificationTap(notification, notificationProvider),
-                              ),
-                            );
+                      : RefreshIndicator(
+                          onRefresh: () async {
+                            await Provider.of<NotificationProvider>(context, listen: false).fetchNotifications();
                           },
+                          color: maroonColor,
+                          child: ListView.separated(
+                            padding: const EdgeInsets.only(top: 4, bottom: 24),
+                            itemCount: filteredList.length,
+                            separatorBuilder: (context, index) => const SizedBox(height: 6),
+                            itemBuilder: (context, index) {
+                              final notification = filteredList[index];
+                              return Dismissible(
+                                key: Key(notification.id),
+                                direction: DismissDirection.endToStart,
+                                onDismissed: (_) {
+                                  notificationProvider.deleteNotification(notification.id);
+                                  ToastUtils.showSuccess(context, 'Notification deleted');
+                                },
+                                background: Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 20),
+                                  child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
+                                ),
+                                child: NotificationItemCard(
+                                  notification: notification,
+                                  onTap: () => _handleNotificationTap(notification, notificationProvider),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                 ),
-                const NotificationBottomBanner(),
               ],
             ),
           );

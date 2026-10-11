@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 class BookTableBottomBar extends StatelessWidget {
   final bool isSubmitting;
   final VoidCallback onSubmit;
+  final String? phoneNumber;
+  final VoidCallback? onCall;
 
   const BookTableBottomBar({
     super.key,
     required this.isSubmitting,
     required this.onSubmit,
+    this.phoneNumber,
+    this.onCall,
   });
 
   @override
@@ -15,6 +19,10 @@ class BookTableBottomBar extends StatelessWidget {
     // When keyboard is open, hide footer to avoid compressing screen
     final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
     if (isKeyboardOpen) return const SizedBox.shrink();
+
+    final displayPhone = (phoneNumber != null && phoneNumber!.trim().isNotEmpty)
+        ? phoneNumber!.trim()
+        : '+1 (347) 233-3733';
 
     return SafeArea(
       child: Container(
@@ -88,33 +96,37 @@ class BookTableBottomBar extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.support_agent_outlined, color: Colors.red.shade900, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Need help? Call us at ',
-                      style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-                    ),
-                    Text(
-                      '+1 (929) 123-4567',
-                      style: TextStyle(
-                        color: Colors.red.shade900,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
+            InkWell(
+              onTap: onCall,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.support_agent_outlined, color: Colors.red.shade900, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Need help? Call us at ',
+                        style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
                       ),
-                    ),
-                  ],
+                      Text(
+                        displayPhone,
+                        style: TextStyle(
+                          color: Colors.red.shade900,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

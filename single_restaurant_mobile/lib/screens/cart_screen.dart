@@ -11,6 +11,7 @@ import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/screens/checkout_screen.dart';
 import 'package:single_restaurant_mobile/screens/loyalty_rewards_screen.dart';
 import 'package:single_restaurant_mobile/screens/saved_addresses_screen.dart';
+import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:single_restaurant_mobile/widgets/cart/cart_address_selector.dart';
@@ -77,14 +78,18 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isCartEmpty = context.select<CartProvider, bool>((cart) => cart.items.isEmpty);
+    final bgColor = isCartEmpty ? const Color(0xFFFEFAF0) : Colors.white;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: bgColor,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: Navigator.canPop(context)
             ? IconButton(
-                icon: const Icon(Icons.arrow_back, color: Color(0xFF7A0B10)),
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF6B111C)),
                 onPressed: () => Navigator.pop(context),
               )
             : null,
@@ -102,7 +107,7 @@ class _CartScreenState extends State<CartScreen> {
                   const Text(
                     'Your Cart',
                     style: TextStyle(
-                      color: Colors.black,
+                      color: Color(0xFF1E1E1E),
                       fontWeight: FontWeight.w900,
                       fontSize: 22,
                     ),
@@ -111,9 +116,9 @@ class _CartScreenState extends State<CartScreen> {
                   Text(
                     '($itemLabel)',
                     style: const TextStyle(
-                      color: Colors.grey,
-                      fontSize: 15,
-                      fontWeight: FontWeight.normal,
+                      color: Color(0xFF777777),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -146,7 +151,17 @@ class _CartScreenState extends State<CartScreen> {
             return const Center(child: CircularProgressIndicator(color: AppColors.secondary));
           }
           if (cartProvider.items.isEmpty) {
-            return CartEmptyView(onBrowseMenu: () => Navigator.pop(context));
+            return CartEmptyView(
+              onBrowseMenu: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MainScreen(initialIndex: 1),
+                  ),
+                  (route) => false,
+                );
+              },
+            );
           }
           if (cartProvider.restaurant != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) => _onCartSubtotalChanged(cartProvider, checkoutProvider));

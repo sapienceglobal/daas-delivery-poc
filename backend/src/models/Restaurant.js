@@ -210,7 +210,31 @@ const RestaurantSchema = new mongoose.Schema({
       default: 'Earn 1 point for every $1 spent. 100 points = $1 off your next order.' 
     }
   },
-  
+
+  // ── Referral Program Settings (admin-managed, nothing hardcoded) ────────
+  referralSettings: {
+    enabled: { type: Boolean, default: true },
+    refereeDiscountValue: { type: Number, default: 25, min: 0, max: 1000 },   // $ off for the invited friend
+    refereeMinOrder: { type: Number, default: 30, min: 0, max: 10000 },       // min cart for the friend's coupon
+    referrerRewardValue: { type: Number, default: 25, min: 0, max: 1000 },    // $ value paid to referrer as loyalty points
+    couponValidityDays: { type: Number, default: 30, min: 1, max: 365 },      // life of the friend's coupon
+    applyWindowDays: { type: Number, default: 7, min: 1, max: 90 },           // days after sign-up a code can be applied
+    maxRewardsPerReferrer: { type: Number, default: 20, min: 0, max: 1000 },  // 0 = unlimited
+    maxAppliesPerIpPerDay: { type: Number, default: 3, min: 1, max: 100 },    // anti-farming
+    requireReferrerOrder: { type: Boolean, default: false },                  // referrer must have a delivered order
+    title: { type: String, default: 'Refer a friend', maxlength: 80 },
+    description: {
+      type: String,
+      maxlength: 300,
+      default: 'Invite your friends to {restaurant}. They get ${refereeDiscount} off their first order, and you get ${referrerReward} in loyalty points once they order!'
+    },
+    termsAndConditions: {
+      type: String,
+      maxlength: 2000,
+      default: 'Your friend must be a new customer and enter your code within {applyWindowDays} days of signing up. The ${refereeDiscount} coupon applies to a first order of ${refereeMinOrder} or more and is valid for {couponValidityDays} days. You receive ${referrerReward} in loyalty points after your friend\'s order is delivered. Orders that are cancelled or refunded do not qualify. Self-referrals and duplicate accounts are not eligible. The restaurant may modify or end this offer at any time.'
+    }
+  },
+
 
   // ── Stripe ────────────────────────────────────────────────────────────
   stripeAccountId: { type: String, default: null }

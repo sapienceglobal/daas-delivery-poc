@@ -347,6 +347,20 @@ export const loyaltyAPI = {
   redeem: (points, expectedDiscount) => api.post('/api/loyalty/redeem', { points, expectedDiscount }),
 };
 
+// ── Referral API ─────────────────────────────────────────────────────────────
+
+export const referralAPI = {
+  getProgram: () => api.get('/api/referrals/program'),
+  getMyReferral: () => api.get('/api/referrals/me'),
+  applyCode: (code) => api.post('/api/referrals/apply', { code }),
+  skipOnboarding: () => api.post('/api/referrals/skip', {}),
+  getAdminSettings: () => api.get('/api/referrals/admin/settings'),
+  updateAdminSettings: (data) => api.put('/api/referrals/admin/settings', data),
+  getAdminStats: () => api.get('/api/referrals/admin/stats'),
+  listReferrals: (params = '') => api.get(`/api/referrals/admin/list${params ? '?' + params : ''}`),
+  cancelReferral: (id) => api.patch(`/api/referrals/admin/${id}/cancel`),
+};
+
 // ── Employee API ────────────────────────────────────────────────────────────
 
 export const employeeAPI = {

@@ -286,7 +286,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 }
                 cartProvider.addItem(newItem,
                     restaurantData: restaurantProvider.restaurant);
-                ToastUtils.showSuccess(context, 'Item added to cart!');
+                ToastUtils.showCartSuccess(context);
               },
             ),
           ),

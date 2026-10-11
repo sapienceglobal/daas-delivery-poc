@@ -33,7 +33,7 @@ class _AddEditReservationScreenState extends State<AddEditReservationScreen> {
 
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = const TimeOfDay(hour: 19, minute: 0);
-  String _selectedLocation = 'Indoor';
+  String _selectedLocation = 'Any';
   String _selectedOccasion = 'Dinner';
   String _selectedStatus = 'confirmed';
 
@@ -200,7 +200,7 @@ class _AddEditReservationScreenState extends State<AddEditReservationScreen> {
     }
     if (partySize < 1) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Party size must be at least 1')),
+        const SnackBar(content: Text('Guest size must be at least 1')),
       );
       return;
     }
@@ -324,7 +324,7 @@ class _AddEditReservationScreenState extends State<AddEditReservationScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              isEditing ? 'Edit Reservation' : 'New Reservation',
+              isEditing ? 'Edit Reservation' : 'Book A Table',
               style: GoogleFonts.poppins(
                 color: const Color(0xFF0F172A),
                 fontWeight: FontWeight.bold,
@@ -416,7 +416,7 @@ class _AddEditReservationScreenState extends State<AddEditReservationScreen> {
                       // Section 2: Booking Info (Reservation Details)
                       _buildSectionCard(
                         title: 'Reservation Details',
-                        subtitle: 'Schedule date, time, party size, and seating area',
+                        subtitle: 'Schedule date, time, and guest size',
                         icon: Icons.calendar_today_rounded,
                         children: [
                           Row(
@@ -496,8 +496,8 @@ class _AddEditReservationScreenState extends State<AddEditReservationScreen> {
                           ),
                           const SizedBox(height: 16),
 
-                          // Party Size Stepper & Input
-                          _buildLabel('Party Size (Guests)', required: true),
+                          // Guest Size Stepper & Input
+                          _buildLabel('Guest Size', required: true),
                           Row(
                             children: [
                               Container(
@@ -593,32 +593,7 @@ class _AddEditReservationScreenState extends State<AddEditReservationScreen> {
                           ),
                           const SizedBox(height: 16),
 
-                          // Seating Area Selection
-                          _buildLabel('Seating Area'),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _locations.map((loc) {
-                              final isSel = _selectedLocation == loc['value'];
-                              return ChoiceChip(
-                                label: Text(loc['label']!),
-                                selected: isSel,
-                                onSelected: (_) => setState(() => _selectedLocation = loc['value']!),
-                                labelStyle: GoogleFonts.inter(
-                                  fontSize: 12.5,
-                                  fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                                  color: isSel ? Colors.white : const Color(0xFF334155),
-                                ),
-                                selectedColor: const Color(0xFF8B0000),
-                                backgroundColor: const Color(0xFFF8FAFC),
-                                side: BorderSide(
-                                  color: isSel ? const Color(0xFF8B0000) : const Color(0xFFE2E8F0),
-                                ),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 16),
+
 
                           // Occasion Selection
                           _buildLabel('Occasion'),
@@ -800,7 +775,7 @@ class _AddEditReservationScreenState extends State<AddEditReservationScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    isEditing ? 'Save Changes' : 'Confirm Reservation',
+                                    isEditing ? 'Save Changes' : 'Book Table',
                                     style: GoogleFonts.inter(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,

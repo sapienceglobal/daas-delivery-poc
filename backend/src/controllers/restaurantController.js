@@ -201,7 +201,7 @@ export const updateRestaurant = asyncHandler(async (req, response) => {
     'preparationTime', 'prepTime', 'currency', 'timezone', 'dateFormat', 
     'timeFormat', 'language', 'enableTips', 'cancellationTime', 
     'taxType', 'taxRate', 'serviceCharge', 'packagingCharge', 'roundOff', 'logo',
-    'loyaltySettings', 'notificationSettings', 'autoRefundEnabled',
+    'loyaltySettings', 'referralSettings', 'notificationSettings', 'autoRefundEnabled',
     'deliveryDispatchDelayMinutes'
   ];
 
@@ -246,7 +246,12 @@ export const updateOperatingHours = asyncHandler(async (req, response) => {
     throw new AppError('Forbidden', 403);
   }
 
-  if (req.body.operatingHours) restaurant.operatingHours = req.body.operatingHours;
+  if (req.body.operatingHours) {
+    restaurant.operatingHours = req.body.operatingHours;
+    const firstDay = req.body.operatingHours.monday || Object.values(req.body.operatingHours)[0];
+    if (firstDay?.open && !req.body.openTime) restaurant.openTime = firstDay.open;
+    if (firstDay?.close && !req.body.closeTime) restaurant.closeTime = firstDay.close;
+  }
   if (req.body.openTime) restaurant.openTime = req.body.openTime;
   if (req.body.closeTime) restaurant.closeTime = req.body.closeTime;
   await restaurant.save();

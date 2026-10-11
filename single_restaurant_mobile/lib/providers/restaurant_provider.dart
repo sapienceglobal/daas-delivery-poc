@@ -14,7 +14,18 @@ class RestaurantProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  Future<void> fetchRestaurantData() async {
+  Future<void>? _fetchFuture;
+
+  Future<void> fetchRestaurantData({bool force = false}) {
+    if (!force && _restaurant != null) return Future.value();
+    if (_fetchFuture != null) return _fetchFuture!;
+    _fetchFuture = _executeFetchRestaurantData().whenComplete(() {
+      _fetchFuture = null;
+    });
+    return _fetchFuture!;
+  }
+
+  Future<void> _executeFetchRestaurantData() async {
     _isLoading = true;
     _error = null;
     notifyListeners();

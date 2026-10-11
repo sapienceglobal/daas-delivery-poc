@@ -37,10 +37,6 @@ const registerSchema = z.object({
     .min(1, 'Phone number is required')
     .refine((val) => isValidPhoneNumber(val || ''), 'Enter a valid phone number'),
   password: z.string().min(8, 'Min 8 characters').regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, 'Requires uppercase, lowercase, number & special char'),
-  confirmPassword: z.string().min(1, 'Please confirm your password'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
 });
 
 // customer-facing equivalent of admin/login's operational features grid —
@@ -65,11 +61,10 @@ function LoginPageContent() {
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
   const [form, setForm] = useState({
-    name: '', email: '', password: '', confirmPassword: '', phone: '', role: 'customer', rememberMe: true
+    name: '', email: '', password: '', phone: '', role: 'customer', rememberMe: true
   });
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errors, setErrors] = useState({});
@@ -84,6 +79,10 @@ function LoginPageContent() {
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
       if (user.role === 'customer') {
+        if (user.referralOnboarding === 'pending') {
+          window.location.href = `/verify-otp?email=${encodeURIComponent(user.email || '')}&step=referral`;
+          return;
+        }
         // use window.location.href instead of router.push to bypass Next.js router cache
         // which aggressively caches middleware redirects, causing infinite loops.
         const dest = redirectPath || '/';
@@ -470,33 +469,7 @@ function LoginPageContent() {
                       {errors.password && <p className="text-xs font-medium mt-1 ml-1" style={{ color: '#ef4444' }}>{errors.password}</p>}
                     </div>
 
-                    {/* Confirm Password */}
-                    {isRegister && (
-                      <div className="space-y-1.5">
-                        <label className="text-[13px] font-bold text-[#1f2937] block">Confirm Password</label>
-                        <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.confirmPassword ? 'border-[#ef4444] ring-1 ring-[#ef4444]' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
-                          <div className="px-4 py-3 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
-                            <Lock size={18} strokeWidth={2} />
-                          </div>
-                          <input
-                            name="confirmPassword"
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            placeholder="••••••••"
-                            value={form.confirmPassword}
-                            onChange={handleChange}
-                            className="flex-1 min-w-0 bg-transparent border-none px-4 py-3 text-[14px] text-[#1f2937] placeholder-[#9ca3af] focus:outline-none focus:ring-0"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="px-4 text-[#9ca3af] hover:text-[#4a090b] transition-colors"
-                          >
-                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                          </button>
-                        </div>
-                        {errors.confirmPassword && <p className="text-xs font-medium mt-1 ml-1" style={{ color: '#ef4444' }}>{errors.confirmPassword}</p>}
-                      </div>
-                    )}
+
                   </div>
 
                   {/* Terms */}
@@ -786,20 +759,7 @@ function LoginPageContent() {
               </button>
             </div>
 
-            {isRegister && (
-              <div className="relative">
-                <Input
-                  name="confirmPassword"
-                  type="password"
-                  label="Confirm Password"
-                  placeholder="••••••••"
-                  value={form.confirmPassword}
-                  onChange={handleChange}
-                  error={errors.confirmPassword}
-                  icon={Lock}
-                />
-              </div>
-            )}
+
 
             {isRegister && (
               <div className="flex items-start gap-2">

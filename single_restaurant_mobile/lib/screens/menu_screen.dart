@@ -8,12 +8,13 @@ import 'package:single_restaurant_mobile/utils/cart_helper.dart';
 import 'package:single_restaurant_mobile/screens/search_screen.dart';
 import 'package:single_restaurant_mobile/screens/cart_screen.dart';
 import 'package:single_restaurant_mobile/theme/app_responsive.dart';
-import 'package:single_restaurant_mobile/theme/app_spacing.dart';
-import 'package:single_restaurant_mobile/widgets/common/app_bottom_sheet.dart';
 import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
+import 'package:single_restaurant_mobile/widgets/menu/menu_categories_popup.dart';
 import 'package:single_restaurant_mobile/widgets/menu/menu_category_strip.dart';
 import 'package:single_restaurant_mobile/widgets/menu/menu_filter_bar.dart';
 import 'package:single_restaurant_mobile/widgets/menu/menu_loyalty_banner.dart';
+import 'package:single_restaurant_mobile/utils/category_helper.dart';
+import 'package:single_restaurant_mobile/widgets/menu/menu_empty_filter_state.dart';
 
 class MenuScreen extends StatefulWidget {
   final String? initialCategoryId;
@@ -44,51 +45,6 @@ class _MenuScreenState extends State<MenuScreen> {
     }
   }
 
-  void _showCategoriesPopup(BuildContext context, List<dynamic> categories) {
-    final isTablet = AppResponsive.isTablet(context);
-    final columns = isTablet ? 5 : 3;
-
-    AppBottomSheet.show(
-      context: context,
-      builder: (context) {
-        return AppBottomSheet(
-          title: 'All Categories',
-          padding: EdgeInsets.zero,
-          child: GridView.builder(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
-            ),
-            shrinkWrap: true,
-            physics: const ClampingScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              childAspectRatio: 0.65,
-              crossAxisSpacing: AppSpacing.md,
-              mainAxisSpacing: AppSpacing.md,
-            ),
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              final cat = categories[index];
-              final isSelected = cat['_id'] == _selectedCategoryId;
-              return GestureDetector(
-                onTap: () {
-                  setState(() => _selectedCategoryId = cat['_id']);
-                  Navigator.pop(context);
-                },
-                child: CategoryItemView(
-                  name: cat['name'] ?? '',
-                  category: cat,
-                  isSelected: isSelected,
-                  inGrid: true,
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildCartIcon() {
     return Consumer<CartProvider>(
@@ -138,22 +94,35 @@ class _MenuScreenState extends State<MenuScreen> {
       ...categories
     ];
 
-    List<dynamic> items = [];
+    List<dynamic> rawCategoryItems = [];
     if (_selectedCategoryId == 'all') {
       for (var cat in categories) {
-        items.addAll(cat['items'] ?? []);
+        rawCategoryItems.addAll(cat['items'] ?? []);
       }
     } else {
       final selectedCategory = categories.firstWhere(
         (c) => c['_id'] == _selectedCategoryId,
         orElse: () => categories[0],
       );
-      items = List.from(selectedCategory['items'] ?? []);
+      rawCategoryItems = List.from(selectedCategory['items'] ?? []);
     }
 
-    if (_vegFilter == 'Veg') {
+    final hasVeg = rawCategoryItems.any((i) => i['isVeg'] == true);
+    final hasNonVeg = rawCategoryItems.any((i) => i['isVeg'] == false);
+    final availableVegFilters = (hasVeg && !hasNonVeg)
+        ? const ['Veg']
+        : (!hasVeg && hasNonVeg)
+            ? const ['Non-Veg']
+            : const ['All', 'Veg', 'Non-Veg'];
+
+    final effectiveVegFilter = availableVegFilters.contains(_vegFilter)
+        ? _vegFilter
+        : availableVegFilters.first;
+
+    List<dynamic> items = List.from(rawCategoryItems);
+    if (effectiveVegFilter == 'Veg') {
       items = items.where((i) => i['isVeg'] == true).toList();
-    } else if (_vegFilter == 'Non-Veg') {
+    } else if (effectiveVegFilter == 'Non-Veg') {
       items = items.where((i) => i['isVeg'] == false).toList();
     }
 
@@ -193,10 +162,7 @@ class _MenuScreenState extends State<MenuScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.search, color: Colors.black87),
-            onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => const SearchScreen()));
-            },
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
           ),
           _buildCartIcon(),
         ],
@@ -209,15 +175,25 @@ class _MenuScreenState extends State<MenuScreen> {
             MenuCategoryStrip(
               displayCategories: displayCategories,
               selectedCategoryId: _selectedCategoryId,
-              onSelectCategory: (id) =>
-                  setState(() => _selectedCategoryId = id),
-              onMoreTap: () =>
-                  _showCategoriesPopup(context, displayCategories),
+              onSelectCategory: (id) => setState(() {
+                _selectedCategoryId = id;
+                _vegFilter = 'All';
+              }),
+              onMoreTap: () => MenuCategoriesPopup.show(
+                context: context,
+                categories: displayCategories,
+                selectedCategoryId: _selectedCategoryId,
+                onSelectCategory: (id) => setState(() {
+                  _selectedCategoryId = id;
+                  _vegFilter = 'All';
+                }),
+              ),
             ),
 
             // Responsive filter bar (wraps on 320dp width)
             MenuFilterBar(
-              vegFilter: _vegFilter,
+              vegFilter: effectiveVegFilter,
+              availableVegFilters: availableVegFilters,
               sortOrder: _sortOrder,
               onVegFilterChanged: (v) => setState(() => _vegFilter = v),
               onSortOrderChanged: (s) => setState(() => _sortOrder = s),
@@ -238,42 +214,49 @@ class _MenuScreenState extends State<MenuScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    currentCategory['description'] ??
-                        'Flavorful dishes made with rich spices and authentic ingredients.',
+                    CategoryHelper.getCategoryDescription(currentCategory),
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                   ),
                   const SizedBox(height: 20),
 
-                  Consumer<CartProvider>(
-                    builder: (context, cart, child) {
-                      return Column(
-                        children: items.map((item) {
-                          final dishId = item['_id'] ?? item['id'];
-                          int totalQty = 0;
-                          int lastMatchIndex = -1;
-                          for (int i = 0; i < cart.items.length; i++) {
-                            final c = cart.items[i];
-                            if ((c['menuItemId'] ?? c['_id'] ?? c['id']) == dishId) {
-                              totalQty += (c['quantity'] ?? c['qty'] ?? 1) as int;
-                              lastMatchIndex = i;
-                            }
-                          }
-                          return MenuItemCard(
-                            item: item,
-                            cartQty: totalQty,
-                            onAdd: () => AddToCartHelper.handleAddToCart(context, item, cart, restaurantProvider),
-                            onIncrement: () => AddToCartHelper.handleAddToCart(context, item, cart, restaurantProvider),
-                            onDecrement: () {
-                              if (lastMatchIndex != -1) {
-                                final lastQty = (cart.items[lastMatchIndex]['quantity'] ?? cart.items[lastMatchIndex]['qty'] ?? 1) as int;
-                                cart.updateQuantity(lastMatchIndex, lastQty - 1);
+                  if (items.isEmpty)
+                    MenuEmptyFilterState(
+                      vegFilter: effectiveVegFilter,
+                      categoryName: currentCategory['name'] ?? '',
+                      onResetFilter: () => setState(() => _vegFilter = 'All'),
+                      onShowAllCategories: () => setState(() => _selectedCategoryId = 'all'),
+                    )
+                  else
+                    Consumer<CartProvider>(
+                      builder: (context, cart, child) {
+                        return Column(
+                          children: items.map((item) {
+                            final dishId = item['_id'] ?? item['id'];
+                            int totalQty = 0;
+                            int lastMatchIndex = -1;
+                            for (int i = 0; i < cart.items.length; i++) {
+                              final c = cart.items[i];
+                              if ((c['menuItemId'] ?? c['_id'] ?? c['id']) == dishId) {
+                                totalQty += (c['quantity'] ?? c['qty'] ?? 1) as int;
+                                lastMatchIndex = i;
                               }
-                            },
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
+                            }
+                            return MenuItemCard(
+                              item: item,
+                              cartQty: totalQty,
+                              onAdd: () => AddToCartHelper.handleAddToCart(context, item, cart, restaurantProvider),
+                              onIncrement: () => AddToCartHelper.handleAddToCart(context, item, cart, restaurantProvider),
+                              onDecrement: () {
+                                if (lastMatchIndex != -1) {
+                                  final lastQty = (cart.items[lastMatchIndex]['quantity'] ?? cart.items[lastMatchIndex]['qty'] ?? 1) as int;
+                                  cart.updateQuantity(lastMatchIndex, lastQty - 1);
+                                }
+                              },
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
 
                   const SizedBox(height: 20),
 

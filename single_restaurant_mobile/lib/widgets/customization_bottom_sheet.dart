@@ -124,7 +124,7 @@ class _CustomizationBottomSheetState extends State<CustomizationBottomSheet> {
                 );
 
                 Navigator.pop(context);
-                ToastUtils.showSuccess(context, 'Item added to cart');
+                ToastUtils.showCartSuccess(context);
               },
               variant: AppButtonVariant.primary,
               size: AppButtonSize.large,

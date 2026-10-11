@@ -149,6 +149,12 @@ export const register = asyncHandler(async (req, response) => {
   // generate random 6-character referral code
   user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
 
+  // brand-new customers get the one-time "Do you have a referral code?" screen
+  if ((role || 'customer') === 'customer') {
+    user.referralOnboarding = 'pending';
+    user.signupIp = req.ip || null;
+  }
+
   // generate 6-digit OTP for email verification.
   // using crypto.randomInt instead of Math.random() — this code gates
   // account access, so it should come from a cryptographically secure
@@ -368,6 +374,11 @@ export const socialLogin = asyncHandler(async (req, response) => {
     });
     // create random robust password for DB constraint if needed
     user.setPassword(crypto.randomBytes(20).toString('hex'));
+    user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+    if (finalRole === 'customer') {
+      user.referralOnboarding = 'pending';
+      user.signupIp = req.ip || null;
+    }
     await user.save();
 
     sendWelcomeEmail(email, name).catch(e => logger.warn('Welcome email failed', { error: e.message }));

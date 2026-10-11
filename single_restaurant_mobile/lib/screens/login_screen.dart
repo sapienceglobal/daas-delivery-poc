@@ -10,6 +10,7 @@ import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/screens/forgot_password_screen.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/otp_verification_screen.dart';
+import 'package:single_restaurant_mobile/screens/referral_prompt_screen.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
 import 'package:single_restaurant_mobile/theme/app_responsive.dart';
 import 'package:single_restaurant_mobile/widgets/auth/guest_login_card.dart';
@@ -50,25 +51,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _refreshUserDataAndNavigate() async {
     final authProv = context.read<AuthProvider>();
-    final addressProv = context.read<AddressProvider>();
-    final cartProv = context.read<CartProvider>();
-    final loyaltyProv = context.read<LoyaltyProvider>();
-    final notifProv = context.read<NotificationProvider>();
-
     await authProv.fetchUser();
-    addressProv.fetchAddresses();
-    cartProv.loadCart();
-    loyaltyProv.fetchHistory();
-    notifProv.fetchNotifications();
+    if (!mounted) return;
+    context.read<AddressProvider>().fetchAddresses();
+    context.read<CartProvider>().loadCart();
+    context.read<LoyaltyProvider>().fetchHistory();
+    context.read<NotificationProvider>().fetchNotifications();
 
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => const MainScreen(initialIndex: 0),
-        ),
-        (route) => false,
-      );
-    }
+    final user = authProv.user;
+    final target = (user?.referralOnboarding == 'pending')
+        ? const ReferralPromptScreen()
+        : const MainScreen(initialIndex: 0);
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => target),
+      (route) => false,
+    );
   }
 
   Future<void> _login() async {

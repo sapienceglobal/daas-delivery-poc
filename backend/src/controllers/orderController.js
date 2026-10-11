@@ -23,6 +23,7 @@ import { createNotification } from './notificationController.js';
 import { sendPushNotification } from '../services/webPushService.js';
 import { sendOrderAlert, sendInvoiceWhatsApp } from '../services/whatsappService.js';
 import logger from '../utils/logger.js';
+import { handleOrderPlaced, handleOrderDelivered, handleOrderReverted } from '../services/referralService.js';
 import { scheduleOrDispatch, dispatchOrder } from '../services/dispatch/dispatchService.js';
 import { emitDispatchUpdated } from '../services/dispatch/dispatchEvents.js';
 import { DISPATCH_BY, DISPATCH_STATUSES } from '../services/dispatch/dispatchConfig.js';
@@ -76,6 +77,9 @@ export const ensureCanManageRestaurant = (user, restaurantId) => {
 
 export const rollbackLoyaltyPoints = async (order, reason = 'cancellation') => {
   if (!order.userId) return;
+  // referral program: give the friend's coupon back / claw back the referrer reward
+  const referralTenantId = order.constructor.db.name;
+  await handleOrderReverted({ getModel: (name) => getTenantModel(referralTenantId, name), order });
   if (order.loyaltyRollbackProcessed) return;
 
   const pointsUsed = order.loyaltyPointsUsed || 0;
@@ -151,6 +155,9 @@ export const rollbackLoyaltyPoints = async (order, reason = 'cancellation') => {
 
 export const awardLoyaltyPoints = async (order) => {
   if (!order.userId) return;
+  // referral program: pay the referrer once the friend's first order is delivered
+  const referralTenantId = order.constructor.db.name;
+  await handleOrderDelivered({ getModel: (name) => getTenantModel(referralTenantId, name), order });
   if (order.loyaltyPointsAwarded) return;
   if ((order.loyaltyPointsEarned || 0) <= 0) return;
 
@@ -887,6 +894,10 @@ export const createOrder = asyncHandler(async (req, response) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    if (pricing.coupon) {
+      await handleOrderPlaced({ getModel: req.getModel, order, coupon: pricing.coupon });
+    }
 
     // emit socket event
     const io = req.app.get('io');

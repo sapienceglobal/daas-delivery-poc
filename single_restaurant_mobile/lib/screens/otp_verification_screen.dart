@@ -8,6 +8,7 @@ import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
+import 'package:single_restaurant_mobile/screens/referral_prompt_screen.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
 import 'package:single_restaurant_mobile/theme/app_responsive.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
@@ -96,13 +97,20 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     setState(() => _isLoading = false);
 
     if (errorMsg == null) {
-      context.read<AuthProvider>().fetchUser();
+      await context.read<AuthProvider>().fetchUser();
+      if (!mounted) return;
       context.read<AddressProvider>().fetchAddresses();
       context.read<CartProvider>().loadCart();
       context.read<LoyaltyProvider>().fetchHistory();
       context.read<NotificationProvider>().fetchNotifications();
+
+      final user = context.read<AuthProvider>().user;
+      final target = (user?.referralOnboarding == 'pending')
+          ? const ReferralPromptScreen()
+          : const MainScreen(initialIndex: 0);
+
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
+        MaterialPageRoute(builder: (context) => target),
         (route) => false,
       );
     } else {

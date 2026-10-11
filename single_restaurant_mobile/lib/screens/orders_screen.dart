@@ -9,7 +9,7 @@ import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:single_restaurant_mobile/widgets/common/app_dialog.dart';
 import 'package:single_restaurant_mobile/widgets/empty_state_widget.dart';
-import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
+import 'package:single_restaurant_mobile/widgets/orders/orders_guest_view.dart';
 import 'package:single_restaurant_mobile/widgets/order_card.dart';
 import 'package:single_restaurant_mobile/widgets/orders/orders_filter_bar.dart';
 
@@ -68,27 +68,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     if (authProvider.user == null) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.background,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
-            onPressed: widget.onBack,
-          ),
-          title: const Text(
-            'My Orders',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 24),
-          ),
-          centerTitle: false,
-        ),
-        body: const GuestLoginPrompt(
-          icon: Icons.receipt_long,
-          title: 'Login to view your orders',
-          subtitle: 'Track your orders in real-time, get updates, and see your past history.',
-        ),
-      );
+      return OrdersGuestView(onBack: widget.onBack);
     }
 
     return Scaffold(

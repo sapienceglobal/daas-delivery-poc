@@ -26,6 +26,7 @@ import 'screens/auth/forgot_password_screen.dart';
 import 'screens/restaurant_settings_screen.dart';
 import 'screens/cms_management_screen.dart';
 import 'screens/loyalty_rewards_screen.dart';
+import 'screens/referral_management_screen.dart';
 import 'screens/marketing_screen.dart';
 import 'screens/support_messages_screen.dart';
 
@@ -46,6 +47,7 @@ import 'providers/notification_provider.dart';
 import 'providers/restaurant_provider.dart';
 import 'providers/cms_provider.dart';
 import 'providers/loyalty_provider.dart';
+import 'providers/referral_provider.dart';
 import 'providers/marketing_provider.dart';
 import 'providers/support_messages_provider.dart';
 
@@ -223,6 +225,9 @@ void main() async {
         ChangeNotifierProvider<LoyaltyProvider>(
           create: (_) => LoyaltyProvider(),
         ),
+        ChangeNotifierProvider<ReferralProvider>(
+          create: (_) => ReferralProvider(),
+        ),
         ChangeNotifierProvider<MarketingProvider>(
           create: (_) => MarketingProvider(),
         ),
@@ -327,6 +332,10 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/loyalty',
       builder: (context, state) => const LoyaltyRewardsScreen(),
+    ),
+    GoRoute(
+      path: '/referrals',
+      builder: (context, state) => const ReferralManagementScreen(),
     ),
     GoRoute(
       path: '/marketing',

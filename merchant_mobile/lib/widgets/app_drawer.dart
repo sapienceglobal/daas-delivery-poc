@@ -353,6 +353,15 @@ class AppDrawer extends StatelessWidget {
                       },
                     ),
                     _buildNavItem(
+                      icon: Icons.share_rounded,
+                      title: 'Referral Program',
+                      isActive: location == '/referrals',
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        context.push('/referrals');
+                      },
+                    ),
+                    _buildNavItem(
                       icon: Icons.mark_email_unread_outlined,
                       title: 'Push Marketing',
                       isActive: location == '/marketing',
