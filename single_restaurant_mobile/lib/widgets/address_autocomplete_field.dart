@@ -6,6 +6,9 @@ class AddressAutocompleteField extends StatefulWidget {
   final TextEditingController controller;
   final Function(String)? onChanged;
   final String label;
+  final Widget? prefixWidget;
+  final bool showLabel;
+  final InputDecoration? customDecoration;
 
   const AddressAutocompleteField({
     super.key,
@@ -13,6 +16,9 @@ class AddressAutocompleteField extends StatefulWidget {
     required this.controller,
     this.onChanged,
     this.label = 'Street Address *',
+    this.prefixWidget,
+    this.showLabel = true,
+    this.customDecoration,
   });
 
   @override
@@ -41,8 +47,11 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(widget.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        const SizedBox(height: 8),
+        if (widget.showLabel) ...[
+          Text(widget.label,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 8),
+        ],
         RawAutocomplete<Map<String, dynamic>>(
           textEditingController: widget.controller,
           focusNode: _focusNode,
@@ -67,39 +76,54 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
           },
           onSelected: widget.onSelected,
           fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            final suffix = _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : const Icon(Icons.search, color: Colors.grey);
+
+            if (widget.customDecoration != null) {
+              return TextField(
+                controller: controller,
+                focusNode: focusNode,
+                onChanged: widget.onChanged,
+                decoration: widget.customDecoration!.copyWith(
+                  suffixIcon: suffix,
+                  prefixIcon: widget.prefixWidget ?? widget.customDecoration!.prefixIcon,
+                ),
+              );
+            }
+
             return TextField(
               controller: controller,
               focusNode: focusNode,
               onChanged: widget.onChanged,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                  hintText: 'Start typing to search...',
-                  hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-                  suffixIcon: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : const Icon(Icons.search, color: Colors.grey),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.red.shade900, width: 1.5),
-                  ),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                hintText: 'Start typing to search...',
+                hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                prefixIcon: widget.prefixWidget,
+                suffixIcon: suffix,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
                 ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.red.shade900, width: 1.5),
+                ),
+              ),
             );
           },
           optionsViewBuilder: (context, onSelected, options) {

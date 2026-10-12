@@ -49,7 +49,8 @@ class OrdersGuestView extends StatelessWidget {
             final isTall = screenHeight >= 750;
             final isSmall = screenHeight < 640;
 
-            final heroHeight = isTall ? 285.0 : (isSmall ? 210.0 : 250.0);
+            final topSpacing = isTall ? 48.0 : (isSmall ? 14.0 : 30.0);
+            final heroHeight = isTall ? 260.0 : (isSmall ? 190.0 : 225.0);
             final titleFontSize = isTall ? 27.0 : (isSmall ? 21.0 : 24.0);
             final subFontSize = isTall ? 14.5 : (isSmall ? 12.5 : 13.5);
             final bottomWaveHeight = isTall ? 95.0 : (isSmall ? 65.0 : 80.0);
@@ -81,7 +82,7 @@ class OrdersGuestView extends StatelessWidget {
                     child: Column(
                       children: [
                         // Top spacing
-                        SizedBox(height: isTall ? 12 : 6),
+                        SizedBox(height: topSpacing),
 
                         // Hero Illustration: 3D Food Cloche, Order Receipt, Delivery Box & Warm Glow
                         Image.asset(

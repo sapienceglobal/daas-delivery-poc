@@ -34,201 +34,205 @@ class OfferHeroBanner extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
+      height: 172,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            Color(0xFF4C0810),
-            Color(0xFF6B111C),
-            Color(0xFF540A12),
-          ],
-        ),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xFF4C0810).withValues(alpha: 0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
+            color: Color(0x354C0810),
+            blurRadius: 14,
+            offset: Offset(0, 6),
           ),
         ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          // 1. Right side food dish image with smooth fade blend
-          Positioned(
-            right: 0,
-            top: 0,
-            bottom: 0,
-            width: 175,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: networkImageUrl != null && networkImageUrl.startsWith('http')
-                      ? CachedNetworkImage(
-                          imageUrl: networkImageUrl,
-                          fit: BoxFit.cover,
-                          errorWidget: (context, url, error) => Image.asset(
-                            'assets/images/branded/lassi-lounge/hero-curry.jpg',
-                            fit: BoxFit.cover,
-                            alignment: Alignment.centerRight,
-                          ),
-                        )
-                      : Image.asset(
-                          'assets/images/branded/lassi-lounge/hero-curry.jpg',
-                          fit: BoxFit.cover,
-                          alignment: Alignment.centerRight,
-                        ),
+          // 1. Full Background Food Photography (Curry in copper bowl + Naan on red background)
+          if (networkImageUrl != null && networkImageUrl.startsWith('http'))
+            CachedNetworkImage(
+              imageUrl: networkImageUrl,
+              fit: BoxFit.cover,
+              alignment: Alignment.centerRight,
+              placeholder: (context, url) => Container(color: const Color(0xFF4C0810)),
+              errorWidget: (context, url, error) => Image.asset(
+                'assets/images/branded/lassi-lounge/hero-offer-curry.jpg',
+                fit: BoxFit.cover,
+                alignment: Alignment.centerRight,
+                errorBuilder: (ctx, err, st) => Image.asset(
+                  'assets/images/branded/lassi-lounge/hero-curry.jpg',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.centerRight,
                 ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          const Color(0xFF4C0810),
-                          const Color(0xFF4C0810).withValues(alpha: 0.0),
-                        ],
-                        stops: const [0.0, 0.45],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
+            )
+          else
+            Image.asset(
+              'assets/images/branded/lassi-lounge/hero-offer-curry.jpg',
+              fit: BoxFit.cover,
+              alignment: Alignment.centerRight,
+              errorBuilder: (ctx, err, st) => Image.asset(
+                'assets/images/branded/lassi-lounge/hero-curry.jpg',
+                fit: BoxFit.cover,
+                alignment: Alignment.centerRight,
+              ),
+            ),
+
+          // 2. Rich Dark Red Gradient on the left side to ensure high-contrast text readability
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                stops: [0.0, 0.38, 0.62, 1.0],
+                colors: [
+                  Color(0xFF5A0812),
+                  Color(0xF05A0812),
+                  Color(0x555A0812),
+                  Colors.transparent,
+                ],
+              ),
             ),
           ),
 
-          // 2. Decorative gold sparkle stars
+          // 3. Subtle gold sparkle star near top-center
           const Positioned(
-            top: 36,
-            left: 175,
-            child: Icon(Icons.star, color: Color(0xFFFFD56B), size: 14),
-          ),
-          const Positioned(
-            top: 52,
-            left: 195,
-            child: Icon(Icons.star, color: Color(0xFFFFD56B), size: 10),
+            top: 34,
+            left: 178,
+            child: Icon(Icons.star, color: Color(0xFFFFD56B), size: 13),
           ),
 
-          // 3. Left Text & Action Content
+          // 4. Dynamic Backend Text & Actions Overlay
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 130, 10),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // "EXCLUSIVE OFFER" pill
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFB800),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      'EXCLUSIVE OFFER',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF1E1E1E),
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-
-                  // "Get FLAT"
-                  const Text(
-                    'Get FLAT',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-
-                  // Large discount headline
-                  Text(
-                    discountTitle,
-                    style: const TextStyle(
-                      color: Color(0xFFFFC72C),
-                      fontSize: 30,
-                      fontWeight: FontWeight.w900,
-                      height: 1.05,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-
-                  // Subtitle
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Copyable Coupon Code Box
-                  InkWell(
-                    onTap: () => _copyCode(context, code),
+            padding: const EdgeInsets.fromLTRB(16, 12, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Top: "EXCLUSIVE OFFER" badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFB800),
                     borderRadius: BorderRadius.circular(6),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          width: 1,
-                        ),
-                        borderRadius: BorderRadius.circular(6),
-                        color: Colors.black.withValues(alpha: 0.15),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x25000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 1),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Code: ',
-                            style: TextStyle(color: Colors.white70, fontSize: 11),
-                          ),
-                          Text(
-                            code,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Icon(
-                            Icons.copy_outlined,
-                            color: Colors.white,
-                            size: 13,
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-
-                  // Terms line
-                  Text(
-                    'Min. order \$$minCartValue • T&C Apply',
+                  child: const Text(
+                    'EXCLUSIVE OFFER',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.75),
                       fontSize: 9.5,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF1E1E1E),
+                      letterSpacing: 0.4,
                     ),
                   ),
-                ],
-              ),
+                ),
+
+                // Center: Discount headline
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Get FLAT',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.3,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      discountTitle,
+                      style: const TextStyle(
+                        color: Color(0xFFFFC72C),
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        height: 1.05,
+                        letterSpacing: -0.6,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+
+                // Bottom: Promo code pill & Min order terms
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    InkWell(
+                      onTap: () => _copyCode(context, code),
+                      borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4.5),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.65),
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                          color: Colors.black.withValues(alpha: 0.22),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Code: ',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                              ),
+                            ),
+                            Text(
+                              code,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.copy_outlined,
+                              color: Colors.white,
+                              size: 13,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Min. order \$$minCartValue • T&C Apply',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 9.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],

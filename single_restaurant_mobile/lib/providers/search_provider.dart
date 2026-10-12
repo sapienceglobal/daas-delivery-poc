@@ -10,16 +10,32 @@ class SearchProvider with ChangeNotifier {
   String? _error;
   
   List<String> _recentSearches = [];
-  
-  // Popular searches hardcoded for now, as in the UI mockup
-  final List<Map<String, String>> popularSearches = [
-    {'name': 'Butter Chicken', 'image': 'assets/images/categories/main-course.jpg'},
-    {'name': 'Biryani', 'image': 'assets/images/categories/biryani.jpg'},
-    {'name': 'Naan', 'image': 'assets/images/categories/breads.jpg'},
-    {'name': 'Paneer Tikka', 'image': 'assets/images/categories/appetizers.jpg'},
-    {'name': 'Mango Lassi', 'image': 'assets/images/categories/beverages.jpg'},
-    {'name': 'Dal Makhani', 'image': 'assets/images/categories/main-course.jpg'},
-  ];
+
+  /// Splits real menu items into "popular" (grid) and "trending" (list)
+  /// sections. Bestsellers come first, then highest priced items.
+  static List<dynamic> rankMenuItems(List<dynamic> menu) {
+    final items = <dynamic>[];
+    final seen = <String>{};
+    for (final category in menu) {
+      final list = category is Map ? category['items'] : null;
+      if (list is! List) continue;
+      for (final item in list) {
+        if (item is! Map || item['isAvailable'] == false) continue;
+        final name = (item['name'] ?? '').toString().toLowerCase().trim();
+        if (name.isEmpty || name.contains('water') || !seen.add(name)) continue;
+        items.add(item);
+      }
+    }
+    double price(dynamic i) =>
+        double.tryParse(i['price']?.toString() ?? '0') ?? 0.0;
+    items.sort((a, b) {
+      final aBest = a['isBestseller'] == true ? 0 : 1;
+      final bBest = b['isBestseller'] == true ? 0 : 1;
+      if (aBest != bBest) return aBest.compareTo(bBest);
+      return price(b).compareTo(price(a));
+    });
+    return items;
+  }
 
   List<dynamic> get searchResults => _searchResults;
   bool get isLoading => _isLoading;

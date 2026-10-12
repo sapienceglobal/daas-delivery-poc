@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:single_restaurant_mobile/screens/login_screen.dart';
 
 class AddressGuestView extends StatelessWidget {
-  const AddressGuestView({super.key});
+  final VoidCallback? onBack;
+
+  const AddressGuestView({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +18,13 @@ class AddressGuestView extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF8B0D18)),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (onBack != null) {
+              onBack!();
+            } else if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+          },
         ),
         centerTitle: true,
         title: const Text(
@@ -41,9 +50,10 @@ class AddressGuestView extends StatelessWidget {
             final isTall = screenHeight >= 750;
             final isSmall = screenHeight < 640;
 
-            final heroHeight = isTall ? 285.0 : (isSmall ? 210.0 : 250.0);
-            final titleFontSize = isTall ? 27.0 : (isSmall ? 21.0 : 24.0);
-            final subFontSize = isTall ? 14.5 : (isSmall ? 12.5 : 13.5);
+            final topSpacing = isTall ? 48.0 : (isSmall ? 14.0 : 30.0);
+            final heroHeight = isTall ? 260.0 : (isSmall ? 190.0 : 225.0);
+            final titleFontSize = isTall ? 27.0 : (isSmall ? 22.0 : 25.0);
+            final subFontSize = isTall ? 15.0 : (isSmall ? 13.0 : 14.0);
             final bottomWaveHeight = isTall ? 95.0 : (isSmall ? 65.0 : 80.0);
 
             return Stack(
@@ -73,7 +83,7 @@ class AddressGuestView extends StatelessWidget {
                     child: Column(
                       children: [
                         // Top spacing
-                        SizedBox(height: isTall ? 12 : 6),
+                        SizedBox(height: topSpacing),
 
                         // Hero Illustration: 3D Map, Red Location Pin, House & Green Trees
                         Image.asset(
@@ -84,49 +94,51 @@ class AddressGuestView extends StatelessWidget {
                           errorBuilder: (context, error, stackTrace) => const SizedBox(height: 140),
                         ),
 
-                        SizedBox(height: isTall ? 18 : 10),
+                        SizedBox(height: isTall ? 16 : 10),
 
-                        // Heading: "Login to manage your addresses"
+                        // Heading: "Login to manage your addresses" (Matching Image 1)
                         RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
-                            style: TextStyle(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: titleFontSize,
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.w800,
                               color: const Color(0xFF1E1E1E),
-                              letterSpacing: -0.5,
-                              height: 1.25,
+                              letterSpacing: -0.4,
+                              height: 1.2,
                             ),
                             children: const [
-                              TextSpan(text: 'Login to manage\nyour '),
+                              TextSpan(text: 'Login to manage\n'),
+                              TextSpan(text: 'your '),
                               TextSpan(
                                 text: 'addresses',
                                 style: TextStyle(
                                   color: Color(0xFF8B0D18),
+                                  fontWeight: FontWeight.w900,
                                 ),
                               ),
                             ],
                           ),
                         ),
 
-                        SizedBox(height: isTall ? 12 : 6),
+                        SizedBox(height: isTall ? 10 : 8),
 
-                        // Subtitle
+                        // Subtitle (Matching Image 1)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
                           child: Text(
                             'Save your home, work, and other\naddresses for quick delivery.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: subFontSize,
                               color: const Color(0xFF4A4A4A),
                               fontWeight: FontWeight.w500,
-                              height: 1.4,
+                              height: 1.35,
                             ),
                           ),
                         ),
 
-                        SizedBox(height: isTall ? 24 : 14),
+                        SizedBox(height: isTall ? 22 : 14),
 
                         // CTA Button: [ Person | Login / Sign Up -> ]
                         Padding(

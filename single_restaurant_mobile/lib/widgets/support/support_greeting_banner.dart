@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:single_restaurant_mobile/constants/colors.dart';
 
 class SupportGreetingBanner extends StatelessWidget {
   final String firstName;
@@ -11,73 +10,81 @@ class SupportGreetingBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7F0), // Light warm beige
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 6,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Hi $firstName! 👋',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'How can we help you today?',
-                  style: TextStyle(
-                    color: Color(0xFF3B5998),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'We\'re here to assist you 24/7.',
-                  style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 4,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(
-                  Icons.headset_mic,
-                  size: 64,
-                  color: AppColors.secondary.withValues(alpha: 0.8),
-                ),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: AppColors.secondary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Text(
-                      '?',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF1E5E5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: Image.asset(
+                'assets/images/branded/lassi-lounge/help_banner_artwork.png',
+                fit: BoxFit.fitHeight,
+                alignment: Alignment.centerRight,
+                errorBuilder: (context, error, stackTrace) => const SizedBox(),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: screenWidth > 450 ? 320 : screenWidth * 0.62,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Hi $firstName! 👋',
+                      style: const TextStyle(
+                        fontFamily: 'serif',
+                        color: Color(0xFF800A12),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'How can we help you today?',
+                      style: TextStyle(
+                        color: Color(0xFF1F2937),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      "We're here to assist you 24/7.",
+                      style: TextStyle(
+                        color: Color(0xFF8A8A8E),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -5,7 +5,7 @@ import 'package:single_restaurant_mobile/screens/about_us_screen.dart';
 import 'package:single_restaurant_mobile/screens/book_table_screen.dart';
 import 'package:single_restaurant_mobile/screens/favorites_screen.dart';
 import 'package:single_restaurant_mobile/screens/help_support_screen.dart';
-import 'package:single_restaurant_mobile/screens/loyalty_screen.dart';
+import 'package:single_restaurant_mobile/screens/loyalty_rewards_screen.dart';
 import 'package:single_restaurant_mobile/screens/notification_settings_screen.dart';
 import 'package:single_restaurant_mobile/screens/referral_screen.dart';
 import 'package:single_restaurant_mobile/screens/saved_addresses_screen.dart';
@@ -91,7 +91,7 @@ class ProfileMenuList extends StatelessWidget {
                     'Points, Offers & Benefits',
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const LoyaltyScreen()),
+                      MaterialPageRoute(builder: (_) => const LoyaltyRewardsScreen()),
                     ),
                   ),
                   _buildDivider(),

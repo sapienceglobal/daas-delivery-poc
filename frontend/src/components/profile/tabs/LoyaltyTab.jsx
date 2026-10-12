@@ -347,12 +347,14 @@ export default function LoyaltyTab({ user }) {
             <h3 className="text-xl font-black font-serif text-[#1a1a1a] mb-6">How to Earn</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-white border border-[#eadfdb] rounded-xl p-4 flex items-start gap-4 hover:shadow-sm transition-shadow">
-                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-full bg-[#fff1f2] flex items-center justify-center shrink-0">
                   <ShoppingBag className="w-5 h-5 text-[#7a0b10]" />
                 </div>
                 <div>
                   <h4 className="font-bold text-[#1a1a1a] text-sm">Order Food</h4>
-                  <p className="text-xs text-[#6b7280] mt-1 mb-2">Earn {brand?.loyaltySettings?.centsPerPoint || 1} points for every $1 spent</p>
+                  <p className="text-xs text-[#6b7280] mt-1 mb-2">
+                    Earn {brand?.loyaltySettings?.pointsPerDollar || 1} {(brand?.loyaltySettings?.pointsPerDollar || 1) === 1 ? 'point' : 'points'} for every $1 spent
+                  </p>
                 </div>
               </div>
               

@@ -114,6 +114,9 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isOrdersGuest = _currentIndex == 3 && authProvider.user == null;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (bool didPop, dynamic result) async {
@@ -124,6 +127,7 @@ class _MainScreenState extends State<MainScreen> {
         }
       },
       child: Scaffold(
+        backgroundColor: isOrdersGuest ? const Color(0xFF680D13) : null,
         body: IndexedStack(
           index: _currentIndex,
           children: widget.tabs ??
@@ -142,8 +146,10 @@ class _MainScreenState extends State<MainScreen> {
               ],
         ),
         bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF680D13),
+          color: isOrdersGuest ? const Color(0xFF680D13) : Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF680D13),
             borderRadius: AppRadius.topXxl,
             boxShadow: [
               BoxShadow(
@@ -198,6 +204,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

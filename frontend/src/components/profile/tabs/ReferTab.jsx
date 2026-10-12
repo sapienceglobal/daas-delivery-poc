@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Share2, Copy, Check, Users, Gift, ArrowRight, 
-  Sparkles, Clock, CheckCircle2, Award, TrendingUp, Info
+  Sparkles, Clock, CheckCircle2, Award, TrendingUp, Info, Tag, AlertCircle, Loader2
 } from 'lucide-react';
 import { referralAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
@@ -11,8 +11,15 @@ import { showToast } from '@/components/ui';
 export default function ReferTab({ user }) {
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedMyCoupon, setCopiedMyCoupon] = useState(false);
   const [referralData, setReferralData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Apply friend code state
+  const [friendCode, setFriendCode] = useState('');
+  const [isApplying, setIsApplying] = useState(false);
+  const [applyError, setApplyError] = useState('');
+  const [applySuccess, setApplySuccess] = useState('');
 
   useEffect(() => {
     fetchReferralInfo();
@@ -38,6 +45,7 @@ export default function ReferTab({ user }) {
   const program = referralData?.program || {};
   const stats = referralData?.stats || { invited: 0, pending: 0, rewarded: 0, pointsEarned: 0 };
   const friends = referralData?.friends || [];
+  const myCoupon = referralData?.myCoupon;
 
   const refereeDiscount = program.refereeDiscountValue ?? 25;
   const referrerReward = program.referrerRewardValue ?? 25;
@@ -59,6 +67,41 @@ export default function ReferTab({ user }) {
     setCopiedLink(true);
     showToast('Referral link copied to clipboard!', 'success');
     setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleCopyMyCoupon = () => {
+    if (!myCoupon?.code) return;
+    navigator.clipboard.writeText(myCoupon.code);
+    setCopiedMyCoupon(true);
+    showToast('Coupon code copied to clipboard!', 'success');
+    setTimeout(() => setCopiedMyCoupon(false), 2000);
+  };
+
+  const handleApplyFriendCode = async (e) => {
+    e?.preventDefault();
+    const cleanCode = friendCode.trim().toUpperCase();
+    if (!cleanCode) {
+      setApplyError('Please enter a referral code.');
+      return;
+    }
+
+    setIsApplying(true);
+    setApplyError('');
+    setApplySuccess('');
+    try {
+      const res = await referralAPI.applyCode(cleanCode);
+      const discount = res?.data?.coupon?.discount ?? refereeDiscount;
+      setApplySuccess(`Referral code applied successfully! You unlocked $${discount} off.`);
+      showToast('Referral code applied! 🎉', 'success');
+      setFriendCode('');
+      await fetchReferralInfo();
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Invalid or expired referral code. Please check and try again.';
+      setApplyError(msg);
+      showToast(msg, 'error');
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   return (
@@ -111,6 +154,114 @@ export default function ReferTab({ user }) {
           </div>
         </div>
       </div>
+
+      {/* Welcome Offer Coupon Card (If Applied) */}
+      {myCoupon && (
+        <div className="bg-gradient-to-r from-[#ecfdf5] to-[#f0fdf4] rounded-3xl p-6 sm:p-7 border border-[#a7f3d0] shadow-sm relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-[#059669] text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Tag className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px] font-black uppercase tracking-wider text-[#047857]">
+                    Your Welcome Reward
+                  </span>
+                  {myCoupon.used ? (
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#e5e7eb] text-[#4b5563]">Used</span>
+                  ) : myCoupon.expired ? (
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#fee2e2] text-[#b91c1c]">Expired</span>
+                  ) : (
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#dcfce7] text-[#15803d]">Ready to Use</span>
+                  )}
+                </div>
+                <h4 className="text-[18px] sm:text-[20px] font-black text-[#111827] mt-0.5">
+                  ${myCoupon.discount} OFF Your First Order
+                </h4>
+                <p className="text-[12px] sm:text-[13px] text-[#4b5563] mt-0.5">
+                  Valid on orders ${myCoupon.minOrder}+ • Apply this code at checkout
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="bg-white px-3.5 py-2 rounded-xl border border-[#a7f3d0] font-mono font-black text-[#047857] text-[15px] tracking-wider select-all">
+                {myCoupon.code}
+              </div>
+              <button
+                onClick={handleCopyMyCoupon}
+                className="h-10 px-4 rounded-xl bg-[#059669] text-white text-[12px] font-black uppercase tracking-wider hover:bg-[#047857] transition-colors flex items-center gap-1.5 shrink-0"
+                title="Copy welcome coupon"
+              >
+                {copiedMyCoupon ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copiedMyCoupon ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Apply Friend's Code Section (If not applied yet) */}
+      {!myCoupon && (
+        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#e5e7eb] shadow-sm">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-[#fff7ed] flex items-center justify-center text-[#c2410c] border border-[#ffedd5]">
+              <Tag className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-[17px] font-bold text-[#111827]">Have a Friend's Referral Code?</h3>
+              <p className="text-[12px] text-[#6b7280]">
+                Enter the referral code shared with you to get ${refereeDiscount} off your first order!
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleApplyFriendCode} className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 max-w-lg">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={friendCode}
+                onChange={(e) => {
+                  setFriendCode(e.target.value.toUpperCase());
+                  if (applyError) setApplyError('');
+                }}
+                placeholder="ENTER CODE (e.g. ED4F2B)"
+                className="w-full h-11 px-4 rounded-xl border border-[#d1d5db] text-[#111827] placeholder-[#9ca3af] font-mono uppercase tracking-wider text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#7a0b10] focus:border-transparent transition"
+                maxLength={20}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isApplying || !friendCode.trim()}
+              className="h-11 px-6 rounded-xl bg-[#7a0b10] text-white text-[13px] font-black uppercase tracking-wider hover:bg-[#680307] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 shrink-0"
+            >
+              {isApplying ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Applying...</span>
+                </>
+              ) : (
+                <span>Apply Code</span>
+              )}
+            </button>
+          </form>
+
+          {applyError && (
+            <div className="mt-3 flex items-center gap-2 text-[12px] font-medium text-[#b91c1c] bg-[#fef2f2] px-3.5 py-2 rounded-xl border border-[#fecaca] max-w-lg">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{applyError}</span>
+            </div>
+          )}
+
+          {applySuccess && (
+            <div className="mt-3 flex items-center gap-2 text-[12px] font-medium text-[#15803d] bg-[#f0fdf4] px-3.5 py-2 rounded-xl border border-[#bbf7d0] max-w-lg">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{applySuccess}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Customer Referral Stats & Activity Card */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#e5e7eb] shadow-sm">

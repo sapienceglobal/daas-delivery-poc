@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:country_picker/country_picker.dart';
-import 'package:single_restaurant_mobile/constants/colors.dart';
+
+const _kMaroon = Color(0xFF7A1414);
+const _kFieldFill = Color(0xFFFCF6F2);
+const _kFieldBorder = Color(0xFFF1E4DC);
+const _kIconBg = Color(0xFFFBE3DF);
 
 class EditProfileTextField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
   final IconData icon;
   final bool readOnly;
+  final bool isRequired;
   final TextInputType? keyboardType;
   final String? Function(String?)? validator;
   final List<TextInputFormatter>? inputFormatters;
@@ -19,6 +24,7 @@ class EditProfileTextField extends StatelessWidget {
     required this.controller,
     required this.icon,
     this.readOnly = false,
+    this.isRequired = true,
     this.keyboardType,
     this.validator,
     this.inputFormatters,
@@ -27,57 +33,104 @@ class EditProfileTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey.shade700,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0F000000), blurRadius: 12, offset: Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text.rich(
+            TextSpan(
+              text: label,
+              children: [
+                if (isRequired)
+                  const TextSpan(
+                    text: ' *',
+                    style: TextStyle(color: Color(0xFFD32F2F)),
+                  ),
+              ],
+            ),
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          readOnly: readOnly,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          validator: validator,
-          onTap: () {
-            if (controller.selection.baseOffset != controller.selection.extentOffset) {
-              final extent = controller.selection.extentOffset;
-              if (extent != -1) {
-                controller.selection = TextSelection.collapsed(offset: extent);
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: controller,
+            readOnly: readOnly,
+            keyboardType: keyboardType,
+            inputFormatters: inputFormatters,
+            validator: validator,
+            onTap: () {
+              if (controller.selection.baseOffset != controller.selection.extentOffset) {
+                final extent = controller.selection.extentOffset;
+                if (extent != -1) {
+                  controller.selection = TextSelection.collapsed(offset: extent);
+                }
               }
-            }
-          },
-          style: TextStyle(color: readOnly ? Colors.grey.shade600 : Colors.black87),
-          decoration: InputDecoration(
-            prefixIcon: prefixWidget ??
-                Icon(
-                  icon,
-                  color: readOnly ? Colors.grey.shade400 : AppColors.secondary,
+            },
+            style: TextStyle(
+              fontSize: 15.5,
+              color: readOnly ? Colors.black54 : Colors.black87,
+            ),
+            decoration: InputDecoration(
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 10, right: 12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: const BoxDecoration(
+                        color: _kIconBg,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, color: _kMaroon, size: 20),
+                    ),
+                    if (prefixWidget != null) ...[
+                      const SizedBox(width: 12),
+                      prefixWidget!,
+                    ],
+                  ],
                 ),
-            filled: true,
-            fillColor: readOnly ? Colors.grey.shade100 : Colors.grey.shade50,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              ),
+              prefixIconConstraints: const BoxConstraints(minHeight: 56),
+              filled: true,
+              fillColor: _kFieldFill,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _kFieldBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _kFieldBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: readOnly ? _kFieldBorder : _kMaroon,
+                  width: readOnly ? 1 : 1.4,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFD32F2F)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 4),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade200),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.secondary),
-            ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 16),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -97,6 +150,7 @@ class EditProfileCountryPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
+      borderRadius: BorderRadius.circular(8),
       onTap: () {
         showCountryPicker(
           context: context,
@@ -114,26 +168,25 @@ class EditProfileCountryPicker extends StatelessWidget {
           onSelect: onSelect,
         );
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$selectedCountryCode $selectedCountryFlag',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                color: Colors.black87,
-              ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(width: 8),
+          Text(
+            selectedCountryCode,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              color: Colors.black87,
             ),
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down, size: 20, color: Colors.black54),
-            const SizedBox(width: 8),
-            Container(width: 1, height: 20, color: Colors.grey.shade300),
-            const SizedBox(width: 12),
-          ],
-        ),
+          ),
+          const SizedBox(width: 6),
+          Text(selectedCountryFlag, style: const TextStyle(fontSize: 18)),
+          const Icon(Icons.arrow_drop_down, size: 22, color: Color(0xFFE0A9A0)),
+          const SizedBox(width: 10),
+          Container(width: 1, height: 26, color: Colors.grey.shade300),
+          const SizedBox(width: 6),
+        ],
       ),
     );
   }

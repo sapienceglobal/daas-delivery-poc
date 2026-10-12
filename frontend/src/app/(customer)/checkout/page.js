@@ -115,7 +115,9 @@ export default function CheckoutPage() {
                 minOrderAmount={c.restaurant?.minimumOrder || 0}
               />
               <div className="hidden lg:block space-y-5">
-                {c.isSingleRestaurantMode && <LoyaltySignupBanner />}
+                {c.isSingleRestaurantMode && (
+                  <LoyaltySignupBanner user={c.user} restaurant={c.restaurant} total={c.total} />
+                )}
                 <SupportCard isSingleRestaurantMode={c.isSingleRestaurantMode} restaurant={c.restaurant} t={t} />
               </div>
             </div>
@@ -125,7 +127,9 @@ export default function CheckoutPage() {
 
         {/* Mobile only: Loyalty and Support at the bottom of the grid */}
         <div className="lg:hidden mt-6 space-y-5">
-          {c.isSingleRestaurantMode && <LoyaltySignupBanner />}
+          {c.isSingleRestaurantMode && (
+            <LoyaltySignupBanner user={c.user} restaurant={c.restaurant} total={c.total} />
+          )}
           <SupportCard isSingleRestaurantMode={c.isSingleRestaurantMode} restaurant={c.restaurant} t={t} />
         </div>
       </div>
@@ -133,6 +137,7 @@ export default function CheckoutPage() {
       <ReviewOrderSection
         step={c.step}
         t={t}
+        user={c.user}
         restaurant={c.restaurant}
         tip={c.tip}
         setTip={c.setTip}

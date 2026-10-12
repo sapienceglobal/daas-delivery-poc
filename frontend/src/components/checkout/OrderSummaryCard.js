@@ -12,6 +12,7 @@ export default function OrderSummaryCard({
   total, quoteError, minOrderAmount = 0, restaurant
 }) {
   const isMinOrderMet = subtotal >= minOrderAmount;
+
   return (
     <div className="rounded-2xl border border-[#e5e7eb] bg-[#ffffff] p-6 shadow-sm ll-slide-panel">
       <h3 className="text-[22px] font-bold font-serif text-[#7a0b10] mb-6">Order Summary</h3>

@@ -4,7 +4,7 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/services/payment_service.dart';
-import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
+import 'package:single_restaurant_mobile/widgets/cards/cards_guest_view.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:single_restaurant_mobile/widgets/common/app_dialog.dart';
 import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
@@ -135,26 +135,12 @@ class _SavedCardsScreenState extends State<SavedCardsScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     if (authProvider.user == null) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: const Text(
-            'Payment Methods',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          centerTitle: true,
-        ),
-        body: const GuestLoginPrompt(
-          icon: Icons.credit_card_outlined,
-          title: 'Login to manage cards',
-          subtitle: 'Securely save your payment methods for faster checkout.',
-        ),
+      return CardsGuestView(
+        onBack: () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+        },
       );
     }
 

@@ -42,6 +42,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.initState();
     _nameController = TextEditingController();
     _phoneController = TextEditingController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<LoyaltyProvider>().fetchHistory();
+      }
+    });
   }
 
   @override
@@ -122,6 +127,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final total = checkout.getTotal(cart, restaurant);
     final isCartEmpty = cart.items.isEmpty;
     final canProceed = !isCartEmpty && checkout.couponPaymentError == null && checkout.isContactComplete;
+
+    final loyalty = Provider.of<LoyaltyProvider>(context);
+    final bool isLoyaltyMember = loyalty.isLoyaltyMember || (auth.user?.isLoyaltyMember ?? false);
+    final loyaltySettings = restaurant?['loyaltySettings'] as Map<String, dynamic>?;
+    final bool loyaltyEnabled = loyaltySettings?['enabled'] != false;
+    final num pointsPerDollar = loyaltySettings?['pointsPerDollar'] ?? 1;
+    final int pointsEarned = (loyaltyEnabled && total > 0) ? (total * pointsPerDollar).floor() : 0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFCF9F2),
@@ -236,6 +248,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         isPlacingOrder: checkout.isPlacingOrder,
         canProceed: canProceed,
         isContactComplete: checkout.isContactComplete,
+        isLoyaltyMember: isLoyaltyMember,
+        pointsEarned: pointsEarned,
         onPlaceOrder: () => _handlePlaceOrder(context, cart, checkout, auth, restaurant),
         onTermsTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsScreen()));

@@ -9,6 +9,7 @@ class ResponsiveCenter extends StatelessWidget {
   final double maxWidth;
   final EdgeInsetsGeometry? padding;
   final double? heightFactor;
+  final AlignmentGeometry alignment;
 
   const ResponsiveCenter({
     super.key,
@@ -16,6 +17,7 @@ class ResponsiveCenter extends StatelessWidget {
     this.maxWidth = AppResponsive.maxContentWidth,
     this.padding,
     this.heightFactor,
+    this.alignment = Alignment.center,
   });
 
   @override
@@ -26,7 +28,8 @@ class ResponsiveCenter extends StatelessWidget {
       content = Padding(padding: padding!, child: content);
     }
 
-    return Center(
+    return Align(
+      alignment: alignment,
       heightFactor: heightFactor,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),

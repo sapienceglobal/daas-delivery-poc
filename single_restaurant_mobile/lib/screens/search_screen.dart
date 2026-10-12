@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/search_provider.dart';
 import 'package:single_restaurant_mobile/theme/app_responsive.dart';
 import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
@@ -23,6 +24,9 @@ class _SearchScreenState extends State<SearchScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _searchFocusNode.requestFocus();
+      // Ensure real menu is loaded for popular/trending sections
+      Provider.of<RestaurantProvider>(context, listen: false)
+          .fetchRestaurantData();
     });
   }
 
@@ -47,25 +51,38 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildSearchBar(BuildContext context, SearchProvider searchProvider) {
+    const maroon = Color(0xFF8B1A1A);
+    const shadow = [
+      BoxShadow(color: Color(0x14000000), blurRadius: 10, offset: Offset(0, 3)),
+    ];
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 8, 12, 8),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       child: Row(
         children: [
-          IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-            icon: const Icon(Icons.arrow_back, color: Colors.red),
-            onPressed: () {
+          GestureDetector(
+            onTap: () {
               searchProvider.clearSearch();
               Navigator.pop(context);
             },
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: shadow,
+              ),
+              child: const Icon(Icons.arrow_back, color: maroon),
+            ),
           ),
+          const SizedBox(width: 12),
           Expanded(
             child: Container(
-              constraints: const BoxConstraints(minHeight: 44),
+              constraints: const BoxConstraints(minHeight: 48),
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: shadow,
               ),
               child: Center(
                 child: TextField(
@@ -77,16 +94,18 @@ class _SearchScreenState extends State<SearchScreen> {
                     if (val.isEmpty && _currentQuery.isNotEmpty) {
                       setState(() => _currentQuery = '');
                       searchProvider.clearSearch();
+                    } else {
+                      setState(() {});
                     }
                   },
                   decoration: InputDecoration(
-                    hintText: 'Search dishes...',
-                    hintStyle: TextStyle(color: Colors.grey.shade600),
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    hintText: 'Search dishes, cuisines...',
+                    hintStyle: TextStyle(color: Colors.grey.shade500),
+                    prefixIcon: const Icon(Icons.search, color: maroon),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.close,
-                                size: 20, color: Colors.grey),
+                            icon: Icon(Icons.cancel_outlined,
+                                size: 20, color: Colors.grey.shade500),
                             onPressed: () {
                               _searchController.clear();
                               setState(() => _currentQuery = '');
@@ -116,7 +135,7 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Text(
                 'Cancel',
                 style: TextStyle(
-                  color: Colors.red,
+                  color: maroon,
                   fontWeight: FontWeight.w600,
                   fontSize: 15,
                 ),

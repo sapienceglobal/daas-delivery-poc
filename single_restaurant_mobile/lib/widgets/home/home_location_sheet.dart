@@ -28,9 +28,11 @@ class HomeLocationSheet extends StatelessWidget {
         variant: AppButtonVariant.primary,
         size: AppButtonSize.large,
         onPressed: () {
-          Navigator.pop(context);
-          Navigator.push(
-            context,
+          final nav = Navigator.of(context);
+          if (nav.canPop()) {
+            nav.pop();
+          }
+          nav.push(
             MaterialPageRoute(
               builder: (context) =>
                   const SavedAddressesScreen(selectingMode: false),
@@ -73,7 +75,9 @@ class HomeLocationSheet extends StatelessWidget {
               return InkWell(
                 onTap: () {
                   addrProv.setDefaultAddress(addr['_id']);
-                  Navigator.pop(context);
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
                 },
                 borderRadius: AppRadius.borderMd,
                 child: Container(

@@ -32,7 +32,7 @@ class GuestLoginCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           splashColor: const Color(0xFF800A12).withValues(alpha: 0.1),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
             child: Row(
               children: [
                 const Icon(
@@ -55,22 +55,38 @@ class GuestLoginCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Text(
-                          isLoading
-                              ? 'Entering menu as guest...'
-                              : 'You can explore our menu and start ordering without creating an account.',
-                          key: ValueKey<bool>(isLoading),
-                          style: TextStyle(
-                            color: isLoading
-                                ? const Color(0xFF800A12)
-                                : const Color(0xFF6B7280),
-                            fontSize: 10.5,
-                            fontWeight: isLoading
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                            height: 1.25,
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 28),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                            return Stack(
+                              alignment: Alignment.topLeft,
+                              children: <Widget>[
+                                ...previousChildren,
+                                ?currentChild,
+                              ],
+                            );
+                          },
+                          child: SizedBox(
+                            key: ValueKey<bool>(isLoading),
+                            width: double.infinity,
+                            child: Text(
+                              isLoading
+                                  ? 'Entering menu as guest...'
+                                  : 'You can explore our menu and start ordering without creating an account.',
+                              textAlign: TextAlign.left,
+                              style: TextStyle(
+                                color: isLoading
+                                    ? const Color(0xFF800A12)
+                                    : const Color(0xFF6B7280),
+                                fontSize: 10.5,
+                                fontWeight: isLoading
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                                height: 1.25,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -83,7 +99,7 @@ class GuestLoginCard extends StatelessWidget {
                   height: 24,
                   child: Center(
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 220),
+                      duration: const Duration(milliseconds: 200),
                       child: isLoading
                           ? const ThreeDotsLoading(
                               key: ValueKey('guest_loader'),

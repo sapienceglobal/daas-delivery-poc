@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, MapPin, Phone, CreditCard, ShoppingBag, Receipt, User, FileText, Clock } from 'lucide-react';
+import { X, MapPin, Phone, CreditCard, ShoppingBag, Receipt, User, FileText, Clock, Sparkles } from 'lucide-react';
 import { formatCurrency, isRestaurantOpenNow, isWithin15MinsOfClosing } from '@/lib/formatters';
 
 export default function ReviewOrderSection({
   step,
   t,
+  user,
   restaurant,
   tip,
   setTip,
@@ -31,6 +32,12 @@ export default function ReviewOrderSection({
   isPlacingOrder,
 }) {
   const [mounted, setMounted] = useState(false);
+
+  const loyaltySettings = restaurant?.loyaltySettings;
+  const loyaltyEnabled = loyaltySettings?.enabled !== false;
+  const pointsPerDollar = loyaltySettings?.pointsPerDollar || 1;
+  const pointsToEarn = loyaltyEnabled && total > 0 ? Math.floor(total * pointsPerDollar) : 0;
+  const isLoyaltyMember = Boolean(user?.isLoyaltyMember);
 
   useEffect(() => {
     setMounted(true);
@@ -279,6 +286,28 @@ export default function ReviewOrderSection({
               <span className="text-[15px] font-bold text-[#1a1a1a] uppercase tracking-wider">Total Amount</span>
               <span className="text-[22px] font-black text-[#7a0b10]">{formatCurrency(total, restaurant?.currency)}</span>
             </div>
+
+            {/* Loyalty points to earn on order completion */}
+            {pointsToEarn > 0 && isLoyaltyMember && (
+              <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-[#fffdf7] to-[#fef3c7] border border-[#fde68a] flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-[#fde68a] flex items-center justify-center text-[#b45309] shrink-0">
+                    <Sparkles className="w-4 h-4 fill-[#f59e0b] text-[#b45309]" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-[#92400e] block">
+                      Points to earn on delivery
+                    </span>
+                    <span className="text-[11px] text-[#78350f]">
+                      Credited automatically once delivered
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[13px] font-black text-[#b45309] bg-[#ffffff] px-2.5 py-1 rounded-lg border border-[#fde68a] shrink-0">
+                  +{pointsToEarn} pts
+                </span>
+              </div>
+            )}
           </div>
 
         </div>
@@ -293,13 +322,22 @@ export default function ReviewOrderSection({
           </button>
           <div className="w-full sm:flex-1 flex flex-col items-center">
             {restaurant && !isRestaurantOpenNow(restaurant.operatingHours, restaurant.timezone) ? (
-              <div className="w-full p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-2 shadow-sm mb-2">
-                <Clock className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                <p className="text-sm text-red-800 font-medium leading-tight text-left">
-                  {isWithin15MinsOfClosing(restaurant.operatingHours, restaurant.timezone)
-                    ? "We're wrapping up for the day! We stop accepting new orders 15 minutes before closing time."
-                    : "The restaurant is currently closed. We are not accepting orders at this time."}
-                </p>
+              <div className="w-full p-3.5 bg-[#fef2f2] border border-[#fecaca] rounded-xl flex items-start gap-3 shadow-sm mb-2">
+                <div className="w-7 h-7 rounded-full bg-[#fee2e2] flex items-center justify-center shrink-0 mt-0.5">
+                  <Clock className="w-4 h-4 text-[#dc2626]" />
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="text-[12px] font-extrabold uppercase tracking-wider text-[#991b1b] mb-0.5">
+                    {isWithin15MinsOfClosing(restaurant.operatingHours, restaurant.timezone)
+                      ? "Closing Soon"
+                      : "Restaurant Closed"}
+                  </div>
+                  <p className="text-[13px] text-[#7f1d1d] font-semibold leading-snug">
+                    {isWithin15MinsOfClosing(restaurant.operatingHours, restaurant.timezone)
+                      ? "We're wrapping up for the day! We stop accepting new orders 15 minutes before closing time."
+                      : "The restaurant is currently closed. We are not accepting orders at this time."}
+                  </p>
+                </div>
               </div>
             ) : (
               <>

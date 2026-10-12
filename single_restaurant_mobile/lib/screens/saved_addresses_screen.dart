@@ -75,7 +75,13 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     if (authProvider.user == null) {
-      return const AddressGuestView();
+      return AddressGuestView(
+        onBack: () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+        },
+      );
     }
 
     return Scaffold(
@@ -85,7 +91,11 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: const Text(
           'Saved Addresses',

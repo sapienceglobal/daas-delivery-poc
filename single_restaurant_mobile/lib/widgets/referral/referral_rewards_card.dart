@@ -43,7 +43,7 @@ class ReferralRewardsCard extends StatelessWidget {
             child: _buildRewardTile(
               backgroundColor: const Color(0xFFFFF9EE),
               imagePath:
-                  'assets/images/branded/lassi-lounge/referral_gift_25.png',
+                  'assets/images/branded/lassi-lounge/referral_gift_box.png',
               label: 'Your Friend Gets',
               amount: '\$$discountStr OFF',
               condition: 'on first order of \$$minOrderStr+',
@@ -63,7 +63,7 @@ class ReferralRewardsCard extends StatelessWidget {
             child: _buildRewardTile(
               backgroundColor: const Color(0xFFFFF2F2),
               imagePath:
-                  'assets/images/branded/lassi-lounge/referral_gift_30.png',
+                  'assets/images/branded/lassi-lounge/referral_gift_box.png',
               label: 'You Get',
               amount: '\$$rewardStr REWARD',
               condition: 'in loyalty points when\nthey complete 1st order',
@@ -89,15 +89,15 @@ class ReferralRewardsCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // 3D Gift box + ticket graphic
+          // 3D Surprise Gift Box Graphic (Clean, no hardcoded dollar amount)
           Image.asset(
             imagePath,
-            height: 44,
+            height: 48,
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) => const Icon(
               Icons.card_giftcard,
               color: Color(0xFF800A12),
-              size: 40,
+              size: 44,
             ),
           ),
           const SizedBox(height: 8),

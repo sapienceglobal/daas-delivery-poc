@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:country_picker/country_picker.dart';
-import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
@@ -108,24 +107,59 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final user = Provider.of<AuthProvider>(context).user;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
-          onPressed: () => Navigator.pop(context),
+      backgroundColor: const Color(0xFFFCF4EE),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFFBEDE6), Color(0xFFFCF6F1), Color(0xFFFBEEE7)],
+          ),
         ),
-        title: const Text(
-          'Edit Profile',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        centerTitle: true,
-      ),
-      body: ResponsiveCenter(
-        maxWidth: 600,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+        child: SafeArea(
+          child: ResponsiveCenter(
+            maxWidth: 600,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: SizedBox(
+                    height: 52,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Container(
+                              width: 46,
+                              height: 46,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFBE0DA),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.arrow_back,
+                                  color: Color(0xFF7A1414)),
+                            ),
+                          ),
+                        ),
+                        const Text(
+                          'Edit Profile',
+                          style: TextStyle(
+                            fontFamily: 'serif',
+                            color: Color(0xFF6E1111),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           child: Form(
             key: _formKey,
             child: Column(
@@ -136,7 +170,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   profilePictureUrl: user?.profilePicture,
                   onTap: _pickImage,
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
                 EditProfileTextField(
                   label: 'Full Name',
                   controller: _nameController,
@@ -150,14 +184,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 EditProfileTextField(
                   label: 'Email Address',
                   controller: _emailController,
                   icon: Icons.email_outlined,
                   readOnly: true,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 EditProfileTextField(
                   label: 'Phone Number',
                   controller: _phoneController,
@@ -193,36 +227,61 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 40),
-                SizedBox(
+                const SizedBox(height: 36),
+                Container(
                   width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _isSaving ? null : _saveProfile,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF8E1616), Color(0xFF6A0F0F)],
                     ),
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            'Save Changes',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x407A1414),
+                        blurRadius: 14,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: _isSaving ? null : _saveProfile,
+                      child: Center(
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Save Changes',
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Icon(Icons.arrow_forward,
+                                      color: Colors.white, size: 20),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
                   ),
                 ),
               ],

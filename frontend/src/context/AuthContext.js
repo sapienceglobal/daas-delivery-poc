@@ -10,7 +10,7 @@ const AuthContext = createContext(null);
 // savedAddresses, savedCards, savedCart are fetched fresh from the server when needed.
 const SAFE_CACHE_FIELDS = [
   '_id', 'name', 'email', 'role', 'avatar', 'phone',
-  'restaurantId', 'loyaltyPoints', 'referralCode', 'isVerified', 'notificationPreferences', 'referralOnboarding'
+  'restaurantId', 'loyaltyPoints', 'isLoyaltyMember', 'referralCode', 'isVerified', 'notificationPreferences', 'referralOnboarding'
 ];
 
 const toSafeCacheObject = (user) => {

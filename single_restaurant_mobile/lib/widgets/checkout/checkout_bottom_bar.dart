@@ -9,6 +9,8 @@ class CheckoutBottomBar extends StatelessWidget {
   final bool isPlacingOrder;
   final bool canProceed;
   final bool isContactComplete;
+  final bool isLoyaltyMember;
+  final int pointsEarned;
   final VoidCallback? onPlaceOrder;
   final VoidCallback onTermsTap;
 
@@ -19,6 +21,8 @@ class CheckoutBottomBar extends StatelessWidget {
     required this.isPlacingOrder,
     required this.canProceed,
     required this.isContactComplete,
+    this.isLoyaltyMember = false,
+    this.pointsEarned = 0,
     this.onPlaceOrder,
     required this.onTermsTap,
   });
@@ -78,6 +82,25 @@ class CheckoutBottomBar extends StatelessWidget {
                               ),
                             ),
                           ),
+                          if (isLoyaltyMember && pointsEarned > 0) ...[
+                            const SizedBox(height: 3),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.stars_rounded, size: 13, color: Color(0xFFFDB714)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '+$pointsEarned pts on delivery',
+                                  style: const TextStyle(
+                                    color: Color(0xFFFDB714),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                    letterSpacing: 0.1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),

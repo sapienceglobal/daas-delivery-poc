@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:just_the_tooltip/just_the_tooltip.dart';
+import 'package:provider/provider.dart';
+import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/checkout_provider.dart';
 import 'package:single_restaurant_mobile/providers/loyalty_provider.dart';
@@ -162,6 +164,218 @@ class CheckoutBillDetails extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+
+          // ── Lassi Lounge Rewards Points Earning Banner ──
+          Builder(
+            builder: (context) {
+              final loyaltySettings = restaurant?['loyaltySettings'] as Map<String, dynamic>?;
+              final bool loyaltyEnabled = loyaltySettings?['enabled'] != false;
+              final num pointsPerDollar = loyaltySettings?['pointsPerDollar'] ?? 1;
+              final int pointsToEarn = (loyaltyEnabled && total > 0)
+                  ? (total * pointsPerDollar).floor()
+                  : 0;
+
+              if (pointsToEarn <= 0) return const SizedBox.shrink();
+
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+              final bool isMember = loyalty.isLoyaltyMember || (auth.user?.isLoyaltyMember ?? false);
+
+              if (isMember) {
+                return Container(
+                  margin: const EdgeInsets.only(top: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFFDE68A)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFDE68A),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFD97706).withValues(alpha: 0.15),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.stars_rounded,
+                            color: Color(0xFFB45309),
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Text(
+                                  'REWARDS MEMBER',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.6,
+                                    color: Color(0xFF92400E),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'ACTIVE',
+                                    style: TextStyle(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF15803D),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            RichText(
+                              text: TextSpan(
+                                style: const TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF78350F),
+                                  height: 1.25,
+                                ),
+                                children: [
+                                  const TextSpan(text: 'Complete this order & earn '),
+                                  TextSpan(
+                                    text: '$pointsToEarn Points!',
+                                    style: const TextStyle(
+                                      color: Color(0xFFB45309),
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            const Text(
+                              'Points will be credited to your account once your order is delivered.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF92400E),
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                return Container(
+                  margin: const EdgeInsets.only(top: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFDF8F3),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFF3E4D6)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFDECEE),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.card_giftcard_rounded,
+                            color: Color(0xFF7A0B10),
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'LASSI LOUNGE REWARDS',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
+                                color: Color(0xFF7A0B10),
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            RichText(
+                              text: TextSpan(
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1E1E1E),
+                                  height: 1.25,
+                                ),
+                                children: [
+                                  const TextSpan(text: 'Join Rewards to earn '),
+                                  TextSpan(
+                                    text: '$pointsToEarn Points',
+                                    style: const TextStyle(
+                                      color: Color(0xFF7A0B10),
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  const TextSpan(text: ' on this order!'),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            const Text(
+                              'Free to join. Redeem points for delicious rewards & discounts.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF757575),
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            },
           ),
         ],
       ),

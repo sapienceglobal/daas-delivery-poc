@@ -7,13 +7,18 @@ import 'package:single_restaurant_mobile/theme/app_responsive.dart';
 import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
 import 'package:single_restaurant_mobile/widgets/menu_item_card.dart';
 import 'package:single_restaurant_mobile/utils/cart_helper.dart';
-import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
+import 'package:single_restaurant_mobile/widgets/favorites/favorites_guest_view.dart';
 
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    if (authProvider.user == null) {
+      return const FavoritesGuestView();
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8F5),
       appBar: AppBar(
@@ -30,14 +35,6 @@ class FavoritesScreen extends StatelessWidget {
         maxWidth: AppResponsive.maxContentWidth,
         child: Consumer2<AuthProvider, RestaurantProvider>(
           builder: (context, authProvider, restaurantProvider, child) {
-            if (authProvider.user == null) {
-              return const GuestLoginPrompt(
-                icon: Icons.favorite_outline,
-                title: 'Login to view favorites',
-                subtitle:
-                    'Save your favorite dishes to re-order them quickly.',
-              );
-            }
 
             final favoriteItemsIds = authProvider.user?.favoriteItems ?? [];
 
@@ -119,14 +116,14 @@ class FavoritesScreen extends StatelessWidget {
                       onAdd: () {
                         AddToCartHelper.handleAddToCart(
                             context,
-                            item as Map<String, dynamic>,
+                            item,
                             cartProvider,
                             restaurantProvider);
                       },
                       onIncrement: () {
                         AddToCartHelper.handleAddToCart(
                             context,
-                            item as Map<String, dynamic>,
+                            item,
                             cartProvider,
                             restaurantProvider);
                       },

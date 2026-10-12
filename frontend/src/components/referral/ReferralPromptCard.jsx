@@ -19,6 +19,15 @@ export default function ReferralPromptCard({
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const pending = localStorage.getItem('pending_referral_code');
+      if (pending && !code) {
+        setCode(pending.toUpperCase());
+      }
+    }
+  }, []);
+
   const discountValue = result?.coupon?.discount ?? programInfo?.refereeDiscountValue ?? 20;
   const minOrderValue = result?.coupon?.minOrder ?? programInfo?.refereeMinOrder ?? 0;
 
@@ -35,6 +44,9 @@ export default function ReferralPromptCard({
     try {
       const res = await referralAPI.applyCode(cleanCode);
       setResult(res?.data || {});
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('pending_referral_code');
+      }
       showToast('Referral code applied! 🎉', 'success');
     } catch (err) {
       setError(err.message || 'Invalid or expired referral code. Please check and try again.');

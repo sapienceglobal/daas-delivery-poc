@@ -55,13 +55,24 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get('redirect') || '';
+  const refCodeParam = searchParams.get('ref') || searchParams.get('referral');
   const { login, register, socialLogin, logout, isAuthenticated, user, loading: authLoading } = useAuth();
   const { brand } = useBrand();
   const isSingleMode = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
-  const [isRegister, setIsRegister] = useState(false);
+  const [isRegister, setIsRegister] = useState(() => {
+    return searchParams.get('mode') === 'register' || searchParams.get('signup') === 'true' || !!refCodeParam;
+  });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (refCodeParam && typeof window !== 'undefined') {
+      const cleanRef = refCodeParam.toUpperCase().trim();
+      localStorage.setItem('pending_referral_code', cleanRef);
+      document.cookie = `pending_referral_code=${encodeURIComponent(cleanRef)}; path=/; max-age=2592000; SameSite=Lax`;
+    }
+  }, [refCodeParam]);
 
   const [form, setForm] = useState({
     name: '', email: '', password: '', phone: '', role: 'customer', rememberMe: true

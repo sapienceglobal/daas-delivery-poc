@@ -217,13 +217,22 @@ export default function CartSidebar() {
             </div>
             
             {restaurant && !isRestaurantOpenNow(restaurant.operatingHours, restaurant.timezone) ? (
-              <div className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-2">
-                <Clock className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                <p className="text-sm text-red-800 font-medium leading-tight">
-                  {isWithin15MinsOfClosing(restaurant.operatingHours, restaurant.timezone)
-                    ? "We're wrapping up for the day! We stop accepting new orders 15 minutes before closing time."
-                    : "The restaurant is currently closed. We are not accepting orders at this time."}
-                </p>
+              <div className="p-3.5 bg-[#fef2f2] border border-[#fecaca] rounded-xl flex items-start gap-3 shadow-sm">
+                <div className="w-7 h-7 rounded-full bg-[#fee2e2] flex items-center justify-center shrink-0 mt-0.5">
+                  <Clock className="w-4 h-4 text-[#dc2626]" />
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="text-[12px] font-extrabold uppercase tracking-wider text-[#991b1b] mb-0.5">
+                    {isWithin15MinsOfClosing(restaurant.operatingHours, restaurant.timezone)
+                      ? "Closing Soon"
+                      : "Restaurant Closed"}
+                  </div>
+                  <p className="text-[13px] text-[#7f1d1d] font-semibold leading-snug">
+                    {isWithin15MinsOfClosing(restaurant.operatingHours, restaurant.timezone)
+                      ? "We're wrapping up for the day! We stop accepting new orders 15 minutes before closing time."
+                      : "The restaurant is currently closed. We are not accepting orders at this time."}
+                  </p>
+                </div>
               </div>
             ) : (
               <Button 

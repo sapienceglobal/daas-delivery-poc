@@ -13,6 +13,7 @@ class UserModel {
   final List<dynamic>? savedCards;
   final List<dynamic>? favoriteItems;
   final int loyaltyPoints;
+  final bool isLoyaltyMember;
   final String? referralCode;
   final String referralOnboarding;
   final Map<String, dynamic>? notificationPreferences;
@@ -31,6 +32,7 @@ class UserModel {
     this.savedCards,
     this.favoriteItems,
     this.loyaltyPoints = 0,
+    this.isLoyaltyMember = false,
     this.referralCode,
     this.referralOnboarding = 'none',
     this.notificationPreferences,
@@ -54,6 +56,7 @@ class UserModel {
       savedCards: json['savedCards'] as List<dynamic>?,
       favoriteItems: json['favoriteItems'] as List<dynamic>?,
       loyaltyPoints: json['loyaltyPoints'] ?? 0,
+      isLoyaltyMember: json['isLoyaltyMember'] ?? false,
       referralCode: json['referralCode'],
       referralOnboarding: json['referralOnboarding'] ?? 'none',
       notificationPreferences: json['notificationPreferences'] as Map<String, dynamic>?,

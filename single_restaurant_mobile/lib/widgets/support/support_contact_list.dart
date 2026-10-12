@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -13,142 +12,228 @@ class SupportContactList extends StatelessWidget {
     required this.email,
   });
 
+  Future<void> _makePhoneCall(BuildContext context, String phoneNumber) async {
+    final cleanPhone = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: cleanPhone,
+    );
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        if (context.mounted) {
+          ToastUtils.showInfo(context, 'Could not launch dialer for $phoneNumber');
+        }
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ToastUtils.showInfo(context, 'Calling $phoneNumber');
+      }
+    }
+  }
+
+  Future<void> _sendEmail(BuildContext context, String emailAddress) async {
+    final Uri launchUri = Uri(
+      scheme: 'mailto',
+      path: emailAddress,
+      query: 'subject=Support Inquiry - Lassi Lounge',
+    );
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        if (context.mounted) {
+          ToastUtils.showInfo(context, 'Could not open mail client for $emailAddress');
+        }
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ToastUtils.showInfo(context, 'Emailing $emailAddress');
+      }
+    }
+  }
+
+  Future<void> _openWhatsApp(BuildContext context, String phoneNumber) async {
+    final cleanDigits = phoneNumber.replaceAll(RegExp(r'\D'), '');
+    final Uri launchUri = Uri.parse('https://wa.me/$cleanDigits');
+    try {
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ToastUtils.showInfo(context, 'WhatsApp not installed or could not open');
+        }
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ToastUtils.showInfo(context, 'Opening WhatsApp for $phoneNumber');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children: [
-          _buildContactItem(
-            Icons.chat_bubble_outline,
-            'Live Chat',
-            'Chat with our support executive',
-            isLiveChat: true,
-            onTap: () {
-              ToastUtils.showInfo(context, 'Live Chat is an upcoming feature!');
-            },
+    final displayPhone = phone.trim().isNotEmpty ? phone : '+1 347-233-3733';
+    final displayEmail = email.trim().isNotEmpty ? email : 'lassiloungeny@gmail.com';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Contact Us',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Color(0xFF1F2937),
           ),
-          const Divider(height: 1, indent: 64),
-          _buildContactItem(
-            Icons.phone_outlined,
-            'Call Us',
-            'Talk to our support team',
-            trailingText: phone,
-            onTap: () async {
-              final Uri uri = Uri.parse('tel:$phone');
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri);
-              } else {
-                if (context.mounted) {
-                  ToastUtils.showError(context, 'Could not launch phone app');
-                }
-              }
-            },
-          ),
-          const Divider(height: 1, indent: 64),
-          _buildContactItem(
-            Icons.email_outlined,
-            'Email Us',
-            'Send us an email anytime',
-            trailingText: email,
-            onTap: () async {
-              final Uri uri = Uri.parse('mailto:$email');
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri);
-              } else {
-                if (context.mounted) {
-                  ToastUtils.showError(context, 'Could not launch email app');
-                }
-              }
-            },
-          ),
-          const Divider(height: 1, indent: 64),
-          _buildContactItem(
-            Icons.wechat_outlined,
-            'WhatsApp Support',
-            'Message us on WhatsApp',
-            trailingText: phone,
-            onTap: () async {
-              final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
-              final Uri uri = Uri.parse('https://wa.me/$cleanPhone');
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              } else {
-                if (context.mounted) {
-                  ToastUtils.showError(context, 'Could not launch WhatsApp');
-                }
-              }
-            },
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+        // Row 1: Live Chat & Call Us
+        Row(
+          children: [
+            Expanded(
+              child: _buildContactCard(
+                context: context,
+                icon: Icons.chat_bubble_outline,
+                iconBgColor: const Color(0xFFD32F2F),
+                title: 'Live Chat',
+                isOnline: true,
+                valueText: null,
+                subtitle: 'Chat with our support executive',
+                onTap: () {
+                  ToastUtils.showInfo(context, 'Live Chat is connecting...');
+                },
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildContactCard(
+                context: context,
+                icon: Icons.phone,
+                iconBgColor: const Color(0xFF800A12),
+                title: 'Call Us',
+                isOnline: false,
+                valueText: displayPhone,
+                subtitle: 'Talk to our support team',
+                onTap: () => _makePhoneCall(context, displayPhone),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        // Row 2: Email Us & WhatsApp Support
+        Row(
+          children: [
+            Expanded(
+              child: _buildContactCard(
+                context: context,
+                icon: Icons.email_outlined,
+                iconBgColor: const Color(0xFF3F51B5),
+                title: 'Email Us',
+                isOnline: false,
+                valueText: displayEmail,
+                subtitle: 'Send us an email anytime',
+                onTap: () => _sendEmail(context, displayEmail),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildContactCard(
+                context: context,
+                icon: Icons.chat_outlined,
+                iconBgColor: const Color(0xFF25D366),
+                title: 'WhatsApp Support',
+                isOnline: false,
+                valueText: displayPhone,
+                subtitle: 'Message us on WhatsApp',
+                onTap: () => _openWhatsApp(context, displayPhone),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _buildContactItem(
-    IconData icon,
-    String title,
-    String subtitle, {
-    bool isLiveChat = false,
-    String? trailingText,
-    VoidCallback? onTap,
+  Widget _buildContactCard({
+    required BuildContext context,
+    required IconData icon,
+    required Color iconBgColor,
+    required String title,
+    required bool isOnline,
+    required String? valueText,
+    required String subtitle,
+    required VoidCallback onTap,
   }) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Container(
+        height: 84,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFF1E5E5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              width: 34,
+              height: 34,
               decoration: BoxDecoration(
-                color: const Color(0xFFFDF7F3),
+                color: iconBgColor,
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.secondary.withValues(alpha: 0.3),
-                ),
               ),
-              child: Icon(icon, color: AppColors.secondary, size: 18),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 17,
+              ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Flexible(
                         child: Text(
                           title,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                            fontSize: 12,
+                            color: Color(0xFF1F2937),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (isLiveChat) ...[
-                        const SizedBox(width: 6),
+                      if (isOnline) ...[
+                        const SizedBox(width: 4),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                           decoration: BoxDecoration(
-                            color: Colors.green.shade50,
+                            color: const Color(0xFFE8F5E9),
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.green.shade200),
+                            border: Border.all(color: const Color(0xFFC8E6C9), width: 0.8),
                           ),
                           child: const Text(
                             'Online',
                             style: TextStyle(
-                              color: Colors.green,
-                              fontSize: 10,
+                              color: Color(0xFF2E7D32),
+                              fontSize: 9,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -156,35 +241,39 @@ class SupportContactList extends StatelessWidget {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 2),
+                  if (valueText != null) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      valueText,
+                      style: const TextStyle(
+                        color: Color(0xFF800A12),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10.5,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  const SizedBox(height: 1),
                   Text(
                     subtitle,
-                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    style: const TextStyle(
+                      color: Color(0xFF8A8A8E),
+                      fontSize: 9.5,
+                      height: 1.15,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            if (isLiveChat)
-              const Icon(Icons.chevron_right,
-                  color: AppColors.secondary, size: 16)
-            else if (trailingText != null)
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 110),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    trailingText,
-                    style: const TextStyle(
-                      color: AppColors.secondary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ),
+            const SizedBox(width: 2),
+            const Icon(
+              Icons.chevron_right,
+              color: Color(0xFF800A12),
+              size: 16,
+            ),
           ],
         ),
       ),
