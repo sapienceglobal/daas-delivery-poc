@@ -8,6 +8,8 @@ class MenuEmptyFilterState extends StatelessWidget {
   final VoidCallback onResetFilter;
   final VoidCallback? onShowAllCategories;
   final ValueChanged<String>? onSwitchVegFilter;
+  final String? customTitle;
+  final String? customSubtitle;
 
   const MenuEmptyFilterState({
     super.key,
@@ -16,6 +18,8 @@ class MenuEmptyFilterState extends StatelessWidget {
     required this.onResetFilter,
     this.onShowAllCategories,
     this.onSwitchVegFilter,
+    this.customTitle,
+    this.customSubtitle,
   });
 
   @override
@@ -50,17 +54,19 @@ class MenuEmptyFilterState extends StatelessWidget {
             : Icons.soup_kitchen_outlined;
 
     // Industry-standard copy
-    final String title = isVeg
-        ? (cleanCat == 'All' ? 'No Vegetarian Dishes Found' : 'No Vegetarian Dishes in $cleanCat')
-        : isNonVeg
-            ? (cleanCat == 'All' ? 'No Non-Veg Dishes Found' : 'No Non-Veg Dishes in $cleanCat')
-            : (cleanCat == 'All' ? 'No Dishes Available' : 'No Dishes in $cleanCat');
+    final String title = customTitle ??
+        (isVeg
+            ? (cleanCat == 'All' ? 'No Vegetarian Dishes Found' : 'No Vegetarian Dishes in $cleanCat')
+            : isNonVeg
+                ? (cleanCat == 'All' ? 'No Non-Veg Dishes Found' : 'No Non-Veg Dishes in $cleanCat')
+                : (cleanCat == 'All' ? 'No Dishes Available' : 'No Dishes in $cleanCat'));
 
-    final String subtitle = isVeg
-        ? 'We don\'t have any pure vegetarian options in this section right now. Reset your filter to explore all available dishes.'
-        : isNonVeg
-            ? 'We don\'t have any non-vegetarian options in this section right now. Reset your filter to explore all available dishes.'
-            : 'This section currently has no dishes listed. Try checking out our other popular categories.';
+    final String subtitle = customSubtitle ??
+        (isVeg
+            ? 'We don\'t have any pure vegetarian options in this section right now. Reset your filter to explore all available dishes.'
+            : isNonVeg
+                ? 'We don\'t have any non-vegetarian options in this section right now. Reset your filter to explore all available dishes.'
+                : 'This section currently has no dishes listed. Try checking out our other popular categories.');
 
     return Container(
       width: double.infinity,

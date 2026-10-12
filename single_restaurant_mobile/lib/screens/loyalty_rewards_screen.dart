@@ -291,23 +291,25 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                'Welcome back, $name! 👋',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                  color: Colors.white,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 6),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Welcome back, $name! 👋',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 17,
-                      color: Colors.white,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                     decoration: BoxDecoration(
                       color: const Color(0xFFC88A2E).withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: const Color(0xFFFFD56B).withValues(alpha: 0.7),
                         width: 1,
@@ -316,28 +318,32 @@ class _LoyaltyRewardsScreenState extends State<LoyaltyRewardsScreen> {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.workspace_premium, color: Color(0xFFFFD56B), size: 15),
+                        Icon(Icons.workspace_premium, color: Color(0xFFFFD56B), size: 14),
                         SizedBox(width: 4),
                         Text(
                           'Gold Member',
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
-                            fontSize: 11.5,
+                            fontSize: 11,
                             color: Color(0xFFFFE082),
                           ),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'You\'re saving more with every order.',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.82),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
                 ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'You\'re saving more with every order.',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontSize: 12,
-                ),
               ),
               const SizedBox(height: 18),
               Container(

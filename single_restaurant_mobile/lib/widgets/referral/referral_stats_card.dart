@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:single_restaurant_mobile/widgets/shimmer_loading.dart';
 
 class ReferralStatsCard extends StatelessWidget {
   final num pointsEarned;
@@ -9,6 +10,7 @@ class ReferralStatsCard extends StatelessWidget {
   final int maxRewards;
   final num rewardValue;
   final List<dynamic> friendsList;
+  final bool isLoading;
 
   const ReferralStatsCard({
     super.key,
@@ -19,6 +21,7 @@ class ReferralStatsCard extends StatelessWidget {
     required this.maxRewards,
     required this.rewardValue,
     this.friendsList = const [],
+    this.isLoading = false,
   });
 
   @override
@@ -75,35 +78,48 @@ class ReferralStatsCard extends StatelessWidget {
                           color: const Color(0xFF1B0C06),
                         ),
                       ),
-                      Text(
-                        maxRewards > 0
-                            ? '$friendsRewarded of $maxRewards rewards claimed'
-                            : '$friendsRewarded successful referrals',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF6B7280),
+                      if (isLoading)
+                        const BaseShimmer(
+                          child: Padding(
+                            padding: EdgeInsets.only(top: 3),
+                            child: ShimmerBox(width: 130, height: 11, borderRadius: 3),
+                          ),
+                        )
+                      else
+                        Text(
+                          maxRewards > 0
+                              ? '$friendsRewarded of $maxRewards rewards claimed'
+                              : '$friendsRewarded successful referrals',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
                 // Remaining Limit Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFAF7F2),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFC99742)),
-                  ),
-                  child: Text(
-                    remainingInvites != null ? '$remainingInvites Left' : 'Unlimited',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF4A0E13),
+                if (isLoading)
+                  const BaseShimmer(
+                    child: ShimmerBox(width: 52, height: 22, borderRadius: 8),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF7F2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFC99742)),
+                    ),
+                    child: Text(
+                      remainingInvites != null ? '$remainingInvites Left' : 'Unlimited',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF4A0E13),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -282,16 +298,23 @@ class ReferralStatsCard extends StatelessWidget {
           children: [
             Icon(icon, size: 17, color: color),
             const SizedBox(height: 4),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            isLoading
+                ? const BaseShimmer(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 2),
+                      child: ShimmerBox(width: 44, height: 13, borderRadius: 3),
+                    ),
+                  )
+                : Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
             const SizedBox(height: 1),
             Text(
               title,

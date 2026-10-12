@@ -35,23 +35,24 @@ function OtpVerificationContent() {
   const [formError, setFormError] = useState('');
   const inputRefs = useRef([]);
 
-  const [isReferralStep, setIsReferralStep] = useState(false);
+  const isStepReferral = searchParams.get('step') === 'referral';
+  const [isReferralStep, setIsReferralStep] = useState(isStepReferral);
   const [programInfo, setProgramInfo] = useState(null);
 
   useEffect(() => {
-    if (!effectiveEmail && searchParams.get('step') !== 'referral') {
+    if (!effectiveEmail && !isStepReferral && !isReferralStep) {
       router.replace('/login');
     }
-  }, [effectiveEmail, searchParams, router]);
+  }, [effectiveEmail, isStepReferral, isReferralStep, router]);
 
   useEffect(() => {
-    if (searchParams.get('step') === 'referral') {
+    if (isStepReferral || isReferralStep) {
       setIsReferralStep(true);
       referralAPI.getProgram().then((res) => {
         if (res?.data) setProgramInfo(res.data);
       }).catch(() => {});
     }
-  }, [searchParams]);
+  }, [isStepReferral, isReferralStep]);
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
@@ -152,7 +153,7 @@ function OtpVerificationContent() {
     }
   };
 
-  if (!effectiveEmail && searchParams.get('step') !== 'referral') return null;
+  if (!effectiveEmail && !isReferralStep && !isStepReferral) return null;
 
   return (
     <div className="min-h-screen flex bg-white font-sans">

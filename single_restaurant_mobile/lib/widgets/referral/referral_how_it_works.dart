@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:single_restaurant_mobile/widgets/shimmer_loading.dart';
 
 /// 4-Step "How It Works" Process Stepper matching reference design.
 class ReferralHowItWorks extends StatelessWidget {
   final num refereeDiscount;
   final num referrerReward;
+  final bool isLoading;
 
   const ReferralHowItWorks({
     super.key,
     this.refereeDiscount = 25,
     this.referrerReward = 25,
+    this.isLoading = false,
   });
 
   @override
@@ -78,26 +81,45 @@ class ReferralHowItWorks extends StatelessWidget {
                 child: _buildStep(
                   stepNumber: '3',
                   icon: Icons.local_offer_outlined,
-                  textWidget: RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 10.5,
-                        color: Color(0xFF374151),
-                        height: 1.25,
-                      ),
-                      children: [
-                        const TextSpan(text: 'They get\n'),
-                        TextSpan(
-                          text: '\$${refereeDiscount.toInt()} OFF',
-                          style: const TextStyle(
-                            color: Color(0xFF7B1113),
-                            fontWeight: FontWeight.bold,
+                  textWidget: isLoading
+                      ? const BaseShimmer(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'They get\n',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  color: Color(0xFF374151),
+                                  height: 1.25,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              ShimmerBox(width: 48, height: 11, borderRadius: 3),
+                            ],
+                          ),
+                        )
+                      : RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            style: const TextStyle(
+                              fontSize: 10.5,
+                              color: Color(0xFF374151),
+                              height: 1.25,
+                            ),
+                            children: [
+                              const TextSpan(text: 'They get\n'),
+                              TextSpan(
+                                text: '\$${refereeDiscount.toInt()} OFF',
+                                style: const TextStyle(
+                                  color: Color(0xFF7B1113),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
               _buildArrow(),
@@ -105,26 +127,45 @@ class ReferralHowItWorks extends StatelessWidget {
                 child: _buildStep(
                   stepNumber: '4',
                   icon: Icons.card_giftcard_outlined,
-                  textWidget: RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 10.5,
-                        color: Color(0xFF374151),
-                        height: 1.25,
-                      ),
-                      children: [
-                        const TextSpan(text: 'You get\n'),
-                        TextSpan(
-                          text: '\$${referrerReward.toInt()} Reward',
-                          style: const TextStyle(
-                            color: Color(0xFF7B1113),
-                            fontWeight: FontWeight.bold,
+                  textWidget: isLoading
+                      ? const BaseShimmer(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'You get\n',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  color: Color(0xFF374151),
+                                  height: 1.25,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              ShimmerBox(width: 52, height: 11, borderRadius: 3),
+                            ],
+                          ),
+                        )
+                      : RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            style: const TextStyle(
+                              fontSize: 10.5,
+                              color: Color(0xFF374151),
+                              height: 1.25,
+                            ),
+                            children: [
+                              const TextSpan(text: 'You get\n'),
+                              TextSpan(
+                                text: '\$${referrerReward.toInt()} Reward',
+                                style: const TextStyle(
+                                  color: Color(0xFF7B1113),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
             ],

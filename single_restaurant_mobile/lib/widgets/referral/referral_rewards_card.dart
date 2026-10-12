@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:single_restaurant_mobile/widgets/shimmer_loading.dart';
 
 /// Double Reward Cards displaying "Your Friend Gets $20 OFF"
 /// and "You Get $25 OFF" matching reference design.
@@ -7,12 +8,14 @@ class ReferralRewardsCard extends StatelessWidget {
   final num refereeDiscount;
   final num referrerReward;
   final num refereeMinOrder;
+  final bool isLoading;
 
   const ReferralRewardsCard({
     super.key,
     this.refereeDiscount = 25,
     this.referrerReward = 25,
     this.refereeMinOrder = 30,
+    this.isLoading = false,
   });
 
   @override
@@ -45,8 +48,37 @@ class ReferralRewardsCard extends StatelessWidget {
               imagePath:
                   'assets/images/branded/lassi-lounge/referral_gift_box.png',
               label: 'Your Friend Gets',
-              amount: '\$$discountStr OFF',
-              condition: 'on first order of \$$minOrderStr+',
+              amountWidget: isLoading
+                  ? const BaseShimmer(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 3),
+                        child: ShimmerBox(width: 78, height: 20, borderRadius: 5),
+                      ),
+                    )
+                  : Text(
+                      '\$$discountStr OFF',
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF7B1113),
+                      ),
+                    ),
+              conditionWidget: isLoading
+                  ? const BaseShimmer(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 4),
+                        child: ShimmerBox(width: 90, height: 11, borderRadius: 3),
+                      ),
+                    )
+                  : Text(
+                      'on first order of \$$minOrderStr+',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        color: Color(0xFF6B7280),
+                        height: 1.25,
+                      ),
+                    ),
             ),
           ),
 
@@ -65,8 +97,43 @@ class ReferralRewardsCard extends StatelessWidget {
               imagePath:
                   'assets/images/branded/lassi-lounge/referral_gift_box.png',
               label: 'You Get',
-              amount: '\$$rewardStr REWARD',
-              condition: 'in loyalty points when\nthey complete 1st order',
+              amountWidget: isLoading
+                  ? const BaseShimmer(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 3),
+                        child: ShimmerBox(width: 88, height: 20, borderRadius: 5),
+                      ),
+                    )
+                  : Text(
+                      '\$$rewardStr REWARD',
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF7B1113),
+                      ),
+                    ),
+              conditionWidget: isLoading
+                  ? const BaseShimmer(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 4),
+                        child: Column(
+                          children: [
+                            ShimmerBox(width: 86, height: 10, borderRadius: 3),
+                            SizedBox(height: 3),
+                            ShimmerBox(width: 72, height: 10, borderRadius: 3),
+                          ],
+                        ),
+                      ),
+                    )
+                  : const Text(
+                      'in loyalty points when\nthey complete 1st order',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: Color(0xFF6B7280),
+                        height: 1.25,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -78,8 +145,8 @@ class ReferralRewardsCard extends StatelessWidget {
     required Color backgroundColor,
     required String imagePath,
     required String label,
-    required String amount,
-    required String condition,
+    required Widget amountWidget,
+    required Widget conditionWidget,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
@@ -112,25 +179,11 @@ class ReferralRewardsCard extends StatelessWidget {
           ),
           const SizedBox(height: 3),
 
-          Text(
-            amount,
-            style: GoogleFonts.playfairDisplay(
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
-              color: const Color(0xFF7B1113),
-            ),
-          ),
+          amountWidget,
+
           const SizedBox(height: 4),
 
-          Text(
-            condition,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 10.5,
-              color: Color(0xFF6B7280),
-              height: 1.25,
-            ),
-          ),
+          conditionWidget,
         ],
       ),
     );

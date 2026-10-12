@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Share2, Copy, Check, Users, Gift, ArrowRight, 
-  Sparkles, Clock, CheckCircle2, Award, TrendingUp, Info, Tag, AlertCircle, Loader2
+  Sparkles, Clock, CheckCircle2, Award, TrendingUp, Info
 } from 'lucide-react';
 import { referralAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
@@ -14,12 +14,6 @@ export default function ReferTab({ user }) {
   const [copiedMyCoupon, setCopiedMyCoupon] = useState(false);
   const [referralData, setReferralData] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Apply friend code state
-  const [friendCode, setFriendCode] = useState('');
-  const [isApplying, setIsApplying] = useState(false);
-  const [applyError, setApplyError] = useState('');
-  const [applySuccess, setApplySuccess] = useState('');
 
   useEffect(() => {
     fetchReferralInfo();
@@ -75,33 +69,6 @@ export default function ReferTab({ user }) {
     setCopiedMyCoupon(true);
     showToast('Coupon code copied to clipboard!', 'success');
     setTimeout(() => setCopiedMyCoupon(false), 2000);
-  };
-
-  const handleApplyFriendCode = async (e) => {
-    e?.preventDefault();
-    const cleanCode = friendCode.trim().toUpperCase();
-    if (!cleanCode) {
-      setApplyError('Please enter a referral code.');
-      return;
-    }
-
-    setIsApplying(true);
-    setApplyError('');
-    setApplySuccess('');
-    try {
-      const res = await referralAPI.applyCode(cleanCode);
-      const discount = res?.data?.coupon?.discount ?? refereeDiscount;
-      setApplySuccess(`Referral code applied successfully! You unlocked $${discount} off.`);
-      showToast('Referral code applied! 🎉', 'success');
-      setFriendCode('');
-      await fetchReferralInfo();
-    } catch (err) {
-      const msg = err?.response?.data?.message || err?.message || 'Invalid or expired referral code. Please check and try again.';
-      setApplyError(msg);
-      showToast(msg, 'error');
-    } finally {
-      setIsApplying(false);
-    }
   };
 
   return (
@@ -199,67 +166,6 @@ export default function ReferTab({ user }) {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Apply Friend's Code Section (If not applied yet) */}
-      {!myCoupon && (
-        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#e5e7eb] shadow-sm">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-[#fff7ed] flex items-center justify-center text-[#c2410c] border border-[#ffedd5]">
-              <Tag className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-[17px] font-bold text-[#111827]">Have a Friend's Referral Code?</h3>
-              <p className="text-[12px] text-[#6b7280]">
-                Enter the referral code shared with you to get ${refereeDiscount} off your first order!
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleApplyFriendCode} className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 max-w-lg">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={friendCode}
-                onChange={(e) => {
-                  setFriendCode(e.target.value.toUpperCase());
-                  if (applyError) setApplyError('');
-                }}
-                placeholder="ENTER CODE (e.g. ED4F2B)"
-                className="w-full h-11 px-4 rounded-xl border border-[#d1d5db] text-[#111827] placeholder-[#9ca3af] font-mono uppercase tracking-wider text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-[#7a0b10] focus:border-transparent transition"
-                maxLength={20}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={isApplying || !friendCode.trim()}
-              className="h-11 px-6 rounded-xl bg-[#7a0b10] text-white text-[13px] font-black uppercase tracking-wider hover:bg-[#680307] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 shrink-0"
-            >
-              {isApplying ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Applying...</span>
-                </>
-              ) : (
-                <span>Apply Code</span>
-              )}
-            </button>
-          </form>
-
-          {applyError && (
-            <div className="mt-3 flex items-center gap-2 text-[12px] font-medium text-[#b91c1c] bg-[#fef2f2] px-3.5 py-2 rounded-xl border border-[#fecaca] max-w-lg">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{applyError}</span>
-            </div>
-          )}
-
-          {applySuccess && (
-            <div className="mt-3 flex items-center gap-2 text-[12px] font-medium text-[#15803d] bg-[#f0fdf4] px-3.5 py-2 rounded-xl border border-[#bbf7d0] max-w-lg">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{applySuccess}</span>
-            </div>
-          )}
         </div>
       )}
 

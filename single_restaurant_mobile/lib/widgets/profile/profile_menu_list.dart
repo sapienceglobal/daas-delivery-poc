@@ -139,7 +139,7 @@ class ProfileMenuList extends StatelessWidget {
           _buildMenuItem(
             Icons.info_outline,
             'About Lassi Lounge',
-            'Version $appVersion',
+            'Version ${appVersion.split('+').first}',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AboutUsScreen()),

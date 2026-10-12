@@ -98,11 +98,15 @@ class SupportContactList extends StatelessWidget {
                 icon: Icons.chat_bubble_outline,
                 iconBgColor: const Color(0xFFD32F2F),
                 title: 'Live Chat',
-                isOnline: true,
+                isOnline: false,
+                badgeText: 'Soon',
+                badgeColor: const Color(0xFFE65100),
+                badgeBgColor: const Color(0xFFFFF3E0),
                 valueText: null,
                 subtitle: 'Chat with our support executive',
                 onTap: () {
-                  ToastUtils.showInfo(context, 'Live Chat is connecting...');
+                  ToastUtils.showInfo(
+                      context, 'Live Chat is an upcoming feature! Coming soon.');
                 },
               ),
             ),
@@ -161,7 +165,10 @@ class SupportContactList extends StatelessWidget {
     required IconData icon,
     required Color iconBgColor,
     required String title,
-    required bool isOnline,
+    bool isOnline = false,
+    String? badgeText,
+    Color? badgeColor,
+    Color? badgeBgColor,
     required String? valueText,
     required String subtitle,
     required VoidCallback onTap,
@@ -220,7 +227,28 @@ class SupportContactList extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (isOnline) ...[
+                      if (badgeText != null) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: badgeBgColor ?? const Color(0xFFFFF3E0),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: (badgeColor ?? const Color(0xFFE65100)).withValues(alpha: 0.3),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            badgeText,
+                            style: TextStyle(
+                              color: badgeColor ?? const Color(0xFFE65100),
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ] else if (isOnline) ...[
                         const SizedBox(width: 4),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),

@@ -217,6 +217,11 @@ function LoginPageContent() {
       const userData = await socialLogin('google', credentialResponse.credential, form.role);
       showToast(isRegister ? 'Account created via Google!' : 'Signed in via Google!', 'success');
 
+      if (userData?.role === 'customer' && userData?.referralOnboarding === 'pending') {
+        window.location.href = `/verify-otp?email=${encodeURIComponent(userData.email || '')}&step=referral`;
+        return;
+      }
+
       // handled by the useEffect above
     } catch (err) {
       setFormError(err.message || 'Google authentication failed');

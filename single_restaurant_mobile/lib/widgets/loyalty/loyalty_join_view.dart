@@ -223,7 +223,7 @@ class LoyaltyJoinView extends StatelessWidget {
 
           return Stack(
             children: [
-              // 1. Subtle top-right Mandala watermark
+              // 1. Subtle top-right Mandala watermark (decorative background)
               Positioned(
                 top: 0,
                 right: -60,
@@ -240,24 +240,7 @@ class LoyaltyJoinView extends StatelessWidget {
                 ),
               ),
 
-              // 2. Bottom authentic food photography (Kadhai curry & garlic naan)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: IgnorePointer(
-                  child: Image.asset(
-                    'assets/images/branded/lassi-lounge/empty_cart_bottom_food.png',
-                    width: double.infinity,
-                    height: isSmall ? 110 : 150,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.bottomCenter,
-                    errorBuilder: (context, error, stackTrace) => const SizedBox(),
-                  ),
-                ),
-              ),
-
-              // 3. Foreground content
+              // 2. Foreground unified scrollable content
               SafeArea(
                 top: false,
                 bottom: true,
@@ -269,16 +252,16 @@ class LoyaltyJoinView extends StatelessWidget {
                     physics: const BouncingScrollPhysics(),
                     child: Column(
                       children: [
-                        const SizedBox(height: 12),
+                        SizedBox(height: isSmall ? 8 : 12),
 
                         // Logo: Lassi Lounge INDIAN RESTAURANT
                         _buildBrandLogo(),
 
-                        const SizedBox(height: 14),
+                        SizedBox(height: isSmall ? 10 : 14),
 
                         // Hero 3D Gold Medal Illustration
                         SizedBox(
-                          height: isSmall ? 190 : 230,
+                          height: isSmall ? 180 : 220,
                           child: Image.asset(
                             'assets/images/branded/lassi-lounge/loyalty_join_medal.png',
                             fit: BoxFit.contain,
@@ -290,7 +273,7 @@ class LoyaltyJoinView extends StatelessWidget {
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                        SizedBox(height: isSmall ? 12 : 16),
 
                         // Title: Join Lassi Lounge Rewards
                         RichText(
@@ -315,7 +298,7 @@ class LoyaltyJoinView extends StatelessWidget {
                           ),
                         ),
 
-                        const SizedBox(height: 10),
+                        SizedBox(height: isSmall ? 8 : 10),
 
                         // Subtitle
                         Padding(
@@ -332,7 +315,7 @@ class LoyaltyJoinView extends StatelessWidget {
                           ),
                         ),
 
-                        const SizedBox(height: 24),
+                        SizedBox(height: isSmall ? 18 : 24),
 
                         // Three Feature Cards Row
                         Padding(
@@ -380,7 +363,7 @@ class LoyaltyJoinView extends StatelessWidget {
                           ),
                         ),
 
-                        const SizedBox(height: 28),
+                        SizedBox(height: isSmall ? 20 : 26),
 
                         // Big Rounded JOIN NOW FOR FREE Button
                         Consumer<LoyaltyProvider>(
@@ -455,7 +438,7 @@ class LoyaltyJoinView extends StatelessWidget {
                           },
                         ),
 
-                        const SizedBox(height: 10),
+                        SizedBox(height: isSmall ? 8 : 10),
 
                         // Subtext below button
                         const Text(
@@ -468,8 +451,8 @@ class LoyaltyJoinView extends StatelessWidget {
                           ),
                         ),
 
-                        // Bottom spacing to comfortably clear the bottom food artwork
-                        SizedBox(height: isSmall ? 100 : 140),
+                        // Clean bottom padding
+                        SizedBox(height: isSmall ? 24 : 32),
                       ],
                     ),
                   ),

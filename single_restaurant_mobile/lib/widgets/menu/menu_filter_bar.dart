@@ -16,6 +16,28 @@ class MenuFilterBar extends StatelessWidget {
     required this.onSortOrderChanged,
   });
 
+  static Widget _buildVegSymbol({required bool isVeg, double size = 13}) {
+    final color = isVeg ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: color, width: 1.3),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      alignment: Alignment.center,
+      child: Container(
+        width: size * 0.46,
+        height: size * 0.46,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -77,23 +99,14 @@ class MenuFilterBar extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: vegFilter == 'Veg'
-                                      ? const Color(0xFF2E7D32)
-                                      : const Color(0xFF8B1E1E),
-                                ),
-                              ),
+                              _buildVegSymbol(isVeg: vegFilter == 'Veg', size: 12),
                               const SizedBox(width: 5),
                               Text(
                                 vegFilter,
                                 style: TextStyle(
                                   color: vegFilter == 'Veg'
                                       ? const Color(0xFF2E7D32)
-                                      : const Color(0xFF8B1E1E),
+                                      : const Color(0xFFC62828),
                                   fontWeight: FontWeight.bold,
                                   fontSize: isNarrow ? 12.0 : 13.0,
                                 ),
@@ -108,16 +121,44 @@ class MenuFilterBar extends StatelessWidget {
                                 ? vegFilter
                                 : availableVegFilters.first,
                             isDense: true,
+                            dropdownColor: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            elevation: 4,
                             icon: const Icon(Icons.keyboard_arrow_down, size: 16),
-                            style: TextStyle(
-                              color: vegFilter == 'Veg'
-                                  ? const Color(0xFF2E7D32)
-                                  : vegFilter == 'Non-Veg'
-                                      ? const Color(0xFF8B1E1E)
-                                      : Colors.black87,
-                              fontWeight: FontWeight.bold,
-                              fontSize: isNarrow ? 12.5 : 13.5,
-                            ),
+                            selectedItemBuilder: (BuildContext context) {
+                              return availableVegFilters.map<Widget>((String value) {
+                                final String displayLabel = value == 'All'
+                                    ? (isExtraNarrow ? 'All' : 'Veg & Non-Veg')
+                                    : value;
+                                final Color textColor = value == 'Veg'
+                                    ? const Color(0xFF2E7D32)
+                                    : value == 'Non-Veg'
+                                        ? const Color(0xFFC62828)
+                                        : Colors.black87;
+
+                                return Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    if (value == 'Veg') ...[
+                                      _buildVegSymbol(isVeg: true, size: 12),
+                                      const SizedBox(width: 5),
+                                    ] else if (value == 'Non-Veg') ...[
+                                      _buildVegSymbol(isVeg: false, size: 12),
+                                      const SizedBox(width: 5),
+                                    ],
+                                    Text(
+                                      displayLabel,
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: isNarrow ? 12.5 : 13.5,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }).toList();
+                            },
                             onChanged: (v) {
                               if (v != null) onVegFilterChanged(v);
                             },
@@ -125,9 +166,42 @@ class MenuFilterBar extends StatelessWidget {
                               final String displayLabel = value == 'All'
                                   ? (isExtraNarrow ? 'All' : 'Veg & Non-Veg')
                                   : value;
+                              final Color itemColor = value == 'Veg'
+                                  ? const Color(0xFF2E7D32)
+                                  : value == 'Non-Veg'
+                                      ? const Color(0xFFC62828)
+                                      : const Color(0xFF1E293B);
+
                               return DropdownMenuItem<String>(
                                 value: value,
-                                child: Text(displayLabel),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    if (value == 'Veg') ...[
+                                      _buildVegSymbol(isVeg: true, size: 13),
+                                      const SizedBox(width: 8),
+                                    ] else if (value == 'Non-Veg') ...[
+                                      _buildVegSymbol(isVeg: false, size: 13),
+                                      const SizedBox(width: 8),
+                                    ] else ...[
+                                      const Icon(
+                                        Icons.restaurant,
+                                        size: 14,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                    Text(
+                                      displayLabel,
+                                      style: TextStyle(
+                                        color: itemColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               );
                             }).toList(),
                           ),
@@ -150,6 +224,9 @@ class MenuFilterBar extends StatelessWidget {
                         child: DropdownButton<String>(
                           value: sortOrder,
                           isDense: true,
+                          dropdownColor: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          elevation: 4,
                           icon: const Icon(Icons.keyboard_arrow_down, size: 16),
                           style: TextStyle(
                             color: const Color(0xFF8B1E1E),

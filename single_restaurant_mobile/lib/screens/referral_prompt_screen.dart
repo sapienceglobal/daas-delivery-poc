@@ -17,10 +17,14 @@ class ReferralPromptScreen extends StatefulWidget {
 class _ReferralPromptScreenState extends State<ReferralPromptScreen> {
   final _controller = TextEditingController();
   final _referralService = ReferralService();
-  bool _isLoading = false;
+  bool _isApplying = false;
+  bool _isSkippingTop = false;
+  bool _isSkippingBottom = false;
   String? _errorMessage;
   Map<String, dynamic>? _program;
   Map<String, dynamic>? _appliedResult;
+
+  bool get _isBusy => _isApplying || _isSkippingTop || _isSkippingBottom;
 
   @override
   void initState() {
@@ -50,13 +54,25 @@ class _ReferralPromptScreenState extends State<ReferralPromptScreen> {
     );
   }
 
-  Future<void> _onSkip() async {
-    setState(() => _isLoading = true);
-    await _referralService.skipOnboarding();
-    _navigateToHome();
+  Future<void> _onSkip({bool isTop = false}) async {
+    if (_isBusy) return;
+    setState(() {
+      if (isTop) {
+        _isSkippingTop = true;
+      } else {
+        _isSkippingBottom = true;
+      }
+    });
+    try {
+      await _referralService.skipOnboarding();
+    } catch (_) {}
+    if (mounted) {
+      _navigateToHome();
+    }
   }
 
   Future<void> _onApply() async {
+    if (_isBusy) return;
     final code = _controller.text.trim().toUpperCase();
     if (code.isEmpty) {
       setState(() => _errorMessage = 'Please enter a referral code.');
@@ -66,7 +82,7 @@ class _ReferralPromptScreenState extends State<ReferralPromptScreen> {
     FocusManager.instance.primaryFocus?.unfocus();
 
     setState(() {
-      _isLoading = true;
+      _isApplying = true;
       _errorMessage = null;
     });
 
@@ -74,7 +90,7 @@ class _ReferralPromptScreenState extends State<ReferralPromptScreen> {
       final res = await _referralService.applyCode(code);
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isApplying = false;
           _appliedResult = res;
         });
       }
@@ -82,7 +98,7 @@ class _ReferralPromptScreenState extends State<ReferralPromptScreen> {
       if (mounted) {
         final raw = e.toString().replaceFirst('Exception: ', '');
         setState(() {
-          _isLoading = false;
+          _isApplying = false;
           _errorMessage = raw;
         });
       }
@@ -175,23 +191,36 @@ class _ReferralPromptScreenState extends State<ReferralPromptScreen> {
                               children: [
                                 if (_appliedResult == null)
                                   GestureDetector(
-                                    onTap: _isLoading ? null : _onSkip,
+                                    onTap: _isBusy ? null : () => _onSkip(isTop: true),
                                     behavior: HitTestBehavior.opaque,
-                                    child: const Padding(
-                                      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
+                                          if (_isSkippingTop) ...[
+                                            const SizedBox(
+                                              width: 14,
+                                              height: 14,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Color(0xFF6B111C),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                          ],
                                           Text(
-                                            'Skip',
-                                            style: TextStyle(
+                                            _isSkippingTop ? 'Skipping...' : 'Skip',
+                                            style: const TextStyle(
                                               fontSize: 14.5,
                                               fontWeight: FontWeight.bold,
                                               color: Color(0xFF6B111C),
                                             ),
                                           ),
-                                          SizedBox(width: 2),
-                                          Icon(Icons.chevron_right, size: 18, color: Color(0xFF6B111C)),
+                                          if (!_isSkippingTop) ...[
+                                            const SizedBox(width: 2),
+                                            const Icon(Icons.chevron_right, size: 18, color: Color(0xFF6B111C)),
+                                          ],
                                         ],
                                       ),
                                     ),
@@ -409,7 +438,7 @@ class _ReferralPromptScreenState extends State<ReferralPromptScreen> {
               width: double.infinity,
               height: buttonHeight,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _onApply,
+                onPressed: _isBusy ? null : _onApply,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6B111C),
                   foregroundColor: Colors.white,
@@ -419,7 +448,7 @@ class _ReferralPromptScreenState extends State<ReferralPromptScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: _isLoading
+                child: _isApplying
                     ? const SizedBox(
                         width: 22,
                         height: 22,
@@ -479,7 +508,7 @@ class _ReferralPromptScreenState extends State<ReferralPromptScreen> {
               width: double.infinity,
               height: isTall ? 44 : 40,
               child: OutlinedButton(
-                onPressed: _isLoading ? null : _onSkip,
+                onPressed: _isBusy ? null : () => _onSkip(isTop: false),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
                   side: const BorderSide(color: Color(0xFF6B111C), width: 1.2),
@@ -487,21 +516,30 @@ class _ReferralPromptScreenState extends State<ReferralPromptScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'I don\'t have a code, continue',
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF6B111C),
+                child: _isSkippingBottom
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF6B111C),
+                        ),
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'I don\'t have a code, continue',
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF6B111C),
+                            ),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(Icons.chevron_right, size: 16, color: Color(0xFF6B111C)),
+                        ],
                       ),
-                    ),
-                    SizedBox(width: 4),
-                    Icon(Icons.chevron_right, size: 16, color: Color(0xFF6B111C)),
-                  ],
-                ),
               ),
             ),
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:single_restaurant_mobile/widgets/shimmer_loading.dart';
 
 /// Top Hero Section of Refer & Earn screen matching reference design.
 /// Features "Give $20, Get $25!" serif headline, highlighted coupon offer text,
@@ -7,12 +8,14 @@ import 'package:google_fonts/google_fonts.dart';
 class ReferralHeroSection extends StatelessWidget {
   final num refereeDiscount;
   final num referrerReward;
+  final bool isLoading;
   final String? customDescription;
 
   const ReferralHeroSection({
     super.key,
     this.refereeDiscount = 25,
     this.referrerReward = 25,
+    this.isLoading = false,
     this.customDescription,
   });
 
@@ -35,15 +38,73 @@ class ReferralHeroSection extends StatelessWidget {
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Text(
-                      'Give \$$discountStr,\nGet \$$rewardStr!',
-                      style: GoogleFonts.playfairDisplay(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w900,
-                        height: 1.15,
-                        color: const Color(0xFF4A0E13),
+                    if (isLoading)
+                      BaseShimmer(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Give ',
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.15,
+                                    color: const Color(0xFF4A0E13),
+                                  ),
+                                ),
+                                const ShimmerBox(width: 58, height: 26, borderRadius: 6),
+                                Text(
+                                  ',',
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.15,
+                                    color: const Color(0xFF4A0E13),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 5),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Get ',
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.15,
+                                    color: const Color(0xFF4A0E13),
+                                  ),
+                                ),
+                                const ShimmerBox(width: 58, height: 26, borderRadius: 6),
+                                Text(
+                                  '!',
+                                  style: GoogleFonts.playfairDisplay(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.15,
+                                    color: const Color(0xFF4A0E13),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Text(
+                        'Give \$$discountStr,\nGet \$$rewardStr!',
+                        style: GoogleFonts.playfairDisplay(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w900,
+                          height: 1.15,
+                          color: const Color(0xFF4A0E13),
+                        ),
                       ),
-                    ),
                     Positioned(
                       top: -6,
                       right: 18,
@@ -97,38 +158,50 @@ class ReferralHeroSection extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(
-                      fontSize: 12.0,
-                      color: Color(0xFF4B5563),
-                      height: 1.4,
+                if (isLoading)
+                  const BaseShimmer(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ShimmerBox(width: 175, height: 11, borderRadius: 4),
+                        SizedBox(height: 5),
+                        ShimmerBox(width: 135, height: 11, borderRadius: 4),
+                      ],
                     ),
-                    children: [
-                      const TextSpan(text: 'Your friend gets a '),
-                      TextSpan(
-                        text: '\$$discountStr OFF',
-                        style: const TextStyle(
-                          color: Color(0xFF800A12),
-                          fontWeight: FontWeight.bold,
+                  )
+                else
+                  RichText(
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontSize: 12.0,
+                        color: Color(0xFF4B5563),
+                        height: 1.4,
+                      ),
+                      children: [
+                        const TextSpan(text: 'Your friend gets a '),
+                        TextSpan(
+                          text: '\$$discountStr OFF',
+                          style: const TextStyle(
+                            color: Color(0xFF800A12),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const TextSpan(
-                        text: ' coupon, and you earn ',
-                      ),
-                      TextSpan(
-                        text: '\$$rewardStr in loyalty rewards',
-                        style: const TextStyle(
-                          color: Color(0xFF800A12),
-                          fontWeight: FontWeight.bold,
+                        const TextSpan(
+                          text: ' coupon, and you earn ',
                         ),
-                      ),
-                      const TextSpan(
-                        text: ' when they complete their first eligible order.',
-                      ),
-                    ],
+                        TextSpan(
+                          text: '\$$rewardStr in loyalty rewards',
+                          style: const TextStyle(
+                            color: Color(0xFF800A12),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const TextSpan(
+                          text: ' when they complete their first eligible order.',
+                        ),
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
           ),
