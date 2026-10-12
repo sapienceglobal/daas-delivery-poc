@@ -80,7 +80,12 @@ const CouponSchema = new mongoose.Schema({
   endDate: { type: Date, required: [true, 'Expiry date is required'] },
   isActive: { type: Boolean, default: true },
 
-  // ── Created By ────────────────────────────────────────────────────────
+  // ── Source & Creator ──────────────────────────────────────────────────
+  source: {
+    type: String,
+    enum: ['manual', 'invite_and_earn', 'system'],
+    default: 'manual'
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -116,10 +121,14 @@ CouponSchema.methods.isValid = function (cartValue, userId, pastOrderCount = 0, 
     }
   }
 
-  // check if coupon is restricted to specific users
+  // check if coupon is restricted to specific users (e.g. referral reward or user-targeted coupons)
   if (this.applicableUsers && this.applicableUsers.length > 0) {
-    if (!userId || !this.applicableUsers.some(id => id.toString() === userId.toString())) {
-      return { valid: false, reason: 'This coupon is not valid for your account' };
+    if (!userId) {
+      return { valid: false, reason: 'Please log in to your account to use this coupon' };
+    }
+    const isAuthorized = this.applicableUsers.some(id => id.toString() === userId.toString());
+    if (!isAuthorized) {
+      return { valid: false, reason: 'This coupon is private and exclusively assigned to another customer account' };
     }
   }
 

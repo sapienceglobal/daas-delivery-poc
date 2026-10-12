@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/track_order_screen.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
-import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
+import 'package:single_restaurant_mobile/widgets/notifications/notifications_guest_view.dart';
 import 'package:single_restaurant_mobile/widgets/notifications/notification_filter_bar.dart';
 import 'package:single_restaurant_mobile/widgets/notifications/notification_item_card.dart';
 
@@ -72,29 +71,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
 
     if (authProvider.user == null) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppColors.secondary),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: const Text(
-            'Notifications',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          centerTitle: true,
-        ),
-        body: const ResponsiveCenter(
-          maxWidth: 600,
-          child: GuestLoginPrompt(
-            icon: Icons.notifications_none_outlined,
-            title: 'Login to see notifications',
-            subtitle: 'Get real-time updates on your orders and exclusive offers.',
-          ),
-        ),
+      return NotificationsGuestView(
+        onBack: () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+        },
       );
     }
 

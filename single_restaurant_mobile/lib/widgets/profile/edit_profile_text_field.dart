@@ -17,6 +17,8 @@ class EditProfileTextField extends StatelessWidget {
   final String? Function(String?)? validator;
   final List<TextInputFormatter>? inputFormatters;
   final Widget? prefixWidget;
+  final FocusNode? focusNode;
+  final bool autofocus;
 
   const EditProfileTextField({
     super.key,
@@ -29,6 +31,8 @@ class EditProfileTextField extends StatelessWidget {
     this.validator,
     this.inputFormatters,
     this.prefixWidget,
+    this.focusNode,
+    this.autofocus = false,
   });
 
   @override
@@ -66,6 +70,8 @@ class EditProfileTextField extends StatelessWidget {
           const SizedBox(height: 12),
           TextFormField(
             controller: controller,
+            focusNode: focusNode,
+            autofocus: autofocus,
             readOnly: readOnly,
             keyboardType: keyboardType,
             inputFormatters: inputFormatters,

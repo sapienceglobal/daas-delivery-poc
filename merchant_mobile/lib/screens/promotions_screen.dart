@@ -32,7 +32,7 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
     'Special Offer',
     'Happy Hour',
     'Seasonal Offer',
-    'Referral Offer'
+    'Referral Offer',
   ];
   final List<String> _statuses = ['All Status', 'Active', 'Expired'];
   final List<String> _channels = ['All Channels', 'Mobile, Web', 'Mobile', 'Web', 'Dine-In'];
@@ -63,6 +63,9 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
     if (tab == 'Special Offer') {
       return promotions.where((p) => p.promoType.toLowerCase().contains('special') || p.promoType.toLowerCase() == 'offer').length;
     }
+    if (tab == 'Referral Offer') {
+      return promotions.where((p) => p.promoType.toLowerCase().contains('referral')).length;
+    }
     return promotions.where((p) => p.promoType.toLowerCase() == tab.toLowerCase()).length;
   }
 
@@ -85,6 +88,8 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
         tabMatch = p.promoType.toLowerCase().contains('combo');
       } else if (_activeTab == 'Special Offer') {
         tabMatch = p.promoType.toLowerCase().contains('special') || p.promoType.toLowerCase() == 'offer';
+      } else if (_activeTab == 'Referral Offer') {
+        tabMatch = p.promoType.toLowerCase().contains('referral');
       } else if (_activeTab != 'All Promotions') {
         tabMatch = p.promoType.toLowerCase() == _activeTab.toLowerCase();
       }
@@ -794,34 +799,104 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Row: Code Pill Badge on Left, Action Buttons on Right
+          // Top Row: Code Pill Badge + Origin & Scope Badges on Left, Action Buttons on Right
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Promo Code Pill Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
-                decoration: BoxDecoration(
-                  color: theme['badgeBg'],
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              // Promo Code Pill Badge + Badges Wrap
+              Expanded(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 5,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Icon(Icons.local_offer_rounded, size: 13, color: theme['badgeIcon']),
-                    const SizedBox(width: 5),
-                    Text(
-                      promo.code,
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: theme['badgeText'],
-                        letterSpacing: 0.4,
+                    // Promo Code Pill Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+                      decoration: BoxDecoration(
+                        color: theme['badgeBg'],
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.local_offer_rounded, size: 13, color: theme['badgeIcon']),
+                          const SizedBox(width: 5),
+                          Text(
+                            promo.code,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: theme['badgeText'],
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+
+                    // Origin Badge: Admin Created vs Invite & Earn
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                      decoration: BoxDecoration(
+                        color: promo.isAdminCreated ? const Color(0xFFFEF3C7) : const Color(0xFFEDE9FE),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: promo.isAdminCreated ? const Color(0xFFFDE68A) : const Color(0xFFDDD6FE),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            promo.isAdminCreated ? Icons.admin_panel_settings_outlined : Icons.card_giftcard_rounded,
+                            size: 11,
+                            color: promo.isAdminCreated ? const Color(0xFFB45309) : const Color(0xFF6D28D9),
+                          ),
+                          const SizedBox(width: 3.5),
+                          Text(
+                            promo.isAdminCreated ? 'Admin Created' : 'Invite & Earn',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: promo.isAdminCreated ? const Color(0xFFB45309) : const Color(0xFF6D28D9),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Targeted Customer Badge: 1 User / Specific User
+                    if (promo.isSpecificCustomer)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0F2FE),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFBAE6FD)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.person_outline_rounded, size: 11, color: Color(0xFF0369A1)),
+                            const SizedBox(width: 3.5),
+                            Text(
+                              promo.applicableUsersCount == 1 ? '1 User Only' : '${promo.applicableUsersCount} Users Only',
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF0369A1),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
+
+              const SizedBox(width: 8),
 
               // Action Buttons: Edit and Delete
               Row(

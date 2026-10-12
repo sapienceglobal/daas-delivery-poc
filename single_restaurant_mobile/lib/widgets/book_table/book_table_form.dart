@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/theme/app_spacing.dart';
 import 'package:single_restaurant_mobile/widgets/common/app_bottom_sheet.dart';
+import 'package:single_restaurant_mobile/utils/restaurant_schedule_utils.dart';
 
 class BookTableForm extends StatelessWidget {
   final DateTime? selectedDate;
@@ -12,6 +13,7 @@ class BookTableForm extends StatelessWidget {
   final VoidCallback onSelectDate;
   final VoidCallback onSelectTime;
   final ValueChanged<int> onGuestsChanged;
+  final Map<String, dynamic>? restaurant;
 
   const BookTableForm({
     super.key,
@@ -22,6 +24,7 @@ class BookTableForm extends StatelessWidget {
     required this.onSelectDate,
     required this.onSelectTime,
     required this.onGuestsChanged,
+    this.restaurant,
   });
 
   @override
@@ -44,13 +47,19 @@ class BookTableForm extends StatelessWidget {
             Expanded(
               child: _buildDropdownField(
                 'Time',
-                selectedTime != null ? selectedTime!.format(context) : 'Select Time',
+                selectedTime != null
+                    ? RestaurantScheduleUtils.formatTimeOfDay(selectedTime!)
+                    : 'Select Time',
                 Icons.access_time,
                 onSelectTime,
               ),
             ),
           ],
         ),
+        if (selectedDate != null) ...[
+          const SizedBox(height: 8),
+          _buildScheduleBadge(selectedDate!, restaurant),
+        ],
         const SizedBox(height: 12),
         _buildDropdownField(
           'Number of Guests',
@@ -179,6 +188,102 @@ class BookTableForm extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildScheduleBadge(DateTime date, Map<String, dynamic>? restaurant) {
+    final schedule = RestaurantScheduleUtils.getScheduleForDate(restaurant, date);
+    final isToday = RestaurantScheduleUtils.isToday(date, restaurant);
+    final earliestAvailable = RestaurantScheduleUtils.getEarliestAvailableSlot(date, restaurant);
+    final isAllTodaySlotsPassed = isToday && earliestAvailable == null;
+    final tzAbbr = RestaurantScheduleUtils.getTimezoneAbbreviation(restaurant);
+
+    if (schedule.isClosed) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF2F2),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFFECDD3)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.event_busy, size: 15, color: Color(0xFFDC2626)),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Restaurant is closed on this date. Please pick another date.',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF991B1B),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (isAllTodaySlotsPassed) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFFDE68A)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.history_toggle_off, size: 15, color: Color(0xFFD97706)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Today\'s bookings ended in NY (last slot was ${schedule.lastBookingStr}). Pick tomorrow.',
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF92400E),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.access_time_filled, size: 15, color: Color(0xFF7A0B10)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(fontSize: 11.5, color: Color(0xFF475569)),
+                children: [
+                  const TextSpan(text: 'Hours (NY): ', style: TextStyle(fontWeight: FontWeight.w600)),
+                  TextSpan(text: '${schedule.openStr} – ${schedule.closeStr}  •  '),
+                  const TextSpan(
+                    text: 'Last: ',
+                    style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF7A0B10)),
+                  ),
+                  TextSpan(
+                    text: '${schedule.lastBookingStr} $tzAbbr',
+                    style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF7A0B10)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

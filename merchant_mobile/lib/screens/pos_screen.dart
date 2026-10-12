@@ -75,6 +75,7 @@ class _PosScreenState extends State<PosScreen> {
   final TextEditingController _phoneController = TextEditingController();
   String _fullPhoneNumber = '';
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _orderNoteController = TextEditingController();
 
   String _orderType = 'pickup';
   String _paymentMethod = 'payment_link';
@@ -113,6 +114,7 @@ class _PosScreenState extends State<PosScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
+    _orderNoteController.dispose();
     _tableController.dispose();
     _addressController.dispose();
     _couponController.dispose();
@@ -126,11 +128,10 @@ class _PosScreenState extends State<PosScreen> {
   
   bool get _canCheckout {
     if (_cartItems.isEmpty) return false;
-    if (_nameController.text.isEmpty || !_isNameValid) return false;
+    if (_nameController.text.trim().isNotEmpty && !_isNameValid) return false;
     if (_orderType == 'delivery') {
       if (_fullPhoneNumber.isEmpty || !_isPhoneValid) return false;
     } else {
-      if (_fullPhoneNumber.isEmpty && _emailController.text.isEmpty) return false;
       if (_fullPhoneNumber.isNotEmpty && !_isPhoneValid) return false;
     }
     
@@ -693,317 +694,818 @@ class _PosScreenState extends State<PosScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
           return Container(
-            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.92,
+            ),
             decoration: const BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Top drag handle
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 4,
+                    margin: const EdgeInsets.only(top: 10, bottom: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+
+                // Header: "Your Cart", subtitle, and Close Button
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.fromLTRB(20, 4, 16, 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Your Cart', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
-                      IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Your Cart',
+                            style: GoogleFonts.inter(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F172A),
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Review your items before checkout',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: const Color(0xFF64748B),
+                              fontWeight: FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                      InkWell(
+                        onTap: () => Navigator.pop(ctx),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF8FAFC),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            size: 20,
+                            color: Color(0xFF7A0B10),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
+
+                // Scrollable Content
                 Flexible(
                   child: ListView(
                     shrinkWrap: true,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: [
-                      // Customer Info Form
-                      Text('Customer Info (Optional)', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      
-                      // Name Field
-                      TextField(
-                        controller: _nameController,
-                        onChanged: (val) {
-                          setState(() => _isNameTouched = true);
-                          setModalState(() {});
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Name',
-                          prefixIcon: const Icon(Icons.person),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: _nameController.text.isEmpty ? Colors.grey : (_isNameValid ? Colors.green : Colors.red),
+                      // --- Customer Info Card ---
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF9FAFB),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFF1F5F9)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFEE2E2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.person,
+                                    color: Color(0xFF7A0B10),
+                                    size: 19,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Customer Info (Optional)',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Add your details for a faster checkout',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: _nameController.text.isEmpty ? Colors.blue : (_isNameValid ? Colors.green : Colors.red),
-                              width: 2,
+                            const SizedBox(height: 14),
+
+                            // Full Name Field
+                            TextField(
+                              controller: _nameController,
+                              onChanged: (val) {
+                                setState(() => _isNameTouched = true);
+                                setModalState(() {});
+                              },
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: const Color(0xFF0F172A),
+                                fontWeight: FontWeight.w500,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Full Name',
+                                hintStyle: GoogleFonts.inter(
+                                  color: const Color(0xFF94A3B8),
+                                  fontSize: 14,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.person,
+                                  color: Color(0xFF0F172A),
+                                  size: 20,
+                                ),
+                                suffixIcon: _nameController.text.isNotEmpty
+                                    ? Icon(
+                                        _isNameValid ? Icons.check_circle_rounded : Icons.error_rounded,
+                                        color: _isNameValid ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                        size: 18,
+                                      )
+                                    : null,
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(
+                                    color: _nameController.text.isNotEmpty && !_isNameValid
+                                        ? const Color(0xFFEF4444)
+                                        : const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: const BorderSide(color: Color(0xFF7A0B10), width: 1.5),
+                                ),
+                              ),
                             ),
-                          ),
-                          suffixIcon: _nameController.text.isNotEmpty 
-                              ? Icon(_isNameValid ? Icons.check_circle : Icons.error, color: _isNameValid ? Colors.green : Colors.red)
-                              : null,
+                            const SizedBox(height: 12),
+
+                            // Phone Field
+                            IntlPhoneField(
+                              controller: _phoneController,
+                              initialCountryCode: 'US',
+                              disableLengthCheck: true,
+                              dropdownIconPosition: IconPosition.trailing,
+                              dropdownIcon: const Icon(
+                                Icons.arrow_drop_down,
+                                color: Color(0xFF0F172A),
+                                size: 18,
+                              ),
+                              flagsButtonMargin: const EdgeInsets.only(left: 6),
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: const Color(0xFF0F172A),
+                                fontWeight: FontWeight.w500,
+                              ),
+                              dropdownTextStyle: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: const Color(0xFF0F172A),
+                                fontWeight: FontWeight.w500,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Phone Number',
+                                hintStyle: GoogleFonts.inter(
+                                  color: const Color(0xFF94A3B8),
+                                  fontSize: 14,
+                                ),
+                                suffixIcon: _fullPhoneNumber.isNotEmpty
+                                    ? Icon(
+                                        _isPhoneValid ? Icons.check_circle_rounded : Icons.error_rounded,
+                                        color: _isPhoneValid ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                        size: 18,
+                                      )
+                                    : null,
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(
+                                    color: _fullPhoneNumber.isNotEmpty && !_isPhoneValid
+                                        ? const Color(0xFFEF4444)
+                                        : const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: const BorderSide(color: Color(0xFF7A0B10), width: 1.5),
+                                ),
+                              ),
+                              onChanged: (phone) {
+                                setState(() {
+                                  _isPhoneTouched = true;
+                                  _fullPhoneNumber = phone.completeNumber;
+                                });
+                                setModalState(() {});
+                              },
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Email Field
+                            TextField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              onChanged: (val) {
+                                setState(() => _isEmailTouched = true);
+                                setModalState(() {});
+                              },
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: const Color(0xFF0F172A),
+                                fontWeight: FontWeight.w500,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Email Address',
+                                hintStyle: GoogleFonts.inter(
+                                  color: const Color(0xFF94A3B8),
+                                  fontSize: 14,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.email_outlined,
+                                  color: Color(0xFF0F172A),
+                                  size: 20,
+                                ),
+                                suffixIcon: _emailController.text.isNotEmpty
+                                    ? Icon(
+                                        _isEmailValid ? Icons.check_circle_rounded : Icons.error_rounded,
+                                        color: _isEmailValid ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                        size: 18,
+                                      )
+                                    : null,
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(
+                                    color: _emailController.text.isNotEmpty && !_isEmailValid
+                                        ? const Color(0xFFEF4444)
+                                        : const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: const BorderSide(color: Color(0xFF7A0B10), width: 1.5),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Center(
+                              child: Text(
+                                'Email required if no phone number',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: const Color(0xFF94A3B8),
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      
-                      // Phone Field
-                      IntlPhoneField(
-                        controller: _phoneController,
-                        initialCountryCode: 'US',
-                        decoration: InputDecoration(
-                          labelText: 'Phone (Required if no email)',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: _fullPhoneNumber.isEmpty ? Colors.grey : (_isPhoneValid ? Colors.green : Colors.red),
-                            ),
+
+                      const SizedBox(height: 20),
+
+                      // --- Order Items Header ---
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFEE2E2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.soup_kitchen_outlined,
+                                  color: Color(0xFF7A0B10),
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Order Items (${_cartItems.length})',
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                              ),
+                            ],
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: _fullPhoneNumber.isEmpty ? Colors.blue : (_isPhoneValid ? Colors.green : Colors.red),
-                              width: 2,
+                          if (_cartItems.isNotEmpty)
+                            InkWell(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (dialogCtx) => AlertDialog(
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    title: Text('Clear Cart?', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                                    content: Text('Are you sure you want to remove all items from the cart?', style: GoogleFonts.inter()),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(dialogCtx),
+                                        child: Text('Cancel', style: GoogleFonts.inter(color: Colors.grey.shade600)),
+                                      ),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF7A0B10),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        ),
+                                        onPressed: () {
+                                          Navigator.pop(dialogCtx);
+                                          setState(() => _cartItems.clear());
+                                          setModalState(() {});
+                                        },
+                                        child: Text('Clear', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF2F2),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFFECDD3)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.delete_outline_rounded,
+                                      size: 15,
+                                      color: Color(0xFF7A0B10),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Clear Cart',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF7A0B10),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                          suffixIcon: _fullPhoneNumber.isNotEmpty 
-                              ? Icon(_isPhoneValid ? Icons.check_circle : Icons.error, color: _isPhoneValid ? Colors.green : Colors.red)
-                              : null,
-                        ),
-                        onChanged: (phone) {
-                          setState(() {
-                            _isPhoneTouched = true;
-                            _fullPhoneNumber = phone.completeNumber;
-                          });
-                          setModalState(() {});
-                        },
+                        ],
                       ),
-                      const SizedBox(height: 12),
-                      
-                      // Email Field
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        onChanged: (val) {
-                          setState(() => _isEmailTouched = true);
-                          setModalState(() {});
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Email (Required if no phone)',
-                          prefixIcon: const Icon(Icons.email),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: _emailController.text.isEmpty ? Colors.grey : (_isEmailValid ? Colors.green : Colors.red),
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: _emailController.text.isEmpty ? Colors.blue : (_isEmailValid ? Colors.green : Colors.red),
-                              width: 2,
-                            ),
-                          ),
-                          suffixIcon: _emailController.text.isNotEmpty 
-                              ? Icon(_isEmailValid ? Icons.check_circle : Icons.error, color: _isEmailValid ? Colors.green : Colors.red)
-                              : null,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      const Divider(),
-                      const SizedBox(height: 16),
-                      Text('Order Items', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      
+                      const SizedBox(height: 14),
+
+                      // Cart Items List
                       if (_cartItems.isEmpty)
                         Padding(
-                          padding: const EdgeInsets.all(32.0),
-                          child: Center(child: Text('Cart is empty', style: GoogleFonts.inter(color: Colors.grey))),
+                          padding: const EdgeInsets.symmetric(vertical: 32.0),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Icon(Icons.remove_shopping_cart_outlined, size: 40, color: Colors.grey.shade300),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Your cart is empty',
+                                  style: GoogleFonts.inter(color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                          ),
                         )
                       else
                         ..._cartItems.asMap().entries.map((entry) {
                           final i = entry.key;
                           final cartItem = entry.value;
+
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12.0),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Food Thumbnail Image
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: SizedBox(
+                                    width: 74,
+                                    height: 74,
+                                    child: _buildPosItemImage(cartItem.item),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+
+                                // Details + Action column
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
+                                      // Name + Delete Icon Row
                                       Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Expanded(
-                                            child: Text(
-                                              cartItem.item.name,
-                                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14.5, color: const Color(0xFF0F172A)),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  cartItem.item.name,
+                                                  style: GoogleFonts.inter(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 14.5,
+                                                    color: const Color(0xFF0F172A),
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                                if (cartItem.selectedSize != null) ...[
+                                                  const SizedBox(height: 3),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFFEF2F2),
+                                                      borderRadius: BorderRadius.circular(6),
+                                                      border: Border.all(color: const Color(0xFFFECDD3)),
+                                                    ),
+                                                    child: Text(
+                                                      cartItem.selectedSize!.name,
+                                                      style: GoogleFonts.inter(
+                                                        fontSize: 10.5,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: const Color(0xFF991B1B),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                                if (cartItem.selectedExtras.isNotEmpty)
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(top: 2.0),
+                                                    child: Text(
+                                                      '+ ${cartItem.selectedExtras.map((e) => e.name).join(', ')}',
+                                                      style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
+                                                    ),
+                                                  ),
+                                                if (cartItem.instructions.isNotEmpty)
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(top: 2.0),
+                                                    child: Text(
+                                                      'Note: ${cartItem.instructions}',
+                                                      style: GoogleFonts.inter(fontSize: 11, fontStyle: FontStyle.italic, color: const Color(0xFF64748B)),
+                                                    ),
+                                                  ),
+                                              ],
                                             ),
                                           ),
-                                          if (cartItem.selectedSize != null)
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          const SizedBox(width: 4),
+                                          // Delete icon
+                                          InkWell(
+                                            onTap: () {
+                                              setState(() => _cartItems.removeAt(i));
+                                              setModalState(() {});
+                                            },
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: Container(
+                                              width: 28,
+                                              height: 28,
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFFFEF2F2),
-                                                borderRadius: BorderRadius.circular(6),
-                                                border: Border.all(color: const Color(0xFFFECDD3)),
+                                                color: const Color(0xFFF8FAFC),
+                                                borderRadius: BorderRadius.circular(8),
                                               ),
-                                              child: Text(
-                                                cartItem.selectedSize!.name,
-                                                style: GoogleFonts.inter(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: const Color(0xFF991B1B),
-                                                ),
+                                              child: const Icon(
+                                                Icons.delete_outline_rounded,
+                                                size: 16,
+                                                color: Color(0xFF94A3B8),
                                               ),
                                             ),
+                                          ),
                                         ],
                                       ),
-                                      
-                                      // Customizations Text
-                                      if (cartItem.selectedExtras.isNotEmpty)
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 4.0),
-                                          child: Text(
-                                            '+ ${cartItem.selectedExtras.map((e) => e.name).join(', ')}',
-                                            style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
-                                          ),
-                                        ),
-                                      if (cartItem.instructions.isNotEmpty)
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 2.0),
-                                          child: Text(
-                                            'Note: ${cartItem.instructions}',
-                                            style: GoogleFonts.inter(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.grey.shade500),
-                                          ),
-                                        ),
-                                        
+
                                       const SizedBox(height: 6),
-                                      Text(
-                                        '\$${cartItem.unitPrice.toStringAsFixed(2)} × ${cartItem.quantity} = \$${cartItem.totalPrice.toStringAsFixed(2)}',
-                                        style: GoogleFonts.inter(color: const Color(0xFF991B1B), fontWeight: FontWeight.bold, fontSize: 13),
+
+                                      // Price & Quantity row
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '\$${cartItem.unitPrice.toStringAsFixed(2)}',
+                                                style: GoogleFonts.inter(
+                                                  color: const Color(0xFF991B1B),
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 14.5,
+                                                ),
+                                              ),
+                                              Text(
+                                                '\$${cartItem.unitPrice.toStringAsFixed(2)} × ${cartItem.quantity} = \$${cartItem.totalPrice.toStringAsFixed(2)}',
+                                                style: GoogleFonts.inter(
+                                                  color: const Color(0xFF64748B),
+                                                  fontSize: 11.5,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+
+                                          // Stepper Pill [-] qty [+]
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF8FAFC),
+                                              borderRadius: BorderRadius.circular(20),
+                                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                // Minus
+                                                InkWell(
+                                                  onTap: () {
+                                                    _decrementCartItem(i);
+                                                    setModalState(() {});
+                                                  },
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  child: Container(
+                                                    width: 26,
+                                                    height: 26,
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFFEE2E2),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: const Icon(Icons.remove_rounded, size: 14, color: Color(0xFFDC2626)),
+                                                  ),
+                                                ),
+                                                // Quantity
+                                                Padding(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                  child: Text(
+                                                    '${cartItem.quantity}',
+                                                    style: GoogleFonts.inter(
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: const Color(0xFF0F172A),
+                                                    ),
+                                                  ),
+                                                ),
+                                                // Plus
+                                                InkWell(
+                                                  onTap: () {
+                                                    _incrementCartItem(i);
+                                                    setModalState(() {});
+                                                  },
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  child: Container(
+                                                    width: 26,
+                                                    height: 26,
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFDCFCE7),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: const Icon(Icons.add_rounded, size: 14, color: Color(0xFF16A34A)),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () {
-                                        _decrementCartItem(i);
-                                        setModalState(() {});
-                                      },
-                                      child: Container(
-                                        width: 28,
-                                        height: 28,
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFFFEE2E2),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(Icons.remove, size: 15, color: Color(0xFFDC2626)),
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                                      child: Text(
-                                        '${cartItem.quantity}',
-                                        style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () {
-                                        _incrementCartItem(i);
-                                        setModalState(() {});
-                                      },
-                                      child: Container(
-                                        width: 28,
-                                        height: 28,
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFFDCFCE7),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(Icons.add, size: 15, color: Color(0xFF16A34A)),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _cartItems.removeAt(i);
-                                        });
-                                        setModalState(() {});
-                                      },
-                                      child: Container(
-                                        width: 28,
-                                        height: 28,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade100,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(Icons.delete_outline_rounded, size: 16, color: Colors.grey.shade600),
-                                      ),
-                                    ),
-                                  ],
-                                )
                               ],
                             ),
                           );
                         }).toList(),
+
+                      // --- Add a note (Optional) Card ---
+                      GestureDetector(
+                        onTap: () => _showOrderNoteModal(ctx, setModalState),
+                        child: Container(
+                          margin: const EdgeInsets.only(top: 4, bottom: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.sticky_note_2_outlined, size: 20, color: Color(0xFF0F172A)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _orderNoteController.text.trim().isNotEmpty
+                                      ? _orderNoteController.text.trim()
+                                      : 'Add a note (Optional)',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: _orderNoteController.text.trim().isNotEmpty
+                                        ? const Color(0xFF0F172A)
+                                        : const Color(0xFF334155),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right_rounded, color: Color(0xFF64748B), size: 20),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
+
+                // --- Sticky Checkout Footer ---
                 Container(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Total (excl. tax)', style: GoogleFonts.inter(fontSize: 16, color: Colors.grey.shade600)),
-                          Text('\$${_cartTotal.toStringAsFixed(2)}', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)),
-                        ],
+                    border: const Border(top: BorderSide(color: Color(0xFFF1F5F9), width: 1)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, -4),
                       ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
-                            disabledBackgroundColor: Colors.grey.shade300,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                          onPressed: !_canCheckout ? null : () {
-                            Navigator.pop(ctx);
-                            _showPaymentSelectionModal();
-                          },
-                          child: Text('Continue to Payment', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                        ),
-                      )
                     ],
                   ),
-                )
+                  child: SafeArea(
+                    top: false,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Total (excl. tax)',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: const Color(0xFF64748B),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '\$${_cartTotal.toStringAsFixed(2)}',
+                              style: GoogleFonts.inter(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: const Color(0xFF0F172A),
+                              ),
+                            ),
+                          ],
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF7A0B10),
+                            disabledBackgroundColor: const Color(0xFFCBD5E1),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          onPressed: !_canCheckout
+                              ? null
+                              : () {
+                                  Navigator.pop(ctx);
+                                  _showPaymentSelectionModal();
+                                },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Continue to Payment',
+                                style: GoogleFonts.inter(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           );
-        }
+        },
+      ),
+    );
+  }
+
+  void _showOrderNoteModal(BuildContext sheetContext, StateSetter setModalState) {
+    final tempController = TextEditingController(text: _orderNoteController.text);
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.sticky_note_2_outlined, color: Color(0xFF7A0B10), size: 22),
+            const SizedBox(width: 8),
+            Text('Add Order Note', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: TextField(
+          controller: tempController,
+          maxLines: 3,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'e.g. Extra napkins, allergy instructions...',
+            hintStyle: GoogleFonts.inter(color: Colors.grey.shade400, fontSize: 13),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7A0B10), width: 1.5)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text('Cancel', style: GoogleFonts.inter(color: Colors.grey.shade600)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7A0B10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              setState(() {
+                _orderNoteController.text = tempController.text.trim();
+              });
+              setModalState(() {});
+              Navigator.pop(dialogCtx);
+            },
+            child: Text('Save Note', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
@@ -1419,6 +1921,7 @@ class _PosScreenState extends State<PosScreen> {
             _nameController.clear();
             _phoneController.clear();
             _emailController.clear();
+            _orderNoteController.clear();
             _isNameTouched = false;
             _isPhoneTouched = false;
             _isEmailTouched = false;
@@ -1580,6 +2083,7 @@ class _PosScreenState extends State<PosScreen> {
                               _nameController.clear();
                               _phoneController.clear();
                               _emailController.clear();
+                              _orderNoteController.clear();
                               _isNameTouched = false;
                               _isPhoneTouched = false;
                               _isEmailTouched = false;
@@ -1651,14 +2155,17 @@ class _PosScreenState extends State<PosScreen> {
         'platform': 'in_store',
         'orderType': _orderType,
         'paymentMethod': _paymentMethod == 'card_terminal' ? 'credit_card' : _paymentMethod,
-        'customerName': _nameController.text.trim(),
-        'customerPhone': _fullPhoneNumber,
+        'customerName': _nameController.text.trim().isEmpty ? 'Walk-in Customer' : _nameController.text.trim(),
+        'customerPhone': _fullPhoneNumber.trim().isEmpty ? '0000000000' : _fullPhoneNumber.trim(),
         'customerEmail': _emailController.text.trim(),
         if (_orderType == 'dine_in') 'tableNumber': _tableController.text.trim(),
         if (_orderType == 'delivery') 'address': _addressController.text.trim(),
         if (_orderType == 'delivery' && _addressLat != null) 'addressLat': _addressLat,
         if (_orderType == 'delivery' && _addressLng != null) 'addressLng': _addressLng,
         if (_appliedCouponCode.isNotEmpty) 'couponCode': _appliedCouponCode,
+        if (_orderNoteController.text.trim().isNotEmpty) 'notes': _orderNoteController.text.trim(),
+        if (_orderNoteController.text.trim().isNotEmpty) 'orderNotes': _orderNoteController.text.trim(),
+        if (_orderNoteController.text.trim().isNotEmpty) 'specialInstructions': _orderNoteController.text.trim(),
         'items': orderItems,
       };
       
@@ -1735,6 +2242,7 @@ class _PosScreenState extends State<PosScreen> {
             _nameController.clear();
             _phoneController.clear();
             _emailController.clear();
+            _orderNoteController.clear();
             _tableController.clear();
             _addressController.clear();
             _couponController.clear();

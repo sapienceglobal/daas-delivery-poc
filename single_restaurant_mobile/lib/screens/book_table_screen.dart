@@ -15,6 +15,8 @@ import 'package:single_restaurant_mobile/widgets/book_table/book_table_form.dart
 import 'package:single_restaurant_mobile/widgets/book_table/book_table_contact_details.dart';
 import 'package:single_restaurant_mobile/widgets/book_table/book_table_info_chips.dart';
 import 'package:single_restaurant_mobile/widgets/book_table/book_table_bottom_bar.dart';
+import 'package:single_restaurant_mobile/widgets/book_table/time_slot_picker_sheet.dart';
+import 'package:single_restaurant_mobile/utils/restaurant_schedule_utils.dart';
 
 class BookTableScreen extends StatefulWidget {
   const BookTableScreen({super.key});
@@ -44,13 +46,57 @@ class _BookTableScreenState extends State<BookTableScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedDate = DateTime.now().add(const Duration(days: 1));
+    final now = DateTime.now();
+    _selectedDate = now.add(const Duration(days: 1));
     _selectedTime = const TimeOfDay(hour: 19, minute: 0);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _populateFromProfile();
       final restProv = Provider.of<RestaurantProvider>(context, listen: false);
-      if (restProv.restaurant == null) restProv.fetchRestaurantData();
+      if (restProv.restaurant == null) {
+        restProv.fetchRestaurantData().then((_) {
+          if (mounted) _initializeValidDateTime();
+        });
+      } else {
+        _initializeValidDateTime();
+      }
     });
+  }
+
+  void _initializeValidDateTime() {
+    final restProv = Provider.of<RestaurantProvider>(context, listen: false);
+    final restaurant = restProv.restaurant;
+    final nowNy = RestaurantScheduleUtils.getNowInRestaurantTimezone(restaurant);
+    final todayNy = DateTime(nowNy.year, nowNy.month, nowNy.day);
+
+    // Check if today in New York has available future slots
+    final todaySchedule = RestaurantScheduleUtils.getScheduleForDate(restaurant, todayNy);
+    final todaySlot = RestaurantScheduleUtils.getEarliestAvailableSlot(todayNy, restaurant);
+
+    if (!todaySchedule.isClosed && todaySlot != null) {
+      setState(() {
+        _selectedDate = todayNy;
+        _selectedTime = todaySlot;
+      });
+    } else {
+      // Find the first open day from tomorrow onwards
+      DateTime candidate = todayNy.add(const Duration(days: 1));
+      for (int i = 0; i < 7; i++) {
+        final candSchedule = RestaurantScheduleUtils.getScheduleForDate(restaurant, candidate);
+        if (!candSchedule.isClosed) {
+          final candSlot = RestaurantScheduleUtils.getEarliestAvailableSlot(candidate, restaurant);
+          const TimeOfDay preferredTime = TimeOfDay(hour: 19, minute: 0);
+          final preferredErr = RestaurantScheduleUtils.validateReservation(candidate, preferredTime, restaurant);
+
+          setState(() {
+            _selectedDate = candidate;
+            _selectedTime = preferredErr == null ? preferredTime : (candSlot ?? candSchedule.openTime);
+          });
+          break;
+        }
+        candidate = candidate.add(const Duration(days: 1));
+      }
+    }
   }
 
   void _populateFromProfile() {
@@ -192,22 +238,96 @@ class _BookTableScreenState extends State<BookTableScreen> {
     }
   }
 
-  Future<void> _selectDate(BuildContext context) async {
+  Future<void> _selectDate() async {
+    final restaurantProvider = Provider.of<RestaurantProvider>(context, listen: false);
+    final restaurant = restaurantProvider.restaurant;
+    final nowNy = RestaurantScheduleUtils.getNowInRestaurantTimezone(restaurant);
+    final firstDate = DateTime(nowNy.year, nowNy.month, nowNy.day);
+    final initialDate = (_selectedDate != null && !_selectedDate!.isBefore(firstDate))
+        ? _selectedDate!
+        : firstDate;
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 90)),
+      initialDate: initialDate,
+      firstDate: firstDate, // Strictly today or future dates in New York Time!
+      lastDate: firstDate.add(const Duration(days: 90)),
+      builder: (ctx, child) {
+        return Theme(
+          data: Theme.of(ctx).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF7A0B10),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF0F172A),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
-    if (picked != null) setState(() => _selectedDate = picked);
+
+    if (!mounted || picked == null) return;
+    final schedule = RestaurantScheduleUtils.getScheduleForDate(restaurant, picked);
+
+    if (schedule.isClosed) {
+      if (mounted) {
+        ToastUtils.showError(
+          context,
+          'Lassi Lounge is closed on ${DateFormat('EEEE, MMM d').format(picked)}. Please pick another date.',
+        );
+      }
+    } else if (RestaurantScheduleUtils.isToday(picked, restaurant)) {
+      final currentMins = nowNy.hour * 60 + nowNy.minute;
+      if (currentMins >= schedule.lastBookingMinutes) {
+        if (mounted) {
+          ToastUtils.showInfo(
+            context,
+            'All booking slots for today have ended (last booking slot was ${schedule.lastBookingStr} ${nowNy.timeZoneName}). Please pick tomorrow or a future date.',
+          );
+        }
+      }
+    }
+
+    setState(() {
+      _selectedDate = picked;
+      // Check if currently selected time is valid for the newly chosen date
+      final timeError = RestaurantScheduleUtils.validateReservation(
+        picked,
+        _selectedTime,
+        restaurant,
+      );
+      if (timeError != null) {
+        final earliest = RestaurantScheduleUtils.getEarliestAvailableSlot(picked, restaurant);
+        if (earliest != null) {
+          _selectedTime = earliest;
+        }
+      }
+    });
   }
 
-  Future<void> _selectTime(BuildContext context) async {
-    final picked = await showTimePicker(
+  void _selectTime() {
+    final restaurantProvider = Provider.of<RestaurantProvider>(context, listen: false);
+    final restaurant = restaurantProvider.restaurant;
+    final date = _selectedDate ?? RestaurantScheduleUtils.getTodayInRestaurantTimezone(restaurant);
+
+    showModalBottomSheet(
       context: context,
-      initialTime: _selectedTime ?? TimeOfDay.now(),
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => TimeSlotPickerSheet(
+        selectedDate: date,
+        selectedTime: _selectedTime,
+        restaurant: restaurant,
+        onTimeSelected: (TimeOfDay picked) {
+          setState(() => _selectedTime = picked);
+        },
+        onChangeDate: () {
+          Navigator.pop(ctx);
+          _selectDate();
+        },
+      ),
     );
-    if (picked != null) setState(() => _selectedTime = picked);
   }
 
   Future<void> _submitReservation() async {
@@ -216,6 +336,18 @@ class _BookTableScreenState extends State<BookTableScreen> {
 
     if (_selectedDate == null || _selectedTime == null) {
       ToastUtils.showError(context, 'Please select date and time');
+      return;
+    }
+
+    // Strict industry-level validation against merchant operating hours and closing buffer
+    final validationError = RestaurantScheduleUtils.validateReservation(
+      _selectedDate,
+      _selectedTime,
+      restaurantProvider.restaurant,
+    );
+
+    if (validationError != null) {
+      ToastUtils.showError(context, validationError);
       return;
     }
 
@@ -358,9 +490,10 @@ class _BookTableScreenState extends State<BookTableScreen> {
                             selectedTime: _selectedTime,
                             guests: _guests,
                             specialRequestController: _specialRequestController,
-                            onSelectDate: () => _selectDate(context),
-                            onSelectTime: () => _selectTime(context),
+                            onSelectDate: _selectDate,
+                            onSelectTime: _selectTime,
                             onGuestsChanged: (val) => setState(() => _guests = val),
+                            restaurant: restaurantProvider.restaurant,
                           ),
                           const SizedBox(height: 28),
                           _buildSectionHeader(

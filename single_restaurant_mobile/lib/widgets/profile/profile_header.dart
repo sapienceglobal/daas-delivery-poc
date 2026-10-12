@@ -102,6 +102,27 @@ class ProfileHeader extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
+                if (user?.email != null && user!.email.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      const Icon(Icons.mail_outline,
+                          size: 12.5, color: Color(0xFF555555)),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          user.email,
+                          style: const TextStyle(
+                            color: Color(0xFF4A4A4A),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                ],
                 if (user != null && user.phone.trim().isNotEmpty) ...[
                   Row(
                     children: [
@@ -121,27 +142,50 @@ class ProfileHeader extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 3),
-                ],
-                if (user?.email != null && user!.email.isNotEmpty)
-                  Row(
-                    children: [
-                      const Icon(Icons.mail_outline,
-                          size: 12.5, color: Color(0xFF555555)),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: Text(
-                          user.email,
-                          style: const TextStyle(
-                            color: Color(0xFF4A4A4A),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                ] else if (user != null) ...[
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EditProfileScreen(autoFocusPhone: true),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 1),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: const Color(0xFFFECDD3),
+                          width: 0.8,
                         ),
                       ),
-                    ],
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.add_call,
+                            size: 11,
+                            color: Color(0xFF7A0B10),
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Add Mobile',
+                            style: TextStyle(
+                              color: Color(0xFF7A0B10),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
+                ],
               ],
             ),
           ),

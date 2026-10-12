@@ -245,6 +245,7 @@ export default function PromotionsView() {
           <option className="bg-white text-[#111827]">Offer</option>
           <option className="bg-white text-[#111827]">Combo Offer</option>
           <option className="bg-white text-[#111827]">Seasonal Offer</option>
+          <option className="bg-white text-[#111827]">Referral Offer</option>
         </select>
         <select 
           value={filterStatus}
@@ -333,7 +334,23 @@ export default function PromotionsView() {
                               </div>
                               <div>
                                 <p className="text-[12px] font-bold text-[#111827] truncate max-w-[150px]" title={promo.name || promo.description}>{promo.name || promo.description}</p>
-                                <p className="text-xs text-[#6b7280]">Code: {promo.code}</p>
+                                <p className="text-xs text-[#6b7280]">Code: <span className="font-mono font-bold text-[#111827]">{promo.code}</span></p>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                  {promo.source === 'invite_and_earn' || (!promo.createdBy && promo.promoType === 'Referral Offer') ? (
+                                    <span className="inline-flex items-center text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                                      🎁 Invite & Earn
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                                      ⚡ Admin Created
+                                    </span>
+                                  )}
+                                  {promo.applicableUsers && promo.applicableUsers.length > 0 && (
+                                    <span className="inline-flex items-center text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200">
+                                      👤 {promo.applicableUsers.length === 1 ? '1 User Exclusive' : `${promo.applicableUsers.length} Users Exclusive`}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </td>

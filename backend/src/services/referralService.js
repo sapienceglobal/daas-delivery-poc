@@ -187,6 +187,7 @@ export const applyReferralCode = async ({ getModel, userId, code, ip }) => {
     coupon = await createCouponWithRetry(CouponModel, {
       name: 'Referral Welcome Offer',
       promoType: 'Referral Offer',
+      source: 'invite_and_earn',
       description: `$${money(settings.refereeDiscountValue)} off your first order of $${money(settings.refereeMinOrder)} or more`,
       type: 'flat',
       value: settings.refereeDiscountValue,

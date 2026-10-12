@@ -65,6 +65,22 @@ export const getCoupons = asyncHandler(async (req, response) => {
     filter.endDate = { $gte: new Date() };
   }
 
+  if (req.query.promoType) {
+    filter.promoType = req.query.promoType;
+  }
+
+  // Exclude automated customer "Invite & Earn" referee vouchers from the general promotions list.
+  // ANY promotion manually created by the admin/merchant (createdBy != null) is ALWAYS shown,
+  // even if it is a referral offer or targeted to a specific customer.
+  if (req.query.source) {
+    filter.source = req.query.source;
+  } else if (req.query.includeReferrals !== 'true') {
+    filter.$nor = [
+      { source: 'invite_and_earn' },
+      { createdBy: null, promoType: 'Referral Offer' }
+    ];
+  }
+
   const CouponModel = req.getModel ? req.getModel('Coupon') : Coupon;
 
   const [coupons, total] = await Promise.all([
@@ -123,6 +139,7 @@ import User from '../models/User.js';
 
 export const createCoupon = asyncHandler(async (req, response) => {
   req.body.createdBy = req.user._id;
+  req.body.source = req.body.source || 'manual';
   if (req.user.role === 'merchant') {
     req.body.specificRestaurant = req.user.restaurantId;
   }
@@ -204,6 +221,11 @@ export const getCouponStats = asyncHandler(async (req, response) => {
   if (req.user.role === 'merchant') {
     filter.specificRestaurant = req.user.restaurantId;
   }
+  // Exclude automated customer referral vouchers from general marketing campaign stats
+  filter.$nor = [
+    { source: 'invite_and_earn' },
+    { createdBy: null, promoType: 'Referral Offer' }
+  ];
 
   const now = new Date();
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);

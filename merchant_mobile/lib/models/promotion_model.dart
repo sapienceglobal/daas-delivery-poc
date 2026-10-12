@@ -18,6 +18,10 @@ class PromotionModel {
   final DateTime startDate;
   final DateTime endDate;
   final bool isActive;
+  final String source;
+  final bool hasCreatedBy;
+  final int applicableUsersCount;
+  final List<String> applicableUsers;
 
   PromotionModel({
     required this.id,
@@ -39,6 +43,10 @@ class PromotionModel {
     required this.startDate,
     required this.endDate,
     this.isActive = true,
+    this.source = 'manual',
+    this.hasCreatedBy = true,
+    this.applicableUsersCount = 0,
+    this.applicableUsers = const [],
   });
 
   factory PromotionModel.fromJson(Map<String, dynamic> json) {
@@ -62,8 +70,16 @@ class PromotionModel {
       startDate: json['startDate'] != null ? DateTime.parse(json['startDate']) : DateTime.now(),
       endDate: json['endDate'] != null ? DateTime.parse(json['endDate']) : DateTime.now().add(const Duration(days: 30)),
       isActive: json['isActive'] ?? true,
+      source: json['source'] ?? ((json['createdBy'] == null && json['promoType'] == 'Referral Offer') ? 'invite_and_earn' : 'manual'),
+      hasCreatedBy: json['createdBy'] != null,
+      applicableUsersCount: (json['applicableUsers'] as List?)?.length ?? 0,
+      applicableUsers: json['applicableUsers'] != null ? List<String>.from(json['applicableUsers'].map((u) => u.toString())) : const [],
     );
   }
+
+  bool get isInviteAndEarn => source == 'invite_and_earn' || (!hasCreatedBy && promoType == 'Referral Offer');
+  bool get isAdminCreated => !isInviteAndEarn;
+  bool get isSpecificCustomer => applicableUsersCount > 0;
 
   bool get isExpired => !isActive || endDate.isBefore(DateTime.now());
   bool get isCurrentlyActive => !isExpired;
