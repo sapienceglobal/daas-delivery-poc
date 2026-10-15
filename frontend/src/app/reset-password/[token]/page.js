@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Lock, ArrowRight, Loader2, CheckCircle, Eye, EyeOff, ShoppingBag, Bike, Calendar, Tag, Star, Clock } from 'lucide-react';
+import { Lock, ArrowRight, Loader2, CheckCircle, Eye, EyeOff, ShoppingBag, Bike, Calendar, Tag, Star, Clock, Sparkles } from 'lucide-react';
 import { authAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 import { useBrand } from '@/context/BrandContext';
@@ -31,8 +31,11 @@ const customerFeatures = [
 
 export default function ResetPasswordPage({ params }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const unwrappedParams = use(params);
   const token = unwrappedParams.token;
+  const emailParam = searchParams?.get('email') || '';
+  const isWelcome = searchParams?.get('welcome') === '1' || searchParams?.get('welcome') === 'true';
   const { brand } = useBrand();
 
   const [form, setForm] = useState({ password: '', confirmPassword: '' });
@@ -164,17 +167,42 @@ export default function ResetPasswordPage({ params }) {
             </div>
 
             <div className="text-center mb-6">
-              <h2 className="text-[32px] font-serif text-[#4a090b] mb-3">
-                Reset Password
-              </h2>
-              <div className="flex items-center justify-center mb-4 w-full">
-                <div className="w-10 h-[1px] bg-[#c99742]"></div>
-                <div className="w-1.5 h-1.5 rotate-45 bg-[#c99742] mx-2"></div>
-                <div className="w-10 h-[1px] bg-[#c99742]"></div>
-              </div>
-              <p className="text-[#6b7280] text-[15px]">
-                Create a new password to secure your account.
-              </p>
+              {isWelcome ? (
+                <>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#fcedec] text-[#7a0b10] text-[12px] font-bold uppercase tracking-wider mb-3">
+                    <Sparkles className="w-3.5 h-3.5" /> First-Time Account Setup
+                  </div>
+                  <h2 className="text-[30px] font-serif text-[#4a090b] mb-2">
+                    Set Your Password
+                  </h2>
+                  <div className="flex items-center justify-center mb-3 w-full">
+                    <div className="w-10 h-[1px] bg-[#c99742]"></div>
+                    <div className="w-1.5 h-1.5 rotate-45 bg-[#c99742] mx-2"></div>
+                    <div className="w-10 h-[1px] bg-[#c99742]"></div>
+                  </div>
+                  <p className="text-[#6b7280] text-[14px]">
+                    {emailParam ? (
+                      <>Setting up password for <strong className="text-[#1a1a1a]">{emailParam}</strong></>
+                    ) : (
+                      'Choose a password to access your account & live tracking anytime.'
+                    )}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-[32px] font-serif text-[#4a090b] mb-3">
+                    Reset Password
+                  </h2>
+                  <div className="flex items-center justify-center mb-4 w-full">
+                    <div className="w-10 h-[1px] bg-[#c99742]"></div>
+                    <div className="w-1.5 h-1.5 rotate-45 bg-[#c99742] mx-2"></div>
+                    <div className="w-10 h-[1px] bg-[#c99742]"></div>
+                  </div>
+                  <p className="text-[#6b7280] text-[15px]">
+                    Create a new password to secure your account.
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="bg-white rounded-3xl shadow-[0_12px_40px_rgb(0,0,0,0.06)] p-8 sm:p-10 border border-[#f9fafb] relative overflow-hidden">
@@ -185,24 +213,36 @@ export default function ResetPasswordPage({ params }) {
                     <CheckCircle className="w-8 h-8 text-green-600" />
                   </div>
                   <div>
-                    <h3 className="text-[20px] font-bold text-[#1f2937] mb-2">Password Reset Successful</h3>
+                    <h3 className="text-[20px] font-bold text-[#1f2937] mb-2">
+                      {isWelcome ? 'Password Set Successfully!' : 'Password Reset Successful'}
+                    </h3>
                     <p className="text-[#6b7280] text-[13px] leading-relaxed">
-                      Your password has been securely updated. You can now log in using your new credentials.
+                      {isWelcome
+                        ? 'Your account is now fully secured! You can now track your orders, view receipts, and earn points on every order.'
+                        : 'Your password has been securely updated. You can now log in using your new credentials.'}
                     </p>
                   </div>
-                  <div className="pt-2">
+                  <div className="pt-2 flex flex-col gap-3">
                     <Link
-                      href="/login"
+                      href="/"
                       className="w-full flex items-center justify-center gap-2 bg-[#550c0e] hover:bg-[#3a080a] text-white py-[14px] rounded-xl text-[14px] font-bold transition-all shadow-[0_6px_16px_rgba(85,12,14,0.2)] uppercase tracking-wider"
                     >
-                      Continue to Login
+                      Explore Menu &amp; Order
+                    </Link>
+                    <Link
+                      href="/orders"
+                      className="w-full flex items-center justify-center gap-2 border border-[#e5e7eb] text-[#1f2937] hover:bg-[#f9fafb] py-[12px] rounded-xl text-[13px] font-bold transition-all uppercase tracking-wider"
+                    >
+                      View My Orders
                     </Link>
                   </div>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} noValidate className="space-y-5">
                   <div>
-                    <label className="text-[13px] font-bold text-[#1f2937] block mb-2">New Password</label>
+                    <label className="text-[13px] font-bold text-[#1f2937] block mb-2">
+                      {isWelcome ? 'Create Password' : 'New Password'}
+                    </label>
                     <div className={`relative flex items-center bg-white border rounded-xl overflow-hidden transition-all ${errors.password ? 'border-red-300 ring-1 ring-red-300' : 'border-[#e5e7eb] focus-within:border-[#4a090b] focus-within:ring-1 focus-within:ring-[#4a090b]/20'}`}>
                       <div className="px-4 py-3.5 border-r border-[#f3f4f6] text-[#4a090b] bg-[#fdfaf8]">
                         <Lock size={18} strokeWidth={2} />
@@ -254,7 +294,7 @@ export default function ResetPasswordPage({ params }) {
                       className="w-full flex items-center justify-center gap-2 bg-[#550c0e] hover:bg-[#3a080a] text-white py-[14px] rounded-xl text-[14px] font-bold transition-all shadow-[0_6px_16px_rgba(85,12,14,0.2)] disabled:opacity-60 disabled:cursor-not-allowed uppercase tracking-wider"
                     >
                       {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                      Reset Password
+                      {isWelcome ? 'Set Password & Continue' : 'Reset Password'}
                       {!loading && <ArrowRight className="h-4 w-4" />}
                     </button>
                   </div>
