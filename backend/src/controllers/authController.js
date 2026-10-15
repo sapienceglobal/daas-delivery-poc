@@ -7,6 +7,8 @@ import * as res from '../utils/responseFormatter.js';
 import { sendPasswordResetEmail, sendWelcomeEmail, sendOtpEmail } from '../services/emailService.js';
 import logger from '../utils/logger.js';
 import { OAuth2Client } from 'google-auth-library';
+import axios from 'axios';
+import appleSignin from 'apple-signin-auth';
 import { generateSecret, generateURI, verify } from 'otplib';
 import QRCode from 'qrcode';
 
@@ -313,8 +315,8 @@ export const login = asyncHandler(async (req, response) => {
 });
 
 export const socialLogin = asyncHandler(async (req, response) => {
-  // we expect 'provider' (e.g. 'google', 'apple'), 'token', and optionally 'role'
-  const { provider, token, credential, role } = req.body;
+  // we expect 'provider' (e.g. 'google', 'apple', 'facebook'), 'token', and optionally 'role'
+  const { provider, token, credential, role, name: clientName, email: clientEmail } = req.body;
   
   // fallback for older frontend still sending 'credential' instead of 'token'
   const jwtToken = token || credential;
@@ -345,17 +347,90 @@ export const socialLogin = asyncHandler(async (req, response) => {
     name = payload.name;
     socialId = payload.sub;
     picture = payload.picture;
+  } else if (provider === 'facebook') {
+    // Facebook Graph API Token Verification
+    try {
+      const fbResponse = await axios.get('https://graph.facebook.com/v19.0/me', {
+        params: {
+          fields: 'id,name,email,picture.width(400).height(400)',
+          access_token: jwtToken
+        },
+        timeout: 10000
+      });
+
+      const fbData = fbResponse.data;
+      if (!fbData || !fbData.id) {
+        throw new AppError('Unable to verify Facebook account details.', 401);
+      }
+
+      socialId = fbData.id;
+      name = fbData.name || clientName || 'Facebook User';
+      email = (fbData.email || clientEmail || `${socialId}@facebook.user`).toLowerCase();
+      picture = fbData.picture?.data?.url || null;
+    } catch (fbErr) {
+      if (fbErr instanceof AppError) throw fbErr;
+      logger.error('Facebook token verification failed:', {
+        error: fbErr.response?.data || fbErr.message
+      });
+      const fbMsg = fbErr.response?.data?.error?.message || 'Invalid or expired Facebook access token.';
+      throw new AppError(`Facebook authentication failed: ${fbMsg}`, 401);
+    }
   } else if (provider === 'apple') {
-    // CRITICAL SECURITY FIX: Disabling Apple login because it was accepting 
-    // forged tokens (jwt.decode does not verify signatures). 
-    // to re-enable, install `apple-signin-auth` and verify the JWT signature 
-    // against Apple's public JWKS, ensuring the audience matches your Apple Client ID.
-    throw new AppError('Apple login is not currently supported or configured.', 501);
+    // Apple ID Token Verification against Apple's public JWKS
+    try {
+      const appleClaims = await appleSignin.verifyIdToken(jwtToken, {
+        audience: [
+          process.env.APPLE_CLIENT_ID || 'com.lassilounge.app',
+          'com.example.singleRestaurantMobile',
+          'com.lassilounge.mobile'
+        ],
+        ignoreExpiration: false
+      });
+
+      if (!appleClaims || !appleClaims.sub) {
+        throw new AppError('Unable to verify Apple account claims.', 401);
+      }
+
+      socialId = appleClaims.sub;
+      // Apple only returns email in token claims or clientEmail on first sign-in
+      email = (appleClaims.email || clientEmail || `${socialId}@apple.user`).toLowerCase();
+      name = clientName || (email.split('@')[0]) || 'Apple User';
+      picture = null;
+    } catch (appleErr) {
+      if (appleErr instanceof AppError) throw appleErr;
+      logger.error('Apple token verification failed:', {
+        error: appleErr.message || appleErr
+      });
+      throw new AppError(`Apple authentication failed: ${appleErr.message || 'Invalid Apple token'}`, 401);
+    }
   } else {
     throw new AppError(`Unsupported provider: ${provider}`, 400);
   }
 
-  let user = await UserModel.findOne({ email });
+  const userQuery = provider === 'facebook'
+    ? {
+        $or: [
+          { email },
+          { 'socialLogin.facebookId': socialId }
+        ]
+      }
+    : provider === 'apple'
+      ? {
+          $or: [
+            { email },
+            { 'socialLogin.appleId': socialId }
+          ]
+        }
+      : (provider === 'google' || !provider)
+        ? {
+            $or: [
+              { email },
+              { 'socialLogin.googleId': socialId }
+            ]
+          }
+        : { email };
+
+  let user = await UserModel.findOne(userQuery);
 
   if (!user) {
     const allowedRoles = process.env.ALLOW_PUBLIC_MERCHANT_SIGNUP === 'true'
@@ -363,12 +438,21 @@ export const socialLogin = asyncHandler(async (req, response) => {
       : ['customer'];
     const finalRole = allowedRoles.includes(role) ? role : 'customer';
 
+    const socialLoginData = {};
+    if (provider === 'apple') {
+      socialLoginData.appleId = socialId;
+    } else if (provider === 'facebook') {
+      socialLoginData.facebookId = socialId;
+    } else {
+      socialLoginData.googleId = socialId;
+    }
+
     user = new UserModel({
       name,
       email,
       role: finalRole,
       avatar: picture,
-      socialLogin: provider === 'apple' ? { appleId: socialId } : { googleId: socialId },
+      socialLogin: socialLoginData,
       isVerified: true,
       isEmailVerified: true
     });
@@ -385,12 +469,16 @@ export const socialLogin = asyncHandler(async (req, response) => {
   } else {
     // industry Level: Account Linking!
     // if user exists (manual register or other social), link this new social ID
-    if (provider === 'apple' && !user.socialLogin.appleId) {
+    if (provider === 'apple' && !user.socialLogin?.appleId) {
       user.socialLogin.appleId = socialId;
       await user.save();
-    } else if ((provider === 'google' || !provider) && !user.socialLogin.googleId) {
+    } else if (provider === 'facebook' && !user.socialLogin?.facebookId) {
+      user.socialLogin.facebookId = socialId;
+      if (!user.avatar && picture) user.avatar = picture;
+      await user.save();
+    } else if ((provider === 'google' || !provider) && !user.socialLogin?.googleId) {
       user.socialLogin.googleId = socialId;
-      if (!user.avatar) user.avatar = picture;
+      if (!user.avatar && picture) user.avatar = picture;
       await user.save();
     }
     
@@ -445,7 +533,7 @@ export const deleteAccount = asyncHandler(async (req, response) => {
   }
 
   const { password, confirmation, reason } = req.body;
-  const isSocialUser = !!(user.socialLogin?.googleId || user.socialLogin?.appleId);
+  const isSocialUser = !!(user.socialLogin?.googleId || user.socialLogin?.appleId || user.socialLogin?.facebookId);
 
   // Security Verification
   if (!isSocialUser) {
@@ -564,7 +652,7 @@ export const webDeleteAccount = asyncHandler(async (req, response) => {
   }
 
   // Verify Password
-  const isSocialUser = !!(user.socialLogin?.googleId || user.socialLogin?.appleId);
+  const isSocialUser = !!(user.socialLogin?.googleId || user.socialLogin?.appleId || user.socialLogin?.facebookId);
   if (!isSocialUser) {
     const isPasswordValid = user.validatePassword(password);
     if (!isPasswordValid) {

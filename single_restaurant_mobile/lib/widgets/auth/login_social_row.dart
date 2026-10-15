@@ -8,6 +8,7 @@ class LoginSocialRow extends StatelessWidget {
   final VoidCallback onFacebookTap;
   final bool isGoogleLoading;
   final bool isAppleLoading;
+  final bool isFacebookLoading;
 
   final TargetPlatform? platformOverride;
 
@@ -18,6 +19,7 @@ class LoginSocialRow extends StatelessWidget {
     required this.onFacebookTap,
     this.isGoogleLoading = false,
     this.isAppleLoading = false,
+    this.isFacebookLoading = false,
     this.platformOverride,
   });
 
@@ -61,7 +63,7 @@ class LoginSocialRow extends StatelessWidget {
             icon: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 22),
             provider: 'Facebook',
             onTap: onFacebookTap,
-            isLoading: false,
+            isLoading: isFacebookLoading,
           ),
         ),
       ],

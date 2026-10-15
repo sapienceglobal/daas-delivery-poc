@@ -181,7 +181,7 @@ export const menuAPI = {
 export const orderAPI = {
   create: (data) => api.post('/api/orders', data),
   getMyOrders: (params = '') => api.get(`/api/orders/my-orders${params ? '?' + params : ''}`),
-  getById: (id) => api.get(`/api/orders/${id}`),
+  getById: (id, token = '') => api.get(`/api/orders/${id}${token ? '?token=' + encodeURIComponent(token) : ''}`),
   cancel: (id) => api.post(`/api/orders/${id}/cancel`),
   rate: (id, data) => api.post(`/api/orders/${id}/rate`, data),
   getDeliveryQuote: (data) => api.post('/api/orders/delivery-quote', data),

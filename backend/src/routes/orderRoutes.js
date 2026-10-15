@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { protect, authorize } from '../middleware/auth.js';
+import { protect, authorize, optionalAuth } from '../middleware/auth.js';
 import validate from '../middleware/validate.js';
 import { createOrderSchema, rateOrderSchema, deliveryQuoteSchema, replyToReviewSchema, refundOrderSchema } from '../middleware/schemas.js';
 import * as orderController from '../controllers/orderController.js';
@@ -12,14 +12,14 @@ router.get('/:id/pay', orderController.redirectToPayment);
 router.get('/:id/invoice-pdf', orderController.downloadInvoicePdf);
 router.get('/:id/kot', orderController.getKOTDocument);
 
-// ── Customer Routes ─────────────────────────────────────────────────────────
-router.post('/', protect, authorize('customer', 'merchant', 'admin'), validate(createOrderSchema), orderController.createOrder);
+// ── Customer Routes (Supports both logged-in and guest checkout) ───────────
+router.post('/', optionalAuth, validate(createOrderSchema), orderController.createOrder);
 router.get('/merchant/all', protect, authorize('merchant'), orderController.getMerchantOrders);
 router.get('/my-orders', protect, authorize('customer'), orderController.getMyOrders);
-router.get('/:id', protect, authorize('customer', 'merchant', 'admin'), orderController.getOrderById);
+router.get('/:id', optionalAuth, orderController.getOrderById);
 router.post('/:id/cancel', protect, authorize('customer'), orderController.cancelOrder);
 router.post('/:id/rate', protect, authorize('customer'), validate(rateOrderSchema), orderController.rateOrder);
-router.post('/delivery-quote', protect, authorize('customer', 'merchant', 'admin', 'restaurant_owner', 'manager', 'staff'), validate(deliveryQuoteSchema), orderController.getDeliveryQuote);
+router.post('/delivery-quote', optionalAuth, validate(deliveryQuoteSchema), orderController.getDeliveryQuote);
 
 // ── Merchant Routes ─────────────────────────────────────────────────────────
 router.get('/restaurant/:restaurantId', protect, authorize('merchant'), orderController.getRestaurantOrders);

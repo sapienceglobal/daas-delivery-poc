@@ -11,24 +11,21 @@ if (!uri) {
   process.exit(1);
 }
 
-const backupDir = path.resolve('..', 'lassi_lounge_backup');
+// Backup folder inside the project root: database_backup
+const baseBackupDir = path.resolve('..', 'database_backup');
 
-async function runBackup() {
-  console.log('=============================================');
-  console.log('Starting MongoDB Backup for Lassi Lounge');
-  console.log('=============================================');
-  console.log('Connecting to MongoDB...');
-  await mongoose.connect(uri);
-  const db = mongoose.connection.db;
-  const dbName = db.databaseName;
-  console.log(`Connected to database: ${dbName}`);
+async function backupSingleDatabase(client, dbName, targetDir) {
+  const db = client.useDb(dbName).db;
+  console.log(`\n---------------------------------------------`);
+  console.log(`Backing up Database: [${dbName}]`);
+  console.log(`---------------------------------------------`);
 
-  if (!fs.existsSync(backupDir)) {
-    fs.mkdirSync(backupDir, { recursive: true });
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
   }
 
   const collections = await db.listCollections().toArray();
-  console.log(`Found ${collections.length} collections to backup.\n`);
+  console.log(`Found ${collections.length} collections in [${dbName}].`);
 
   const summary = {
     database: dbName,
@@ -39,9 +36,12 @@ async function runBackup() {
 
   for (const colInfo of collections) {
     const colName = colInfo.name;
+    // Skip system collections
+    if (colName.startsWith('system.')) continue;
+
     try {
       const docs = await db.collection(colName).find({}).toArray();
-      const filePath = path.join(backupDir, `${colName}.json`);
+      const filePath = path.join(targetDir, `${colName}.json`);
       fs.writeFileSync(filePath, JSON.stringify(docs, null, 2), 'utf8');
       summary.collections[colName] = docs.length;
       summary.totalDocuments += docs.length;
@@ -52,22 +52,72 @@ async function runBackup() {
   }
 
   fs.writeFileSync(
-    path.join(backupDir, '_backup_summary.json'),
+    path.join(targetDir, '_database_summary.json'),
     JSON.stringify(summary, null, 2),
     'utf8'
   );
 
+  return summary;
+}
+
+async function runBackup() {
+  console.log('=============================================');
+  console.log('MongoDB Full Backup Process');
+  console.log('=============================================');
+  console.log('Connecting to MongoDB Atlas Cluster...');
+  
+  await mongoose.connect(uri);
+  const activeDbName = mongoose.connection.db.databaseName;
+  console.log(`Primary active database connected: ${activeDbName}`);
+
+  if (!fs.existsSync(baseBackupDir)) {
+    fs.mkdirSync(baseBackupDir, { recursive: true });
+  }
+
+  const overallManifest = {
+    backupDate: new Date().toISOString(),
+    clusterDatabases: [],
+    primaryDatabase: activeDbName,
+    backupFolder: baseBackupDir,
+    totalDocumentsAcrossAllDatabases: 0,
+    databaseSummaries: {}
+  };
+
+  // 1. Backup primary active database (e.g. daas_poc_lassi_lounge)
+  const primaryDir = path.join(baseBackupDir, activeDbName);
+  const primarySummary = await backupSingleDatabase(mongoose.connection, activeDbName, primaryDir);
+  overallManifest.databaseSummaries[activeDbName] = primarySummary;
+  overallManifest.totalDocumentsAcrossAllDatabases += primarySummary.totalDocuments;
+
+  // 2. Also backup daas_poc if it's different and exists on cluster
+  if (activeDbName !== 'daas_poc') {
+    try {
+      const secondaryDir = path.join(baseBackupDir, 'daas_poc');
+      const secondarySummary = await backupSingleDatabase(mongoose.connection, 'daas_poc', secondaryDir);
+      overallManifest.databaseSummaries['daas_poc'] = secondarySummary;
+      overallManifest.totalDocumentsAcrossAllDatabases += secondarySummary.totalDocuments;
+    } catch (e) {
+      console.warn('Could not backup secondary daas_poc db:', e.message);
+    }
+  }
+
+  // Save overall master manifest
+  fs.writeFileSync(
+    path.join(baseBackupDir, 'backup_manifest.json'),
+    JSON.stringify(overallManifest, null, 2),
+    'utf8'
+  );
+
   console.log('\n=============================================');
-  console.log(`Backup completed successfully!`);
-  console.log(`Total Collections: ${collections.length}`);
-  console.log(`Total Documents: ${summary.totalDocuments}`);
-  console.log(`Folder: ${backupDir}`);
+  console.log('All Database Backups Completed Successfully!');
+  console.log(`Saved To: ${baseBackupDir}`);
+  console.log(`Total Documents Exported: ${overallManifest.totalDocumentsAcrossAllDatabases}`);
   console.log('=============================================\n');
 
   await mongoose.disconnect();
 }
 
 runBackup().catch((err) => {
-  console.error('Backup failed:', err);
+  console.error('Backup process failed:', err);
   process.exit(1);
 });

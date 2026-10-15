@@ -378,13 +378,16 @@ export default function LoyaltyTab({ user }) {
                 </div>
               </div>
               
-              <div className="bg-white border border-[#eadfdb] rounded-xl p-4 flex items-start gap-4 hover:shadow-sm transition-shadow">
+              <div 
+                className="bg-white border border-[#eadfdb] rounded-xl p-4 flex items-start gap-4 hover:shadow-sm transition-all cursor-pointer hover:border-[#7a0b10]/40"
+                onClick={() => { window.location.href = '/profile?tab=refer'; }}
+              >
                 <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
                   <Users className="w-5 h-5 text-[#7a0b10]" />
                 </div>
                 <div>
                   <h4 className="font-bold text-[#1a1a1a] text-sm">Refer a Friend</h4>
-                  <p className="text-xs text-[#6b7280] mt-1 mb-2">Invite friends to earn 100 points per referral</p>
+                  <p className="text-xs text-[#6b7280] mt-1 mb-2">Invite friends to order on mobile app &amp; earn rewards</p>
                 </div>
               </div>
             </div>

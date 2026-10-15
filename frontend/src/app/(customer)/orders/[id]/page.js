@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, RefreshCw, Star, ArrowRight, ShieldAlert, Award } from 'lucide-react';
 
 import { orderAPI } from '@/lib/api';
@@ -23,6 +23,8 @@ import ValuePropsBar from '@/components/orders/ValuePropsBar';
 
 export default function OrderDetailPage() {
   const { id } = useParams();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token') || '';
   const router = useRouter();
   const { joinOrderRoom, on, off } = useSocket();
   const { isAdmin, isMerchant, user } = useAuth();
@@ -58,11 +60,11 @@ export default function OrderDetailPage() {
       off('order_status_changed', handleStatusChange);
       off('order_updated', handleStatusChange);
     };
-  }, [id]);
+  }, [id, token]);
 
   const loadOrder = async () => {
     try {
-      const data = await orderAPI.getById(id);
+      const data = await orderAPI.getById(id, token);
       setOrder(data.data);
     } catch (err) {
       showToast('Failed to load order detail', 'error');

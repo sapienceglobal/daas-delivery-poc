@@ -15,9 +15,11 @@ import { withOptimisticRetry } from '../utils/optimisticRetry.js';
 import { triggerDelivery, getBestDeliveryQuote, cancelDelivery } from '../services/deliveryAggregatorService.js';
 import { validateDeliveryDistance } from '../utils/distance.js';
 import { buildOrderSocketPayload, syncDeliveryTracking } from '../services/deliverySyncService.js';
+import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { retrievePaymentIntent, refundPayment as refundStripePayment, chargeSavedCard, createCheckoutSession, expireCheckoutSession } from '../services/stripeService.js';
 import { calculateOrderPricing, roundMoney } from '../services/orderPricing.js';
-import { sendOrderConfirmationEmail, sendInvoiceEmail, sendPaymentLinkEmail } from '../services/emailService.js';
+import { sendOrderConfirmationEmail, sendInvoiceEmail, sendPaymentLinkEmail, sendGuestOrderWelcomeEmail } from '../services/emailService.js';
 import { generateInvoiceHTML, generateKOTHTML } from '../services/documentService.js';
 import { createNotification } from './notificationController.js';
 import { sendPushNotification } from '../services/webPushService.js';
@@ -28,6 +30,7 @@ import { scheduleOrDispatch, dispatchOrder } from '../services/dispatch/dispatch
 import { emitDispatchUpdated } from '../services/dispatch/dispatchEvents.js';
 import { DISPATCH_BY, DISPATCH_STATUSES } from '../services/dispatch/dispatchConfig.js';
 
+const JWT_SECRET = process.env.JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET';
 const CUSTOMER_PAYMENT_METHODS = ['credit_card', 'apple_pay', 'google_pay', 'stripe_online'];
 const STRIPE_REFUND_PAYMENT_METHODS = ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'];
 
@@ -346,7 +349,7 @@ export const processAutoRefund = async (order, reason, io, getModel) => {
   }
 };
 
-const verifyCardPayment = async ({ paymentMethod, stripePaymentIntentId, expectedTotal, userId }) => {
+const verifyCardPayment = async ({ paymentMethod, stripePaymentIntentId, expectedTotal, userId, customerEmail }) => {
   if (!['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(paymentMethod)) {
     return { paymentStatus: ['cash', 'payment_link'].includes(paymentMethod) ? 'pending' : 'paid' };
   }
@@ -367,8 +370,14 @@ const verifyCardPayment = async ({ paymentMethod, stripePaymentIntentId, expecte
     throw new AppError('Payment has not been completed', 402);
   }
 
-  if (paymentIntent.metadata?.userId && paymentIntent.metadata.userId !== userId.toString()) {
+  if (paymentIntent.metadata?.userId && paymentIntent.metadata.userId !== 'guest' && userId && paymentIntent.metadata.userId !== userId.toString()) {
     throw new AppError('Payment does not belong to this customer', 403);
+  }
+
+  if (paymentIntent.metadata?.userId === 'guest' && paymentIntent.metadata?.customerEmail && customerEmail) {
+    if (paymentIntent.metadata.customerEmail.toLowerCase().trim() !== customerEmail.toLowerCase().trim()) {
+      throw new AppError('Payment email mismatch', 403);
+    }
   }
 
   const paidAmount = roundMoney(paymentIntent.amount_received / 100);
@@ -490,9 +499,69 @@ export const createOrder = asyncHandler(async (req, response) => {
     throw new AppError('restaurantId and items are required', 400);
   }
 
+  // ── Resolve Target User (Authenticated User vs. Guest Checkout) ──
+  let targetUser = req.user || null;
+  let isNewAccountCreated = false;
+  let setPasswordUrl = null;
+
+  if (!targetUser) {
+    if (!customerEmail || !customerEmail.trim()) {
+      throw new AppError('Email address is required for checkout', 400);
+    }
+    if (!customerName || !customerName.trim()) {
+      throw new AppError('Full name is required for checkout', 400);
+    }
+    if (orderType === 'delivery' && (!customerPhone || !customerPhone.trim())) {
+      throw new AppError('Phone number is required for delivery orders', 400);
+    }
+
+    const normalizedEmail = customerEmail.toLowerCase().trim();
+    const existingUser = await User.findOne({ email: normalizedEmail });
+
+    if (existingUser) {
+      targetUser = existingUser;
+    } else {
+      const randomPassword = crypto.randomBytes(16).toString('hex') + 'A1!';
+      const newUser = new User({
+        name: customerName.trim(),
+        email: normalizedEmail,
+        phone: customerPhone?.trim() || '',
+        role: 'customer',
+        isEmailVerified: true,
+        isVerified: true,
+        referralOnboarding: 'none'
+      });
+      newUser.setPassword(randomPassword);
+      newUser.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+      const rawResetToken = newUser.createPasswordResetToken();
+      await newUser.save();
+
+      targetUser = newUser;
+      isNewAccountCreated = true;
+
+      const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      setPasswordUrl = `${frontendUrl}/reset-password?token=${rawResetToken}&email=${encodeURIComponent(normalizedEmail)}&welcome=1`;
+
+      const token = jwt.sign(
+        { id: targetUser._id, role: targetUser.role, tenantId: req.tenantId || 'marketplace', tokenVersion: targetUser.tokenVersion || 0 },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+      const secureCookie = process.env.COOKIE_SECURE === 'true' ||
+        (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
+      response.cookie('token', token, {
+        httpOnly: true,
+        secure: secureCookie,
+        sameSite: secureCookie ? 'none' : 'lax',
+        path: '/',
+        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      });
+    }
+  }
+
   // prevent double-submit / accidental duplicate orders (15 seconds debounce) - ATOMIC LOCK
   try {
-    await IdempotencyLock.create({ userId: req.user._id, restaurantId });
+    await IdempotencyLock.create({ userId: targetUser ? targetUser._id : (customerEmail || req.ip), restaurantId });
   } catch (error) {
     if (error.code === 11000) {
       throw new AppError('You just placed an order. Please wait a moment before placing another one.', 429);
@@ -511,7 +580,7 @@ export const createOrder = asyncHandler(async (req, response) => {
   // M4: Sanitize user-generated text fields
   const sanitizedCourierNotes = courierNotes ? xss(String(courierNotes)).slice(0, 500) : '';
   const isMerchantPosManualPayment =
-    ['merchant', 'admin'].includes(req.user.role) &&
+    ['merchant', 'admin'].includes(req.user?.role) &&
     ['cash', 'payment_link'].includes(paymentMethod);
 
   if (!CUSTOMER_PAYMENT_METHODS.includes(paymentMethod) && !isMerchantPosManualPayment) {
@@ -672,7 +741,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     orderType,
     tip,
     couponCode,
-    userId: req.user._id,
+    userId: targetUser?._id,
     useLoyaltyPoints,
     paymentMethod,
     getModel: req.getModel
@@ -706,7 +775,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     orderType,
     tip,
     couponCode,
-    userId: req.user._id,
+    userId: targetUser?._id,
     useLoyaltyPoints,
     paymentMethod,
     deliveryFeeOverride: deliveryQuote.deliveryFee,
@@ -717,7 +786,7 @@ export const createOrder = asyncHandler(async (req, response) => {
   let finalStripePaymentIntentId = stripePaymentIntentId;
 
   if (savedCardId && !finalStripePaymentIntentId && paymentMethod === 'credit_card') {
-    if (!req.user.stripeCustomerId) {
+    if (!req.user?.stripeCustomerId) {
       throw new AppError('No Stripe customer associated with this user', 400);
     }
 
@@ -738,7 +807,8 @@ export const createOrder = asyncHandler(async (req, response) => {
     paymentMethod,
     stripePaymentIntentId: finalStripePaymentIntentId,
     expectedTotal: pricing.total,
-    userId: req.user._id
+    userId: targetUser?._id,
+    customerEmail: customerEmail || targetUser?.email
   });
 
   // track whether the order document has been persisted to DB.
@@ -749,17 +819,17 @@ export const createOrder = asyncHandler(async (req, response) => {
 
   try {
     // only update the user profile phone if they don't have one (e.g. Google Sign-in default '0000000000')
-    if (customerPhone && customerPhone !== '0000000000' && (!req.user.phone || req.user.phone === '0000000000')) {
-      await User.findByIdAndUpdate(req.user._id, { phone: customerPhone }, { session });
-      req.user.phone = customerPhone; // Update local reference
+    if (customerPhone && customerPhone !== '0000000000' && targetUser && (!targetUser.phone || targetUser.phone === '0000000000')) {
+      await User.findByIdAndUpdate(targetUser._id, { phone: customerPhone }, { session });
+      targetUser.phone = customerPhone; // Update local reference
     }
 
     const order = new Order({
-      userId: req.user._id,
+      userId: targetUser._id,
       orderSource: platform,
-      customerName: customerName || req.user.name,
-      customerPhone: customerPhone || req.user.phone || '0000000000',
-      customerEmail: customerEmail || req.user.email,
+      customerName: customerName || targetUser.name,
+      customerPhone: customerPhone || targetUser.phone || '0000000000',
+      customerEmail: customerEmail || targetUser.email,
       address: address || restaurant.address,
       addressLat,
       addressLng,
@@ -833,7 +903,7 @@ export const createOrder = asyncHandler(async (req, response) => {
 
     await Payment.create([{
       orderId: order._id,
-      userId: req.user._id,
+      userId: targetUser._id,
       restaurantId: restaurant._id,
       method: paymentMethod,
       status: paymentStatus,
@@ -862,7 +932,7 @@ export const createOrder = asyncHandler(async (req, response) => {
         updateQuery,
         {
           $inc: { usedCount: 1 },
-          $push: { usedBy: { userId: req.user._id } }
+          $push: { usedBy: { userId: targetUser._id } }
         },
         { new: true, session }
       );
@@ -873,9 +943,9 @@ export const createOrder = asyncHandler(async (req, response) => {
     }
 
     // handle loyalty points: deduct used, add earned
-    if (pricing.pointsUsed > 0) {
+    if (pricing.pointsUsed > 0 && targetUser) {
       const updatedUser = await User.findOneAndUpdate(
-        { _id: req.user._id, loyaltyPoints: { $gte: pricing.pointsUsed } },
+        { _id: targetUser._id, loyaltyPoints: { $gte: pricing.pointsUsed } },
         { $inc: { loyaltyPoints: -pricing.pointsUsed } },
         { new: true, session }
       );
@@ -883,7 +953,7 @@ export const createOrder = asyncHandler(async (req, response) => {
         throw new AppError('Insufficient loyalty points to complete this order.', 400);
       }
       await LoyaltyTransaction.create([{
-        userId: req.user._id,
+        userId: targetUser._id,
         orderId: order._id,
         type: 'redeemed',
         points: -pricing.pointsUsed,
@@ -914,7 +984,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     if (order.paymentMethod === 'payment_link') {
       try {
         const metadata = { orderId: order._id.toString() };
-        if (req.user?._id) metadata.userId = req.user._id.toString();
+        if (targetUser?._id) metadata.userId = targetUser._id.toString();
         if (req.tenantDb?.name) metadata.tenantDbName = req.tenantDb.name;
         if (!metadata.tenantDbName) metadata.tenantDbName = process.env.FORCE_TENANT_DB_NAME || 'daas_poc_lassi_lounge';
 
@@ -940,8 +1010,8 @@ export const createOrder = asyncHandler(async (req, response) => {
     // Send confirmation emails ONLY if the order is auto-accepted. Otherwise, wait until merchant accepts.
     if (order.status === 'accepted') {
       const emailsToNotify = new Set();
-      if (req.user.email && req.user.notificationPreferences?.email !== false) {
-        emailsToNotify.add(req.user.email);
+      if (targetUser?.email && targetUser?.notificationPreferences?.email !== false) {
+        emailsToNotify.add(targetUser.email);
       }
       if (order.customerEmail) {
         emailsToNotify.add(order.customerEmail);
@@ -960,7 +1030,7 @@ export const createOrder = asyncHandler(async (req, response) => {
     }
 
     // ── TRIGGER BACKGROUND NOTIFICATIONS ──────────────────────────────────────
-    if (!['merchant', 'admin', 'staff', 'manager', 'restaurant_owner'].includes(req.user.role)) {
+    if (!['merchant', 'admin', 'staff', 'manager', 'restaurant_owner'].includes(req.user?.role)) {
       try {
         await sendPushNotification(restaurant, {
           title: 'New Order Request',
@@ -1004,7 +1074,24 @@ export const createOrder = asyncHandler(async (req, response) => {
       scheduleOrDispatch(order, { io, restaurant, getModel: req.getModel }).catch(err => logger.error('Shipday background error during createOrder', err));
     }
 
-    res.created(response, { data: order });
+    // Send welcome email with set-password link if a brand new account was automatically created
+    const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const trackingUrl = `${frontendUrl}/orders/${order._id}?token=${order.trackingToken}`;
+
+    if (isNewAccountCreated) {
+      sendGuestOrderWelcomeEmail(targetUser.email, targetUser.name, order, setPasswordUrl, trackingUrl).catch(err => {
+        logger.error('Failed to send guest welcome email', { error: err.message });
+      });
+    }
+
+    res.created(response, {
+      data: {
+        ...order.toObject(),
+        trackingToken: order.trackingToken,
+        isNewAccountCreated,
+        user: isNewAccountCreated ? targetUser.toSafeJSON() : undefined
+      }
+    });
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -1087,7 +1174,7 @@ export const createOrder = asyncHandler(async (req, response) => {
             // no savedOrder, log orphaned auto-refund success to global audit log
             await AuditLog.create({
               restaurantId: restaurant._id,
-              userId: req.user._id,
+              userId: targetUser?._id || req.user?._id || null,
               event: 'auto_refund_succeeded',
               severity: 'info',
               message: `Order DB creation failed. Successfully auto-refunded orphaned payment. Error that caused checkout failure: ${error.message}`,
@@ -1096,8 +1183,8 @@ export const createOrder = asyncHandler(async (req, response) => {
                 amount: pricing.total,
                 refundId: refund.id,
                 error: error.message,
-                customerName: req.user.name,
-                customerEmail: req.user.email
+                customerName: targetUser?.name || customerName || 'Guest',
+                customerEmail: targetUser?.email || customerEmail || 'guest@example.com'
               }
             });
           }
@@ -1118,7 +1205,7 @@ export const createOrder = asyncHandler(async (req, response) => {
             // no savedOrder, log orphaned auto-refund failure to global audit log
             await AuditLog.create({
               restaurantId: restaurant._id,
-              userId: req.user._id,
+              userId: targetUser?._id || req.user?._id || null,
               event: 'auto_refund_failed',
               severity: 'critical',
               message: `Failed to auto-refund orphaned payment after order creation error. Manual intervention required. Refund error: ${refundError.message}`,
@@ -1127,8 +1214,8 @@ export const createOrder = asyncHandler(async (req, response) => {
                 amount: pricing.total,
                 checkoutError: error.message,
                 refundError: refundError.message,
-                customerName: req.user.name,
-                customerEmail: req.user.email
+                customerName: targetUser?.name || customerName || 'Guest',
+                customerEmail: targetUser?.email || customerEmail || 'guest@example.com'
               }
             });
           }
@@ -1142,15 +1229,15 @@ export const createOrder = asyncHandler(async (req, response) => {
       // log the initial checkout failure that caused the whole rollback chain
       await AuditLog.create({
         restaurantId: restaurant._id,
-        userId: req.user._id,
+        userId: targetUser?._id || req.user?._id || null,
         event: 'checkout_failed',
         severity: 'critical',
         message: `Order DB creation failed after successful Stripe charge. Rollback initiated. Error: ${error.message}`,
         metadata: {
           paymentIntentId: finalStripePaymentIntentId,
           error: error.message,
-          customerName: req.user.name,
-          customerEmail: req.user.email,
+          customerName: targetUser?.name || customerName || 'Guest',
+          customerEmail: targetUser?.email || customerEmail || 'guest@example.com',
           items: pricing.orderItems
         }
       });
@@ -1201,13 +1288,22 @@ export const getOrderById = asyncHandler(async (req, response) => {
     .populate('userId', 'name email phone');
   if (!order) throw new AppError('Order not found', 404);
 
-  // customer can only see their own orders; merchant/admin can see restaurant orders
-  const orderUserId = order.userId?._id?.toString() || order.userId?.toString();
-  if (req.user.role === 'customer' && orderUserId !== req.user._id.toString()) {
-    throw new AppError('Not authorized to view this order', 403);
-  }
-  if (req.user.role === 'merchant') {
-    ensureCanManageRestaurant(req.user, order.restaurantId._id || order.restaurantId);
+  const queryToken = req.query.token || req.headers['x-tracking-token'];
+  const hasValidToken = Boolean(queryToken && order.trackingToken && queryToken === order.trackingToken);
+
+  if (req.user) {
+    const orderUserId = order.userId?._id?.toString() || order.userId?.toString();
+    if (req.user.role === 'customer' && orderUserId !== req.user._id.toString() && !hasValidToken) {
+      throw new AppError('Not authorized to view this order', 403);
+    }
+    if (['merchant', 'manager', 'staff', 'restaurant_owner'].includes(req.user.role)) {
+      ensureCanManageRestaurant(req.user, order.restaurantId._id || order.restaurantId);
+    }
+  } else {
+    // Guest access: requires valid tracking token
+    if (!hasValidToken) {
+      throw new AppError('Not authorized to view this order. Please sign in or use a valid tracking link.', 403);
+    }
   }
 
   await syncDeliveryTracking(order);
@@ -1342,7 +1438,7 @@ export const getDeliveryQuote = asyncHandler(async (req, response) => {
       restaurantId,
       items,
       orderType: 'delivery',
-      userId: req.user._id,
+      userId: req.user?._id,
       getModel: req.getModel
     });
     subtotal = pricing.subtotal;

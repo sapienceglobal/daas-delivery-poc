@@ -287,7 +287,7 @@ export default function CouponsTab({ user }) {
               </div>
               <div className="flex-1">
                 <h4 className="font-bold text-[#1f2937] text-sm">Refer & Earn</h4>
-                <p className="text-xs text-[#6b7280]">Invite your friends and both get $10 off</p>
+                <p className="text-xs text-[#6b7280]">Invite friends on our mobile app to get $25 each</p>
               </div>
               <ChevronRight className="w-5 h-5 text-[#d1d5db]" />
             </div>

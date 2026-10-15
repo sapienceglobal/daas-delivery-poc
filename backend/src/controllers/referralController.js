@@ -74,6 +74,10 @@ export const getMyReferral = asyncHandler(async (req, response) => {
 });
 
 export const applyCode = asyncHandler(async (req, response) => {
+  const platform = req.headers['x-platform'];
+  if (platform !== 'app') {
+    throw new AppError('Referral rewards are exclusive to the Lassi Lounge Mobile App. Please download the app on iOS or Android to claim your referral rewards.', 400);
+  }
   const result = await applyReferralCode({
     getModel: req.getModel,
     userId: req.user._id,

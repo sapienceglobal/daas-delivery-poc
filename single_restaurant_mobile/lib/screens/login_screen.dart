@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
@@ -39,6 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _isGoogleLoading = false;
   bool _isAppleLoading = false;
+  bool _isFacebookLoading = false;
   bool _isGuestLoading = false;
   String? _errorMessage;
 
@@ -159,13 +161,43 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _handleFacebookSignIn() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Facebook Sign In will be available shortly.'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+  Future<void> _handleFacebookSignIn() async {
+    setState(() => _isFacebookLoading = true);
+    try {
+      final LoginResult result = await FacebookAuth.instance.login(
+        permissions: ['email', 'public_profile'],
+      );
+
+      if (result.status == LoginStatus.success) {
+        final AccessToken accessToken = result.accessToken!;
+        final userData = await FacebookAuth.instance.getUserData(
+          fields: 'name,email,picture.width(400)',
+        );
+
+        final errorMsg = await _authService.socialLogin(
+          provider: 'facebook',
+          token: accessToken.tokenString,
+          email: userData['email'] as String?,
+          name: userData['name'] as String?,
+        );
+
+        if (errorMsg == null && mounted) {
+          await _refreshUserDataAndNavigate();
+        } else if (mounted) {
+          setState(() => _errorMessage = errorMsg);
+        }
+      } else if (result.status == LoginStatus.cancelled) {
+        // User cancelled, do not show error
+      } else {
+        if (mounted) {
+          setState(() => _errorMessage = result.message ?? 'Facebook Sign In failed');
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => _errorMessage = 'Facebook Sign In failed: $e');
+    } finally {
+      if (mounted) setState(() => _isFacebookLoading = false);
+    }
   }
 
   Future<void> _continueAsGuest() async {
@@ -234,6 +266,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         isLoading: _isLoading,
                         isGoogleLoading: _isGoogleLoading,
                         isAppleLoading: _isAppleLoading,
+                        isFacebookLoading: _isFacebookLoading,
                         errorMessage: _errorMessage,
                         onLogin: _login,
                         onGoogleSignIn: _handleGoogleSignIn,

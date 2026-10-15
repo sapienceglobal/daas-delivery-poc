@@ -246,6 +246,8 @@ const UserSchema = new mongoose.Schema({
 // ── Indexes ─────────────────────────────────────────────────────────────────
 UserSchema.index({ role: 1 });
 UserSchema.index({ 'socialLogin.googleId': 1 }, { sparse: true });
+UserSchema.index({ 'socialLogin.facebookId': 1 }, { sparse: true });
+UserSchema.index({ 'socialLogin.appleId': 1 }, { sparse: true });
 
 // ── Password hashing (scrypt) ───────────────────────────────────────────────
 const SCRYPT_OPTIONS = { N: 32768, r: 8, p: 1, maxmem: 128 * 1024 * 1024 };

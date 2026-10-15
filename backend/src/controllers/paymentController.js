@@ -74,7 +74,12 @@ export const createIntent = asyncHandler(async (req, res) => {
     }
   }
 
-  if (req.user?._id) metadata.userId = req.user._id.toString();
+  if (req.user?._id) {
+    metadata.userId = req.user._id.toString();
+  } else {
+    metadata.userId = 'guest';
+    if (customerEmail) metadata.customerEmail = String(customerEmail).toLowerCase().trim();
+  }
   if (req.tenantDb?.name) metadata.tenantDbName = req.tenantDb.name;
   // safety fallback: always ensure tenantDbName is set so Stripe webhooks write to the correct DB.
   if (!metadata.tenantDbName) {

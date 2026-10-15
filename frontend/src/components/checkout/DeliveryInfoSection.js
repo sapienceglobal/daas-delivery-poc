@@ -49,6 +49,23 @@ export default function DeliveryInfoSection({
       {step < 3 ? (
         <div className="space-y-6 animate-in fade-in duration-200">
           
+          {!user && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-xl bg-[#fffaf9] border border-[#fcedec]">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-2 w-2 rounded-full bg-[#10b981] shrink-0" />
+                <span className="text-[13px] font-medium text-[#1a1a1a]">
+                  <strong>Guest Checkout Active</strong> &mdash; Place your order instantly. We will auto-create your account for seamless tracking.
+                </span>
+              </div>
+              <a
+                href="/login"
+                className="text-[12px] font-bold text-[#7a0b10] hover:underline shrink-0"
+              >
+                Already have an account? Sign In &rarr;
+              </a>
+            </div>
+          )}
+
           {/* Delivery Type selector tabs */}
           <div>
             <label className="block text-[14px] font-bold text-[#1a1a1a] mb-3">Delivery Type</label>

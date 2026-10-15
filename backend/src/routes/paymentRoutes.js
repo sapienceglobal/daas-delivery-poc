@@ -1,6 +1,6 @@
 import express from 'express';
 import { createIntent, createSetupIntent, createPaymentLink, stripeWebhook } from '../controllers/paymentController.js';
-import { protect } from '../middleware/auth.js';
+import { protect, optionalAuth } from '../middleware/auth.js';
 import expressRaw from 'express';
 
 const router = express.Router();
@@ -12,8 +12,8 @@ const router = express.Router();
 // for simplicity, we'll keep the route here and handle the raw body in app.js.
 router.post('/webhook', stripeWebhook);
 
-// protected routes
-router.post('/create-intent', protect, createIntent);
+// routes
+router.post('/create-intent', optionalAuth, createIntent);
 router.post('/create-setup-intent', protect, createSetupIntent);
 router.post('/create-link', protect, createPaymentLink);
 

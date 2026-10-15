@@ -98,12 +98,29 @@ export async function proxy(request) {
   }
 
   // ── 6. Protect sensitive customer sub-routes ──────────────────────────────
-  if (
-    pathname.startsWith('/checkout') ||
-    pathname.startsWith('/orders') ||
-    pathname.startsWith('/profile')
-  ) {
+  // Note: /checkout supports guest checkout and does not require pre-login.
+  // /profile requires an authenticated customer session.
+  // /orders (order history list) requires an authenticated customer session.
+  // /orders/:id allows guests when trackingToken (?token=...) is present.
+  if (pathname.startsWith('/profile')) {
     if (!token || !role) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  if (pathname === '/orders' || pathname === '/orders/') {
+    if (!token || !role) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  if (pathname.startsWith('/orders/')) {
+    const hasTrackingToken = request.nextUrl.searchParams.has('token');
+    if (!token && !hasTrackingToken) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);

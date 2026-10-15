@@ -52,10 +52,30 @@ export function CartProvider({ children }) {
       let storedInstructions = localStorage.getItem(storageKeys.items + '_instructions');
       const latestCart = latestCartRef.current;
 
-      if (user?._id && !storedItems && latestCart.owner === 'guest' && latestCart.items.length > 0) {
-        storedItems = JSON.stringify(latestCart.items);
-        storedRestaurant = latestCart.restaurant ? JSON.stringify(latestCart.restaurant) : null;
-        storedInstructions = latestCart.specialInstructions;
+      if (user?._id && !storedItems) {
+        const guestKeys = buildCartStorageKeys(null);
+        const guestItemsRaw = localStorage.getItem(guestKeys.items);
+        const guestRestaurantRaw = localStorage.getItem(guestKeys.restaurant);
+        const guestInstructionsRaw = localStorage.getItem(guestKeys.items + '_instructions');
+
+        if (latestCart.owner === 'guest' && latestCart.items.length > 0) {
+          storedItems = JSON.stringify(latestCart.items);
+          storedRestaurant = latestCart.restaurant ? JSON.stringify(latestCart.restaurant) : null;
+          storedInstructions = latestCart.specialInstructions;
+        } else if (guestItemsRaw) {
+          storedItems = guestItemsRaw;
+          storedRestaurant = guestRestaurantRaw;
+          storedInstructions = guestInstructionsRaw;
+        }
+
+        if (storedItems) {
+          localStorage.setItem(storageKeys.items, storedItems);
+          if (storedRestaurant) localStorage.setItem(storageKeys.restaurant, storedRestaurant);
+          if (storedInstructions) localStorage.setItem(storageKeys.items + '_instructions', storedInstructions);
+          localStorage.removeItem(guestKeys.items);
+          localStorage.removeItem(guestKeys.restaurant);
+          localStorage.removeItem(guestKeys.items + '_instructions');
+        }
       }
 
       if (!user?._id && !storedItems) {

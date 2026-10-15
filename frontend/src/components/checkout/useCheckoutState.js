@@ -793,8 +793,26 @@ export function useCheckoutState() {
       const data = await orderAPI.create(orderData);
       clearCart();
       
-      showToast('Order placed successfully!', 'success');
-      router.push(`/orders/${data.data._id}`);
+      if (data.data?.isNewAccountCreated) {
+        try {
+          await refreshUser?.();
+        } catch (e) {
+          console.warn('User refresh failed after guest auto-account creation', e);
+        }
+      }
+
+      const trackingToken = data.data?.trackingToken;
+      const targetUrl = trackingToken
+        ? `/orders/${data.data._id}?token=${encodeURIComponent(trackingToken)}`
+        : `/orders/${data.data._id}`;
+
+      showToast(
+        data.data?.isNewAccountCreated
+          ? 'Order placed! An account has been created for you.'
+          : 'Order placed successfully!',
+        'success'
+      );
+      router.push(targetUrl);
     } catch (err) {
       console.error('Checkout failed:', err);
       const errorMsg = err.response?.data?.message || err.message || 'Checkout failed';
@@ -811,9 +829,16 @@ export function useCheckoutState() {
   };
 
   const handlePlaceOrder = async () => {
-    if (!isAuthenticated) {
-      showToast('Please sign in to place an order', 'warning');
-      router.push('/login');
+    if (!fullName || !fullName.trim()) {
+      showToast('Please enter your full name', 'warning');
+      return;
+    }
+    if (!email || !email.trim()) {
+      showToast('Please enter your email address', 'warning');
+      return;
+    }
+    if (orderType === 'delivery' && (!phone || !phone.trim())) {
+      showToast('Please enter your phone number for delivery updates', 'warning');
       return;
     }
     if (orderType === 'delivery' && !compiledAddress.trim()) {

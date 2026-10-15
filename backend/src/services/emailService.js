@@ -227,6 +227,55 @@ export const sendWelcomeEmail = async (email, userName) => {
   });
 };
 
+export const sendGuestOrderWelcomeEmail = async (email, userName, order, setPasswordUrl, trackingUrl) => {
+  const orderRef = order.orderNumber || order._id?.toString()?.slice(-6) || 'Order';
+  const itemsList = order.items?.map(i =>
+    `<tr>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND_BORDER};font-size:14px;">${i.quantity}x ${i.name}</td>
+      <td style="padding:8px 0;border-bottom:1px solid ${BRAND_BORDER};font-size:14px;text-align:right;">$${Number(i.lineTotal).toFixed(2)}</td>
+    </tr>`
+  ).join('') || '';
+
+  const bodyHtml = `
+    <h2 style="margin:0 0 6px;font-size:22px;color:${BRAND_TEXT};">Order Confirmed &amp; Account Created ✅</h2>
+    <p style="margin:0 0 18px;color:${BRAND_MUTED};font-size:13px;">Order #${orderRef} &middot; ${order.restaurantName || FROM_NAME}</p>
+    <p style="margin:0 0 20px;font-size:14px;color:${BRAND_TEXT};line-height:1.6;">
+      Hi ${userName || 'Customer'},<br><br>
+      Thank you for your order! We have automatically created an account for you so you can easily track deliveries and enjoy loyalty rewards.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+      ${itemsList}
+    </table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding-top:10px;font-size:16px;font-weight:700;">Total</td>
+        <td style="padding-top:10px;font-size:16px;font-weight:700;text-align:right;color:${BRAND_PRIMARY};">$${Number(order.total).toFixed(2)}</td>
+      </tr>
+    </table>
+    ${setPasswordUrl ? `
+      <div style="margin:26px 0 16px;padding:18px;background-color:${BRAND_CREAM};border-radius:12px;border:1px solid ${BRAND_ACCENT};">
+        <p style="margin:0 0 6px;font-weight:700;font-size:14px;color:${BRAND_TEXT};">Set Your Account Password</p>
+        <p style="margin:0 0 14px;font-size:12px;color:${BRAND_MUTED};line-height:1.5;">Create a password so you can sign in anytime, reorder favorites, and manage addresses:</p>
+        <table role="presentation" cellpadding="0" cellspacing="0"><tr><td>
+          ${emailButton('Set My Password', setPasswordUrl)}
+        </td></tr></table>
+      </div>
+    ` : ''}
+    ${trackingUrl ? `
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:20px;"><tr><td>
+        ${emailButton('Track Order Live', trackingUrl)}
+      </td></tr></table>
+    ` : ''}
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `Order #${orderRef} Confirmed &amp; Account Created — ${FROM_NAME}`,
+    text: `Hi ${userName},\n\nYour order #${orderRef} has been confirmed! Total: $${Number(order.total).toFixed(2)}.\n\nSet your account password here: ${setPasswordUrl || ''}\n\nTrack order: ${trackingUrl || ''}`,
+    html: emailShell({ preheader: `Your order #${orderRef} is confirmed!`, bodyHtml })
+  });
+};
+
 export const sendOtpEmail = async (email, userName, otp) => {
   const bodyHtml = `
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 20px;"><tr><td>

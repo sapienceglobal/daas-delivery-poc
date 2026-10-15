@@ -80,6 +80,11 @@ const OrderSchema = new mongoose.Schema({
     unique: true,
     sparse: true
   },
+  trackingToken: {
+    type: String,
+    default: () => crypto.randomBytes(16).toString('hex'),
+    index: true
+  },
 
   // ── Customer ──────────────────────────────────────────────────────────
   userId: {

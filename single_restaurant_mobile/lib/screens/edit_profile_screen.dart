@@ -11,8 +11,7 @@ import 'package:single_restaurant_mobile/widgets/profile/edit_profile_avatar.dar
 import 'package:single_restaurant_mobile/widgets/profile/edit_profile_text_field.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  final bool autoFocusPhone;
-  const EditProfileScreen({super.key, this.autoFocusPhone = false});
+  const EditProfileScreen({super.key});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -23,7 +22,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
-  late FocusNode _phoneFocusNode;
 
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
@@ -39,13 +37,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     _nameController = TextEditingController(text: user?.name ?? '');
     _emailController = TextEditingController(text: user?.email ?? '');
-    _phoneFocusNode = FocusNode();
-
-    if (widget.autoFocusPhone) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _phoneFocusNode.requestFocus();
-      });
-    }
 
     String p = user?.phone ?? '';
     if (p.startsWith('+1') && p.length > 2) {
@@ -67,7 +58,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _phoneFocusNode.dispose();
     super.dispose();
   }
 
@@ -205,7 +195,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 EditProfileTextField(
                   label: 'Phone Number',
                   controller: _phoneController,
-                  focusNode: _phoneFocusNode,
                   icon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
                   prefixWidget: EditProfileCountryPicker(

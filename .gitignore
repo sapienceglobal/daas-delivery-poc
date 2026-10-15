@@ -13,6 +13,7 @@ out/
 .env.test.local
 .env.production.local
 lassi_lounge_backup/
+database_backup/
 
 # Debug logs
 npm-debug.log*

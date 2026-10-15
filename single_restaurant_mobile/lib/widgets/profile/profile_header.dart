@@ -148,7 +148,7 @@ class ProfileHeader extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const EditProfileScreen(autoFocusPhone: true),
+                          builder: (_) => const EditProfileScreen(),
                         ),
                       );
                     },

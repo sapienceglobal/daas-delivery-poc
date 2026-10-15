@@ -15,6 +15,7 @@ class LoginSignInForm extends StatelessWidget {
   final bool isLoading;
   final bool isGoogleLoading;
   final bool isAppleLoading;
+  final bool isFacebookLoading;
   final String? errorMessage;
   final VoidCallback onLogin;
   final VoidCallback onGoogleSignIn;
@@ -36,6 +37,7 @@ class LoginSignInForm extends StatelessWidget {
     required this.isLoading,
     this.isGoogleLoading = false,
     this.isAppleLoading = false,
+    this.isFacebookLoading = false,
     required this.errorMessage,
     required this.onLogin,
     required this.onGoogleSignIn,
@@ -239,6 +241,7 @@ class LoginSignInForm extends StatelessWidget {
             onFacebookTap: onFacebookSignIn,
             isGoogleLoading: isGoogleLoading,
             isAppleLoading: isAppleLoading,
+            isFacebookLoading: isFacebookLoading,
           ),
         ],
       ),
