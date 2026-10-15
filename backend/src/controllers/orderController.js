@@ -550,21 +550,6 @@ export const createOrder = asyncHandler(async (req, response) => {
 
       const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
       setPasswordUrl = `${frontendUrl}/reset-password?token=${rawResetToken}&email=${encodeURIComponent(normalizedEmail)}&welcome=1`;
-
-      const token = jwt.sign(
-        { id: targetUser._id, role: targetUser.role, tenantId: req.tenantId || 'marketplace', tokenVersion: targetUser.tokenVersion || 0 },
-        JWT_SECRET,
-        { expiresIn: '7d' }
-      );
-      const secureCookie = process.env.COOKIE_SECURE === 'true' ||
-        (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
-      response.cookie('token', token, {
-        httpOnly: true,
-        secure: secureCookie,
-        sameSite: secureCookie ? 'none' : 'lax',
-        path: '/',
-        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-      });
     }
   }
 
@@ -1106,8 +1091,7 @@ export const createOrder = asyncHandler(async (req, response) => {
       data: {
         ...order.toObject(),
         trackingToken: order.trackingToken,
-        isNewAccountCreated,
-        user: isNewAccountCreated ? targetUser.toSafeJSON() : undefined
+        isNewAccountCreated
       }
     });
   } catch (error) {

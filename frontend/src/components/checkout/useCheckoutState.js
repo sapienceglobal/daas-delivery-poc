@@ -792,14 +792,6 @@ export function useCheckoutState() {
 
       const data = await orderAPI.create(orderData);
       clearCart();
-      
-      if (data.data?.isNewAccountCreated) {
-        try {
-          await refreshUser?.();
-        } catch (e) {
-          console.warn('User refresh failed after guest auto-account creation', e);
-        }
-      }
 
       const trackingToken = data.data?.trackingToken;
       const targetUrl = trackingToken
@@ -808,7 +800,7 @@ export function useCheckoutState() {
 
       showToast(
         data.data?.isNewAccountCreated
-          ? 'Order placed! An account has been created for you.'
+          ? 'Order placed! Check your email to set your password.'
           : 'Order placed successfully!',
         'success'
       );
