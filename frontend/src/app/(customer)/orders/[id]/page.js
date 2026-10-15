@@ -124,8 +124,8 @@ export default function OrderDetailPage() {
       <div className="min-h-[60vh] flex flex-col items-center justify-center bg-[#f9fafb] text-[#1a1a1a]">
         <h2 className="text-[20px] font-bold font-serif mb-2">Order Not Found</h2>
         <p className="text-[#6b7280] mb-4 text-[14px]">We couldn't retrieve details for this order ID.</p>
-        <Button onClick={() => router.push('/orders')} className="bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff]">
-          Back to Orders
+        <Button onClick={() => router.push(user ? '/orders' : (isSingleRestaurantMode ? '/menu' : '/'))} className="bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff]">
+          {user ? 'Back to Orders' : 'Back to Menu'}
         </Button>
       </div>
     );
@@ -143,10 +143,10 @@ export default function OrderDetailPage() {
       {/* Back button container */}
       <div className="mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8 py-4">
         <button
-          onClick={() => router.push('/orders')}
+          onClick={() => router.push(user ? '/orders' : (isSingleRestaurantMode ? '/menu' : '/'))}
           className="flex items-center gap-2 text-[13px] font-bold text-[#6b7280] hover:text-[#7a0b10] uppercase tracking-wider transition-colors"
         >
-          <ChevronLeft className="h-4 w-4" /> Back to My Orders
+          <ChevronLeft className="h-4 w-4" /> {user ? 'Back to My Orders' : 'Back to Menu'}
         </button>
       </div>
 

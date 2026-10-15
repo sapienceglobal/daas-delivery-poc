@@ -86,6 +86,19 @@ export const createIntent = asyncHandler(async (req, res) => {
     metadata.tenantDbName = process.env.FORCE_TENANT_DB_NAME || 'daas_poc_lassi_lounge';
   }
 
+  let targetUserId = req.user?._id;
+  if (!targetUserId && customerEmail) {
+    try {
+      const UserModel = req.getModel('User');
+      const existingUser = await UserModel.findOne({ email: String(customerEmail).toLowerCase().trim() });
+      if (existingUser) {
+        targetUserId = existingUser._id;
+      }
+    } catch (e) {
+      logger.warn('Failed to resolve existing user in createIntent', e);
+    }
+  }
+
   // For existing orders, load from DB and use the stored total as the verified amount
   if (orderId) {
     const Order = req.getModel('Order');
@@ -107,7 +120,9 @@ export const createIntent = asyncHandler(async (req, res) => {
       orderType,
       tip,
       couponCode,
-      userId: req.user?._id,
+      userId: targetUserId,
+      customerPhone,
+      customerEmail,
       useLoyaltyPoints,
       paymentMethod,
       getModel: req.getModel
@@ -134,7 +149,9 @@ export const createIntent = asyncHandler(async (req, res) => {
       orderType,
       tip,
       couponCode,
-      userId: req.user?._id,
+      userId: targetUserId,
+      customerPhone,
+      customerEmail,
       useLoyaltyPoints,
       deliveryFeeOverride,
       paymentMethod,

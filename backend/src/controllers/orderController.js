@@ -532,7 +532,16 @@ export const createOrder = asyncHandler(async (req, response) => {
         referralOnboarding: 'none'
       });
       newUser.setPassword(randomPassword);
-      newUser.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+      let referralCode;
+      for (let attempts = 0; attempts < 5; attempts++) {
+        const code = crypto.randomBytes(3).toString('hex').toUpperCase();
+        const exists = await User.exists({ referralCode: code });
+        if (!exists) {
+          referralCode = code;
+          break;
+        }
+      }
+      newUser.referralCode = referralCode || crypto.randomBytes(4).toString('hex').toUpperCase();
       const rawResetToken = newUser.createPasswordResetToken();
       await newUser.save();
 
@@ -742,6 +751,8 @@ export const createOrder = asyncHandler(async (req, response) => {
     tip,
     couponCode,
     userId: targetUser?._id,
+    customerPhone,
+    customerEmail,
     useLoyaltyPoints,
     paymentMethod,
     getModel: req.getModel
@@ -776,6 +787,8 @@ export const createOrder = asyncHandler(async (req, response) => {
     tip,
     couponCode,
     userId: targetUser?._id,
+    customerPhone,
+    customerEmail,
     useLoyaltyPoints,
     paymentMethod,
     deliveryFeeOverride: deliveryQuote.deliveryFee,
@@ -818,10 +831,10 @@ export const createOrder = asyncHandler(async (req, response) => {
   session.startTransaction();
 
   try {
-    // only update the user profile phone if they don't have one (e.g. Google Sign-in default '0000000000')
-    if (customerPhone && customerPhone !== '0000000000' && targetUser && (!targetUser.phone || targetUser.phone === '0000000000')) {
-      await User.findByIdAndUpdate(targetUser._id, { phone: customerPhone }, { session });
-      targetUser.phone = customerPhone; // Update local reference
+    // only update the user profile phone if authenticated user explicitly updates it and had default '0000000000'
+    if (req.user && customerPhone && customerPhone !== '0000000000' && (!req.user.phone || req.user.phone === '0000000000')) {
+      await User.findByIdAndUpdate(req.user._id, { phone: customerPhone }, { session });
+      req.user.phone = customerPhone; // Update local reference
     }
 
     const order = new Order({
@@ -1081,6 +1094,11 @@ export const createOrder = asyncHandler(async (req, response) => {
     if (isNewAccountCreated) {
       sendGuestOrderWelcomeEmail(targetUser.email, targetUser.name, order, setPasswordUrl, trackingUrl).catch(err => {
         logger.error('Failed to send guest welcome email', { error: err.message });
+      });
+    } else {
+      order.trackingUrl = trackingUrl;
+      sendOrderConfirmationEmail(order.customerEmail || targetUser?.email, order).catch(err => {
+        logger.error('Failed to send order confirmation email', { error: err.message });
       });
     }
 

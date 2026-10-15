@@ -48,6 +48,8 @@ export const calculateOrderPricing = async ({
   tip = 0,
   couponCode,
   userId,
+  customerPhone = null,
+  customerEmail = null,
   useLoyaltyPoints = false,
   deliveryFeeOverride = null,
   paymentMethod = null,
@@ -199,15 +201,36 @@ export const calculateOrderPricing = async ({
     // This prevents users from creating multiple accounts with different emails
     // but the same phone to exploit first-order discounts.
     let effectivePastOrderCount = pastOrderCount;
-    if (coupon.firstOrderOnly && userId) {
-      const currentUser = await UserModel.findById(userId).select('phone');
-      if (currentUser?.phone) {
-        const phoneOrderCount = await OrderModel.countDocuments({
-          'customerPhone': currentUser.phone,
-          userId: { $ne: userId }  // orders from OTHER accounts with same phone
-        });
-        effectivePastOrderCount = pastOrderCount + phoneOrderCount;
+    if (coupon.firstOrderOnly) {
+      let phoneToCheck = customerPhone?.trim() || null;
+      let emailToCheck = customerEmail?.trim()?.toLowerCase() || null;
+
+      if (!phoneToCheck && userId) {
+        const currentUser = await UserModel.findById(userId).select('phone');
+        if (currentUser?.phone) phoneToCheck = currentUser.phone.trim();
       }
+      if (!emailToCheck && userId) {
+        const currentUser = await UserModel.findById(userId).select('email');
+        if (currentUser?.email) emailToCheck = currentUser.email.trim().toLowerCase();
+      }
+
+      let phoneOrderCount = 0;
+      if (phoneToCheck && phoneToCheck !== '0000000000') {
+        phoneOrderCount = await OrderModel.countDocuments({
+          customerPhone: phoneToCheck,
+          status: { $nin: ['failed', 'cancelled'] }
+        });
+      }
+
+      let emailOrderCount = 0;
+      if (emailToCheck) {
+        emailOrderCount = await OrderModel.countDocuments({
+          customerEmail: emailToCheck,
+          status: { $nin: ['failed', 'cancelled'] }
+        });
+      }
+
+      effectivePastOrderCount = Math.max(pastOrderCount, phoneOrderCount, emailOrderCount);
     }
 
     const validation = coupon.isValid(subtotal, userId, effectivePastOrderCount, paymentMethod);
