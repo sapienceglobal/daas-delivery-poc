@@ -14,6 +14,10 @@ const US_STATES = [
   'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
 ];
 
+const hasEmoji = (str) => Boolean(str && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(str));
+const isNameValid = (val) => Boolean(val && !hasEmoji(val) && /^[a-zA-Z0-9\s\-'.@_+]+$/.test(val.trim()));
+const isEmailValidStr = (val) => Boolean(val && !hasEmoji(val) && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val.trim()));
+
 export default function DeliveryInfoSection({
   step, setStep, t,
   fullName, setFullName, phone, setPhone, email, setEmail,
@@ -28,6 +32,7 @@ export default function DeliveryInfoSection({
   subtotal = 0,
 }) {
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
   const minOrderAmount = restaurant?.minOrderAmount || 0;
   const isMinOrderMet = subtotal >= minOrderAmount;
   return (
@@ -166,11 +171,13 @@ export default function DeliveryInfoSection({
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter your full name"
                   className={`w-full rounded-xl border bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a] ${
-                    fullName && !/^[a-zA-Z\s\-'.]+$/.test(fullName) ? 'border-[#ef4444] focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]' : 'border-[#e5e7eb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10]'
+                    fullName && !isNameValid(fullName) ? 'border-[#ef4444] focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]' : 'border-[#e5e7eb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10]'
                   }`}
                 />
-                {fullName && !/^[a-zA-Z\s\-'.]+$/.test(fullName) && (
-                  <p className="text-[#ef4444] text-xs mt-1.5 font-medium">Please use standard letters only. Emojis and special characters are not allowed.</p>
+                {fullName && !isNameValid(fullName) && (
+                  <p className="text-[#ef4444] text-xs mt-1.5 font-medium">
+                    {hasEmoji(fullName) ? 'Emojis are not allowed in name.' : 'Please use standard letters and numbers only. Special characters are not allowed.'}
+                  </p>
                 )}
               </div>
               <div>
@@ -202,13 +209,16 @@ export default function DeliveryInfoSection({
                 autoComplete="email"
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setEmailTouched(true)}
                 placeholder="Enter your email address"
                 className={`w-full rounded-xl border bg-[#ffffff] text-[#1a1a1a] placeholder-[#9ca3af] px-4 py-3 text-sm focus:outline-none transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a] ${
-                  email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? 'border-[#ef4444] focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]' : 'border-[#e5e7eb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10]'
+                  email && (emailTouched || hasEmoji(email)) && !isEmailValidStr(email) ? 'border-[#ef4444] focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444]' : 'border-[#e5e7eb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10]'
                 }`}
               />
-              {email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && (
-                <p className="text-[#ef4444] text-xs mt-1.5 font-medium">Please enter a valid email address.</p>
+              {email && (emailTouched || hasEmoji(email)) && !isEmailValidStr(email) && (
+                <p className="text-[#ef4444] text-xs mt-1.5 font-medium">
+                  {hasEmoji(email) ? 'Emojis are not allowed in email addresses.' : 'Please enter a valid email address.'}
+                </p>
               )}
             </div>
 

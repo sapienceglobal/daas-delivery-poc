@@ -9,6 +9,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import { roundMoney } from '../services/orderPricing.js';
 import { sanitizeRestaurant } from '../utils/imageUrl.js';
+import { getOrCompute, invalidateRestaurant } from '../utils/responseCache.js';
 
 const canReadRestaurant = (restaurant, user) => {
   if (user.role === 'admin') return true;
@@ -143,24 +144,32 @@ export const getRestaurantById = asyncHandler(async (req, response) => {
 
   if (!restaurant) throw new AppError('Restaurant not found', 404);
 
-  // load categories and items
-  const categories = await Category.find({
-    restaurantId: restaurant._id,
-    isActive: true
-  }).sort({ sortOrder: 1 }).lean();
+  const cacheKey = `restaurant:details:${req.tenantDb?.name || 'default'}:${restaurant._id}`;
+  const data = await getOrCompute(cacheKey, restaurant._id.toString(), 300000, async () => {
+    // load categories and items in PARALLEL
+    const [categories, items] = await Promise.all([
+      Category.find({
+        restaurantId: restaurant._id,
+        isActive: true
+      }).sort({ sortOrder: 1 }).lean(),
+      MenuItem.find({
+        restaurantId: restaurant._id,
+        isAvailable: true
+      }).sort({ sortOrder: 1 }).lean()
+    ]);
 
-  const items = await MenuItem.find({
-    restaurantId: restaurant._id,
-    isAvailable: true
-  }).sort({ sortOrder: 1 }).lean();
+    // group items by category
+    const menu = categories.map(cat => ({
+      ...cat,
+      items: items.filter(item => item.categoryId.toString() === cat._id.toString())
+    }));
 
-  // group items by category
-  const menu = categories.map(cat => ({
-    ...cat,
-    items: items.filter(item => item.categoryId.toString() === cat._id.toString())
-  }));
+    return sanitizeRestaurant({ ...restaurant, menu });
+  });
 
-  res.success(response, { data: sanitizeRestaurant({ ...restaurant, menu }) });
+  // Enable HTTP caching headers for client devices (60s cache, 300s background revalidate)
+  response.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+  res.success(response, { data });
 });
 
 // ── Merchant ────────────────────────────────────────────────────────────────
@@ -217,6 +226,7 @@ export const updateRestaurant = asyncHandler(async (req, response) => {
   }
 
   await restaurant.save();
+  invalidateRestaurant(restaurant._id);
   res.success(response, { data: restaurant, message: 'Restaurant updated' });
 });
 
@@ -233,6 +243,7 @@ export const updateBanner = asyncHandler(async (req, response) => {
   if (banner) restaurant.banner = banner;
   if (logo) restaurant.logo = logo;
   await restaurant.save();
+  invalidateRestaurant(restaurant._id);
 
   res.success(response, { data: restaurant, message: 'Images updated' });
 });
@@ -255,6 +266,7 @@ export const updateOperatingHours = asyncHandler(async (req, response) => {
   if (req.body.openTime) restaurant.openTime = req.body.openTime;
   if (req.body.closeTime) restaurant.closeTime = req.body.closeTime;
   await restaurant.save();
+  invalidateRestaurant(restaurant._id);
 
   res.success(response, { data: restaurant, message: 'Operating hours updated' });
 });
@@ -270,6 +282,7 @@ export const toggleActive = asyncHandler(async (req, response) => {
 
   restaurant.isActive = !restaurant.isActive;
   await restaurant.save();
+  invalidateRestaurant(restaurant._id);
 
   res.success(response, {
     data: restaurant,

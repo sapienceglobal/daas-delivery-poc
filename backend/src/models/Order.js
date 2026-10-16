@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import { ORDER_STATUS_VALUES, ORDER_TYPE_VALUES, PAYMENT_METHOD_VALUES, PAYMENT_STATUS_VALUES } from '../config/constants.js';
+import { invalidateRestaurant, clearResponseCache } from '../utils/responseCache.js';
 
 /**
  * Individual item inside an order — snapshot of the menu item at time of purchase.
@@ -283,6 +284,11 @@ OrderSchema.index({ userId: 1, createdAt: -1 });
 OrderSchema.index({ restaurantId: 1, createdAt: -1 });
 OrderSchema.index({ status: 1 });
 OrderSchema.index({ dispatchStatus: 1, dispatchAt: 1 });
+// Merchant list filtered by status (live orders / history tabs)
+OrderSchema.index({ restaurantId: 1, status: 1, createdAt: -1 });
+// CRM: per-customer lookups / profile order history
+OrderSchema.index({ restaurantId: 1, customerEmail: 1, createdAt: -1 });
+OrderSchema.index({ restaurantId: 1, customerPhone: 1, createdAt: -1 });
 
 
 
@@ -320,6 +326,25 @@ OrderSchema.pre('save', function (next) {
 
 // M5: Performance indexes already defined above (lines ~185-188).
 // userId+createdAt, restaurantId+createdAt, status, orderNumber — all covered.
+
+// ── Response-cache invalidation ─────────────────────────────────────────────
+// Any order write drops cached analytics / CRM data for that restaurant so the
+// dashboard is always fresh right after a new order or status change.
+const invalidateFromDoc = (doc) => {
+  if (doc?.restaurantId) invalidateRestaurant(doc.restaurantId);
+};
+function invalidateFromQuery(res) {
+  const rid = res?.restaurantId || this.getFilter?.()?.restaurantId || this.getUpdate?.()?.restaurantId || this.getUpdate?.()?.$set?.restaurantId;
+  if (rid && typeof rid !== 'object') invalidateRestaurant(rid);
+  else if (rid && rid.toString && /^[a-f0-9]{24}$/i.test(rid.toString())) invalidateRestaurant(rid.toString());
+  else clearResponseCache();
+}
+OrderSchema.post('save', invalidateFromDoc);
+OrderSchema.post('findOneAndUpdate', invalidateFromQuery);
+OrderSchema.post('updateOne', invalidateFromQuery);
+OrderSchema.post('updateMany', invalidateFromQuery);
+OrderSchema.post('findOneAndDelete', invalidateFromQuery);
+OrderSchema.post('deleteOne', invalidateFromQuery);
 
 const Order = mongoose.model('Order', OrderSchema);
 export default Order;

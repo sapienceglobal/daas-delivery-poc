@@ -108,11 +108,12 @@ function ProfileTab({ user, updateUser }) {
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
-    if (!/^[a-zA-Z\s\-'.]+$/.test(form.name)) {
+    const hasEmoji = (str) => Boolean(str && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(str));
+    if (!form.name || hasEmoji(form.name) || !/^[a-zA-Z0-9\s\-'.@_+]+$/.test(form.name.trim())) {
       showToast('Name contains restricted characters or emojis. Please use standard letters and numbers only.', 'error');
       return;
     }
-    if (!/^[0-9+\-\s()]+$/.test(form.phone)) {
+    if (form.phone && (hasEmoji(form.phone) || !/^[0-9+\-\s()]+$/.test(form.phone))) {
       showToast('Phone contains restricted characters. Please use numbers only.', 'error');
       return;
     }

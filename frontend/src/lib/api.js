@@ -431,6 +431,7 @@ export const kdsAPI = {
 
 export const marketingAPI = {
   getCampaigns: (params = '') => api.get(`/api/marketing${params ? '?' + params : ''}`),
+  getAudienceStats: () => api.get('/api/marketing/audience-stats'),
   broadcastCampaign: (data) => api.post('/api/marketing', data)
 };
 

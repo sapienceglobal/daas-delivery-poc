@@ -15,9 +15,10 @@ import 'package:single_restaurant_mobile/theme/app_radius.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialIndex;
+  final String? initialCategory;
   final List<Widget>? tabs;
 
-  const MainScreen({super.key, this.initialIndex = 0, this.tabs});
+  const MainScreen({super.key, this.initialIndex = 0, this.initialCategory, this.tabs});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -33,6 +34,7 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    _menuCategoryId = widget.initialCategory;
     _navigationHistory.add(_currentIndex);
 
     // Background OTA check and initialize providers

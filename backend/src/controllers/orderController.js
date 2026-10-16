@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import xss from 'xss';
 import Order from '../models/Order.js';
 import Restaurant from '../models/Restaurant.js';
@@ -510,6 +511,13 @@ export const createOrder = asyncHandler(async (req, response) => {
     }
     if (!customerName || !customerName.trim()) {
       throw new AppError('Full name is required for checkout', 400);
+    }
+    const hasEmoji = (str) => Boolean(str && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(str));
+    if (hasEmoji(customerName) || !/^[a-zA-Z0-9\s\-'.@_+]+$/.test(customerName.trim())) {
+      throw new AppError('Name contains restricted characters or emojis. Please use standard letters and numbers only.', 400);
+    }
+    if (hasEmoji(customerEmail) || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(customerEmail.trim())) {
+      throw new AppError('Emojis are not allowed in email addresses. Please provide a standard email address.', 400);
     }
     if (orderType === 'delivery' && (!customerPhone || !customerPhone.trim())) {
       throw new AppError('Phone number is required for delivery orders', 400);
@@ -1469,19 +1477,103 @@ export const getRestaurantOrders = asyncHandler(async (req, response) => {
   const skip = (page - 1) * limit;
 
   const filter = { restaurantId: req.params.restaurantId };
-  if (req.query.status) filter.status = req.query.status;
-  if (req.query.date) {
+
+  if (req.query._id) {
+    filter._id = req.query._id;
+  }
+
+  if (req.query.statuses) {
+    const list = req.query.statuses.split(',').map(s => s.trim()).filter(Boolean);
+    if (list.length > 0) filter.status = { $in: list };
+  } else if (req.query.status) {
+    if (req.query.status.includes(',')) {
+      filter.status = { $in: req.query.status.split(',').map(s => s.trim()).filter(Boolean) };
+    } else {
+      filter.status = req.query.status;
+    }
+  }
+
+  if (req.query.search) {
+    const s = req.query.search.trim();
+    filter.$or = [
+      { orderNumber: { $regex: s, $options: 'i' } },
+      { customerName: { $regex: s, $options: 'i' } },
+      { customerPhone: { $regex: s, $options: 'i' } }
+    ];
+  }
+
+  if (req.query.from || req.query.to) {
+    filter.createdAt = {};
+    if (req.query.from) filter.createdAt.$gte = new Date(req.query.from);
+    if (req.query.to) filter.createdAt.$lte = new Date(req.query.to);
+  } else if (req.query.date) {
     const d = new Date(req.query.date);
     filter.createdAt = { $gte: d, $lt: new Date(d.getTime() + 24 * 60 * 60 * 1000) };
   }
 
-  const [orders, total] = await Promise.all([
-    Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('userId', 'name email phone').lean(),
-    Order.countDocuments(filter)
+  const query = Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit);
+  if (req.query.fields === 'list') {
+    query.select('orderNumber status orderType customerName customerPhone total subtotal tip tax deliveryFee items createdAt paymentStatus paymentMethod dispatchStatus');
+  } else {
+    query.populate('userId', 'name email phone');
+  }
+
+  const restId = req.params.restaurantId;
+  const isObjectId = mongoose.Types.ObjectId.isValid(restId);
+  const matchRestId = isObjectId ? { $in: [restId, new mongoose.Types.ObjectId(restId)] } : restId;
+
+  const statsMatch = { restaurantId: matchRestId };
+  if (filter.createdAt) {
+    statsMatch.createdAt = filter.createdAt;
+  }
+
+  const [orders, total, statusAgg] = await Promise.all([
+    query.lean(),
+    Order.countDocuments(filter),
+    Order.aggregate([
+      { $match: statsMatch },
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ])
   ]);
+
+  const stats = {
+    total: 0,
+    new: 0,
+    preparing: 0,
+    ready: 0,
+    picked_up: 0,
+    completed: 0,
+    cancelled: 0
+  };
+
+  if (Array.isArray(statusAgg)) {
+    for (const item of statusAgg) {
+      const s = (item._id || '').toLowerCase();
+      const count = Number(item.count) || 0;
+      stats.total += count;
+      if (s === 'new' || s === 'pending') {
+        stats.new += count;
+      } else if (s === 'preparing') {
+        stats.preparing += count;
+      } else if (s === 'ready') {
+        stats.ready += count;
+      } else if (s === 'picked_up') {
+        stats.picked_up += count;
+      } else if (s === 'completed' || s === 'delivered') {
+        stats.completed += count;
+      } else if (s === 'cancelled' || s === 'refunded') {
+        stats.cancelled += count;
+      }
+    }
+  }
+
+  if (stats.total === 0 && total > 0) {
+    stats.total = total;
+  }
 
   res.success(response, {
     data: orders,
+    stats,
     pagination: res.buildPagination(page, limit, total),
     serverTime: new Date().toISOString()
   });
@@ -1498,15 +1590,82 @@ export const getMerchantOrders = asyncHandler(async (req, response) => {
   const skip = (page - 1) * limit;
 
   const filter = { restaurantId: req.user.restaurantId };
-  if (req.query.status) filter.status = req.query.status;
 
-  const [orders, total] = await Promise.all([
+  if (req.query._id) {
+    filter._id = req.query._id;
+  }
+
+  if (req.query.statuses) {
+    const list = req.query.statuses.split(',').map(s => s.trim()).filter(Boolean);
+    if (list.length > 0) filter.status = { $in: list };
+  } else if (req.query.status) {
+    if (req.query.status.includes(',')) {
+      filter.status = { $in: req.query.status.split(',').map(s => s.trim()).filter(Boolean) };
+    } else {
+      filter.status = req.query.status;
+    }
+  }
+
+  if (req.query.search) {
+    const s = req.query.search.trim();
+    filter.$or = [
+      { orderNumber: { $regex: s, $options: 'i' } },
+      { customerName: { $regex: s, $options: 'i' } },
+      { customerPhone: { $regex: s, $options: 'i' } }
+    ];
+  }
+
+  const mRestId = req.user.restaurantId.toString();
+  const mIsObjectId = mongoose.Types.ObjectId.isValid(mRestId);
+  const mMatchRestId = mIsObjectId ? { $in: [mRestId, new mongoose.Types.ObjectId(mRestId)] } : mRestId;
+
+  const [orders, total, statusAgg] = await Promise.all([
     Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('userId', 'name email phone').lean(),
-    Order.countDocuments(filter)
+    Order.countDocuments(filter),
+    Order.aggregate([
+      { $match: { restaurantId: mMatchRestId } },
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ])
   ]);
+
+  const stats = {
+    total: 0,
+    new: 0,
+    preparing: 0,
+    ready: 0,
+    picked_up: 0,
+    completed: 0,
+    cancelled: 0
+  };
+
+  if (Array.isArray(statusAgg)) {
+    for (const item of statusAgg) {
+      const s = (item._id || '').toLowerCase();
+      const count = Number(item.count) || 0;
+      stats.total += count;
+      if (s === 'new' || s === 'pending') {
+        stats.new += count;
+      } else if (s === 'preparing') {
+        stats.preparing += count;
+      } else if (s === 'ready') {
+        stats.ready += count;
+      } else if (s === 'picked_up') {
+        stats.picked_up += count;
+      } else if (s === 'completed' || s === 'delivered') {
+        stats.completed += count;
+      } else if (s === 'cancelled' || s === 'refunded') {
+        stats.cancelled += count;
+      }
+    }
+  }
+
+  if (stats.total === 0 && total > 0) {
+    stats.total = total;
+  }
 
   res.success(response, {
     data: orders,
+    stats,
     pagination: res.buildPagination(page, limit, total),
     serverTime: new Date().toISOString()
   });

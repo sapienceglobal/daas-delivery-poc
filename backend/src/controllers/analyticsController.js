@@ -5,7 +5,13 @@ import Reservation from '../models/Reservation.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
+import { getOrCompute } from '../utils/responseCache.js';
 import mongoose from 'mongoose';
+
+// Analytics results are cached briefly and de-duplicated across devices.
+// Any order write invalidates the restaurant's cache (see models/Order.js),
+// so numbers are still instant-fresh after a new order / status change.
+const ANALYTICS_CACHE_TTL_MS = Number(process.env.ANALYTICS_CACHE_TTL_MS || 30000);
 
 const verifyRestaurantOwnership = async (restaurantId, user) => {
   if (user.restaurantId && user.restaurantId.toString() === restaurantId.toString()) return;
@@ -21,8 +27,17 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
     await verifyRestaurantOwnership(restaurantId, req.user);
   }
 
+  const cacheKey = `analytics:${req.tenantDb?.name || 'default'}:${restaurantId}:${days || ''}:${queryStart || ''}:${queryEnd || ''}`;
+  const data = await getOrCompute(cacheKey, restaurantId, ANALYTICS_CACHE_TTL_MS, () =>
+    computeSalesAnalytics(req, restaurantId, days, queryStart, queryEnd)
+  );
+
+  res.success(response, { data });
+});
+
+const computeSalesAnalytics = async (req, restaurantId, days, queryStart, queryEnd) => {
   const Restaurant = req.getModel('Restaurant');
-  const restaurant = await Restaurant.findById(restaurantId).select('timezone');
+  const restaurant = await Restaurant.findById(restaurantId).select('timezone').lean();
   const rawTz = restaurant?.timezone || '';
   let tz = 'America/New_York';
   if (rawTz.includes('Eastern Time')) tz = 'America/New_York';
@@ -92,7 +107,7 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
     }
   } else {
     // all-time default
-    const firstOrder = await Order.findOne({ restaurantId: new mongoose.Types.ObjectId(restaurantId) }).sort({ createdAt: 1 }).select('createdAt');
+    const firstOrder = await Order.findOne({ restaurantId: new mongoose.Types.ObjectId(restaurantId) }).sort({ createdAt: 1 }).select('createdAt').lean();
     startDate = firstOrder ? new Date(firstOrder.createdAt) : getTzMidnightUTC(tz, 0);
   }
 
@@ -102,8 +117,10 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
   const prevStartDate = new Date(startDate);
   prevStartDate.setDate(prevStartDate.getDate() - diffDays);
 
+  const restaurantObjectId = new mongoose.Types.ObjectId(restaurantId);
+
   const currentMatch = {
-    restaurantId: new mongoose.Types.ObjectId(restaurantId),
+    restaurantId: restaurantObjectId,
     createdAt: { $gte: startDate, $lt: endOfToday },
     $or: [
       { paymentStatus: { $in: ['paid', 'partially_refunded'] } },
@@ -112,7 +129,7 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
   };
   
   const prevMatch = {
-    restaurantId: new mongoose.Types.ObjectId(restaurantId),
+    restaurantId: restaurantObjectId,
     createdAt: { $gte: prevStartDate, $lt: startDate },
     $or: [
       { paymentStatus: { $in: ['paid', 'partially_refunded'] } },
@@ -120,147 +137,136 @@ export const getSalesAnalytics = asyncHandler(async (req, response) => {
     ]
   };
 
-  // --- CURRENT PERIOD DATA ---
-  
-  // 1. Daily Stats
-  const dailyStats = await Order.aggregate([
-    { $match: currentMatch },
-    { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: tz } }, revenue: { $sum: { $subtract: ["$total", { $ifNull: ["$refundAmount", 0] }] } }, orders: { $sum: 1 } } },
-    { $sort: { _id: 1 } }
+  const netRevenue = { $sum: { $subtract: ["$total", { $ifNull: ["$refundAmount", 0] }] } };
+
+  // All independent queries run in PARALLEL (previously 11 sequential round-trips).
+  // Current-period breakdowns share ONE collection scan via $facet.
+  const [currentFacet, prevStats, prevCustomerStats, prevCateringCount, prevReservationsCount, cateringCount, reservationsCount] = await Promise.all([
+    Order.aggregate([
+      { $match: currentMatch },
+      {
+        $facet: {
+          // 1. Daily Stats
+          dailyStats: [
+            { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: tz } }, revenue: netRevenue, orders: { $sum: 1 } } },
+            { $sort: { _id: 1 } }
+          ],
+          // 2. Sales by Channel
+          salesByChannel: [
+            { $group: { _id: "$orderType", count: { $sum: 1 }, revenue: netRevenue } }
+          ],
+          // 3. Payment Method Breakdown
+          paymentMethodBreakdown: [
+            { $group: { _id: "$paymentMethod", count: { $sum: 1 }, revenue: netRevenue } }
+          ],
+          // 4. Orders by Time of Day (Heatmap)
+          timeOfDayHeatmap: [
+            {
+              $group: {
+                _id: {
+                  dayOfWeek: { $dayOfWeek: { date: "$createdAt", timezone: tz } },
+                  hour: { $hour: { date: "$createdAt", timezone: tz } }
+                },
+                orders: { $sum: 1 }
+              }
+            }
+          ],
+          // 5. Top Items
+          topItems: [
+            { $unwind: "$items" },
+            { $group: { _id: "$items.name", quantitySold: { $sum: "$items.quantity" }, revenueGenerated: { $sum: "$items.lineTotal" } } },
+            { $sort: { quantitySold: -1 } },
+            { $limit: 10 }
+          ],
+          // 6. Customers
+          customerStats: [
+            { $match: { userId: { $ne: null } } },
+            { $group: { _id: "$userId" } },
+            { $count: "count" }
+          ],
+          // Total Discounts
+          totalDiscounts: [
+            { $group: { _id: null, totalDiscounts: { $sum: "$discount" } } }
+          ]
+        }
+      }
+    ]),
+    // --- PREVIOUS PERIOD DATA ---
+    Order.aggregate([
+      { $match: prevMatch },
+      { $group: { _id: null, revenue: netRevenue, orders: { $sum: 1 } } }
+    ]),
+    Order.aggregate([
+      { $match: { ...prevMatch, userId: { $ne: null } } },
+      { $group: { _id: "$userId" } },
+      { $count: "count" }
+    ]),
+    CateringInquiry.countDocuments({ restaurantId: restaurantObjectId, createdAt: { $gte: prevStartDate, $lt: startDate } }),
+    Reservation.countDocuments({ restaurantId: restaurantObjectId, createdAt: { $gte: prevStartDate, $lt: startDate } }),
+    CateringInquiry.countDocuments({ restaurantId: restaurantObjectId, createdAt: { $gte: startDate, $lt: endOfToday } }),
+    Reservation.countDocuments({ restaurantId: restaurantObjectId, createdAt: { $gte: startDate, $lt: endOfToday } })
   ]);
 
+  const facet = currentFacet[0] || {};
+  const dailyStats = facet.dailyStats || [];
+  const salesByChannel = facet.salesByChannel || [];
+  const paymentMethodBreakdown = facet.paymentMethodBreakdown || [];
+  const timeOfDayHeatmap = facet.timeOfDayHeatmap || [];
+  const topItems = facet.topItems || [];
+  const newCustomers = facet.customerStats?.length > 0 ? facet.customerStats[0].count : 0;
+  const totalDiscounts = facet.totalDiscounts?.length > 0 ? facet.totalDiscounts[0].totalDiscounts : 0;
+
   // fill in missing days based on target timezone
+  const statsByDate = new Map(dailyStats.map(s => [s._id, s]));
+  const seenDates = new Set();
   const filledStats = [];
+  const dateFormatter = new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric' });
   const curr = new Date(startDate);
   while (curr <= endOfToday) {
-    const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(curr);
+    const parts = dateFormatter.formatToParts(curr);
     const y = parts.find(p => p.type === 'year').value;
     const m = parts.find(p => p.type === 'month').value.padStart(2, '0');
     const d = parts.find(p => p.type === 'day').value.padStart(2, '0');
     const dateStr = `${y}-${m}-${d}`;
     
-    // Make sure we only add unique dates (curr increments by 24h, timezone rules might cause dupes if we aren't careful, but fine for now)
-    if (!filledStats.some(s => s.date === dateStr)) {
-      const stat = dailyStats.find(s => s._id === dateStr);
+    if (!seenDates.has(dateStr)) {
+      seenDates.add(dateStr);
+      const stat = statsByDate.get(dateStr);
       filledStats.push({ date: dateStr, revenue: stat ? stat.revenue : 0, orders: stat ? stat.orders : 0 });
     }
     curr.setDate(curr.getDate() + 1);
   }
 
-  // 2. Sales by Channel
-  const salesByChannel = await Order.aggregate([
-    { $match: currentMatch },
-    { $group: { _id: "$orderType", count: { $sum: 1 }, revenue: { $sum: { $subtract: ["$total", { $ifNull: ["$refundAmount", 0] }] } } } }
-  ]);
-
-  // 3. Payment Method Breakdown
-  const paymentMethodBreakdown = await Order.aggregate([
-    { $match: currentMatch },
-    { $group: { _id: "$paymentMethod", count: { $sum: 1 }, revenue: { $sum: { $subtract: ["$total", { $ifNull: ["$refundAmount", 0] }] } } } }
-  ]);
-
-  // 4. Orders by Time of Day (Heatmap)
-  const timeOfDayHeatmap = await Order.aggregate([
-    { $match: currentMatch },
-    { 
-      $group: { 
-        _id: { 
-          dayOfWeek: { $dayOfWeek: { date: "$createdAt", timezone: tz } }, 
-          hour: { $hour: { date: "$createdAt", timezone: tz } } 
-        }, 
-        orders: { $sum: 1 } 
-      } 
-    }
-  ]);
-
-  // 5. Top Items
-  const topItems = await Order.aggregate([
-    { $match: currentMatch },
-    { $unwind: "$items" },
-    { $group: { _id: "$items.name", quantitySold: { $sum: "$items.quantity" }, revenueGenerated: { $sum: "$items.lineTotal" } } },
-    { $sort: { quantitySold: -1 } },
-    { $limit: 10 }
-  ]);
-
-  // 6. Customers & Total Discounts
-  const customerStats = await Order.aggregate([
-    { $match: { ...currentMatch, userId: { $ne: null } } },
-    { $group: { _id: "$userId" } },
-    { $count: "count" }
-  ]);
-  const newCustomers = customerStats.length > 0 ? customerStats[0].count : 0;
-
-  const totalDiscountsAgg = await Order.aggregate([
-    { $match: currentMatch },
-    { $group: { _id: null, totalDiscounts: { $sum: "$discount" } } }
-  ]);
-  const totalDiscounts = totalDiscountsAgg.length > 0 ? totalDiscountsAgg[0].totalDiscounts : 0;
-
-  // --- PREVIOUS PERIOD DATA ---
-  
-  const prevStats = await Order.aggregate([
-    { $match: prevMatch },
-    { $group: { _id: null, revenue: { $sum: { $subtract: ["$total", { $ifNull: ["$refundAmount", 0] }] } }, orders: { $sum: 1 } } }
-  ]);
   const prevRevenue = prevStats.length > 0 ? prevStats[0].revenue : 0;
   const prevOrders = prevStats.length > 0 ? prevStats[0].orders : 0;
   const prevAov = prevOrders > 0 ? (prevRevenue / prevOrders) : 0;
-
-  const prevCustomerStats = await Order.aggregate([
-    { $match: { ...prevMatch, userId: { $ne: null } } },
-    { $group: { _id: "$userId" } },
-    { $count: "count" }
-  ]);
   const prevCustomers = prevCustomerStats.length > 0 ? prevCustomerStats[0].count : 0;
-
-  const prevCateringCount = await CateringInquiry.countDocuments({
-    restaurantId: new mongoose.Types.ObjectId(restaurantId),
-    createdAt: { $gte: prevStartDate, $lt: startDate }
-  });
-
-  const prevReservationsCount = await Reservation.countDocuments({
-    restaurantId: new mongoose.Types.ObjectId(restaurantId),
-    createdAt: { $gte: prevStartDate, $lt: startDate }
-  });
 
   // aggregate current summary
   const totalRevenue = filledStats.reduce((sum, day) => sum + day.revenue, 0);
   const totalOrders = filledStats.reduce((sum, day) => sum + day.orders, 0);
   const currentAov = totalOrders > 0 ? (totalRevenue / totalOrders) : 0;
 
-  const cateringCount = await CateringInquiry.countDocuments({
-    restaurantId: new mongoose.Types.ObjectId(restaurantId),
-    createdAt: { $gte: startDate, $lt: endOfToday }
-  });
-
-  const reservationsCount = await Reservation.countDocuments({
-    restaurantId: new mongoose.Types.ObjectId(restaurantId),
-    createdAt: { $gte: startDate, $lt: endOfToday }
-  });
-
-  res.success(response, {
-    data: {
-      summary: {
-        totalRevenue,
-        prevRevenue,
-        totalOrders,
-        prevOrders,
-        aov: currentAov,
-        prevAov,
-        newCustomers,
-        prevCustomers,
-        totalDiscounts,
-        cateringCount,
-        prevCateringCount,
-        reservationsCount,
-        prevReservationsCount
-      },
-      dailyStats: filledStats,
-      salesByChannel,
-      paymentMethodBreakdown,
-      timeOfDayHeatmap,
-      topItems
-    }
-  });
-});
-
+  return {
+    summary: {
+      totalRevenue,
+      prevRevenue,
+      totalOrders,
+      prevOrders,
+      aov: currentAov,
+      prevAov,
+      newCustomers,
+      prevCustomers,
+      totalDiscounts,
+      cateringCount,
+      prevCateringCount,
+      reservationsCount,
+      prevReservationsCount
+    },
+    dailyStats: filledStats,
+    salesByChannel,
+    paymentMethodBreakdown,
+    timeOfDayHeatmap,
+    topItems
+  };
+};

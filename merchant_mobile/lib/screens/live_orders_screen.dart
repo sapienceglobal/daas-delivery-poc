@@ -37,7 +37,12 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with WidgetsBinding
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Orders are already fetched and kept alive by SocketService globally
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<OrderProvider>();
+      if (provider.orders.isEmpty || provider.error != null) {
+        provider.fetchOrders(force: true);
+      }
+    });
   }
 
   @override
@@ -173,9 +178,11 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with WidgetsBinding
       drawer: const AppDrawer(),
       body: RefreshIndicator(
         onRefresh: () => orderProvider.fetchOrders(force: true),
-        child: orderProvider.isLoading
+        child: (orderProvider.isLoading && orderProvider.orders.isEmpty)
             ? _buildSkeletonLoader()
-            : SingleChildScrollView(
+            : (orderProvider.error != null && orderProvider.orders.isEmpty)
+                ? _buildErrorView(orderProvider)
+                : SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                 child: Column(
@@ -320,6 +327,51 @@ class _LiveOrdersScreenState extends State<LiveOrdersScreen> with WidgetsBinding
               ),
       ),
       bottomNavigationBar: const SharedBottomNav(currentIndex: 1),
+    );
+  }
+
+  Widget _buildErrorView(OrderProvider provider) {
+    return Center(
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEF2F2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.cloud_off_rounded, size: 44, color: Color(0xFFDC2626)),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Unable to Load Live Orders',
+              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'The server may be updating or your internet connection is unstable. We will automatically retry shortly.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), height: 1.4),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () => provider.fetchOrders(force: true),
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: Text('Retry Now', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEA580C),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

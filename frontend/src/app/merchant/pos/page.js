@@ -484,13 +484,13 @@ function POSContent() {
   const total = restaurant?.roundOff ? Math.round(rawTotal) : rawTotal;
 
   const isPhoneValid = customerPhone ? isValidPhoneNumber(customerPhone) : false;
-  const isFullNameValid = customerName ? /^[a-zA-Z\s\-'.]+$/.test(customerName) : false;
+  const isFullNameValid = customerName ? /^[a-zA-Z0-9\s\-'.@_+]+$/.test(customerName) : false;
   const isEmailValid = customerEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) : false;
 
   const validateDetails = (details) => {
     return {
       isPhoneValid: details.customerPhone ? isValidPhoneNumber(details.customerPhone) : false,
-      isFullNameValid: details.customerName ? /^[a-zA-Z\s\-'.]+$/.test(details.customerName) : false,
+      isFullNameValid: details.customerName ? /^[a-zA-Z0-9\s\-'.@_+]+$/.test(details.customerName) : false,
       isEmailValid: details.customerEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(details.customerEmail) : false
     };
   };

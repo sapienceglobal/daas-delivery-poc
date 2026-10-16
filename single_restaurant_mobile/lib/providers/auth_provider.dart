@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/models/user_model.dart';
+import 'package:single_restaurant_mobile/services/api_service.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
+import 'package:single_restaurant_mobile/services/push_notification_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -23,6 +25,8 @@ class AuthProvider with ChangeNotifier {
       final userData = await _authService.getMe();
       if (userData != null) {
         _user = UserModel.fromJson(userData);
+        // Proactively sync FCM push token to backend for this user
+        PushNotificationService().syncTokenWithBackend();
       } else {
         _user = null;
       }
@@ -39,6 +43,13 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     
+    final token = PushNotificationService().cachedToken;
+    if (token != null) {
+      try {
+        await ApiService.post('/api/auth/logout', {'fcmToken': token});
+      } catch (_) {}
+    }
+
     await _authService.logout();
     _user = null;
     

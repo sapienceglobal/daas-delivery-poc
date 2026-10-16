@@ -2,6 +2,15 @@ import Joi from 'joi';
 
 // ── Auth Schemas ────────────────────────────────────────────────────────────
 
+const emojiCheck = (val, helpers) => {
+  if (val && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(val)) {
+    return helpers.error('string.pattern.base');
+  }
+  return val;
+};
+const NAME_REGEX = /^[a-zA-Z0-9\s\-'.@_+]+$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 export const loginSchema = Joi.object({
   email: Joi.string().email().required().messages({
     'string.email': 'Please provide a valid email address',
@@ -13,12 +22,14 @@ export const loginSchema = Joi.object({
 });
 
 export const registerSchema = Joi.object({
-  name: Joi.string().trim().min(1).max(100).required().messages({
+  name: Joi.string().trim().min(1).max(100).pattern(NAME_REGEX).custom(emojiCheck).required().messages({
     'any.required': 'Name is required',
+    'string.pattern.base': 'Name contains restricted characters or emojis. Please use standard letters and numbers only.',
     'string.max': 'Name cannot exceed 100 characters'
   }),
-  email: Joi.string().email().required().messages({
+  email: Joi.string().email().pattern(EMAIL_REGEX).custom(emojiCheck).required().messages({
     'string.email': 'Please provide a valid email address',
+    'string.pattern.base': 'Emojis are not allowed in email addresses',
     'any.required': 'Email is required'
   }),
   password: Joi.string()
@@ -129,14 +140,24 @@ export const createOrderSchema = Joi.object({
     }),
   customerName: Joi.string()
     .max(50)
-    .pattern(/^[a-zA-Z\s\-'.]+$/)
+    .pattern(NAME_REGEX)
+    .custom(emojiCheck)
     .allow('', null)
     .optional()
     .messages({
       'string.pattern.base': 'Name contains restricted characters or emojis. Please use standard letters and numbers only.',
       'string.max': 'Name cannot exceed 50 characters'
     }),
-  customerEmail: Joi.string().email().allow('', null).optional(),
+  customerEmail: Joi.string()
+    .email()
+    .pattern(EMAIL_REGEX)
+    .custom(emojiCheck)
+    .allow('', null)
+    .optional()
+    .messages({
+      'string.email': 'Please provide a valid email address',
+      'string.pattern.base': 'Emojis are not allowed in email addresses. Please provide a standard email address.'
+    }),
   specialInstructions: Joi.string().max(1000).allow('', null).optional(),
   orderSource: Joi.string().valid('web', 'app', 'merchant_app', 'merchant_web').optional()
 });
@@ -177,8 +198,12 @@ export const createReservationSchema = Joi.object({
     'number.max': 'Maximum party size is 100',
     'any.required': 'Party size is required'
   }),
-  customerName: Joi.string().trim().max(100).required(),
-  customerEmail: Joi.string().email().allow('', null).optional(),
+  customerName: Joi.string().trim().max(100).pattern(NAME_REGEX).custom(emojiCheck).required().messages({
+    'string.pattern.base': 'Name contains restricted characters or emojis. Please use standard letters and numbers only.'
+  }),
+  customerEmail: Joi.string().email().pattern(EMAIL_REGEX).custom(emojiCheck).allow('', null).optional().messages({
+    'string.pattern.base': 'Emojis are not allowed in email addresses'
+  }),
   customerPhone: Joi.string().max(30).required(),
   specialRequests: Joi.string().max(500).allow('', null).optional(),
   occasion: Joi.string().max(100).allow('', null).optional(),
@@ -194,8 +219,12 @@ export const createCateringSchema = Joi.object({
   eventType: Joi.string().max(100).required(),
   eventDate: Joi.string().required(),
   guestCount: Joi.number().integer().min(1).max(10000).required(),
-  customerName: Joi.string().trim().max(100).required(),
-  customerEmail: Joi.string().email().required(),
+  customerName: Joi.string().trim().max(100).pattern(NAME_REGEX).custom(emojiCheck).required().messages({
+    'string.pattern.base': 'Name contains restricted characters or emojis. Please use standard letters and numbers only.'
+  }),
+  customerEmail: Joi.string().email().pattern(EMAIL_REGEX).custom(emojiCheck).required().messages({
+    'string.pattern.base': 'Emojis are not allowed in email addresses'
+  }),
   customerPhone: Joi.string().max(30).required(),
   venue: Joi.string().max(300).allow('', null).optional(),
   budget: Joi.number().min(0).allow(null).optional(),

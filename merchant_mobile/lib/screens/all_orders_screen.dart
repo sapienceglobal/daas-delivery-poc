@@ -32,8 +32,10 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
   final Set<String> _selectedOrderIds = {};
   final TextEditingController _searchController = TextEditingController();
 
-  // Diverse sample orders spread across Today, Yesterday, and This Week for realistic offline testing
-  late final List<OrderModel> _sampleOrders = [
+  // Sample orders disabled - live OrderProvider data is used
+  // ignore: unused_field
+  late final List<OrderModel> _sampleOrders = const [];
+  /*
     // Today
     OrderModel(
       id: 'sample-1',
@@ -199,17 +201,33 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
       ],
     ),
   ];
+  */
+
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<OrderProvider>().fetchOrders();
+      final provider = context.read<OrderProvider>();
+      if (provider.orders.isEmpty || provider.error != null) {
+        provider.fetchOrders(force: true);
+      }
     });
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients &&
+        _scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 300) {
+      context.read<OrderProvider>().loadMoreOrders();
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -798,7 +816,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
   @override
   Widget build(BuildContext context) {
     final orderProvider = context.watch<OrderProvider>();
-    final rawOrders = orderProvider.orders.isNotEmpty ? orderProvider.orders : _sampleOrders;
+    final rawOrders = orderProvider.orders;
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final tz = TimeUtils.getRestaurantTimezone(authProvider.user);
 
@@ -833,13 +851,35 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
       return matchesSearch && matchesTypeDropdown && matchesPayment && matchesDate;
     }).toList();
 
-    // 2. Dynamic Stat Counts from scopedOrders (updates with ANY filter applied!)
-    final displayTotal = scopedOrders.length;
-    final displayNew = scopedOrders.where((o) => ['new', 'pending'].contains(o.status.toLowerCase())).length;
-    final displayCompleted = scopedOrders.where((o) => ['completed', 'delivered'].contains(o.status.toLowerCase())).length;
-    final displayPickedUp = scopedOrders.where((o) => o.status.toLowerCase() == 'picked_up').length;
-    final displayPreparing = scopedOrders.where((o) => o.status.toLowerCase() == 'preparing').length;
-    final displayReady = scopedOrders.where((o) => o.status.toLowerCase() == 'ready').length;
+    // 2. Dynamic Stat Counts: Use true database stats when viewing all orders (default view),
+    // so stat cards show the authentic overall total (e.g. 62) rather than just the first loaded chunk (50).
+    final hasActiveFilter = _searchQuery.trim().isNotEmpty ||
+        _orderTypeFilter != 'All Types' ||
+        _paymentFilter != 'All Payment Status' ||
+        _selectedDateLabel != 'All Time' ||
+        _selectedDate != null;
+
+    final serverStats = orderProvider.orderStats;
+    final int serverTotal = (serverStats['total'] ?? 0) > 0 ? serverStats['total']! : orderProvider.totalOrders;
+
+    final displayTotal = hasActiveFilter
+        ? scopedOrders.length
+        : (serverTotal > 0 ? serverTotal : scopedOrders.length);
+    final displayNew = hasActiveFilter
+        ? scopedOrders.where((o) => ['new', 'pending'].contains(o.status.toLowerCase())).length
+        : (serverStats['new'] ?? scopedOrders.where((o) => ['new', 'pending'].contains(o.status.toLowerCase())).length);
+    final displayCompleted = hasActiveFilter
+        ? scopedOrders.where((o) => ['completed', 'delivered'].contains(o.status.toLowerCase())).length
+        : (serverStats['completed'] ?? scopedOrders.where((o) => ['completed', 'delivered'].contains(o.status.toLowerCase())).length);
+    final displayPickedUp = hasActiveFilter
+        ? scopedOrders.where((o) => o.status.toLowerCase() == 'picked_up').length
+        : (serverStats['picked_up'] ?? scopedOrders.where((o) => o.status.toLowerCase() == 'picked_up').length);
+    final displayPreparing = hasActiveFilter
+        ? scopedOrders.where((o) => o.status.toLowerCase() == 'preparing').length
+        : (serverStats['preparing'] ?? scopedOrders.where((o) => o.status.toLowerCase() == 'preparing').length);
+    final displayReady = hasActiveFilter
+        ? scopedOrders.where((o) => o.status.toLowerCase() == 'ready').length
+        : (serverStats['ready'] ?? scopedOrders.where((o) => o.status.toLowerCase() == 'ready').length);
 
     // 3. Filtered Orders for the list view (scopedOrders further filtered by active Status Tab)
     final filteredOrders = scopedOrders.where((o) {
@@ -993,6 +1033,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
         color: const Color(0xFF991B1B),
         onRefresh: () => orderProvider.fetchOrders(force: true),
         child: CustomScrollView(
+          controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
@@ -1243,6 +1284,57 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                   childCount: 4,
                 ),
               )
+            else if (orderProvider.error != null && orderProvider.orders.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFFEF2F2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.cloud_off_rounded, size: 40, color: Color(0xFFDC2626)),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Connection Issue',
+                          style: GoogleFonts.inter(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Unable to load orders right now. The server might be updating or your internet connection is unstable.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B)),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => context.read<OrderProvider>().fetchOrders(force: true),
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: Text(
+                            'Retry Now',
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEA580C),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
             else if (filteredOrders.isEmpty)
               SliverToBoxAdapter(
                 child: Padding(
@@ -1274,6 +1366,20 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                     return _buildOrderCard(order);
                   },
                   childCount: filteredOrders.length,
+                ),
+              ),
+
+            if (orderProvider.isLoadingMore)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF991B1B)),
+                    ),
+                  ),
                 ),
               ),
 

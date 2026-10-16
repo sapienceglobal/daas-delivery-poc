@@ -17,8 +17,14 @@ import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import ForgotPasswordModal from './ForgotPasswordModal';
 
+const hasEmoji = (str) => Boolean(str && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(str));
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 const loginSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Invalid email format'),
+  email: z.string()
+    .min(1, 'Email is required')
+    .refine((val) => !hasEmoji(val), 'Emojis are not allowed in email addresses')
+    .email('Invalid email format'),
   password: z.string().min(1, 'Password is required'),
 });
 
@@ -30,11 +36,16 @@ const registerSchema = z.object({
   name: z.string()
     .min(2, 'Name must be at least 2 characters')
     .max(50, 'Name cannot exceed 50 characters')
-    .regex(/^[a-zA-Z\s\-'.]+$/, 'Name contains restricted characters or emojis. Please use standard letters only.'),
-  email: z.string().min(1, 'Email is required').email('Invalid email format'),
+    .refine((val) => !hasEmoji(val), 'Emojis are not allowed in name')
+    .regex(/^[a-zA-Z0-9\s\-'.@_+]+$/, 'Name contains restricted characters or emojis. Please use standard letters and numbers only.'),
+  email: z.string()
+    .min(1, 'Email is required')
+    .refine((val) => !hasEmoji(val), 'Emojis are not allowed in email addresses')
+    .regex(EMAIL_REGEX, 'Please enter a valid email address'),
   phone: z
     .string()
     .min(1, 'Phone number is required')
+    .refine((val) => !hasEmoji(val), 'Emojis are not allowed in phone number')
     .refine((val) => isValidPhoneNumber(val || ''), 'Enter a valid phone number'),
   password: z.string().min(8, 'Min 8 characters').regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, 'Requires uppercase, lowercase, number & special char'),
 });

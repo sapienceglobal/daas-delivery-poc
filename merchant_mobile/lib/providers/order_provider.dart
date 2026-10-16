@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/order_model.dart';
 import '../services/api_service.dart';
 import '../services/socket_service.dart';
@@ -9,10 +11,28 @@ class OrderProvider extends ChangeNotifier {
   final SocketService socketService;
 
   List<OrderModel> _orders = [];
-  bool _isLoading = true;
+  bool _isLoading = false;
   bool _isInitialized = false;
+  bool _isFetching = false;
   String? _error;
-  String? _restaurantId; // Assuming we fetch this on init or login
+  String? _restaurantId;
+  int _retryAttempts = 0;
+  Timer? _retryTimer;
+
+  // Pagination state
+  int _currentPage = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+  int _totalOrders = 0;
+  Map<String, int> _orderStats = {
+    'total': 0,
+    'new': 0,
+    'preparing': 0,
+    'ready': 0,
+    'picked_up': 0,
+    'completed': 0,
+    'cancelled': 0,
+  };
 
   OrderProvider(this.socketService) {
     _initSocketListeners();
@@ -25,41 +45,112 @@ class OrderProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
   String? get error => _error;
+  String? get restaurantId => _restaurantId;
+  int get currentPage => _currentPage;
+  bool get hasMore => _hasMore;
+  bool get isLoadingMore => _isLoadingMore;
+  int get totalOrders => _totalOrders;
+  Map<String, int> get orderStats => _orderStats;
 
   // Set the restaurant ID and load orders
   void setRestaurantId(String id) {
     _restaurantId = id;
-    fetchOrders();
+    fetchOrders(force: true);
+  }
+
+  Future<String?> _resolveRestaurantId() async {
+    if (_restaurantId != null && _restaurantId!.isNotEmpty) {
+      return _restaurantId;
+    }
+
+    // 1. Try resolving instantly from SharedPreferences without network latency
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedId = prefs.getString('restaurantId');
+      if (cachedId != null && cachedId.isNotEmpty) {
+        _restaurantId = cachedId;
+        return _restaurantId;
+      }
+      final userStr = prefs.getString('user');
+      if (userStr != null) {
+        final decodedUser = jsonDecode(userStr);
+        final uRestId = decodedUser['restaurantId'] is Map
+            ? (decodedUser['restaurantId']['_id'] ?? decodedUser['restaurantId']['id'])
+            : decodedUser['restaurantId']?.toString();
+        if (uRestId != null && uRestId.isNotEmpty) {
+          _restaurantId = uRestId;
+          await prefs.setString('restaurantId', uRestId);
+          return _restaurantId;
+        }
+      }
+    } catch (e) {
+      debugPrint('OrderProvider: Error reading restaurantId from prefs: $e');
+    }
+
+    // 2. Fallback to API /api/restaurants/merchant/my if not in local storage
+    try {
+      final res = await ApiService.get('/api/restaurants/merchant/my');
+      final decoded = jsonDecode(res.body);
+      if (decoded != null && decoded['data'] != null) {
+        final id = decoded['data']['_id']?.toString();
+        if (id != null && id.isNotEmpty) {
+          _restaurantId = id;
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('restaurantId', id);
+          } catch (_) {}
+          return _restaurantId;
+        }
+      }
+    } catch (e) {
+      debugPrint("OrderProvider: Could not fetch restaurant ID from API: $e");
+    }
+
+    return null;
+  }
+
+  void _scheduleAutoRetry() {
+    if (_retryAttempts >= 3) return;
+    _retryTimer?.cancel();
+    _retryAttempts++;
+    final delaySeconds = _retryAttempts * 3; // 3s, 6s, 9s
+    debugPrint('OrderProvider: Scheduling auto-retry #$_retryAttempts in $delaySeconds seconds...');
+    _retryTimer = Timer(Duration(seconds: delaySeconds), () {
+      if (_orders.isEmpty) {
+        fetchOrders(force: true);
+      }
+    });
   }
 
   Future<void> fetchOrders({bool force = false}) async {
-    if (_isInitialized && !force) return;
+    // Prevent duplicate overlapping network calls
+    if (_isFetching) return;
+    if (_isInitialized && !force && _orders.isNotEmpty) return;
 
-    if (_restaurantId == null) {
-      // For POC, we might fetch a hardcoded or single tenant restaurant ID if not set
-      // Fetching My Restaurant as fallback
-      try {
-        final res = await ApiService.get('/api/restaurants/merchant/my');
-        final decoded = jsonDecode(res.body);
-        if (decoded != null && decoded['data'] != null) {
-           _restaurantId = decoded['data']['_id'];
-        }
-      } catch (e) {
-        print("Could not fetch restaurant ID: $e");
-        return;
-      }
+    _isFetching = true;
+    // Only show full skeleton loader if we don't have orders yet
+    if (_orders.isEmpty) {
+      _isLoading = true;
     }
-    
-    if (_restaurantId == null) return;
-
-    socketService.joinRestaurantRoom(_restaurantId!);
-
-    _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final response = await ApiService.get('/api/orders/restaurant/$_restaurantId');
+      final restId = await _resolveRestaurantId();
+      if (restId == null || restId.isEmpty) {
+        _error = 'Unable to identify restaurant. Check your connection or log in again.';
+        _scheduleAutoRetry();
+        return;
+      }
+
+      socketService.joinRestaurantRoom(restId);
+
+      if (force) {
+        _currentPage = 1;
+        _hasMore = true;
+      }
+
+      final response = await ApiService.get('/api/orders/restaurant/$restId?page=1&limit=50');
       final decoded = jsonDecode(response.body);
       if (decoded != null && decoded['data'] != null) {
         if (decoded['serverTime'] != null) {
@@ -67,33 +158,131 @@ class OrderProvider extends ChangeNotifier {
         }
         final List<dynamic> data = decoded['data'];
         _orders = data.map((json) => OrderModel.fromJson(json)).toList();
+        if (decoded['pagination'] != null) {
+          _totalOrders = decoded['pagination']['total'] ?? _orders.length;
+          final totalPages = decoded['pagination']['totalPages'] ?? 1;
+          _hasMore = _currentPage < totalPages;
+        } else {
+          _hasMore = _orders.length >= 50;
+        }
+
+        if (decoded['stats'] != null && decoded['stats'] is Map) {
+          final s = decoded['stats'];
+          _orderStats = {
+            'total': (s['total'] as num?)?.toInt() ?? _totalOrders,
+            'new': (s['new'] as num?)?.toInt() ?? 0,
+            'preparing': (s['preparing'] as num?)?.toInt() ?? 0,
+            'ready': (s['ready'] as num?)?.toInt() ?? 0,
+            'picked_up': (s['picked_up'] as num?)?.toInt() ?? 0,
+            'completed': (s['completed'] as num?)?.toInt() ?? 0,
+            'cancelled': (s['cancelled'] as num?)?.toInt() ?? 0,
+          };
+          if (_orderStats['total']! > 0) {
+            _totalOrders = _orderStats['total']!;
+          }
+        } else {
+          _orderStats['total'] = _totalOrders > 0 ? _totalOrders : _orders.length;
+          _orderStats['new'] = _orders.where((o) => ['new', 'pending'].contains(o.status.toLowerCase())).length;
+          _orderStats['preparing'] = _orders.where((o) => o.status.toLowerCase() == 'preparing').length;
+          _orderStats['ready'] = _orders.where((o) => o.status.toLowerCase() == 'ready').length;
+          _orderStats['picked_up'] = _orders.where((o) => o.status.toLowerCase() == 'picked_up').length;
+          _orderStats['completed'] = _orders.where((o) => ['completed', 'delivered'].contains(o.status.toLowerCase())).length;
+          _orderStats['cancelled'] = _orders.where((o) => ['cancelled', 'refunded'].contains(o.status.toLowerCase())).length;
+        }
+
+        _error = null;
+        _retryAttempts = 0; // Reset retry counter on success
+        _retryTimer?.cancel();
+      } else {
+        _error = 'Unexpected response from server';
+        _scheduleAutoRetry();
       }
     } catch (e) {
       _error = 'Failed to load orders: $e';
+      debugPrint('OrderProvider fetchOrders failed: $e');
+      _scheduleAutoRetry();
     } finally {
       _isLoading = false;
       _isInitialized = true;
+      _isFetching = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadMoreOrders() async {
+    if (_isLoadingMore || !_hasMore || _isFetching || _isLoading) return;
+
+    final restId = await _resolveRestaurantId();
+    if (restId == null || restId.isEmpty) return;
+
+    _isLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final nextPage = _currentPage + 1;
+      final response = await ApiService.get('/api/orders/restaurant/$restId?page=$nextPage&limit=50');
+      final decoded = jsonDecode(response.body);
+      if (decoded != null && decoded['data'] != null) {
+        final List<dynamic> data = decoded['data'];
+        final newOrders = data.map((json) => OrderModel.fromJson(json)).toList();
+
+        final existingIds = _orders.map((o) => o.id).toSet();
+        for (final order in newOrders) {
+          if (!existingIds.contains(order.id)) {
+            _orders.add(order);
+            existingIds.add(order.id);
+          }
+        }
+
+        _currentPage = nextPage;
+        if (decoded['pagination'] != null) {
+          final totalPages = decoded['pagination']['totalPages'] ?? nextPage;
+          _totalOrders = decoded['pagination']['total'] ?? _orders.length;
+          _hasMore = _currentPage < totalPages;
+        } else {
+          _hasMore = newOrders.length >= 50;
+        }
+
+        if (decoded['stats'] != null && decoded['stats'] is Map) {
+          final s = decoded['stats'];
+          _orderStats = {
+            'total': (s['total'] as num?)?.toInt() ?? _totalOrders,
+            'new': (s['new'] as num?)?.toInt() ?? 0,
+            'preparing': (s['preparing'] as num?)?.toInt() ?? 0,
+            'ready': (s['ready'] as num?)?.toInt() ?? 0,
+            'picked_up': (s['picked_up'] as num?)?.toInt() ?? 0,
+            'completed': (s['completed'] as num?)?.toInt() ?? 0,
+            'cancelled': (s['cancelled'] as num?)?.toInt() ?? 0,
+          };
+          if (_orderStats['total']! > 0) {
+            _totalOrders = _orderStats['total']!;
+          }
+        }
+      } else {
+        _hasMore = false;
+      }
+    } catch (e) {
+      debugPrint('OrderProvider loadMoreOrders failed: $e');
+    } finally {
+      _isLoadingMore = false;
       notifyListeners();
     }
   }
 
   Future<void> fetchOrderById(String orderId) async {
     try {
-      final res = await ApiService.get('/api/orders/restaurant/$_restaurantId?_id=$orderId');
+      final res = await ApiService.get('/api/orders/$orderId');
       final decoded = jsonDecode(res.body);
       if (decoded != null && decoded['data'] != null) {
-        final List<dynamic> data = decoded['data'];
-        final orderData = data.firstWhere((o) => o['_id'] == orderId, orElse: () => null);
-        if (orderData != null) {
-          final freshOrder = OrderModel.fromJson(orderData);
-          final idx = _orders.indexWhere((o) => o.id == orderId);
-          if (idx != -1) {
-            _orders[idx] = freshOrder;
-          } else {
-            _orders.insert(0, freshOrder);
-          }
-          notifyListeners();
+        final orderData = decoded['data'];
+        final freshOrder = OrderModel.fromJson(orderData);
+        final idx = _orders.indexWhere((o) => o.id == orderId);
+        if (idx != -1) {
+          _orders[idx] = freshOrder;
+        } else {
+          _orders.insert(0, freshOrder);
         }
+        notifyListeners();
       }
     } catch (e) {
       print('Error fetching order: $e');
@@ -169,6 +358,9 @@ class OrderProvider extends ChangeNotifier {
              _orders[index] = updatedOrder;
           } else {
              _orders.insert(0, updatedOrder);
+             _totalOrders++;
+             _orderStats['total'] = (_orderStats['total'] ?? 0) + 1;
+             _orderStats['new'] = (_orderStats['new'] ?? 0) + 1;
           }
           notifyListeners();
        } catch (e) {
@@ -308,5 +500,11 @@ class OrderProvider extends ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+  }
+
+  @override
+  void dispose() {
+    _retryTimer?.cancel();
+    super.dispose();
   }
 }

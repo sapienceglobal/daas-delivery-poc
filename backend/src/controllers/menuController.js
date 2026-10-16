@@ -7,6 +7,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import { slugify } from '../utils/slugify.js';
 import { triggerFrontendRevalidation } from '../utils/revalidateFrontend.js';
+import { invalidateRestaurant, getOrCompute } from '../utils/responseCache.js';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -53,19 +54,22 @@ export const getMenuByRestaurant = asyncHandler(async (req, response) => {
   const restaurantId = await resolveRestaurantId(req.params.restaurantId, Restaurant);
   if (!restaurantId) throw new AppError('Restaurant not found', 404);
 
-  const categories = await Category.find({ restaurantId, isActive: true })
-    .sort({ sortOrder: 1 }).lean();
+  const cacheKey = `menu:restaurant:${req.tenantDb?.name || 'default'}:${restaurantId}`;
+  const menu = await getOrCompute(cacheKey, restaurantId.toString(), 300000, async () => {
+    const [categories, items] = await Promise.all([
+      Category.find({ restaurantId, isActive: true }).sort({ sortOrder: 1 }).lean(),
+      MenuItem.find({ restaurantId }).sort({ sortOrder: 1 }).lean()
+    ]);
 
-  const items = await MenuItem.find({ restaurantId })
-    .sort({ sortOrder: 1 }).lean();
+    return categories.map(cat => ({
+      ...cat,
+      items: items
+        .filter(item => item.categoryId.toString() === cat._id.toString())
+        .map(sanitizeMenuItem)
+    }));
+  });
 
-  const menu = categories.map(cat => ({
-    ...cat,
-    items: items
-      .filter(item => item.categoryId.toString() === cat._id.toString())
-      .map(sanitizeMenuItem)
-  }));
-
+  response.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
   res.success(response, { data: menu });
 });
 
@@ -133,6 +137,7 @@ export const createCategory = asyncHandler(async (req, response) => {
   await ensureOwner(restaurantId, req.user, Restaurant);
 
   const category = await Category.create({ restaurantId, name, description, image, sortOrder });
+  invalidateRestaurant(restaurantId);
   res.created(response, { data: category });
 });
 
@@ -149,6 +154,7 @@ export const updateCategory = asyncHandler(async (req, response) => {
   }
 
   await category.save();
+  invalidateRestaurant(category.restaurantId);
   res.success(response, { data: category, message: 'Category updated' });
 });
 
@@ -162,6 +168,7 @@ export const deleteCategory = asyncHandler(async (req, response) => {
   // delete associated menu items
   await MenuItem.deleteMany({ categoryId: category._id });
   await category.deleteOne();
+  invalidateRestaurant(category.restaurantId);
 
   res.success(response, { message: 'Category and associated items deleted' });
 });
@@ -196,6 +203,7 @@ export const createMenuItem = asyncHandler(async (req, response) => {
     revalPaths.push(`/item/${slug}/opengraph-image`);
   }
   triggerFrontendRevalidation(revalPaths);
+  invalidateRestaurant(item.restaurantId);
 
   res.created(response, { data: item });
 });
@@ -241,6 +249,7 @@ export const updateMenuItem = asyncHandler(async (req, response) => {
     revalPaths.push(`/item/${slug}/opengraph-image`);
   }
   triggerFrontendRevalidation(revalPaths);
+  invalidateRestaurant(item.restaurantId);
 
   res.success(response, { data: item, message: 'Menu item updated' });
 });
@@ -271,6 +280,7 @@ export const deleteMenuItem = asyncHandler(async (req, response) => {
     revalPaths.push(`/item/${slug}/opengraph-image`);
   }
   triggerFrontendRevalidation(revalPaths);
+  invalidateRestaurant(item.restaurantId);
 
   res.success(response, { message: 'Menu item deleted' });
 });
@@ -302,6 +312,7 @@ export const toggleItemAvailability = asyncHandler(async (req, response) => {
     revalPaths.push(`/item/${slug}/opengraph-image`);
   }
   triggerFrontendRevalidation(revalPaths);
+  invalidateRestaurant(item.restaurantId);
 
   res.success(response, { data: item, message: `Menu item is now ${item.isAvailable ? 'active' : 'inactive'}` });
 });
@@ -322,6 +333,7 @@ export const bulkDeleteItems = asyncHandler(async (req, response) => {
   }
 
   await MenuItem.deleteMany({ _id: { $in: itemIds } });
+  if (items[0]) invalidateRestaurant(items[0].restaurantId);
   res.success(response, { message: `Successfully deleted ${items.length} items` });
 });
 
@@ -353,6 +365,7 @@ export const bulkUpdateItems = asyncHandler(async (req, response) => {
   }
 
   await MenuItem.updateMany({ _id: { $in: itemIds } }, { $set: updateObj });
+  if (items[0]) invalidateRestaurant(items[0].restaurantId);
   res.success(response, { message: `Successfully updated ${items.length} items` });
 });
 

@@ -13,7 +13,7 @@ import { formatDate, formatTime } from '@/lib/formatters';
 import StatCard from './StatCard';
 import PremiumDatePicker from '@/components/ui/PremiumDatePicker';
 
-export default function AllOrdersView({ orders = [], onRowClick }) {
+export default function AllOrdersView({ orders = [], stats: serverStats = null, onRowClick }) {
   const router = useRouter();
   const { restaurant } = useMerchantContext();
   const [mounted, setMounted] = useState(false);
@@ -44,6 +44,18 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
   // 1. STATS CALCULATIONS (Strictly real data)
   // ---------------------------------------------------------
   const stats = useMemo(() => {
+    const hasFilter = searchQuery || dateRange || statusFilter !== 'All Status' || orderTypeFilter !== 'All Types' || paymentFilter !== 'All Payment Status' || activeTab !== 'All';
+    if (!hasFilter && serverStats && typeof serverStats.total === 'number' && serverStats.total > 0) {
+      return {
+        total: serverStats.total,
+        newOrders: serverStats.new ?? 0,
+        preparing: serverStats.preparing ?? 0,
+        ready: serverStats.ready ?? 0,
+        outForDelivery: serverStats.picked_up ?? 0,
+        completed: serverStats.completed ?? 0
+      };
+    }
+
     let newOrders = 0, preparing = 0, ready = 0, outForDelivery = 0, completed = 0;
     
     orders.forEach(o => {
@@ -55,8 +67,9 @@ export default function AllOrdersView({ orders = [], onRowClick }) {
       else if (['completed', 'delivered'].includes(s) || (s === 'picked_up' && o.orderType !== 'delivery')) completed++;
     });
 
-    return { total: orders.length, newOrders, preparing, ready, outForDelivery, completed };
-  }, [orders]);
+    const totalCount = (!hasFilter && serverStats?.total) ? serverStats.total : orders.length;
+    return { total: totalCount, newOrders, preparing, ready, outForDelivery, completed };
+  }, [orders, serverStats, searchQuery, dateRange, statusFilter, orderTypeFilter, paymentFilter, activeTab]);
 
   // tabs Counts
   const tabCounts = useMemo(() => {

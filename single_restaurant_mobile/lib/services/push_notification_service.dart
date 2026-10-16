@@ -3,20 +3,19 @@ import 'dart:typed_data';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
-import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
 import 'package:single_restaurant_mobile/screens/track_order_screen.dart';
+import 'package:single_restaurant_mobile/services/auth_service.dart';
 import 'package:single_restaurant_mobile/services/navigation_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 
 @pragma('vm:entry-point')
 void _notificationTapBackground(NotificationResponse response) {
-  // Fires only if a local notification we showed is tapped from a background
-  // isolate. We keep this lightweight; real navigation for FCM taps is
-  // handled by onMessageOpenedApp / getInitialMessage below.
+  // Fires only if a local notification we showed is tapped from a background isolate
   debugPrint('Background local notification tapped: ${response.payload}');
 }
 
@@ -36,6 +35,9 @@ class PushNotificationService {
   );
 
   bool _initialized = false;
+  String? _cachedToken;
+
+  String? get cachedToken => _cachedToken;
 
   Future<void> initialize(BuildContext context) async {
     if (_initialized) return;
@@ -45,10 +47,12 @@ class PushNotificationService {
       alert: true,
       badge: true,
       sound: true,
+      provisional: false,
     );
 
     if (settings.authorizationStatus != AuthorizationStatus.authorized &&
         settings.authorizationStatus != AuthorizationStatus.provisional) {
+      debugPrint('[FCM] User declined or has not accepted push notifications permission.');
       return;
     }
 
@@ -70,26 +74,70 @@ class PushNotificationService {
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(_channel);
 
-    // FCM Token
-    String? token = await _fcm.getToken();
-    if (token != null) _syncTokenWithBackend(context, token);
-    _fcm.onTokenRefresh.listen((newToken) => _syncTokenWithBackend(context, newToken));
+    // ── 1. Subscribe every install (guest or user) to FCM broadcast topics ──
+    try {
+      await _fcm.subscribeToTopic('all_customers');
+      await _fcm.subscribeToTopic('offers_and_marketing');
+      debugPrint('[FCM] Successfully subscribed to topic: all_customers');
+    } catch (topicErr) {
+      debugPrint('[FCM] Error subscribing to topic: $topicErr');
+    }
 
-    // 1) Foreground -> hume khud rich notification banana hai
+    // ── 2. Get and sync FCM Device Token ──
+    try {
+      String? token = await _fcm.getToken();
+      if (token != null) {
+        _cachedToken = token;
+        await syncTokenWithBackend(token);
+      }
+    } catch (tokenErr) {
+      debugPrint('[FCM] Error obtaining FCM token: $tokenErr');
+    }
+
+    _fcm.onTokenRefresh.listen((newToken) {
+      _cachedToken = newToken;
+      syncTokenWithBackend(newToken);
+    });
+
+    // ── 3. Foreground Notification Listener ──
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       _showRichNotification(message);
       if (context.mounted) {
-        Provider.of<NotificationProvider>(context, listen: false).fetchNotifications();
+        try {
+          Provider.of<NotificationProvider>(context, listen: false).fetchNotifications();
+        } catch (_) {}
       }
     });
 
-    // 2) App background me tha, user ne OS ki tray notification tap ki
+    // ── 4. Background / Terminated click listeners ──
     FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationOpen);
 
-    // 3) App terminated tha, notification tap karke khola
     RemoteMessage? initialMessage = await _fcm.getInitialMessage();
     if (initialMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _handleNotificationOpen(initialMessage));
+    }
+  }
+
+  /// Proactively syncs device FCM token with backend MongoDB
+  Future<void> syncTokenWithBackend([String? token]) async {
+    try {
+      final tokenToSync = token ?? _cachedToken ?? await _fcm.getToken();
+      if (tokenToSync == null || tokenToSync.isEmpty) return;
+      _cachedToken = tokenToSync;
+
+      // Persist in local storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('fcm_token', tokenToSync);
+
+      // Check if user is authenticated
+      final authService = AuthService();
+      final hasToken = await authService.loadToken();
+      if (hasToken) {
+        final success = await authService.saveFcmToken(tokenToSync);
+        debugPrint('[FCM] Token synced to backend (success: $success)');
+      }
+    } catch (e) {
+      debugPrint('[FCM] Error in syncTokenWithBackend: $e');
     }
   }
 
@@ -99,7 +147,7 @@ class PushNotificationService {
 
     final String title = notification?.title ?? data['title'] ?? 'Lassi Lounge';
     final String body = notification?.body ?? data['body'] ?? '';
-    final String? imageUrl = notification?.android?.imageUrl ?? data['image'];
+    final String? imageUrl = notification?.android?.imageUrl ?? data['image'] ?? data['imageUrl'];
 
     ByteArrayAndroidBitmap? largeIconBitmap;
     StyleInformation styleInformation = BigTextStyleInformation(
@@ -127,6 +175,8 @@ class PushNotificationService {
     int notificationId = message.hashCode;
     if (data['orderId'] != null) {
       notificationId = data['orderId'].hashCode;
+    } else if (data['campaignId'] != null) {
+      notificationId = data['campaignId'].hashCode;
     }
 
     await _localNotifications.show(
@@ -140,11 +190,11 @@ class PushNotificationService {
           channelDescription: _channel.description,
           icon: '@drawable/ic_notification_lassi',
           largeIcon: largeIconBitmap,
-          color: const Color(0xFF8B1D1D), // apna brand red/maroon daal do
+          color: const Color(0xFF6B111C),
           styleInformation: styleInformation,
           importance: Importance.max,
           priority: Priority.high,
-          groupKey: data['type'] ?? 'lassi_lounge_general',
+          groupKey: data['type'] ?? 'lassi_lounge_marketing',
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -158,10 +208,10 @@ class PushNotificationService {
 
   Future<Uint8List?> _downloadImage(String url) async {
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) return response.bodyBytes;
     } catch (e) {
-      debugPrint('Error downloading notification image: $e');
+      debugPrint('[FCM] Error downloading notification image: $e');
     }
     return null;
   }
@@ -172,7 +222,7 @@ class PushNotificationService {
       final data = jsonDecode(response.payload!) as Map<String, dynamic>;
       _navigateFromData(data);
     } catch (e) {
-      debugPrint('Error parsing notification payload: $e');
+      debugPrint('[FCM] Error parsing notification payload: $e');
     }
   }
 
@@ -185,6 +235,8 @@ class PushNotificationService {
     if (navigator == null) return;
 
     final type = data['type'];
+    final actionUrl = (data['actionUrl'] ?? '').toString().toLowerCase().trim();
+
     switch (type) {
       case 'order_update':
       case 'delivery_update':
@@ -201,25 +253,36 @@ class PushNotificationService {
           );
         }
         break;
+
+      case 'marketing_campaign':
       case 'promotion':
       case 'marketing':
-        navigator.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 2)), // Offers tab
-          (route) => false,
-        );
+        if (actionUrl == '/menu' || actionUrl == 'menu') {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 1)), // Menu tab
+            (route) => false,
+          );
+        } else if (actionUrl == '/orders' || actionUrl == 'orders') {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 3)), // Orders tab
+            (route) => false,
+          );
+        } else if (actionUrl.startsWith('/category/') || actionUrl.startsWith('category/')) {
+          final catId = actionUrl.replaceAll('/category/', '').replaceAll('category/', '');
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => MainScreen(initialIndex: 1, initialCategory: catId)),
+            (route) => false,
+          );
+        } else {
+          navigator.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 2)), // Offers tab
+            (route) => false,
+          );
+        }
         break;
+
       default:
         navigator.push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
     }
-  }
-
-  void _syncTokenWithBackend(BuildContext context, String token) {
-    Future.microtask(() {
-      if (!context.mounted) return;
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      if (authProvider.isAuthenticated) {
-        authProvider.saveFcmToken(token);
-      }
-    });
   }
 }

@@ -31,6 +31,7 @@ class _CrmScreenState extends State<CrmScreen> {
   String _selectedGroup = 'All';
   String _selectedTier = 'All';
   String _selectedStatus = 'All';
+  String _selectedSort = 'newest';
 
   final List<String> _selectedCustomerIds = [];
 
@@ -65,6 +66,21 @@ class _CrmScreenState extends State<CrmScreen> {
       _searchFocusNode.unfocus();
     }
     FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  String _formatJoinedAgo(DateTime? dt) {
+    if (dt == null) return 'Recently';
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.isNegative || diff.inMinutes < 60) return 'Just now';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    if (diff.inDays < 14) return '1w ago';
+    if (diff.inDays < 30) return '${(diff.inDays / 7).floor()}w ago';
+    if (diff.inDays < 60) return '1mo ago';
+    if (diff.inDays < 365) return '${(diff.inDays / 30).floor()}mo ago';
+    return '${(diff.inDays / 365).floor()}y ago';
   }
 
   String _formatLastOrderAgo(String? dateStr) {
@@ -190,7 +206,7 @@ class _CrmScreenState extends State<CrmScreen> {
 
   void _applyFilters() {
     setState(() {
-      _filteredCustomers = _allCustomers.where((c) {
+      final list = _allCustomers.where((c) {
         // Search match across real name, phone, email, and customer ID
         final q = _searchQuery.toLowerCase().trim();
         final matchesSearch = q.isEmpty ||
@@ -220,6 +236,61 @@ class _CrmScreenState extends State<CrmScreen> {
 
         return matchesSearch && matchesSegment && matchesGroup && matchesTier && matchesStatus;
       }).toList();
+
+      list.sort((a, b) {
+        switch (_selectedSort) {
+          case 'newest':
+            final aDate = a.createdAt ??
+                (a.lastOrderDate != null ? DateTime.tryParse(a.lastOrderDate!) : null) ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            final bDate = b.createdAt ??
+                (b.lastOrderDate != null ? DateTime.tryParse(b.lastOrderDate!) : null) ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            return bDate.compareTo(aDate);
+
+          case 'oldest':
+            final aDate = a.createdAt ??
+                (a.lastOrderDate != null ? DateTime.tryParse(a.lastOrderDate!) : null) ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            final bDate = b.createdAt ??
+                (b.lastOrderDate != null ? DateTime.tryParse(b.lastOrderDate!) : null) ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            return aDate.compareTo(bDate);
+
+          case 'most_orders':
+            final cmp = b.totalOrders.compareTo(a.totalOrders);
+            if (cmp != 0) return cmp;
+            return b.totalSpent.compareTo(a.totalSpent);
+
+          case 'highest_spent':
+            final cmp = b.totalSpent.compareTo(a.totalSpent);
+            if (cmp != 0) return cmp;
+            return b.totalOrders.compareTo(a.totalOrders);
+
+          case 'recent_order':
+            final aDate = (a.lastOrderDate != null ? DateTime.tryParse(a.lastOrderDate!) : null) ??
+                a.createdAt ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            final bDate = (b.lastOrderDate != null ? DateTime.tryParse(b.lastOrderDate!) : null) ??
+                b.createdAt ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            return bDate.compareTo(aDate);
+
+          case 'name':
+            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+
+          default:
+            final aDate = a.createdAt ??
+                (a.lastOrderDate != null ? DateTime.tryParse(a.lastOrderDate!) : null) ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            final bDate = b.createdAt ??
+                (b.lastOrderDate != null ? DateTime.tryParse(b.lastOrderDate!) : null) ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            return bDate.compareTo(aDate);
+        }
+      });
+
+      _filteredCustomers = list;
     });
   }
 
@@ -336,6 +407,178 @@ class _CrmScreenState extends State<CrmScreen> {
     );
   }
 
+  void _showSortBottomSheet() {
+    _unfocusSearch();
+    final sortOptions = [
+      {
+        'key': 'newest',
+        'title': 'Newest Customers (Default)',
+        'subtitle': 'Recently joined or placed first order at the top',
+        'icon': Icons.fiber_new_rounded,
+      },
+      {
+        'key': 'recent_order',
+        'title': 'Recently Ordered',
+        'subtitle': 'Customers with the latest orders first',
+        'icon': Icons.access_time_rounded,
+      },
+      {
+        'key': 'most_orders',
+        'title': 'Most Orders (Popular)',
+        'subtitle': 'Highest order frequency customers first',
+        'icon': Icons.local_fire_department_rounded,
+      },
+      {
+        'key': 'highest_spent',
+        'title': 'Highest Spender (Revenue)',
+        'subtitle': 'Customers who spent the most money',
+        'icon': Icons.payments_rounded,
+      },
+      {
+        'key': 'oldest',
+        'title': 'Oldest Customers',
+        'subtitle': 'First registered customers first',
+        'icon': Icons.history_rounded,
+      },
+      {
+        'key': 'name',
+        'title': 'Name (A to Z)',
+        'subtitle': 'Sort customers alphabetically by name',
+        'icon': Icons.sort_by_alpha_rounded,
+      },
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF1F2),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.swap_vert_rounded,
+                                    color: Color(0xFF881337), size: 20),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Sort Customers',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 20),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ...sortOptions.map((opt) {
+                        final isSelected = _selectedSort == opt['key'];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? const Color(0xFFFFF1F2) : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected ? const Color(0xFF881337) : const Color(0xFFE2E8F0),
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            leading: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF881337) : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                opt['icon'] as IconData,
+                                color: isSelected ? Colors.white : const Color(0xFF475569),
+                                size: 18,
+                              ),
+                            ),
+                            title: Text(
+                              opt['title'] as String,
+                              style: GoogleFonts.inter(
+                                fontSize: 13.5,
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                                color: isSelected ? const Color(0xFF881337) : const Color(0xFF0F172A),
+                              ),
+                            ),
+                            subtitle: Text(
+                              opt['subtitle'] as String,
+                              style: GoogleFonts.inter(
+                                fontSize: 11.5,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                            trailing: isSelected
+                                ? const Icon(Icons.check_circle_rounded,
+                                    color: Color(0xFF881337), size: 20)
+                                : null,
+                            onTap: () {
+                              setState(() {
+                                _selectedSort = opt['key'] as String;
+                              });
+                              _applyFilters();
+                              Navigator.pop(context);
+                            },
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showFilterBottomSheet() {
     _unfocusSearch();
     showModalBottomSheet(
@@ -345,36 +588,114 @@ class _CrmScreenState extends State<CrmScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final hasFiltersOrCustomSort = _selectedGroup != 'All' ||
+                _selectedTier != 'All' ||
+                _selectedStatus != 'All' ||
+                _selectedSort != 'newest';
+
             return Container(
               padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Filter Customers',
-                            style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold)),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Text('GROUP',
-                        style: GoogleFonts.inter(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF94A3B8),
-                            letterSpacing: 1)),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Filter Customers',
+                              style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold)),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (hasFiltersOrCustomSort)
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedGroup = 'All';
+                                      _selectedTier = 'All';
+                                      _selectedStatus = 'All';
+                                      _selectedSort = 'newest';
+                                    });
+                                    setModalState(() {});
+                                    _applyFilters();
+                                  },
+                                  child: Text('Reset',
+                                      style: GoogleFonts.inter(
+                                          color: const Color(0xFFDC2626),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600)),
+                                ),
+                              IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text('SORT BY',
+                          style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF94A3B8),
+                              letterSpacing: 1)),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          {'key': 'newest', 'label': 'Newest First'},
+                          {'key': 'recent_order', 'label': 'Recent Order'},
+                          {'key': 'most_orders', 'label': 'Most Orders'},
+                          {'key': 'highest_spent', 'label': 'Highest Spent'},
+                          {'key': 'oldest', 'label': 'Oldest First'},
+                          {'key': 'name', 'label': 'A to Z'},
+                        ]
+                            .map((sortOpt) => ChoiceChip(
+                                  label: Text(sortOpt['label']!),
+                                  selected: _selectedSort == sortOpt['key'],
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() => _selectedSort = sortOpt['key']!);
+                                      setModalState(() {});
+                                      _applyFilters();
+                                    }
+                                  },
+                                  selectedColor: const Color(0xFF881337),
+                                  labelStyle: GoogleFonts.inter(
+                                    color: _selectedSort == sortOpt['key']
+                                        ? Colors.white
+                                        : const Color(0xFF475569),
+                                    fontWeight: _selectedSort == sortOpt['key']
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    fontSize: 13,
+                                  ),
+                                  backgroundColor: const Color(0xFFF8FAFC),
+                                  side: BorderSide(
+                                      color: _selectedSort == sortOpt['key']
+                                          ? Colors.transparent
+                                          : Colors.grey.shade200),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20)),
+                                ))
+                            .toList(),
+                      ),
+                      const SizedBox(height: 20),
+                      Text('GROUP',
+                          style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF94A3B8),
+                              letterSpacing: 1)),
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
@@ -497,12 +818,13 @@ class _CrmScreenState extends State<CrmScreen> {
                   ],
                 ),
               ),
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -867,6 +1189,7 @@ class _CrmScreenState extends State<CrmScreen> {
   Widget _buildSearchAndFilterRow() {
     final bool hasActiveFilter =
         _selectedGroup != 'All' || _selectedTier != 'All' || _selectedStatus != 'All';
+    final bool hasActiveSort = _selectedSort != 'newest';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -897,7 +1220,7 @@ class _CrmScreenState extends State<CrmScreen> {
                       style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF0F172A)),
                       decoration: InputDecoration(
                         isDense: true,
-                        hintText: 'Search customers by name, phone or email...',
+                        hintText: 'Search customers...',
                         hintStyle: GoogleFonts.inter(
                           fontSize: 12.5,
                           color: const Color(0xFF94A3B8),
@@ -923,7 +1246,49 @@ class _CrmScreenState extends State<CrmScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
+
+          // Dedicated Sort Button
+          InkWell(
+            onTap: _showSortBottomSheet,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: hasActiveSort ? const Color(0xFFFFF1F2) : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: hasActiveSort ? const Color(0xFF881337) : const Color(0xFFE2E8F0),
+                  width: 1.2,
+                ),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(
+                    Icons.swap_vert_rounded,
+                    color: hasActiveSort ? const Color(0xFF881337) : const Color(0xFF334155),
+                    size: 21,
+                  ),
+                  if (hasActiveSort)
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFDC2626),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
 
           // Filter Button
           InkWell(
@@ -933,7 +1298,7 @@ class _CrmScreenState extends State<CrmScreen> {
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: hasActiveFilter ? const Color(0xFFFFF1F2) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: hasActiveFilter ? const Color(0xFF881337) : const Color(0xFFE2E8F0),
@@ -1323,28 +1688,47 @@ class _CrmScreenState extends State<CrmScreen> {
                 ),
                 const SizedBox(width: 6),
 
-                // Last Order Tag (Real relative date calculation)
+                // Last Order or Joined Tag (Real relative date calculation)
                 Flexible(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: c.totalOrders == 0 ? const Color(0xFFFAF5FF) : Colors.white,
                       borderRadius: BorderRadius.circular(7),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      border: Border.all(
+                        color: c.totalOrders == 0
+                            ? const Color(0xFFE9D5FF)
+                            : const Color(0xFFE2E8F0),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.access_time_rounded, size: 11, color: Color(0xFF64748B)),
+                        Icon(
+                          c.totalOrders == 0
+                              ? Icons.person_add_rounded
+                              : Icons.access_time_rounded,
+                          size: 11,
+                          color: c.totalOrders == 0
+                              ? const Color(0xFF9333EA)
+                              : const Color(0xFF64748B),
+                        ),
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
-                            'Last: $lastOrderFormatted',
+                            c.totalOrders == 0
+                                ? (c.createdAt != null
+                                    ? 'Joined ${_formatJoinedAgo(c.createdAt)}'
+                                    : 'New Customer')
+                                : 'Last: $lastOrderFormatted',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.inter(
                               fontSize: 10.5,
-                              color: const Color(0xFF64748B),
+                              fontWeight: c.totalOrders == 0 ? FontWeight.w600 : FontWeight.w400,
+                              color: c.totalOrders == 0
+                                  ? const Color(0xFF7E22CE)
+                                  : const Color(0xFF64748B),
                             ),
                           ),
                         ),

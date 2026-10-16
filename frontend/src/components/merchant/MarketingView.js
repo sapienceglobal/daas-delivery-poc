@@ -73,6 +73,12 @@ export default function MarketingView({ restaurantId }) {
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [audienceStats, setAudienceStats] = useState({
+    totalCustomers: 0,
+    pushActiveUsers: 0,
+    inactive30Days: 0,
+    topicBroadcast: 'all_customers (100% of App Installs)'
+  });
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -110,7 +116,19 @@ export default function MarketingView({ restaurantId }) {
 
   useEffect(() => {
     fetchCampaigns();
+    fetchAudienceStats();
   }, [restaurantId]);
+
+  const fetchAudienceStats = async () => {
+    try {
+      const res = await marketingAPI.getAudienceStats();
+      if (res.data) {
+        setAudienceStats(res.data);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch audience stats:', err);
+    }
+  };
 
   const fetchCampaigns = async () => {
     try {
@@ -128,6 +146,10 @@ export default function MarketingView({ restaurantId }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const setActionPreset = (url) => {
+    setFormData((prev) => ({ ...prev, actionUrl: url }));
   };
 
   const handleBroadcastRequest = (e) => {
@@ -150,6 +172,7 @@ export default function MarketingView({ restaurantId }) {
       showToast('success', res.message || 'Campaign broadcasted successfully');
       setFormData({ title: '', message: '', imageUrl: '', actionUrl: '', audience: 'all_customers' });
       fetchCampaigns();
+      fetchAudienceStats();
     } catch (err) {
       console.error('Failed to broadcast:', err);
       showToast('error', err.message || 'Failed to broadcast campaign');
@@ -168,6 +191,39 @@ export default function MarketingView({ restaurantId }) {
           Push Notification Campaigns
         </h2>
         <p className="text-[#6b7280] mt-2 text-lg max-w-2xl">Create and broadcast beautiful marketing messages directly to your customers' mobile devices to drive engagement and sales.</p>
+
+        {/* Real-time Audience Reach Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 max-w-4xl">
+          <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 flex items-center gap-3 shadow-xs">
+            <div className="w-10 h-10 bg-[#fef2f2] rounded-lg flex items-center justify-center text-[#7a0b10]">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-[#6b7280] uppercase tracking-wider">Total Customers</div>
+              <div className="text-xl font-bold text-[#1f2937]">{audienceStats.totalCustomers || 0}</div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 flex items-center gap-3 shadow-xs">
+            <div className="w-10 h-10 bg-[#f0fdf4] rounded-lg flex items-center justify-center text-[#16a34a]">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-[#6b7280] uppercase tracking-wider">Push-Registered</div>
+              <div className="text-xl font-bold text-[#1f2937]">{audienceStats.pushActiveUsers || 0} Accounts</div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 flex items-center gap-3 shadow-xs">
+            <div className="w-10 h-10 bg-[#eff6ff] rounded-lg flex items-center justify-center text-[#2563eb]">
+              <Megaphone className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-[#6b7280] uppercase tracking-wider">Instant Broadcast Reach</div>
+              <div className="text-xs font-bold text-[#2563eb] mt-0.5">100% of App Installs (FCM Topic)</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
@@ -253,7 +309,33 @@ export default function MarketingView({ restaurantId }) {
 
             {/* Action URL */}
             <div>
-              <label className="block text-sm font-bold text-[#1f2937] mb-1">Action URL / Deep Link (Optional)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-bold text-[#1f2937]">Action URL / App Target (Optional)</label>
+                <div className="flex items-center gap-1.5 text-xs text-[#6b7280]">
+                  <span>Presets:</span>
+                  <button
+                    type="button"
+                    onClick={() => setActionPreset('/offers')}
+                    className="text-[#7a0b10] hover:underline font-semibold bg-red-50 px-2 py-0.5 rounded cursor-pointer"
+                  >
+                    Offers Tab
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActionPreset('/menu')}
+                    className="text-[#7a0b10] hover:underline font-semibold bg-red-50 px-2 py-0.5 rounded cursor-pointer"
+                  >
+                    Menu
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActionPreset('/orders')}
+                    className="text-[#7a0b10] hover:underline font-semibold bg-red-50 px-2 py-0.5 rounded cursor-pointer"
+                  >
+                    Orders
+                  </button>
+                </div>
+              </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <LinkIcon className="h-5 w-5 text-[#9ca3af]" />
@@ -263,7 +345,7 @@ export default function MarketingView({ restaurantId }) {
                   name="actionUrl"
                   value={formData.actionUrl}
                   onChange={handleChange}
-                  placeholder="/category/specials or https://..."
+                  placeholder="/offers, /menu or https://..."
                   className="w-full h-12 pl-10 pr-4 bg-white border border-[#e5e7eb] rounded-lg text-sm text-[#1f2937] outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -371,14 +453,14 @@ export default function MarketingView({ restaurantId }) {
                     </div>
                   </div>
 
-                  <div className="mt-5 pt-4 border-t border-[#e5e7eb] flex items-center justify-between text-sm font-medium text-[#6b7280] pl-2">
-                    <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-md">
-                      <Users className="w-4 h-4 text-[#9ca3af]" />
-                      {campaign.audience === 'all_customers' ? 'All Users' : campaign.audience.replace('_', ' ')}
+                  <div className="mt-5 pt-4 border-t border-[#e5e7eb] flex items-center justify-between text-xs sm:text-sm font-medium text-[#6b7280] pl-2">
+                    <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md">
+                      <Users className="w-3.5 h-3.5 text-[#9ca3af]" />
+                      {campaign.audience === 'all_customers' ? 'All APKs (FCM Topic)' : campaign.audience.replace('_', ' ')}
                     </div>
-                    <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-md">
-                      <Send className="w-4 h-4 text-[#9ca3af]" />
-                      Sent: <span className="text-[#1f2937] font-bold">{campaign.successCount || 0}</span>
+                    <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md">
+                      <Send className="w-3.5 h-3.5 text-[#9ca3af]" />
+                      Inbox: <span className="text-[#1f2937] font-bold">{campaign.successCount || 0}</span>
                     </div>
                   </div>
                 </div>

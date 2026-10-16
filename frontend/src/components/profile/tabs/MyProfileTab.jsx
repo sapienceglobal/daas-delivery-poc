@@ -22,12 +22,13 @@ export default function MyProfileTab({ user, updateUser }) {
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
+    const hasEmoji = (str) => Boolean(str && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(str));
 
-    if (!/^[a-zA-Z\s\-'.]+$/.test(formData.name)) {
+    if (!formData.name || hasEmoji(formData.name) || !/^[a-zA-Z0-9\s\-'.@_+]+$/.test(formData.name.trim())) {
       showToast('Name contains restricted characters or emojis. Please use standard letters and numbers only.', 'error');
       return;
     }
-    if (!/^[0-9+\-\s()]+$/.test(formData.phone)) {
+    if (formData.phone && (hasEmoji(formData.phone) || !/^[0-9+\-\s()]+$/.test(formData.phone))) {
       showToast('Phone contains restricted characters. Please use numbers only.', 'error');
       return;
     }

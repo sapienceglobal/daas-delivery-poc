@@ -95,11 +95,16 @@ export const register = asyncHandler(async (req, response) => {
     throw new AppError('Please provide name, email, and password.', 400);
   }
 
-  if (!/^[a-zA-Z\s\-'.]+$/.test(name)) {
+  const hasEmoji = (str) => Boolean(str && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(str));
+  if (hasEmoji(name) || !/^[a-zA-Z0-9\s\-'.@_+]+$/.test(name)) {
     throw new AppError('Name contains restricted characters or emojis. Please use standard letters and numbers only.', 400);
   }
 
-  if (phone && !/^[0-9+\-\s()]+$/.test(phone)) {
+  if (hasEmoji(email) || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+    throw new AppError('Emojis are not allowed in email addresses. Please use a valid email.', 400);
+  }
+
+  if (phone && (hasEmoji(phone) || !/^[0-9+\-\s()]+$/.test(phone))) {
     throw new AppError('Phone contains restricted characters. Please use numbers only.', 400);
   }
 
@@ -509,6 +514,19 @@ export const socialLogin = asyncHandler(async (req, response) => {
 });
 
 export const logout = asyncHandler(async (req, response) => {
+  const { fcmToken } = req.body;
+
+  if (fcmToken && req.user?._id) {
+    try {
+      const UserModel = req.getModel('User');
+      await UserModel.findByIdAndUpdate(req.user._id, {
+        $pull: { fcmTokens: fcmToken }
+      });
+    } catch (err) {
+      // Non-blocking token cleanup
+    }
+  }
+
   const secureCookie = process.env.COOKIE_SECURE === 'true' ||
     (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
 
@@ -522,6 +540,7 @@ export const logout = asyncHandler(async (req, response) => {
     })
     .json({ success: true, message: 'Logged out successfully' });
 });
+
 
 export const deleteAccount = asyncHandler(async (req, response) => {
   const userId = req.user._id;
@@ -732,10 +751,11 @@ export const updateProfile = asyncHandler(async (req, response) => {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
   }
 
-  if (updates.name && !/^[a-zA-Z\s\-'.]+$/.test(updates.name)) {
+  const hasEmoji = (str) => Boolean(str && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(str));
+  if (updates.name && (hasEmoji(updates.name) || !/^[a-zA-Z0-9\s\-'.@_+]+$/.test(updates.name))) {
     throw new AppError('Name contains restricted characters or emojis. Please use standard letters and numbers only.', 400);
   }
-  if (updates.phone && !/^[0-9+\-\s()]+$/.test(updates.phone)) {
+  if (updates.phone && (hasEmoji(updates.phone) || !/^[0-9+\-\s()]+$/.test(updates.phone))) {
     throw new AppError('Phone contains restricted characters. Please use numbers only.', 400);
   }
 
@@ -757,7 +777,17 @@ export const saveFcmToken = asyncHandler(async (req, response) => {
   }
 
   const UserModel = req.getModel('User');
+
+  // Prevent token duplication across accounts on shared/reinstalled devices
+  await UserModel.updateMany(
+    { _id: { $ne: req.user._id }, fcmTokens: fcmToken },
+    { $pull: { fcmTokens: fcmToken } }
+  );
+
   const user = await UserModel.findById(req.user._id);
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
 
   if (!user.fcmTokens) {
     user.fcmTokens = [];
@@ -773,6 +803,7 @@ export const saveFcmToken = asyncHandler(async (req, response) => {
 
   res.success(response, { message: 'FCM token saved successfully' });
 });
+
 
 export const changePassword = asyncHandler(async (req, response) => {
   const { currentPassword, newPassword } = req.body;

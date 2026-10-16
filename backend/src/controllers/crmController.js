@@ -9,7 +9,10 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import { createNotification } from './notificationController.js';
+import { getOrCompute, invalidateRestaurant } from '../utils/responseCache.js';
 import mongoose from 'mongoose';
+
+const CRM_CACHE_TTL_MS = Number(process.env.CRM_CACHE_TTL_MS || 30000);
 
 const ensureCanManageRestaurant = (user, restaurantId) => {
   if (user.role === 'admin') return true;
@@ -18,69 +21,44 @@ const ensureCanManageRestaurant = (user, restaurantId) => {
   }
 };
 
-export const getCustomers = asyncHandler(async (req, response) => {
-  const { restaurantId } = req.params;
-  console.log(`[CRM] getCustomers called with params.restaurantId: ${restaurantId}`);
-
-  // resolve slug/name to ObjectId if needed
-  const isObjectId = /^[a-fA-F0-9]{24}$/.test(restaurantId);
-  let actualRestaurantId = restaurantId;
-  
-  const RestaurantModel = req.getModel?.('Restaurant') || Restaurant;
+const computeRestaurantCustomers = async (req, actualRestaurantId) => {
   const OrderModel = req.getModel?.('Order') || Order;
   const CustomerModel = req.getModel?.('Customer') || Customer;
   const UserModel = req.getModel?.('User') || User;
 
-  if (!isObjectId) {
-    const restaurant = await RestaurantModel.findOne({ 
-      $or: [
-        { slug: new RegExp(`^${restaurantId}`, 'i') }, 
-        { name: new RegExp(`^${restaurantId}$`, 'i') }
-      ] 
-    });
-    console.log(`[CRM] Regex search for ${restaurantId} returned:`, restaurant ? restaurant._id : 'null');
-    if (!restaurant) throw new AppError('Restaurant not found', 404);
-    actualRestaurantId = restaurant._id.toString();
-  }
-  
-  console.log(`[CRM] final actualRestaurantId: ${actualRestaurantId}`);
-
-  if (req.user.role === 'merchant') {
-    ensureCanManageRestaurant(req.user, actualRestaurantId);
-  }
-
-  // 1. Aggregate stats from ALL Orders for this restaurant
-  const orderStats = await OrderModel.aggregate([
-    { $match: { restaurantId: new mongoose.Types.ObjectId(actualRestaurantId) } },
-    {
-      $group: {
-        _id: {
-          email: { $toLower: { $ifNull: ["$customerEmail", ""] } },
-          phone: { $ifNull: ["$customerPhone", ""] }
-        },
-        name: { $last: "$customerName" }, // taking the most recent name
-        userId: { $last: "$userId" },
-        totalOrders: { $sum: 1 },
-        totalSpent: { $sum: '$total' },
-        lastOrderDate: { $max: '$createdAt' },
-        firstOrderDate: { $min: '$createdAt' }
-      }
-    },
-    { $sort: { lastOrderDate: -1 } }
+  // 1. Fetch Order stats, Manual customers, and registered customers in PARALLEL
+  const [orderStats, manualCustomers, users] = await Promise.all([
+    OrderModel.aggregate([
+      { $match: { restaurantId: new mongoose.Types.ObjectId(actualRestaurantId) } },
+      {
+        $group: {
+          _id: {
+            email: { $toLower: { $ifNull: ["$customerEmail", ""] } },
+            phone: { $ifNull: ["$customerPhone", ""] }
+          },
+          name: { $last: "$customerName" },
+          userId: { $last: "$userId" },
+          totalOrders: { $sum: 1 },
+          totalSpent: { $sum: '$total' },
+          lastOrderDate: { $max: '$createdAt' },
+          firstOrderDate: { $min: '$createdAt' }
+        }
+      },
+      { $sort: { lastOrderDate: -1 } }
+    ]),
+    CustomerModel.find({ restaurantId: actualRestaurantId, isDeleted: { $ne: true } }).lean(),
+    UserModel.find({ role: 'customer' }).select('name email phone isActive loginPlatforms createdAt updatedAt').lean()
   ]);
 
-  // then, retrieve explicit Customer profiles created by Merchant
-  const manualCustomers = await CustomerModel.find({ restaurantId: actualRestaurantId, isDeleted: { $ne: true } }).lean();
-  
-  // 3. Fetch all registered users to enrich data (if they match email)
-  const users = await UserModel.find({ role: 'customer' }).lean();
-  const usersByEmail = {};
+  // Index users by email & by _id for O(1) lookups (avoids O(N*M) search in loop)
+  const usersByEmail = new Map();
+  const usersById = new Map();
   users.forEach(u => {
-    if (u.email) usersByEmail[u.email.toLowerCase()] = u;
+    if (u.email) usersByEmail.set(u.email.toLowerCase(), u);
+    if (u._id) usersById.set(u._id.toString(), u);
   });
 
   const uniqueCustomersMap = new Map();
-// add/merge customer into the map
   const addCustomerToMap = (identifier, data) => {
     if (!identifier) return;
     if (uniqueCustomersMap.has(identifier)) {
@@ -91,7 +69,7 @@ export const getCustomers = asyncHandler(async (req, response) => {
     }
   };
 
-  // add Manual Customers first
+  // Add Manual Customers first
   manualCustomers.forEach(c => {
     const identifier = (c.email || c.phone || c._id.toString()).toLowerCase();
     addCustomerToMap(identifier, {
@@ -101,25 +79,24 @@ export const getCustomers = asyncHandler(async (req, response) => {
     });
   });
 
-  // merge Order Stats
+  // Merge Order Stats
   orderStats.forEach(stat => {
     const email = stat._id.email;
     const phone = stat._id.phone;
     const identifier = email || phone;
-    
     if (!identifier) return;
 
     let user = null;
-    if (email && usersByEmail[email]) {
-      user = usersByEmail[email];
-    } else if (stat.userId) {
-      user = users.find(u => u._id.toString() === stat.userId.toString());
+    if (email && usersByEmail.has(email)) {
+      user = usersByEmail.get(email);
+    } else if (stat.userId && usersById.has(stat.userId.toString())) {
+      user = usersById.get(stat.userId.toString());
     }
 
     const existing = uniqueCustomersMap.get(identifier) || {};
 
     addCustomerToMap(identifier, {
-      _id: existing._id || (user ? user._id.toString() : identifier), // fallback to identifier if no real _id
+      _id: existing._id || (user ? user._id.toString() : identifier),
       customerId: existing.customerId || (user ? `#CUST-${user._id.toString().slice(-6).toUpperCase()}` : `#CUST-${identifier.slice(-6).toUpperCase()}`),
       name: existing.name || stat.name || (user ? user.name : 'Guest'),
       email: existing.email || email || (user ? user.email : ''),
@@ -135,10 +112,11 @@ export const getCustomers = asyncHandler(async (req, response) => {
     });
   });
 
-  // finally, add any registered app users who haven't placed an order yet
+  // Add registered app users who haven't ordered yet
   users.forEach(user => {
     const identifier = (user.email || user.phone || user._id.toString()).toLowerCase();
     if (!uniqueCustomersMap.has(identifier)) {
+      const userCreatedDate = user.createdAt || (user._id && mongoose.Types.ObjectId.isValid(user._id) ? new mongoose.Types.ObjectId(user._id).getTimestamp() : new Date());
       addCustomerToMap(identifier, {
         _id: user._id.toString(),
         customerId: `#CUST-${user._id.toString().slice(-6).toUpperCase()}`,
@@ -151,14 +129,16 @@ export const getCustomers = asyncHandler(async (req, response) => {
         totalSpent: 0,
         lastOrderDate: null,
         status: user.isActive ? 'Active' : 'Inactive',
-        loginPlatforms: user.loginPlatforms || []
+        loginPlatforms: user.loginPlatforms || [],
+        createdAt: userCreatedDate,
+        updatedAt: user.updatedAt || userCreatedDate,
       });
     }
   });
 
   const uniqueCustomers = Array.from(uniqueCustomersMap.values());
 
-  // Compute industry-standard customer stats
+  // Compute RFM Segmentation & Stats
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -169,7 +149,6 @@ export const getCustomers = asyncHandler(async (req, response) => {
   let newCustomersCount = 0;
   let newCustomersLastMonthCount = 0;
 
-  // Enrich each customer with industry-standard RFM segmentation
   const enrichedCustomers = uniqueCustomers.map(c => {
     const orders = Number(c.totalOrders || 0);
     const spent = Number(c.totalSpent || 0);
@@ -188,7 +167,6 @@ export const getCustomers = asyncHandler(async (req, response) => {
     const tier = (c.loyaltyTier || 'Bronze').toLowerCase();
     const daysSinceLastOrder = lastOrder ? Math.floor((now - lastOrder) / (1000 * 60 * 60 * 24)) : null;
 
-    // Industry RFM Rules
     let segment = 'Regular';
     let tag = 'Regular Customer';
     let badge = null;
@@ -243,13 +221,116 @@ export const getCustomers = asyncHandler(async (req, response) => {
     customerGrowthPct: customerGrowth > 0 ? `↑ ${customerGrowth}%` : `${customerGrowth}%`,
   };
 
-  res.success(response, { data: enrichedCustomers, stats });
+  return { customers: enrichedCustomers, stats };
+};
+
+export const getCustomers = asyncHandler(async (req, response) => {
+  const { restaurantId } = req.params;
+
+  // Resolve slug/name to ObjectId if needed
+  const isObjectId = /^[a-fA-F0-9]{24}$/.test(restaurantId);
+  let actualRestaurantId = restaurantId;
+  
+  const RestaurantModel = req.getModel?.('Restaurant') || Restaurant;
+
+  if (!isObjectId) {
+    const restaurant = await RestaurantModel.findOne({ 
+      $or: [
+        { slug: new RegExp(`^${restaurantId}`, 'i') }, 
+        { name: new RegExp(`^${restaurantId}$`, 'i') }
+      ] 
+    }).lean();
+    if (!restaurant) throw new AppError('Restaurant not found', 404);
+    actualRestaurantId = restaurant._id.toString();
+  }
+
+  if (req.user.role === 'merchant') {
+    ensureCanManageRestaurant(req.user, actualRestaurantId);
+  }
+
+  // Retrieve base enriched list & stats (from cache if warm, otherwise computed)
+  const cacheKey = `crm:customers:${req.tenantDb?.name || 'default'}:${actualRestaurantId}`;
+  const { customers, stats } = await getOrCompute(cacheKey, actualRestaurantId, CRM_CACHE_TTL_MS, () =>
+    computeRestaurantCustomers(req, actualRestaurantId)
+  );
+
+  let resultCustomers = [...customers];
+
+  // Optional Filtering
+  if (req.query.search) {
+    const q = req.query.search.toLowerCase().trim();
+    resultCustomers = resultCustomers.filter(c => 
+      (c.name && c.name.toLowerCase().includes(q)) ||
+      (c.email && c.email.toLowerCase().includes(q)) ||
+      (c.phone && c.phone.includes(q)) ||
+      (c.customerId && c.customerId.toLowerCase().includes(q))
+    );
+  }
+
+  if (req.query.segment) {
+    const seg = req.query.segment.toLowerCase();
+    resultCustomers = resultCustomers.filter(c => c.segment && c.segment.toLowerCase() === seg);
+  }
+
+  if (req.query.tier) {
+    const tier = req.query.tier.toLowerCase();
+    resultCustomers = resultCustomers.filter(c => (c.loyaltyTier || 'bronze').toLowerCase() === tier);
+  }
+
+  // Sorting
+  const sortBy = (req.query.sortBy || 'newest').toLowerCase();
+  resultCustomers.sort((a, b) => {
+    const timeA = new Date(a.createdAt || a.lastOrderDate || 0).getTime();
+    const timeB = new Date(b.createdAt || b.lastOrderDate || 0).getTime();
+
+    if (sortBy === 'oldest') {
+      return timeA - timeB;
+    }
+    if (sortBy === 'most_orders') {
+      const diff = (Number(b.totalOrders) || 0) - (Number(a.totalOrders) || 0);
+      if (diff !== 0) return diff;
+      return (Number(b.totalSpent) || 0) - (Number(a.totalSpent) || 0);
+    }
+    if (sortBy === 'highest_spent') {
+      const diff = (Number(b.totalSpent) || 0) - (Number(a.totalSpent) || 0);
+      if (diff !== 0) return diff;
+      return (Number(b.totalOrders) || 0) - (Number(a.totalOrders) || 0);
+    }
+    if (sortBy === 'recent_order') {
+      const orderTimeA = new Date(a.lastOrderDate || 0).getTime();
+      const orderTimeB = new Date(b.lastOrderDate || 0).getTime();
+      if (orderTimeB !== orderTimeA) return orderTimeB - orderTimeA;
+      return timeB - timeA;
+    }
+    if (sortBy === 'name') {
+      return (a.name || '').localeCompare(b.name || '');
+    }
+
+    // Default 'newest'
+    if (timeB !== timeA) return timeB - timeA;
+    return (Number(b.totalOrders) || 0) - (Number(a.totalOrders) || 0);
+  });
+
+  // Optional Pagination (if requested by client infinite scroll / pagination)
+  if (req.query.page) {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, parseInt(req.query.limit) || 20);
+    const skip = (page - 1) * limit;
+    const paginated = resultCustomers.slice(skip, skip + limit);
+    return res.success(response, {
+      data: paginated,
+      stats,
+      pagination: res.buildPagination(page, limit, resultCustomers.length)
+    });
+  }
+
+  // Standard full array return (100% backward compatible for existing web & mobile builds)
+  res.success(response, { data: resultCustomers, stats });
 });
 
 export const getCustomerProfile = asyncHandler(async (req, response) => {
   const { restaurantId, customerId } = req.params;
 
-  // resolve slug/name to ObjectId if needed
   const isObjectIdRest = /^[a-fA-F0-9]{24}$/.test(restaurantId);
   let actualRestaurantId = restaurantId;
   
@@ -265,7 +346,7 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
         { slug: new RegExp(`^${restaurantId}`, 'i') }, 
         { name: new RegExp(`^${restaurantId}$`, 'i') }
       ] 
-    });
+    }).lean();
     if (!restaurant) throw new AppError('Restaurant not found', 404);
     actualRestaurantId = restaurant._id.toString();
   }
@@ -279,8 +360,10 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
   let user = null;
 
   if (isObjectId) {
-    customer = await CustomerModel.findOne({ _id: customerId, restaurantId: actualRestaurantId }).lean();
-    user = await UserModel.findById(customerId).lean();
+    [customer, user] = await Promise.all([
+      CustomerModel.findOne({ _id: customerId, restaurantId: actualRestaurantId }).lean(),
+      UserModel.findById(customerId).lean()
+    ]);
   }
 
   // If user not found by ID, try finding by customer email or phone
@@ -293,8 +376,7 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
     }
   }
 
-  // if customer is neither in Customer nor User, they are a pure Guest.
-  // we'll reconstruct a basic customer object from their email/phone which is passed as `customerId`.
+  // If customer is neither in Customer nor User, they are a pure Guest
   if (!customer && !user) {
     const isEmail = customerId.includes('@');
     customer = {
@@ -314,11 +396,11 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
       email: user.email,
       phone: user.phone,
       group: 'App User',
-      loyaltyTier: 'Bronze' // Adjust if user model has tier logic
+      loyaltyTier: 'Bronze'
     };
   }
 
-  // find all orders for this customer by email, phone, or userId
+  // Find orders for this customer by email, phone, or userId
   const orderQuery = { restaurantId: new mongoose.Types.ObjectId(actualRestaurantId) };
   const orConditions = [];
   
@@ -329,10 +411,14 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
   if (orConditions.length > 0) {
     orderQuery.$or = orConditions;
   } else if (customer.name) {
-    orderQuery.customerName = customer.name; // Fallback
+    orderQuery.customerName = customer.name;
   }
 
-  const orders = await OrderModel.find(orderQuery).sort({ createdAt: -1 }).lean();
+  // Project only relevant fields for profile order history and calculation
+  const orders = await OrderModel.find(orderQuery)
+    .select('orderNumber total discount loyaltyDiscount couponCode orderType createdAt status items loyaltyPointsEarned loyaltyPointsUsed')
+    .sort({ createdAt: -1 })
+    .lean();
 
   const totalOrders = orders.length;
   let totalSpent = 0;
@@ -359,11 +445,10 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
     preferredOrderType = Object.keys(orderTypes).reduce((a, b) => orderTypes[a] > orderTypes[b] ? a : b);
   }
 
-  // loyalty history
+  // Loyalty history
   let loyaltyHistory = [];
   let currentPoints = user ? (user.loyaltyPoints || 0) : 0;
   
-  // extract loyalty events from orders for history
   orders.forEach(order => {
     if (order.loyaltyPointsEarned > 0) {
       loyaltyHistory.push({
@@ -381,10 +466,9 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
     }
   });
 
-  // sort history newest first
   loyaltyHistory.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-  // promo history
+  // Promo history
   let promoHistory = [];
   const searchIds = [
     user ? user._id : null,
@@ -412,7 +496,7 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
       totalSavings,
       totalCouponsUsed
     },
-    orders: orders.slice(0, 15), // Send last 15 orders for history
+    orders: orders.slice(0, 20), // Send recent 20 orders with projected lightweight fields
     loyalty: {
       tier: customer.loyaltyTier || 'Bronze',
       points: currentPoints,
@@ -433,7 +517,6 @@ export const createCustomer = asyncHandler(async (req, response) => {
 
   const CustomerModel = req.getModel?.('Customer') || Customer;
 
-  // generate unique customerId like #CUST1001
   const count = await CustomerModel.countDocuments({ restaurantId });
   const customerId = `#CUST${1000 + count + 1}`;
 
@@ -443,6 +526,7 @@ export const createCustomer = asyncHandler(async (req, response) => {
     customerId
   });
 
+  invalidateRestaurant(restaurantId);
   res.success(response, customer, 201);
 });
 
@@ -464,12 +548,10 @@ export const updateCustomer = asyncHandler(async (req, response) => {
       { new: true, runValidators: true }
     );
   } catch (err) {
-    // Ignore CastError if customerId is not a valid ObjectId (e.g. an email or phone number)
+    // Ignore CastError if customerId is not a valid ObjectId
   }
 
   if (!customer) {
-    // Customer document doesn't exist yet (was dynamically aggregated from User or Order)
-    // Let's create it!
     let user = null;
     const isValidId = mongoose.Types.ObjectId.isValid(customerId);
     if (isValidId) {
@@ -498,6 +580,7 @@ export const updateCustomer = asyncHandler(async (req, response) => {
     customer = await CustomerModel.create(newCustomerData);
   }
 
+  invalidateRestaurant(restaurantId);
   res.success(response, customer);
 });
 
@@ -518,6 +601,7 @@ export const deleteCustomer = asyncHandler(async (req, response) => {
   
   if (!customer) throw new AppError('Customer not found', 404);
 
+  invalidateRestaurant(restaurantId);
   res.success(response, null, 204);
 });
 
@@ -540,12 +624,13 @@ export const bulkUpdateCustomers = asyncHandler(async (req, response) => {
     { $set: updateData }
   );
 
+  invalidateRestaurant(restaurantId);
   res.success(response, { message: `${customerIds.length} customers updated successfully` });
 });
 
 export const bulkDeleteCustomers = asyncHandler(async (req, response) => {
   const { restaurantId } = req.params;
-  const { customerIds } = req.body; // Sent in body for bulk delete
+  const { customerIds } = req.body;
 
   if (req.user.role === 'merchant') {
     ensureCanManageRestaurant(req.user, restaurantId);
@@ -562,6 +647,7 @@ export const bulkDeleteCustomers = asyncHandler(async (req, response) => {
     { $set: { isDeleted: true } }
   );
 
+  invalidateRestaurant(restaurantId);
   res.success(response, { message: `${customerIds.length} customers deleted successfully` });
 });
 
@@ -622,5 +708,6 @@ export const sendPromo = asyncHandler(async (req, response) => {
     await Promise.all(notifications);
   }
 
+  invalidateRestaurant(restaurantId);
   res.success(response, { message: `Promotion and coupons sent to ${userIds.length} customers` });
 });

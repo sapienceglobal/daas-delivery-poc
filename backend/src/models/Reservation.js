@@ -69,5 +69,7 @@ ReservationSchema.index({ restaurantId: 1, date: 1 });
 ReservationSchema.index({ userId: 1, date: -1 });
 ReservationSchema.index({ status: 1 });
 
+ReservationSchema.index({ restaurantId: 1, createdAt: -1 });
+
 const Reservation = mongoose.model('Reservation', ReservationSchema);
 export default Reservation;

@@ -32,6 +32,9 @@ class AuthProvider extends ChangeNotifier {
           prefs.setString('user', jsonEncode(decodedUser));
         }
         _user = decodedUser;
+        if (decodedUser['restaurantId'] != null) {
+          prefs.setString('restaurantId', decodedUser['restaurantId'].toString());
+        }
       }
     } else {
       _isAuthenticated = false;
@@ -78,6 +81,9 @@ class AuthProvider extends ChangeNotifier {
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('token', token);
             await prefs.setString('user', jsonEncode(user));
+            if (user['restaurantId'] != null) {
+              await prefs.setString('restaurantId', user['restaurantId'].toString());
+            }
           }
           
           _isLoading = false;

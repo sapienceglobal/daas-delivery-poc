@@ -50,6 +50,7 @@ export default function CustomersCRMView({
   const [groupFilter, setGroupFilter] = useState("All Groups");
   const [tierFilter, setTierFilter] = useState("All Loyalty Tiers");
   const [statusFilter, setStatusFilter] = useState("All Status");
+  const [sortBy, setSortBy] = useState("newest");
 
   // ─── LOAD MORE STATE ───
   const ITEMS_PER_LOAD = 15;
@@ -82,7 +83,7 @@ export default function CustomersCRMView({
   useEffect(() => {
     setVisibleCount(ITEMS_PER_LOAD);
     setSelectedIds([]);
-  }, [searchQuery, groupFilter, tierFilter, statusFilter]);
+  }, [searchQuery, groupFilter, tierFilter, statusFilter, sortBy]);
 
   useEffect(() => {
     setMounted(true);
@@ -162,6 +163,8 @@ export default function CustomersCRMView({
   // ─── SORT DATA ───
   const sortedCustomers = useMemo(() => {
     let sortableItems = [...filteredCustomers];
+
+    // If column header was clicked directly, prioritize it
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
         let aValue = a[sortConfig.key];
@@ -170,7 +173,7 @@ export default function CustomersCRMView({
         if (sortConfig.key === 'totalSpent' || sortConfig.key === 'totalOrders') {
           aValue = Number(aValue || 0);
           bValue = Number(bValue || 0);
-        } else if (sortConfig.key === 'lastOrderDate') {
+        } else if (sortConfig.key === 'lastOrderDate' || sortConfig.key === 'createdAt') {
           aValue = new Date(aValue || 0).getTime();
           bValue = new Date(bValue || 0).getTime();
         } else {
@@ -182,9 +185,44 @@ export default function CustomersCRMView({
         if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
+      return sortableItems;
     }
+
+    // Default & Selected Filter Sorting
+    sortableItems.sort((a, b) => {
+      const timeA = new Date(a.createdAt || a.lastOrderDate || 0).getTime();
+      const timeB = new Date(b.createdAt || b.lastOrderDate || 0).getTime();
+
+      if (sortBy === 'oldest') {
+        return timeA - timeB;
+      }
+      if (sortBy === 'most_orders') {
+        const diff = (Number(b.totalOrders) || 0) - (Number(a.totalOrders) || 0);
+        if (diff !== 0) return diff;
+        return (Number(b.totalSpent) || 0) - (Number(a.totalSpent) || 0);
+      }
+      if (sortBy === 'highest_spent') {
+        const diff = (Number(b.totalSpent) || 0) - (Number(a.totalSpent) || 0);
+        if (diff !== 0) return diff;
+        return (Number(b.totalOrders) || 0) - (Number(a.totalOrders) || 0);
+      }
+      if (sortBy === 'recent_order') {
+        const orderTimeA = new Date(a.lastOrderDate || 0).getTime();
+        const orderTimeB = new Date(b.lastOrderDate || 0).getTime();
+        if (orderTimeB !== orderTimeA) return orderTimeB - orderTimeA;
+        return timeB - timeA;
+      }
+      if (sortBy === 'name') {
+        return (a.name || '').localeCompare(b.name || '');
+      }
+
+      // Default: 'newest' (Newest registration or interaction date first)
+      if (timeB !== timeA) return timeB - timeA;
+      return (Number(b.totalOrders) || 0) - (Number(a.totalOrders) || 0);
+    });
+
     return sortableItems;
-  }, [filteredCustomers, sortConfig]);
+  }, [filteredCustomers, sortConfig, sortBy]);
 
   // ─── LOAD MORE DATA ───
   const displayedCustomers = useMemo(() => {
@@ -480,12 +518,33 @@ export default function CustomersCRMView({
                 <option>Inactive</option>
               </select>
 
+              <div className="flex items-center gap-1.5 bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-2.5 py-2 text-sm text-[#374151] font-medium hover:bg-white transition-colors">
+                <ArrowUpDown className="w-4 h-4 text-[#8B0000] shrink-0" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value);
+                    setSortConfig({ key: null, direction: 'desc' });
+                  }}
+                  className="bg-transparent text-sm text-[#111827] font-semibold outline-none cursor-pointer pr-1"
+                >
+                  <option value="newest">Sort: Newest First (Default)</option>
+                  <option value="oldest">Sort: Oldest First</option>
+                  <option value="most_orders">Sort: Most Orders</option>
+                  <option value="highest_spent">Sort: Highest Spender</option>
+                  <option value="recent_order">Sort: Recently Ordered</option>
+                  <option value="name">Sort: Name (A-Z)</option>
+                </select>
+              </div>
+
               <button
                 onClick={() => {
                   setSearchQuery("");
                   setGroupFilter("All Groups");
                   setTierFilter("All Loyalty Tiers");
                   setStatusFilter("All Status");
+                  setSortBy("newest");
+                  setSortConfig({ key: null, direction: 'desc' });
                 }}
                 className="bg-white border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-bold flex items-center gap-2 hover:bg-[#f9fafb] transition-colors"
               >
@@ -670,7 +729,13 @@ export default function CustomersCRMView({
                                 year: "numeric",
                               },
                             )
-                          : "-"}
+                          : c.createdAt ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B0000] bg-[#fdf2f2] px-2 py-0.5 rounded-full border border-[#fecaca]">
+                                Joined {new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">No orders yet</span>
+                            )}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/analytics_model.dart';
 import '../services/api_service.dart';
@@ -15,6 +16,11 @@ class AnalyticsProvider with ChangeNotifier {
   DateTime? _startDate;
   DateTime? _endDate;
   String? _restaurantId;
+
+  // Request sequencing & debounce guards
+  int _fetchRequestId = 0;
+  int _reportsFetchRequestId = 0;
+  Timer? _socketDebounceTimer;
 
   AnalyticsProvider({this.socketService}) {
     _initSocketListeners();
@@ -42,12 +48,17 @@ class AnalyticsProvider with ChangeNotifier {
     
     void handleUpdate(dynamic data) {
       if (_restaurantId != null) {
-        // Trigger a silent re-fetch for dashboard
-        fetchAnalytics(_restaurantId!, silent: true);
-        // Trigger a silent re-fetch for reports if already loaded
-        if (_reportsData != null) {
-          fetchReportsAnalytics(_restaurantId!, silent: true);
-        }
+        // Industry-level: Debounce socket updates (e.g. status transitions, multiple new items)
+        // so 10 socket events in 2 seconds only trigger ONE single analytics fetch.
+        _socketDebounceTimer?.cancel();
+        _socketDebounceTimer = Timer(const Duration(milliseconds: 2500), () {
+          if (_restaurantId != null) {
+            fetchAnalytics(_restaurantId!, silent: true);
+            if (_reportsData != null) {
+              fetchReportsAnalytics(_restaurantId!, silent: true);
+            }
+          }
+        });
       }
     }
 
@@ -79,6 +90,9 @@ class AnalyticsProvider with ChangeNotifier {
     if (startDate != null) _startDate = startDate;
     if (endDate != null) _endDate = endDate;
 
+    // Monotonic request counter to prevent race conditions when switching filters quickly
+    final int currentRequestId = ++_fetchRequestId;
+
     if (!silent) {
       _isLoading = true;
       _error = '';
@@ -96,18 +110,26 @@ class AnalyticsProvider with ChangeNotifier {
       }
 
       final response = await ApiService.get(endpoint);
+
+      // Discard if user already triggered a newer filter or fetch
+      if (currentRequestId != _fetchRequestId) return;
+
       final jsonResponse = json.decode(response.body);
 
       if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
         _data = AnalyticsData.fromJson(jsonResponse['data']);
+        _error = '';
       } else {
         if (!silent) _error = 'Failed to load analytics data';
       }
     } catch (e) {
+      if (currentRequestId != _fetchRequestId) return;
       if (!silent) _error = e.toString();
     } finally {
-      if (!silent) _isLoading = false;
-      notifyListeners();
+      if (currentRequestId == _fetchRequestId) {
+        if (!silent) _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -116,7 +138,7 @@ class AnalyticsProvider with ChangeNotifier {
     if (_selectedDays != days) {
       fetchAnalytics(restaurantId, days: days);
     } else {
-      fetchAnalytics(restaurantId); // force refresh if switching from custom
+      fetchAnalytics(restaurantId);
     }
   }
 
@@ -142,6 +164,8 @@ class AnalyticsProvider with ChangeNotifier {
     if (startDate != null) _reportsStartDate = startDate;
     if (endDate != null) _reportsEndDate = endDate;
 
+    final int currentRequestId = ++_reportsFetchRequestId;
+
     if (!silent) {
       _isReportsLoading = true;
       _reportsError = '';
@@ -161,18 +185,25 @@ class AnalyticsProvider with ChangeNotifier {
       }
 
       final response = await ApiService.get(endpoint);
+
+      if (currentRequestId != _reportsFetchRequestId) return;
+
       final jsonResponse = json.decode(response.body);
 
       if (jsonResponse['success'] == true && jsonResponse['data'] != null) {
         _reportsData = AnalyticsData.fromJson(jsonResponse['data']);
+        _reportsError = '';
       } else {
         if (!silent) _reportsError = 'Failed to load reports data';
       }
     } catch (e) {
+      if (currentRequestId != _reportsFetchRequestId) return;
       if (!silent) _reportsError = e.toString();
     } finally {
-      if (!silent) _isReportsLoading = false;
-      notifyListeners();
+      if (currentRequestId == _reportsFetchRequestId) {
+        if (!silent) _isReportsLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -190,5 +221,11 @@ class AnalyticsProvider with ChangeNotifier {
     if (startDate != null) _reportsStartDate = startDate;
     if (endDate != null) _reportsEndDate = endDate;
     fetchReportsAnalytics(restaurantId);
+  }
+
+  @override
+  void dispose() {
+    _socketDebounceTimer?.cancel();
+    super.dispose();
   }
 }

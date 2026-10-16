@@ -64,29 +64,31 @@ class ApiService {
     }
   }
 
+  static final http.Client _client = http.Client();
+
   static Future<http.Response> get(String endpoint, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.get(uri, headers: buildHeaders(headers)));
+    return _send(() => _client.get(uri, headers: buildHeaders(headers)));
   }
 
   static Future<http.Response> post(String endpoint, dynamic body, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.post(uri, headers: buildHeaders(headers), body: json.encode(body)));
+    return _send(() => _client.post(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
   
   static Future<http.Response> put(String endpoint, dynamic body, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.put(uri, headers: buildHeaders(headers), body: json.encode(body)));
+    return _send(() => _client.put(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
 
   static Future<http.Response> patch(String endpoint, dynamic body, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.patch(uri, headers: buildHeaders(headers), body: json.encode(body)));
+    return _send(() => _client.patch(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
 
   static Future<http.Response> delete(String endpoint, {dynamic body, Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.delete(uri, headers: buildHeaders(headers), body: body != null ? json.encode(body) : null));
+    return _send(() => _client.delete(uri, headers: buildHeaders(headers), body: body != null ? json.encode(body) : null));
   }
 
   static Future<String?> uploadImage(String filePath, {String folder = 'restaurant-platform/dishes'}) async {
@@ -199,8 +201,14 @@ class ApiService {
   }
 
   // --- CRM & Customers ---
-  static Future<http.Response> getCustomers(String restaurantId) async {
-    return get('/api/crm/restaurant/$restaurantId/customers');
+  static Future<http.Response> getCustomers(String restaurantId, {int? page, int? limit, String? search}) async {
+    String endpoint = '/api/crm/restaurant/$restaurantId/customers';
+    final params = <String>[];
+    if (page != null) params.add('page=$page');
+    if (limit != null) params.add('limit=$limit');
+    if (search != null && search.isNotEmpty) params.add('search=${Uri.encodeComponent(search)}');
+    if (params.isNotEmpty) endpoint += '?${params.join('&')}';
+    return get(endpoint);
   }
 
   static Future<http.Response> getCustomerProfile(String restaurantId, String customerId) async {

@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:single_restaurant_mobile/services/api_service.dart';
 
 class OrderService {
-  Future<List<dynamic>?> getMyOrders({String status = 'all'}) async {
+  Future<List<dynamic>?> getMyOrders({String status = 'all', int page = 1, int limit = 20}) async {
     try {
-      final response = await ApiService.get('/api/orders/my-orders?status=$status');
+      final response = await ApiService.get('/api/orders/my-orders?status=$status&page=$page&limit=$limit');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['data'];

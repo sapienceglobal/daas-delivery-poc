@@ -62,29 +62,31 @@ class ApiService {
     }
   }
 
+  static final http.Client _client = http.Client();
+
   static Future<http.Response> get(String endpoint, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.get(uri, headers: buildHeaders(headers)));
+    return _send(() => _client.get(uri, headers: buildHeaders(headers)));
   }
 
   static Future<http.Response> post(String endpoint, dynamic body, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.post(uri, headers: buildHeaders(headers), body: json.encode(body)));
+    return _send(() => _client.post(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
   
   static Future<http.Response> put(String endpoint, dynamic body, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.put(uri, headers: buildHeaders(headers), body: json.encode(body)));
+    return _send(() => _client.put(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
 
   static Future<http.Response> patch(String endpoint, dynamic body, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.patch(uri, headers: buildHeaders(headers), body: json.encode(body)));
+    return _send(() => _client.patch(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
 
   static Future<http.Response> delete(String endpoint, {dynamic body, Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.delete(
+    return _send(() => _client.delete(
       uri,
       headers: buildHeaders(headers),
       body: body != null ? json.encode(body) : null,

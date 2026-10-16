@@ -12,10 +12,15 @@ class OrderProvider with ChangeNotifier {
   final Map<String, Map<String, dynamic>> _trackedOrdersCache = {};
   bool _isLoading = false;
   String? _error;
+  int _currentPage = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
 
   List<dynamic> get orders => _orders;
   Map<String, dynamic>? getTrackedOrder(String orderId) => _trackedOrdersCache[orderId];
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
   String? get error => _error;
 
   bool _shouldTrackOrder(dynamic order) {
@@ -30,12 +35,15 @@ class OrderProvider with ChangeNotifier {
   Future<void> fetchMyOrders({String status = 'all', bool silent = false}) async {
     if (!silent) _isLoading = true;
     _error = null;
+    _currentPage = 1;
+    _hasMore = true;
     notifyListeners();
 
     try {
-      final data = await _orderService.getMyOrders(status: status);
+      final data = await _orderService.getMyOrders(status: status, page: 1, limit: 20);
       if (data != null) {
         _orders = data;
+        _hasMore = data.length >= 20;
         _setupGlobalSocketListeners();
       } else {
         _error = 'Failed to load orders';
@@ -44,6 +52,35 @@ class OrderProvider with ChangeNotifier {
       _error = e.toString();
     } finally {
       if (!silent) _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadMoreOrders({String status = 'all'}) async {
+    if (_isLoadingMore || !_hasMore || _isLoading) return;
+    _isLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final nextPage = _currentPage + 1;
+      final data = await _orderService.getMyOrders(status: status, page: nextPage, limit: 20);
+      if (data != null && data.isNotEmpty) {
+        final existingIds = _orders.map((o) => o['_id'].toString()).toSet();
+        for (var item in data) {
+          if (!existingIds.contains(item['_id'].toString())) {
+            _orders.add(item);
+            existingIds.add(item['_id'].toString());
+          }
+        }
+        _currentPage = nextPage;
+        _hasMore = data.length >= 20;
+      } else {
+        _hasMore = false;
+      }
+    } catch (e) {
+      debugPrint('Error loading more customer orders: $e');
+    } finally {
+      _isLoadingMore = false;
       notifyListeners();
     }
   }

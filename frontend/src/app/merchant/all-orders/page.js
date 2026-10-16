@@ -11,6 +11,7 @@ export default function MerchantAllOrdersPage() {
   const { restaurant, roomId, globalLoading } = useMerchantContext();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState([]);
+  const [stats, setStats] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
   const loadData = async () => {
@@ -18,6 +19,7 @@ export default function MerchantAllOrdersPage() {
 
       const res = await orderAPI.getRestaurantOrders(roomId).catch(() => ({ data: [] }));
       setOrders(res.data || []);
+      if (res.stats) setStats(res.stats);
     } catch (err) {
       console.error('Orders Load Error:', err);
       showToast('Failed to load orders', 'error');
@@ -60,6 +62,7 @@ export default function MerchantAllOrdersPage() {
   return (
     <AllOrdersView
       orders={orders}
+      stats={stats}
       restaurant={restaurant}
       onUpdateStatus={handleUpdateStatus}
       onRowClick={(orderId) => setSelectedOrder(orders.find(o => o._id === orderId))}

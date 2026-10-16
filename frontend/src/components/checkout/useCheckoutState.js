@@ -71,6 +71,11 @@ const resolveStateCode = (address, stateName) => {
 
 const ONLINE_PAYMENT_METHODS = ['stripe_online'];
 
+const hasEmoji = (str) => Boolean(str && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(str));
+const NAME_REGEX = /^[a-zA-Z0-9\s\-'.@_+]+$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+
 /**
  * useCheckoutState — every piece of state, derived value, effect, and
  * handler the checkout flow needs. Extracted out of page.js so that file
@@ -650,10 +655,7 @@ export function useCheckoutState() {
     }
 
     // 2. Strict format validation
-    const nameRegex = /^[a-zA-Z\s\-'.]+$/;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!nameRegex.test(fullName.trim())) {
+    if (hasEmoji(fullName) || !NAME_REGEX.test(fullName.trim())) {
       showToast('Name contains restricted characters or emojis. Please use standard letters and numbers.', 'error');
       return;
     }
@@ -661,11 +663,11 @@ export function useCheckoutState() {
       showToast('Name must be between 2 and 50 characters.', 'error');
       return;
     }
-    if (!emailRegex.test(email.trim())) {
-      showToast('Please enter a valid email address.', 'error');
+    if (hasEmoji(email) || !EMAIL_REGEX.test(email.trim())) {
+      showToast('Emojis are not allowed in email addresses. Please enter a valid email.', 'error');
       return;
     }
-    if (!isValidPhoneNumber(phone)) {
+    if (hasEmoji(phone) || !isValidPhoneNumber(phone)) {
       showToast('Please enter a valid, complete phone number.', 'error');
       return;
     }
@@ -714,9 +716,9 @@ export function useCheckoutState() {
     }
   };
 
-  const isPhoneValid = phone ? isValidPhoneNumber(phone) : false;
-  const isFullNameValid = fullName ? /^[a-zA-Z\s\-'.]+$/.test(fullName) : false;
-  const isEmailValid = email ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) : false;
+  const isPhoneValid = phone ? (!hasEmoji(phone) && isValidPhoneNumber(phone)) : false;
+  const isFullNameValid = fullName ? (!hasEmoji(fullName) && NAME_REGEX.test(fullName.trim()) && fullName.trim().length >= 2 && fullName.trim().length <= 50) : false;
+  const isEmailValid = email ? (!hasEmoji(email) && EMAIL_REGEX.test(email.trim())) : false;
 
   const handleContinueToReview = async () => {
     // 1. Validate Delivery Info if orderType is delivery
@@ -724,7 +726,15 @@ export function useCheckoutState() {
       showToast('Please fill out all required fields marked with *', 'warning');
       return;
     }
-    if (!isPhoneValid) {
+    if (hasEmoji(fullName) || !isFullNameValid) {
+      showToast('Name contains restricted characters or emojis. Please use standard letters and numbers.', 'error');
+      return;
+    }
+    if (hasEmoji(email) || !isEmailValid) {
+      showToast('Emojis are not allowed in email addresses. Please enter a valid email.', 'error');
+      return;
+    }
+    if (hasEmoji(phone) || !isPhoneValid) {
       showToast('Please enter a valid phone number', 'warning');
       return;
     }
@@ -771,6 +781,11 @@ export function useCheckoutState() {
 
   const executeOrderCreation = async (paymentIntentId = null) => {
     try {
+      if (hasEmoji(fullName) || !isFullNameValid || hasEmoji(email) || !isEmailValid || hasEmoji(phone) || !isPhoneValid) {
+        showToast('Please enter valid contact details without emojis.', 'error');
+        return;
+      }
+
       let finalPaymentMethod = paymentMethod;
       let savedCardId = undefined;
 
@@ -845,15 +860,15 @@ export function useCheckoutState() {
       showToast('Delivery calculations not finalized. Please check address.', 'error');
       return;
     }
-    if (!isFullNameValid) {
+    if (hasEmoji(fullName) || !isFullNameValid) {
       showToast('Name contains restricted characters or emojis. Please use standard letters and numbers.', 'error');
       return;
     }
-    if (!isEmailValid) {
-      showToast('Please enter a valid email address.', 'error');
+    if (hasEmoji(email) || !isEmailValid) {
+      showToast('Emojis are not allowed in email addresses. Please enter a valid email.', 'error');
       return;
     }
-    if (!isPhoneValid) {
+    if (hasEmoji(phone) || !isPhoneValid) {
       showToast('Please enter a valid phone number.', 'error');
       return;
     }

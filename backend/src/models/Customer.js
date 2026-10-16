@@ -56,6 +56,8 @@ const customerSchema = new mongoose.Schema({
 // ensure unique customer ID within a restaurant
 customerSchema.index({ restaurantId: 1, customerId: 1 }, { unique: true });
 
+customerSchema.index({ restaurantId: 1, isDeleted: 1 });
+
 const Customer = mongoose.model('Customer', customerSchema);
 
 export default Customer;

@@ -113,6 +113,18 @@ export default function PaymentMethodSection({
             <button
               type="button"
               onClick={() => {
+                if (!isFullNameValid) {
+                  showToast('Please enter a valid full name without emojis.', 'error');
+                  return;
+                }
+                if (!isEmailValid) {
+                  showToast('Emojis are not allowed in email addresses.', 'error');
+                  return;
+                }
+                if (!isPhoneValid) {
+                  showToast('Please enter a valid phone number.', 'error');
+                  return;
+                }
                 onContinue();
               }}
               disabled={(orderType === 'delivery' && quoteError) || isPaymentMethodLockedByCoupon || !isPhoneValid || !isFullNameValid || !isEmailValid}

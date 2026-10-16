@@ -994,9 +994,19 @@ function MyProfileSubView({ user, updateUser }) {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    const hasEmoji = (str) => Boolean(str && /[\p{Extended_Pictographic}\p{Emoji_Presentation}]/u.test(str));
+    if (name && (hasEmoji(name) || !/^[a-zA-Z0-9\s\-'.@_+]+$/.test(name.trim()))) {
+      showToast('Name contains restricted characters or emojis. Please use standard letters and numbers only.', 'error');
+      return;
+    }
+    if (phone && (hasEmoji(phone) || !/^[0-9+\-\s()]+$/.test(phone))) {
+      showToast('Phone contains restricted characters. Please use numbers only.', 'error');
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await authAPI.updateProfile({ name, phone });
+      const res = await authAPI.updateProfile({ name: name.trim(), phone });
       if (updateUser && res?.data) updateUser(res.data);
       showToast('Profile updated successfully', 'success');
     } catch (err) {

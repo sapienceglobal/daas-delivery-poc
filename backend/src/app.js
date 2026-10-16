@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
+import compression from 'compression';
 import { errorHandler } from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
 import tenantDb from './middleware/tenantDb.js';
@@ -80,6 +81,9 @@ if (process.env.TRUST_PROXY) {
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
+
+// gzip responses > 1KB (big win for order/customer lists on mobile data)
+app.use(compression({ threshold: 1024 }));
 
 app.use(cors({
   origin: corsOrigin,
