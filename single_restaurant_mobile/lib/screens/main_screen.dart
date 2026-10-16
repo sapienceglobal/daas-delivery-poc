@@ -42,6 +42,12 @@ class _MainScreenState extends State<MainScreen> {
       OtaUpdateService().checkForUpdate(context, isManual: false);
 
       final authProv = context.read<AuthProvider>();
+      authProv.addListener(() {
+        if (mounted && authProv.isAuthenticated) {
+          context.read<LoyaltyProvider>().fetchHistory();
+          context.read<NotificationProvider>().fetchNotifications();
+        }
+      });
       if (authProv.isAuthenticated) {
         context.read<LoyaltyProvider>().fetchHistory();
         context.read<NotificationProvider>().fetchNotifications();

@@ -51,12 +51,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         context,
         MaterialPageRoute(builder: (_) => TrackOrderScreen(orderId: orderId)),
       );
-    } else if (type == 'promotion' || type == 'marketing') {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 2)),
-        (route) => false,
-      );
+    } else if (type == 'promotion' || type == 'marketing' || type == 'marketing_campaign') {
+      final cleanUrl = url.toLowerCase().trim();
+      if (cleanUrl == '/menu' || cleanUrl == 'menu') {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 1)),
+          (route) => false,
+        );
+      } else if (cleanUrl == '/orders' || cleanUrl == 'orders') {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 3)),
+          (route) => false,
+        );
+      } else if (cleanUrl.startsWith('/category/') || cleanUrl.startsWith('category/')) {
+        final catId = cleanUrl.replaceAll('/category/', '').replaceAll('category/', '');
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => MainScreen(initialIndex: 1, initialCategory: catId)),
+          (route) => false,
+        );
+      } else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainScreen(initialIndex: 2)),
+          (route) => false,
+        );
+      }
     } else if (type == 'order_update' || type == 'delivery_update' || type == 'order_cancelled') {
       Navigator.pushAndRemoveUntil(
         context,

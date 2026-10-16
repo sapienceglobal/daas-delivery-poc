@@ -41,6 +41,15 @@ class PushNotificationService {
   bool _initialized = false;
 
   Future<void> initialize(BuildContext context) async {
+    // Always sync token with backend whenever Dashboard loads or user returns
+    _fcm.getToken().then((token) {
+      if (token != null && context.mounted) {
+        _syncTokenWithBackend(context, token);
+      }
+    }).catchError((e) {
+      debugPrint("Error fetching FCM token: $e");
+    });
+
     if (_initialized) return;
     _initialized = true;
 

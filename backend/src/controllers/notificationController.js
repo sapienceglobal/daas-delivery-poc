@@ -124,46 +124,29 @@ export const createNotification = async (userId, title, body, type = 'system', a
         const channelIdName = isMerchantUser ? 'merchant_orders_channel_v3' : 'high_importance_channel';
 
         const message = {
-            // For data-only messages to trigger background execution in Flutter (for insistent looping ringtones),
-            // we omit the top-level 'notification' block for merchant new orders.
-            ...(!(isMerchantUser && isNewOrder) && {
-              notification: {
-                title,
-                body,
-                ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),
+          notification: {
+            title,
+            body,
+            ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),
+          },
+          android: {
+            priority: 'high',
+            notification: {
+              color: isMerchantUser ? '#6B111C' : '#006778',
+              ...(!isMerchantUser && { icon: 'ic_notification' }),
+              channelId: channelIdName,
+              sound: soundName,
+              ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),
+            }
+          },
+          apns: {
+            payload: {
+              aps: {
+                sound: soundName === 'default' ? 'default' : `${soundName}.wav`,
+                contentAvailable: true
               }
-            }),
-            ...(!(isMerchantUser && isNewOrder) ? {
-              android: {
-                priority: 'high',
-                notification: {
-                  color: '#006778',
-                  ...(!isMerchantUser && { icon: 'ic_notification' }), // Only apply for customer apps
-                  channelId: channelIdName,
-                  sound: soundName,
-                  ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),
-                }
-              },
-              apns: {
-                payload: {
-                  aps: {
-                    sound: soundName === 'default' ? 'default' : `${soundName}.wav`
-                  }
-                }
-              }
-            } : {
-              // For data-only messages, we MUST still specify high priority so Android doesn't delay it
-              android: {
-                priority: 'high'
-              },
-              apns: {
-                payload: {
-                  aps: {
-                    contentAvailable: true // Wakes up iOS in background
-                  }
-                }
-              }
-            }),
+            }
+          },
             data: {
               type,
               title, // Pass title in data for the background handler

@@ -1049,7 +1049,11 @@ export const createOrder = asyncHandler(async (req, response) => {
         const UserModel = req.getModel ? req.getModel('User') : req.app.get('tenantModels')[req.tenantId]?.User;
         if (UserModel) {
           const merchantUsers = await UserModel.find({
-            restaurantId: restaurant._id,
+            $or: [
+              { restaurantId: restaurant._id },
+              ...(restaurant.ownerId ? [{ _id: restaurant.ownerId }] : []),
+              { role: { $in: ['admin', 'merchant'] } }
+            ],
             role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] },
             fcmTokens: { $exists: true, $not: { $size: 0 } }
           });
