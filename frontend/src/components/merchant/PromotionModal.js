@@ -19,6 +19,7 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
     minCartValue: '',
     minOrdersRequired: '',
     allowedPaymentMethods: 'All',
+    startDate: '',
     endDate: '',
     maxUses: '',
     targetAudience: 'All Users',
@@ -43,6 +44,7 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
         minCartValue: editPromo.minCartValue || '',
         minOrdersRequired: editPromo.minOrdersRequired || '',
         allowedPaymentMethods: editPromo.allowedPaymentMethods?.[0] || 'All',
+        startDate: editPromo.startDate ? new Date(editPromo.startDate).toISOString().split('T')[0] : '',
         endDate: editPromo.endDate ? new Date(editPromo.endDate).toISOString().split('T')[0] : '',
         maxUses: editPromo.maxUses || '',
         firstOrderOnly: editPromo.firstOrderOnly || false
@@ -51,7 +53,7 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
       setFormData({
         code: '', name: '', description: '', promoType: defaultPromoType,
         type: 'percentage', value: '', minCartValue: '', minOrdersRequired: '',
-        allowedPaymentMethods: 'All', endDate: '', maxUses: '', targetAudience: 'All Users', targetGroup: 'Family', firstOrderOnly: false
+        allowedPaymentMethods: 'All', startDate: '', endDate: '', maxUses: '', targetAudience: 'All Users', targetGroup: 'Family', firstOrderOnly: false
       });
       setErrors({});
     }
@@ -91,7 +93,8 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
         minCartValue: formData.minCartValue ? Number(formData.minCartValue) : 0,
         minOrdersRequired: formData.minOrdersRequired ? Number(formData.minOrdersRequired) : 0,
         allowedPaymentMethods: formData.allowedPaymentMethods === 'All' ? ['All'] : [formData.allowedPaymentMethods],
-        endDate: new Date(formData.endDate).toISOString(),
+        startDate: formData.startDate ? new Date(formData.startDate + 'T00:00:00').toISOString() : new Date().toISOString(),
+        endDate: new Date(formData.endDate.includes('T') ? formData.endDate : formData.endDate + 'T23:59:59').toISOString(),
         maxUses: formData.maxUses ? Number(formData.maxUses) : null,
         targetGroup: formData.targetAudience === 'All Users' ? 'All Users' : formData.targetGroup
       };
@@ -227,18 +230,13 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[12px] font-bold text-[#374151] mb-1">Required Payment</label>
-                <select
-                  name="allowedPaymentMethods"
-                  value={formData.allowedPaymentMethods}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-lg text-[13px] text-[#1f2937] outline-none focus:border-[#8b0000]"
-                >
-                  <option value="All">All Methods</option>
-                  <option value="Credit Card">Credit Card</option>
-                  <option value="Apple Pay">Apple Pay</option>
-                  <option value="Cash on Delivery">Cash on Delivery</option>
-                </select>
+                <label className="block text-[12px] font-bold text-[#374151] mb-1">Start Date</label>
+                <PremiumDatePicker
+                  selected={formData.startDate ? new Date(formData.startDate + 'T00:00:00') : new Date()}
+                  onChange={(d) => setFormData(prev => ({ ...prev, startDate: d ? d.toISOString().split('T')[0] : '' }))}
+                  className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-lg text-[13px] text-[#1f2937] outline-none focus:border-[#8b0000] cursor-pointer"
+                  placeholderText="Start date (Today)"
+                />
               </div>
               <div>
                 <label className="block text-[12px] font-bold text-[#374151] mb-1">Expiry Date *</label>
@@ -255,6 +253,20 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
 
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <label className="block text-[12px] font-bold text-[#374151] mb-1">Required Payment</label>
+                <select
+                  name="allowedPaymentMethods"
+                  value={formData.allowedPaymentMethods}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-lg text-[13px] text-[#1f2937] outline-none focus:border-[#8b0000]"
+                >
+                  <option value="All">All Methods</option>
+                  <option value="Credit Card">Credit Card</option>
+                  <option value="Apple Pay">Apple Pay</option>
+                  <option value="Cash on Delivery">Cash on Delivery</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-[12px] font-bold text-[#374151] mb-1">Target Audience</label>
                 <select 
                   name="targetAudience" 
@@ -266,6 +278,7 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
                   <option value="Specific Group">Specific Group</option>
                 </select>
               </div>
+            </div>
               {formData.targetAudience === 'Specific Group' && (
                 <div>
                   <label className="block text-[12px] font-bold text-[#374151] mb-1">Select Group</label>

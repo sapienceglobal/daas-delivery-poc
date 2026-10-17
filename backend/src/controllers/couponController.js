@@ -144,6 +144,11 @@ export const createCoupon = asyncHandler(async (req, response) => {
     req.body.specificRestaurant = req.user.restaurantId;
   }
 
+  // Ensure newly created coupons activate immediately despite international timezone differences
+  if (!req.body.startDate || Math.abs(new Date(req.body.startDate).getTime() - Date.now()) <= 24 * 60 * 60 * 1000) {
+    req.body.startDate = new Date();
+  }
+
   // handle Target Group Logic
   const { targetGroup } = req.body;
   if (targetGroup && targetGroup !== 'All Users') {
@@ -194,6 +199,15 @@ export const updateCoupon = asyncHandler(async (req, response) => {
 
   if (req.user.role === 'merchant') {
     req.body.specificRestaurant = req.user.restaurantId;
+  }
+
+  if (req.body.startDate) {
+    if (Math.abs(new Date(req.body.startDate).getTime() - Date.now()) <= 24 * 60 * 60 * 1000) {
+      req.body.startDate = new Date();
+    }
+  } else if (existingCoupon.startDate && existingCoupon.startDate > new Date()) {
+    // If coupon was stuck with a future start date due to timezone discrepancy, bring it to now
+    req.body.startDate = new Date();
   }
 
   const coupon = await CouponModel.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });

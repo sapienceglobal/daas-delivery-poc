@@ -102,7 +102,9 @@ CouponSchema.methods.isValid = function (cartValue, userId, pastOrderCount = 0, 
   const now = new Date();
 
   if (!this.isActive) return { valid: false, reason: 'Coupon is inactive' };
-  if (now < this.startDate) return { valid: false, reason: 'Coupon is not yet active' };
+  // Allow a 24-hour grace window for start date to prevent timezone/clock discrepancies from blocking newly created coupons
+  const graceStartDate = new Date(this.startDate.getTime() - 24 * 60 * 60 * 1000);
+  if (now < graceStartDate) return { valid: false, reason: 'Coupon is not yet active' };
   if (now > this.endDate) return { valid: false, reason: 'Coupon has expired' };
   if (this.maxUses && this.usedCount >= this.maxUses) return { valid: false, reason: 'Coupon usage limit reached' };
   if (cartValue < this.minCartValue) return { valid: false, reason: `Minimum cart value of $${this.minCartValue} required` };
