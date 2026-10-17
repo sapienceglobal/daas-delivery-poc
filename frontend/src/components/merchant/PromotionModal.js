@@ -251,21 +251,22 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
               </div>
             </div>
 
+            <div>
+              <label className="block text-[12px] font-bold text-[#374151] mb-1">Required Payment</label>
+              <select
+                name="allowedPaymentMethods"
+                value={formData.allowedPaymentMethods}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-lg text-[13px] text-[#1f2937] outline-none focus:border-[#8b0000]"
+              >
+                <option value="All">All Methods</option>
+                <option value="Credit Card">Credit Card</option>
+                <option value="Apple Pay">Apple Pay</option>
+                <option value="Cash on Delivery">Cash on Delivery</option>
+              </select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[12px] font-bold text-[#374151] mb-1">Required Payment</label>
-                <select
-                  name="allowedPaymentMethods"
-                  value={formData.allowedPaymentMethods}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-lg text-[13px] text-[#1f2937] outline-none focus:border-[#8b0000]"
-                >
-                  <option value="All">All Methods</option>
-                  <option value="Credit Card">Credit Card</option>
-                  <option value="Apple Pay">Apple Pay</option>
-                  <option value="Cash on Delivery">Cash on Delivery</option>
-                </select>
-              </div>
               <div>
                 <label className="block text-[12px] font-bold text-[#374151] mb-1">Target Audience</label>
                 <select 
@@ -278,7 +279,6 @@ export default function PromotionModal({ isOpen, onClose, onSuccess, editPromo =
                   <option value="Specific Group">Specific Group</option>
                 </select>
               </div>
-            </div>
               {formData.targetAudience === 'Specific Group' && (
                 <div>
                   <label className="block text-[12px] font-bold text-[#374151] mb-1">Select Group</label>
