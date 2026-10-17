@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:single_restaurant_mobile/services/api_service.dart';
 import 'package:single_restaurant_mobile/services/socket_service.dart';
+import 'package:single_restaurant_mobile/services/push_notification_service.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -65,6 +65,7 @@ class AuthService {
           await prefs.setString(_tokenKey, token);
           ApiService.setAuthToken(token);
           SocketService().reconnect();
+          PushNotificationService().syncTokenWithBackend();
         }
         return null; // Null return karne ka matlab hai Success
       } 
@@ -113,6 +114,7 @@ class AuthService {
           await prefs.setString(_tokenKey, jwtToken);
           ApiService.setAuthToken(jwtToken);
           SocketService().reconnect();
+          PushNotificationService().syncTokenWithBackend();
         }
         return null;
       }
@@ -150,13 +152,10 @@ class AuthService {
         final token = data['token'];
         if (token != null) {
           final prefs = await SharedPreferences.getInstance();
-          if (rememberMe) {
-            await prefs.setString(_tokenKey, token);
-          } else {
-            await prefs.remove(_tokenKey);
-          }
+          await prefs.setString(_tokenKey, token);
           ApiService.setAuthToken(token);
           SocketService().reconnect();
+          PushNotificationService().syncTokenWithBackend();
           return null; // success
         }
       }

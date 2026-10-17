@@ -9,6 +9,7 @@ import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/notifications_screen.dart';
 import 'package:single_restaurant_mobile/screens/track_order_screen.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
+import 'package:single_restaurant_mobile/services/api_service.dart';
 import 'package:single_restaurant_mobile/services/navigation_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
@@ -131,19 +132,37 @@ class PushNotificationService {
   Future<void> syncTokenWithBackend([String? token]) async {
     try {
       final tokenToSync = token ?? _cachedToken ?? await _fcm.getToken();
-      if (tokenToSync == null || tokenToSync.isEmpty) return;
+      if (tokenToSync == null || tokenToSync.isEmpty) {
+        debugPrint('[FCM] Token is empty, skipping sync');
+        return;
+      }
       _cachedToken = tokenToSync;
 
       // Persist in local storage
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('fcm_token', tokenToSync);
 
-      // Check if user is authenticated
-      final authService = AuthService();
-      final hasToken = await authService.loadToken();
-      if (hasToken) {
-        final success = await authService.saveFcmToken(tokenToSync);
-        debugPrint('[FCM] Token synced to backend (success: $success)');
+      // If auth token is not in memory, try loading from SharedPreferences
+      if (ApiService.authToken == null || ApiService.authToken!.isEmpty) {
+        final authService = AuthService();
+        await authService.loadToken();
+      }
+
+      if (ApiService.authToken != null && ApiService.authToken!.isNotEmpty) {
+        final response = await http.post(
+          Uri.parse('${ApiService.baseUrl}/api/auth/me/fcm-token'),
+          headers: ApiService.buildHeaders(),
+          body: jsonEncode({'fcmToken': tokenToSync}),
+        ).timeout(const Duration(seconds: 10));
+
+        debugPrint('[FCM] Token sync response: ${response.statusCode} - ${response.body}');
+        if (response.statusCode == 200) {
+          debugPrint('✅ [FCM] Customer FCM Token saved to backend successfully!');
+        } else {
+          debugPrint('❌ [FCM] Customer FCM Token save failed: ${response.statusCode} - ${response.body}');
+        }
+      } else {
+        debugPrint('⚠️ [FCM] User not authenticated yet; FCM token cached locally and will sync upon login.');
       }
     } catch (e) {
       debugPrint('[FCM] Error in syncTokenWithBackend: $e');

@@ -13,6 +13,7 @@ import 'package:single_restaurant_mobile/screens/main_screen.dart';
 import 'package:single_restaurant_mobile/screens/otp_verification_screen.dart';
 import 'package:single_restaurant_mobile/screens/referral_prompt_screen.dart';
 import 'package:single_restaurant_mobile/services/auth_service.dart';
+import 'package:single_restaurant_mobile/services/push_notification_service.dart';
 import 'package:single_restaurant_mobile/theme/app_responsive.dart';
 import 'package:single_restaurant_mobile/widgets/auth/guest_login_card.dart';
 import 'package:single_restaurant_mobile/widgets/auth/login_background.dart';
@@ -59,6 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
     context.read<CartProvider>().loadCart();
     context.read<LoyaltyProvider>().fetchHistory();
     context.read<NotificationProvider>().fetchNotifications();
+    PushNotificationService().syncTokenWithBackend();
 
     final user = authProv.user;
     final target = (user?.referralOnboarding == 'pending')
