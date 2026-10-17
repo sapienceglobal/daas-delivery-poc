@@ -126,6 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 np = null;
               }
               final bool hasUnread = np?.hasUnread ?? false;
+              final int unreadCount = np?.unreadCount ?? 0;
               return Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -137,24 +138,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           builder: (_) => const NotificationsScreen()),
                     ),
                   ),
-                  if (hasUnread)
+                  if (hasUnread && unreadCount > 0)
                     Positioned(
-                      right: 1,
-                      top: 1,
+                      right: -2,
+                      top: -2,
                       child: Container(
-                        width: 10,
-                        height: 10,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: unreadCount > 9 ? 5 : 4,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFE53935),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2.0),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white, width: 1.6),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFE53935).withValues(alpha: 0.55),
+                              color: const Color(0xFFE53935).withValues(alpha: 0.45),
                               blurRadius: 4,
                               spreadRadius: 0.5,
                             ),
                           ],
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Center(
+                          child: Text(
+                            unreadCount > 99 ? '99+' : '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              height: 1,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
                         ),
                       ),
                     ),

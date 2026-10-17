@@ -1,9 +1,11 @@
-﻿'use client';
+'use client';
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, ChevronRight, FileText, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
+import { orderAPI } from '@/lib/api';
+import { trackPurchase } from '@/lib/analytics';
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
@@ -12,7 +14,16 @@ function PaymentSuccessContent() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (orderId) {
+      orderAPI.getById(orderId)
+        .then(res => {
+          if (res?.data) {
+            trackPurchase(res.data);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [orderId]);
 
   if (!mounted) return null;
 

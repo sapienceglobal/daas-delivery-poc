@@ -19,6 +19,7 @@ import 'package:single_restaurant_mobile/widgets/checkout/checkout_order_summary
 import 'package:single_restaurant_mobile/widgets/checkout/checkout_payment_methods.dart';
 import 'package:single_restaurant_mobile/widgets/checkout/checkout_tipping_section.dart';
 import 'package:single_restaurant_mobile/widgets/guest_login_prompt.dart';
+import 'package:single_restaurant_mobile/services/analytics_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -45,6 +46,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<LoyaltyProvider>().fetchHistory();
+        final cart = context.read<CartProvider>();
+        final checkout = context.read<CheckoutProvider>();
+        final restaurant = context.read<RestaurantProvider>().restaurant;
+        AnalyticsService().logBeginCheckout(
+          items: cart.items,
+          value: checkout.getTotal(cart, restaurant),
+        );
       }
     });
   }
@@ -272,9 +280,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
 
+    final itemsSnapshot = List<dynamic>.from(cart.items);
+    final totalSnapshot = checkout.getTotal(cart, restaurant);
+
     try {
       final orderId = await checkout.handlePlaceOrder(context, cart, auth, restaurant);
       if (orderId != null && mounted) {
+        AnalyticsService().logPurchase(
+          orderId: orderId,
+          value: totalSnapshot,
+          items: itemsSnapshot,
+        );
         context.read<LoyaltyProvider>().fetchHistory(refresh: true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Order placed successfully!')),

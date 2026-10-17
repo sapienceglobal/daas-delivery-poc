@@ -25,15 +25,24 @@ class NotificationModel {
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    DateTime parsedDate;
+    try {
+      parsedDate = json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'].toString())
+          : DateTime.now();
+    } catch (_) {
+      parsedDate = DateTime.now();
+    }
+
     return NotificationModel(
-      id: json['_id'] ?? '',
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
       title: json['title'] ?? '',
       body: json['body'] ?? '',
       type: json['type'] ?? 'system',
       isRead: json['isRead'] ?? false,
       image: json['image'],
       actionUrl: json['actionUrl'],
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: parsedDate,
     );
   }
 }

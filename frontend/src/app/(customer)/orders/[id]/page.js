@@ -8,6 +8,7 @@ import { orderAPI } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
 import { showToast, GlassCard, Badge, Button } from '@/components/ui';
+import { trackPurchase } from '@/lib/analytics';
 import Loading from '@/app/loading';
 
 // modular components
@@ -66,6 +67,13 @@ export default function OrderDetailPage() {
     try {
       const data = await orderAPI.getById(id, token);
       setOrder(data.data);
+      if (data?.data) {
+        try {
+          trackPurchase(data.data);
+        } catch (trackErr) {
+          console.warn('Failed to track purchase:', trackErr);
+        }
+      }
     } catch (err) {
       showToast('Failed to load order detail', 'error');
     } finally {

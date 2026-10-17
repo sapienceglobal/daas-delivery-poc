@@ -15,6 +15,7 @@ import 'package:single_restaurant_mobile/widgets/track_order/track_order_header.
 import 'package:single_restaurant_mobile/widgets/track_order/track_order_map_view.dart';
 import 'package:single_restaurant_mobile/widgets/track_order/track_order_progress_tracker.dart';
 import 'package:single_restaurant_mobile/widgets/track_order/track_order_terminal_notice.dart';
+import 'package:single_restaurant_mobile/services/analytics_service.dart';
 
 class TrackOrderScreen extends StatefulWidget {
   final String orderId;
@@ -85,6 +86,13 @@ class _TrackOrderScreenState extends State<TrackOrderScreen> {
         final order = provider.getTrackedOrder(widget.orderId);
         if (order != null) {
           _error = null;
+          if (order['status'] != 'cancelled' && order['status'] != 'failed') {
+            AnalyticsService().logPurchase(
+              orderId: widget.orderId,
+              value: (order['total'] as num?)?.toDouble() ?? 0.0,
+              items: (order['items'] as List<dynamic>?) ?? [],
+            );
+          }
         } else if (!isBackground) {
           _error = 'Failed to load order details';
         }

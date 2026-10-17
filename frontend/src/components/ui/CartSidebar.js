@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Button from './Button';
 import { isRestaurantOpenNow, isWithin15MinsOfClosing } from '@/lib/formatters';
+import { trackBeginCheckout } from '@/lib/analytics';
 
 const getDishImage = (itemName = '') => {
   const name = itemName.toLowerCase();
@@ -79,6 +80,11 @@ export default function CartSidebar() {
   };
 
   const handleCheckout = () => {
+    try {
+      trackBeginCheckout(items, subtotal);
+    } catch (trackErr) {
+      console.warn('Failed to track begin_checkout:', trackErr);
+    }
     closeCart();
     router.push('/checkout');
   };

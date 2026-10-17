@@ -130,24 +130,44 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       },
                       color: AppColors.textDark,
                     ),
-                    if (notificationProvider.hasUnread)
+                    if (notificationProvider.hasUnread && notificationProvider.unreadCount > 0)
                       Positioned(
-                        right: 8,
-                        top: 10,
+                        right: 4,
+                        top: 4,
                         child: Container(
-                          width: 10,
-                          height: 10,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: notificationProvider.unreadCount > 9 ? 5 : 4,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFE53935),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2.0),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white, width: 1.6),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFE53935).withValues(alpha: 0.55),
+                                color: const Color(0xFFE53935).withValues(alpha: 0.45),
                                 blurRadius: 4,
                                 spreadRadius: 0.5,
                               ),
                             ],
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          child: Center(
+                            child: Text(
+                              notificationProvider.unreadCount > 99
+                                  ? '99+'
+                                  : '${notificationProvider.unreadCount}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                height: 1,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
                           ),
                         ),
                       )

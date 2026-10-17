@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { authAPI, restaurantAPI } from '@/lib/api';
+import { trackAddToCart } from '@/lib/analytics';
 
 const CartContext = createContext(null);
 
@@ -212,6 +213,12 @@ export function CartProvider({ children }) {
 
     if (restaurantData && !restaurant) {
       setRestaurant(restaurantData);
+    }
+
+    try {
+      trackAddToCart(item);
+    } catch (trackErr) {
+      console.warn('Failed to track add_to_cart:', trackErr);
     }
 
     setItems(prev => {

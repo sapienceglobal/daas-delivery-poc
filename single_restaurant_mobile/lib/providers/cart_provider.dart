@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/services/cart_service.dart';
+import 'package:single_restaurant_mobile/services/analytics_service.dart';
 
 class CartProvider with ChangeNotifier, WidgetsBindingObserver {
   final CartService _cartService = CartService();
@@ -149,6 +150,7 @@ class CartProvider with ChangeNotifier, WidgetsBindingObserver {
     });
 
     final addedQty = (item['quantity'] ?? item['qty'] ?? 1) as int;
+    AnalyticsService().logAddToCart(item: item, quantity: addedQty);
 
     if (existingIdx > -1) {
       final existingItem = Map<String, dynamic>.from(_items[existingIdx]);

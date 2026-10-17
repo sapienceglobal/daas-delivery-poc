@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { orderAPI, couponAPI, restaurantAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 import { isValidPhoneNumber } from 'react-phone-number-input';
+import { trackBeginCheckout, trackPurchase } from '@/lib/analytics';
 
 const US_STATE_CODES = {
   Alabama: 'AL',
@@ -107,6 +108,16 @@ export function useCheckoutState() {
       setRestaurant(cachedRestaurant);
     }
   }, [cachedRestaurant]);
+
+  useEffect(() => {
+    if (items && items.length > 0 && subtotal > 0) {
+      try {
+        trackBeginCheckout(items, subtotal);
+      } catch (err) {
+        console.warn('Failed to track begin_checkout on checkout load:', err);
+      }
+    }
+  }, [items?.length, subtotal]);
 
   useEffect(() => {
     if (cachedRestaurant?._id) {
@@ -806,6 +817,13 @@ export function useCheckoutState() {
       };
 
       const data = await orderAPI.create(orderData);
+      if (data?.data) {
+        try {
+          trackPurchase(data.data);
+        } catch (trackErr) {
+          console.warn('Failed to track purchase:', trackErr);
+        }
+      }
       clearCart();
 
       const trackingToken = data.data?.trackingToken;
