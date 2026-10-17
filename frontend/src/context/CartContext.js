@@ -286,6 +286,16 @@ export function CartProvider({ children }) {
     }]);
   }, []);
 
+  const removeItem = useCallback((index) => {
+    setItems(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (updated.length === 0 && process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE !== 'true') {
+        setRestaurant(null);
+      }
+      return updated;
+    });
+  }, []);
+
   const updateQuantity = useCallback((index, newQuantity) => {
     if (newQuantity < 1) {
       removeItem(index);
@@ -321,16 +331,6 @@ export function CartProvider({ children }) {
       return updated;
     });
   }, [removeItem]);
-
-  const removeItem = useCallback((index) => {
-    setItems(prev => {
-      const updated = prev.filter((_, i) => i !== index);
-      if (updated.length === 0 && process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE !== 'true') {
-        setRestaurant(null);
-      }
-      return updated;
-    });
-  }, []);
 
   const clearCart = useCallback(() => {
     setItems([]);
