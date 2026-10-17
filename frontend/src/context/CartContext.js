@@ -293,6 +293,21 @@ export function CartProvider({ children }) {
     }
     setItems(prev => {
       if (!prev[index]) return prev;
+      const currentQty = prev[index].quantity || prev[index].qty || 1;
+
+      // When quantity is increased, report add_to_cart for the added items
+      if (newQuantity > currentQty) {
+        try {
+          trackAddToCart({
+            ...prev[index],
+            quantity: newQuantity - currentQty,
+            qty: newQuantity - currentQty,
+          });
+        } catch (trackErr) {
+          console.warn('Failed to track add_to_cart on quantity increase:', trackErr);
+        }
+      }
+
       const updated = [...prev];
       const basePrice = updated[index].selectedSize?.price || updated[index].price;
       const addOnTotal = (updated[index].addOns || []).reduce((s, a) => s + (a.price || 0), 0);
@@ -305,7 +320,7 @@ export function CartProvider({ children }) {
       };
       return updated;
     });
-  }, []);
+  }, [removeItem]);
 
   const removeItem = useCallback((index) => {
     setItems(prev => {

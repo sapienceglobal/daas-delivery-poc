@@ -200,6 +200,12 @@ class CartProvider with ChangeNotifier, WidgetsBindingObserver {
       return;
     }
 
+    final currentQty = (_items[index]['quantity'] ?? _items[index]['qty'] ?? 1) as int;
+    if (newQuantity > currentQty) {
+      final addedQty = newQuantity - currentQty;
+      AnalyticsService().logAddToCart(item: _items[index], quantity: addedQty);
+    }
+
     final item = Map<String, dynamic>.from(_items[index]);
     item['quantity'] = newQuantity;
     item['qty'] = newQuantity;
