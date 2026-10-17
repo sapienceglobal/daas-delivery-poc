@@ -121,13 +121,36 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
   };
 
   const pushAndroid = {
+    priority: 'high',
     notification: {
       color: '#6B111C',
       icon: 'ic_notification',
-      channelId: 'high_importance_channel',
+      channelId: 'customer_alerts_channel_v2',
       sound: 'default',
+      priority: 'high',
+      defaultSound: true,
+      defaultVibrateTimings: true,
+      tag: `campaign_${campaign._id}`,
       ...(resolvedImageUrl && { imageUrl: resolvedImageUrl }),
     }
+  };
+
+  const pushApns = {
+    payload: {
+      aps: {
+        alert: {
+          title,
+          body: message,
+        },
+        sound: 'default',
+        badge: 1,
+      }
+    },
+    ...(resolvedImageUrl && {
+      fcmOptions: {
+        imageUrl: resolvedImageUrl
+      }
+    })
   };
 
   const pushData = {
@@ -143,29 +166,92 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
   let totalFailure = 0;
 
   try {
-    // ── Strategy A: "all_customers" -> Firebase Topic Broadcast (reaches 100% of customer APK installs) ──
+    // ── Strategy A: "all_customers" -> Dual Broadcast (Topic + Direct Device Token Multicast) ──
     if (targetAudience === 'all_customers') {
-      // 1. Broadcast to Firebase topic 'all_customers'
+      // 1. Broadcast to Firebase topic 'all_customers' (reaches all guest installs & subscribers)
       const topicMessage = {
         topic: 'all_customers',
         notification: pushNotification,
         android: pushAndroid,
+        apns: pushApns,
         data: pushData
       };
 
       try {
-        await messaging.send(topicMessage);
+        const topicRes = await messaging.send(topicMessage);
+        console.log('[Marketing] Successfully broadcasted to topic all_customers:', topicRes);
       } catch (topicErr) {
         console.error('[Marketing] Topic broadcast error:', topicErr);
       }
 
-      // 2. Fetch all registered customers to create in-app inbox notifications
+      // 2. Fetch all registered customers to create in-app inbox notifications AND send direct push
       const registeredCustomers = await UserModel.find({
         role: 'customer',
         'notificationPreferences.marketing': { $ne: false }
       }).select('_id fcmTokens');
 
-      totalSuccess = registeredCustomers.length || 1;
+      // Collect all tokens from registered customer accounts
+      const allTokens = new Set();
+      const deadTokens = [];
+      registeredCustomers.forEach(cust => {
+        if (Array.isArray(cust.fcmTokens)) {
+          cust.fcmTokens.forEach(t => {
+            if (t && typeof t === 'string' && t.trim().length > 10) {
+              allTokens.add(t.trim());
+            }
+          });
+        }
+      });
+
+      const tokensArray = Array.from(allTokens);
+      console.log(`[Marketing] Dual-dispatching directly to ${tokensArray.length} registered customer tokens`);
+
+      if (tokensArray.length > 0) {
+        const tokenChunks = chunkArray(tokensArray, 500);
+        for (const chunk of tokenChunks) {
+          try {
+            const fbResponse = await messaging.sendEachForMulticast({
+              tokens: chunk,
+              notification: pushNotification,
+              android: pushAndroid,
+              apns: pushApns,
+              data: pushData
+            });
+
+            totalSuccess += fbResponse.successCount;
+            totalFailure += fbResponse.failureCount;
+
+            fbResponse.responses.forEach((resp, idx) => {
+              if (!resp.success) {
+                const errCode = resp.error?.code;
+                if (
+                  errCode === 'messaging/registration-token-not-registered' ||
+                  errCode === 'messaging/invalid-registration-token'
+                ) {
+                  deadTokens.push(chunk[idx]);
+                }
+              }
+            });
+          } catch (multicastErr) {
+            console.error('[Marketing] Direct customer multicast error:', multicastErr);
+          }
+        }
+      }
+
+      // Automated dead token cleanup
+      if (deadTokens.length > 0) {
+        try {
+          await UserModel.updateMany(
+            { fcmTokens: { $in: deadTokens } },
+            { $pull: { fcmTokens: { $in: deadTokens } } }
+          );
+          console.log(`[Marketing] Automatically pruned ${deadTokens.length} dead FCM tokens.`);
+        } catch (cleanErr) {
+          console.warn('[Marketing] Error during dead token cleanup:', cleanErr.message);
+        }
+      }
+
+      totalSuccess = Math.max(totalSuccess, registeredCustomers.length || 1);
 
       // 3. Create In-App Notification records so customers see it in their Notifications tab
       if (NotificationModel && registeredCustomers.length > 0) {
@@ -191,12 +277,12 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
       // 4. Update Campaign Record
       campaign.status = 'sent';
       campaign.successCount = totalSuccess;
-      campaign.failureCount = 0;
+      campaign.failureCount = totalFailure;
       campaign.sentAt = new Date();
       await campaign.save();
 
       return res.success(response, {
-        message: 'Campaign broadcasted successfully to all customer app installs (FCM Topic) and notification inboxes.',
+        message: 'Campaign broadcasted successfully to all customer app installs (FCM Topic + Direct Tokens) and notification inboxes.',
         data: campaign
       });
     }
@@ -250,6 +336,7 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
         tokens: chunk,
         notification: pushNotification,
         android: pushAndroid,
+        apns: pushApns,
         data: pushData
       });
 

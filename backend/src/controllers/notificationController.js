@@ -127,7 +127,7 @@ export const createNotification = async (userId, title, body, type = 'system', a
 
         const isNewOrder = type === 'new_order';
         const soundName = (isMerchantUser && isNewOrder) ? 'new_order_sound' : 'default';
-        const channelIdName = isMerchantUser ? 'merchant_orders_channel_v3' : 'high_importance_channel';
+        const channelIdName = isMerchantUser ? 'merchant_orders_channel_v3' : 'customer_alerts_channel_v2';
 
         // For merchant new_order, omit the top-level 'notification' block to avoid duplicate alerts.
         // Android OS renders the top-level 'notification' block natively, while the merchant mobile app's
@@ -151,6 +151,9 @@ export const createNotification = async (userId, title, body, type = 'system', a
                 ...(!isMerchantUser && { icon: 'ic_notification' }),
                 channelId: channelIdName,
                 sound: soundName,
+                priority: 'high',
+                defaultSound: soundName === 'default',
+                defaultVibrateTimings: true,
                 ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),
               }
             })

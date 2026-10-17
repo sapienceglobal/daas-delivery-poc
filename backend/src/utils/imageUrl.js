@@ -37,6 +37,9 @@ export const normalizeImageUrl = (url) => {
   if (url.startsWith('/uploads/')) {
     return `${liveApi}${url}`;
   }
+  if (url.startsWith('uploads/')) {
+    return `${liveApi}/${url}`;
+  }
   if (url.includes('127.0.0.1:') || url.includes('localhost:')) {
     return url.replace(/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?/, liveApi);
   }

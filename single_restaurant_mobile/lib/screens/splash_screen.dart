@@ -12,6 +12,7 @@ import 'package:single_restaurant_mobile/widgets/welcome/welcome_action_button.d
 import 'package:single_restaurant_mobile/widgets/welcome/welcome_card_clipper.dart';
 import 'package:single_restaurant_mobile/widgets/welcome/welcome_food_header.dart';
 import 'package:single_restaurant_mobile/widgets/welcome/welcome_icons.dart';
+import 'package:single_restaurant_mobile/services/push_notification_service.dart';
 
 class SplashScreen extends StatefulWidget {
   final bool isLoggedIn;
@@ -26,6 +27,18 @@ class _SplashScreenState extends State<SplashScreen> {
   bool _isExploreLoading = false;
   bool _isOrderLoading = false;
   bool _isReserveLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        PushNotificationService().initialize(context);
+      } catch (e) {
+        debugPrint('PushNotification init on splash error: $e');
+      }
+    });
+  }
 
   bool get _isAnyLoading =>
       _isExploreLoading || _isOrderLoading || _isReserveLoading;

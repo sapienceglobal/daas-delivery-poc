@@ -24,6 +24,7 @@ const args = process.argv.slice(2).reduce((acc, arg) => {
 
 const notifType = args.type || 'new_order'; // 'new_order', 'reservation', 'catering', 'promo'
 const targetEmail = args.email || 'test@lassilounge.com';
+const targetTopic = args.topic; // e.g. 'all_customers'
 let explicitToken = args.token;
 
 if (args.help || args.h) {
@@ -41,12 +42,12 @@ Options:
 
   --email=EMAIL      Target user email in MongoDB (Default: test@lassilounge.com)
   --token=FCM_TOKEN  Explicit FCM device token (Overrides email lookup)
+  --topic=TOPIC      FCM topic name (e.g. all_customers) to test topic broadcast
 
 Examples:
   node scripts/test_push.mjs --type=new_order --email=test@lassilounge.com
-  node scripts/test_push.mjs --type=reservation
-  node scripts/test_push.mjs --type=catering
-  node scripts/test_push.mjs --token=YOUR_FCM_TOKEN --type=new_order
+  node scripts/test_push.mjs --type=promo --topic=all_customers
+  node scripts/test_push.mjs --type=promo --email=test@lassilounge.com
   `);
   process.exit(0);
 }
@@ -69,7 +70,9 @@ async function main() {
 
   let tokens = [];
 
-  if (explicitToken && typeof explicitToken === 'string') {
+  if (targetTopic && typeof targetTopic === 'string') {
+    console.log(`Targeting Topic   : ${targetTopic}`);
+  } else if (explicitToken && typeof explicitToken === 'string') {
     tokens = [explicitToken];
     console.log(`Targeting Token   : ${explicitToken.substring(0, 20)}...`);
   } else {
@@ -81,18 +84,31 @@ async function main() {
     console.log('Connecting to MongoDB to retrieve device FCM token...');
     await mongoose.connect(mongoUri);
 
+    const isCustomerTest = notifType === 'promo';
+    const appName = isCustomerTest ? 'Customer APK (single_restaurant_mobile)' : 'Admin/Merchant APK';
+    const roleFilter = isCustomerTest ? { role: 'customer' } : { role: { $in: ['admin', 'merchant'] } };
+
     const user = await mongoose.connection.collection('users').findOne({ email: targetEmail.toLowerCase() });
+
     if (!user) {
       console.error(`❌ User not found with email: ${targetEmail}`);
-      console.log('Available merchant users:');
-      const merchants = await mongoose.connection.collection('users').find({ role: { $in: ['admin', 'merchant'] } }).project({ email: 1, role: 1, 'fcmTokens.length': 1 }).toArray();
-      console.table(merchants.map(m => ({ email: m.email, role: m.role, tokens: m.fcmTokens?.length || 0 })));
+      console.log(`Available ${isCustomerTest ? 'customer' : 'merchant'} users:`);
+      const availableUsers = await mongoose.connection.collection('users').find(roleFilter).project({ email: 1, role: 1, fcmTokens: 1 }).limit(10).toArray();
+      console.table(availableUsers.map(m => ({ email: m.email, role: m.role, tokens: Array.isArray(m.fcmTokens) ? m.fcmTokens.length : 0 })));
       process.exit(1);
     }
 
     if (!user.fcmTokens || user.fcmTokens.length === 0) {
       console.error(`❌ User ${targetEmail} does not have any registered FCM tokens in MongoDB.`);
-      console.log('👉 Please open the Admin APK on your test phone and log in with this account so it registers a token.');
+      console.log(`👉 Please open the ${appName} on your test phone and log in with ${targetEmail} so it registers its FCM token.`);
+      console.log(`\nAvailable registered users with active tokens in database:`);
+      const usersWithTokens = await mongoose.connection.collection('users').find({
+        ...roleFilter,
+        'fcmTokens.0': { $exists: true }
+      }).project({ email: 1, role: 1, fcmTokens: 1 }).limit(10).toArray();
+      console.table(usersWithTokens.map(m => ({ email: m.email, role: m.role, tokens: Array.isArray(m.fcmTokens) ? m.fcmTokens.length : 0 })));
+      console.log(`💡 Tip: You can also test topic broadcast to ALL customer app installs without an email:`);
+      console.log(`   node scripts/test_push.mjs --type=promo --topic=all_customers\n`);
       process.exit(1);
     }
 
@@ -199,11 +215,26 @@ async function main() {
       android: {
         priority: 'high',
         notification: {
-          color: '#006778',
+          color: '#6B111C',
           icon: 'ic_notification',
-          channelId: 'high_importance_channel',
+          channelId: 'customer_alerts_channel_v2',
           sound: 'default',
+          priority: 'high',
+          defaultSound: true,
+          defaultVibrateTimings: true,
           imageUrl: notifImage
+        }
+      },
+      apns: {
+        payload: {
+          aps: {
+            alert: {
+              title: 'Weekend Special: 20% OFF! 🥭 [TEST]',
+              body: 'Get 20% off on all Mango & Special Lassies this weekend. Tap to order!',
+            },
+            sound: 'default',
+            badge: 1
+          }
         }
       },
       data: {
@@ -215,6 +246,24 @@ async function main() {
       },
       tokens
     };
+  }
+
+  if (targetTopic) {
+    console.log(`\n🚀 Dispatching broadcast to topic "${targetTopic}" via Firebase Cloud Messaging...`);
+    const topicMessage = {
+      topic: targetTopic,
+      notification: messagePayload.notification,
+      android: messagePayload.android,
+      apns: messagePayload.apns,
+      data: messagePayload.data
+    };
+    const response = await messaging.send(topicMessage);
+    console.log(`🎉 Broadcast delivered to topic "${targetTopic}" successfully! Message ID: ${response}`);
+    console.log('Check your connected phone:');
+    console.log(` • Alert banner will show with single chime sound`);
+    console.log(` • Title: ${messagePayload.notification?.title}`);
+    console.log(` • Tapping opens the app directly`);
+    process.exit(0);
   }
 
   console.log('\n🚀 Dispatching push notification via Firebase Cloud Messaging...');

@@ -28,10 +28,12 @@ class PushNotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
-    'high_importance_channel',
+    'customer_alerts_channel_v2',
     'Order & Offer Updates',
     description: 'Rich notifications for order status, delivery updates and offers.',
     importance: Importance.max,
+    playSound: true,
+    enableVibration: true,
   );
 
   bool _initialized = false;
@@ -39,24 +41,27 @@ class PushNotificationService {
 
   String? get cachedToken => _cachedToken;
 
+  /// Static entry-point for background messages or external triggers
+  static Future<void> showRichNotificationFromRemoteMessage(RemoteMessage message) async {
+    await _instance._showRichNotification(message);
+  }
+
   Future<void> initialize(BuildContext context) async {
     if (_initialized) return;
     _initialized = true;
 
-    NotificationSettings settings = await _fcm.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
-
-    if (settings.authorizationStatus != AuthorizationStatus.authorized &&
-        settings.authorizationStatus != AuthorizationStatus.provisional) {
-      debugPrint('[FCM] User declined or has not accepted push notifications permission.');
-      return;
+    try {
+      await _fcm.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
+    } catch (e) {
+      debugPrint('[FCM] requestPermission error: $e');
     }
 
-    const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@drawable/ic_notification_lassi');
+    const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@drawable/ic_notification');
     const DarwinInitializationSettings iosInit = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -70,9 +75,12 @@ class PushNotificationService {
       onDidReceiveBackgroundNotificationResponse: _notificationTapBackground,
     );
 
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(_channel);
+    final androidImplementation = _localNotifications
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (androidImplementation != null) {
+      await androidImplementation.requestNotificationsPermission();
+      await androidImplementation.createNotificationChannel(_channel);
+    }
 
     // ── 1. Subscribe every install (guest or user) to FCM broadcast topics ──
     try {
@@ -102,9 +110,10 @@ class PushNotificationService {
     // ── 3. Foreground Notification Listener ──
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       _showRichNotification(message);
-      if (context.mounted) {
+      final navContext = NavigationService.navigatorKey.currentContext ?? context;
+      if (navContext.mounted) {
         try {
-          Provider.of<NotificationProvider>(context, listen: false).fetchNotifications();
+          Provider.of<NotificationProvider>(navContext, listen: false).fetchNotifications();
         } catch (_) {}
       }
     });
@@ -188,12 +197,15 @@ class PushNotificationService {
           _channel.id,
           _channel.name,
           channelDescription: _channel.description,
-          icon: '@drawable/ic_notification_lassi',
+          icon: '@drawable/ic_notification',
           largeIcon: largeIconBitmap,
           color: const Color(0xFF6B111C),
           styleInformation: styleInformation,
           importance: Importance.max,
           priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+          channelShowBadge: true,
           groupKey: data['type'] ?? 'lassi_lounge_marketing',
         ),
         iOS: const DarwinNotificationDetails(

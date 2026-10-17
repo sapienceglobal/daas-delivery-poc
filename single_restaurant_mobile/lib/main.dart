@@ -20,6 +20,7 @@ import 'package:single_restaurant_mobile/services/navigation_service.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:single_restaurant_mobile/services/push_notification_service.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -28,6 +29,13 @@ import 'package:timezone/timezone.dart' as tz;
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   debugPrint("Handling a background message: ${message.messageId}");
+  if (message.notification == null) {
+    try {
+      await PushNotificationService.showRichNotificationFromRemoteMessage(message);
+    } catch (e) {
+      debugPrint("Error displaying background notification: $e");
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
