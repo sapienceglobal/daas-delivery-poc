@@ -269,6 +269,18 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
 
         try {
           await NotificationModel.insertMany(notifDocs, { ordered: false });
+          const io = req.app?.get('io');
+          if (io) {
+            io.emit('new_notification', {
+              title,
+              body: message,
+              image: resolvedImageUrl || null,
+              type: 'marketing',
+              actionUrl: actionUrl || null,
+              isRead: false,
+              createdAt: new Date().toISOString()
+            });
+          }
         } catch (dbErr) {
           console.warn('[Marketing] Error creating in-app notification records:', dbErr.message);
         }
@@ -386,6 +398,18 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
 
       try {
         await NotificationModel.insertMany(notifDocs, { ordered: false });
+        const io = req.app?.get('io');
+        if (io) {
+          io.emit('new_notification', {
+            title,
+            body: message,
+            image: resolvedImageUrl || null,
+            type: 'marketing',
+            actionUrl: actionUrl || null,
+            isRead: false,
+            createdAt: new Date().toISOString()
+          });
+        }
       } catch (dbErr) {
         console.warn('[Marketing] Error creating in-app notification records:', dbErr.message);
       }

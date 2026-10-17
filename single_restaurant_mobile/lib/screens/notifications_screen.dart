@@ -126,36 +126,78 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
         centerTitle: false,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 14),
-            child: InkWell(
-              onTap: () {
-                Provider.of<NotificationProvider>(context, listen: false).fetchNotifications();
-              },
-              borderRadius: BorderRadius.circular(8),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.refresh,
-                      size: 19,
-                      color: maroonColor,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      'Refresh',
-                      style: TextStyle(
-                        color: maroonColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14.5,
+          Consumer<NotificationProvider>(
+            builder: (context, np, _) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (np.hasUnread)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: InkWell(
+                        onTap: () {
+                          np.markAsRead('all');
+                          ToastUtils.showSuccess(context, 'All marked as read');
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.done_all_rounded,
+                                size: 18,
+                                color: maroonColor,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Mark Read',
+                                style: TextStyle(
+                                  color: maroonColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: InkWell(
+                      onTap: () {
+                        np.fetchNotifications();
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.refresh,
+                              size: 18,
+                              color: maroonColor,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Refresh',
+                              style: TextStyle(
+                                color: maroonColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),

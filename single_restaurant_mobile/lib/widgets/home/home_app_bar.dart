@@ -126,16 +126,23 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                               ),
                               if (np.hasUnread)
                                 Positioned(
-                                  right: 2,
-                                  top: 2,
+                                  right: 1,
+                                  top: 1,
                                   child: Container(
                                     width: 10,
                                     height: 10,
                                     decoration: BoxDecoration(
-                                      color: Colors.red.shade700,
+                                      color: const Color(0xFFE53935),
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                          color: Colors.white, width: 1.5),
+                                          color: Colors.white, width: 2.0),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFFE53935).withValues(alpha: 0.55),
+                                          blurRadius: 4,
+                                          spreadRadius: 0.5,
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),

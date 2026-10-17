@@ -44,9 +44,12 @@ class NotificationProvider extends ChangeNotifier {
   bool _isLoading = false;
 
   List<NotificationModel> get notifications => _notifications;
-  int get unreadCount => _unreadCount;
+  int get unreadCount {
+    if (_unreadCount > 0) return _unreadCount;
+    return _notifications.where((n) => !n.isRead).length;
+  }
   bool get isLoading => _isLoading;
-  bool get hasUnread => _unreadCount > 0;
+  bool get hasUnread => unreadCount > 0 || _notifications.any((n) => !n.isRead);
 
   NotificationProvider() {
     _initSocket();
@@ -55,10 +58,19 @@ class NotificationProvider extends ChangeNotifier {
   void _initSocket() {
     SocketService().on('new_notification', (data) {
       if (data != null) {
-        final newNotification = NotificationModel.fromJson(Map<String, dynamic>.from(data));
-        _notifications.insert(0, newNotification);
-        _unreadCount++;
-        notifyListeners();
+        try {
+          final newNotification = NotificationModel.fromJson(Map<String, dynamic>.from(data));
+          final index = _notifications.indexWhere((n) => n.id.isNotEmpty && n.id == newNotification.id);
+          if (index != -1) {
+            _notifications[index] = newNotification;
+          } else {
+            _notifications.insert(0, newNotification);
+          }
+          _unreadCount = _notifications.where((n) => !n.isRead).length;
+          notifyListeners();
+        } catch (e) {
+          debugPrint('Error handling socket new_notification: $e');
+        }
       }
     });
   }
@@ -73,9 +85,13 @@ class NotificationProvider extends ChangeNotifier {
       final data = json.decode(response.body);
 
       if (data['success'] == true) {
-        final List<dynamic> items = data['data'];
+        final List<dynamic> items = data['data'] ?? [];
         _notifications = items.map((item) => NotificationModel.fromJson(item)).toList();
-        _unreadCount = (data['meta'] != null) ? (data['meta']['unreadCount'] ?? 0) : 0;
+        if (data['meta'] != null && data['meta']['unreadCount'] != null) {
+          _unreadCount = (data['meta']['unreadCount'] as num).toInt();
+        } else {
+          _unreadCount = _notifications.where((n) => !n.isRead).length;
+        }
       }
     } catch (e) {
       debugPrint('Error fetching notifications: $e');
@@ -120,7 +136,7 @@ class NotificationProvider extends ChangeNotifier {
                 actionUrl: _notifications[index].actionUrl,
                 createdAt: _notifications[index].createdAt,
               );
-             _unreadCount = (_unreadCount > 0) ? _unreadCount - 1 : 0;
+             _unreadCount = _notifications.where((n) => !n.isRead).length;
           }
         }
         notifyListeners();
@@ -143,11 +159,8 @@ class NotificationProvider extends ChangeNotifier {
       // Optimistic update
       final index = _notifications.indexWhere((n) => n.id == id);
       if (index != -1) {
-        final notification = _notifications[index];
-        if (!notification.isRead) {
-          _unreadCount = (_unreadCount > 0) ? _unreadCount - 1 : 0;
-        }
         _notifications.removeAt(index);
+        _unreadCount = _notifications.where((n) => !n.isRead).length;
         notifyListeners();
       }
 
@@ -155,12 +168,10 @@ class NotificationProvider extends ChangeNotifier {
       final data = json.decode(response.body);
       
       if (data['success'] != true) {
-        // Handle failure if needed
         debugPrint('Failed to delete on server');
       }
     } catch (e) {
       debugPrint('Error deleting notification: $e');
-      // A robust implementation would revert the optimistic update here
     }
   }
 

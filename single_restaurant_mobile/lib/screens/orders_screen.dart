@@ -133,13 +133,21 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     if (notificationProvider.hasUnread)
                       Positioned(
                         right: 8,
-                        top: 12,
+                        top: 10,
                         child: Container(
                           width: 10,
                           height: 10,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE53935),
                             shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2.0),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFE53935).withValues(alpha: 0.55),
+                                blurRadius: 4,
+                                spreadRadius: 0.5,
+                              ),
+                            ],
                           ),
                         ),
                       )

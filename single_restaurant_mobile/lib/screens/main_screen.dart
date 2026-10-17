@@ -24,7 +24,7 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late int _currentIndex;
   final List<int> _navigationHistory = [];
   DateTime? _lastPressedAt;
@@ -33,6 +33,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _currentIndex = widget.initialIndex;
     _menuCategoryId = widget.initialCategory;
     _navigationHistory.add(_currentIndex);
@@ -215,4 +216,22 @@ class _MainScreenState extends State<MainScreen> {
     ),
   );
 }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (mounted) {
+        final authProv = context.read<AuthProvider>();
+        if (authProv.isAuthenticated) {
+          context.read<NotificationProvider>().fetchNotifications();
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 }

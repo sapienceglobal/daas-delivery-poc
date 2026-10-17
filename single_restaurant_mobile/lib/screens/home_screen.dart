@@ -4,6 +4,7 @@ import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
+import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/screens/menu_screen.dart';
 import 'package:single_restaurant_mobile/services/coupon_service.dart';
 import 'package:single_restaurant_mobile/theme/app_responsive.dart';
@@ -100,6 +101,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     ]).animate(_logoController);
 
     _logoController.forward();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final authProv = context.read<AuthProvider>();
+        if (authProv.isAuthenticated) {
+          context.read<NotificationProvider>().fetchNotifications();
+        }
+      }
+    });
   }
 
   @override
@@ -222,7 +232,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
           return RefreshIndicator(
             color: AppColors.primary,
-            onRefresh: () => provider.fetchRestaurantData(),
+            onRefresh: () async {
+              final authProv = context.read<AuthProvider>();
+              await Future.wait([
+                provider.fetchRestaurantData(),
+                if (authProv.isAuthenticated)
+                  context.read<NotificationProvider>().fetchNotifications(),
+              ]);
+            },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: ResponsiveCenter(
