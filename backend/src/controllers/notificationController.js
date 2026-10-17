@@ -6,6 +6,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import { getFirebaseAdmin } from '../config/firebase.js';
 import admin from 'firebase-admin';
 import logger from '../utils/logger.js';
+import { getNotificationImageUrl } from '../utils/imageUrl.js';
 
 /**
  * @desc    get all notifications for the logged-in user
@@ -108,9 +109,14 @@ export const createNotification = async (userId, title, body, type = 'system', a
       } else {
         const firebaseApp = getFirebaseAdmin();
         if (firebaseApp) {
-        // optimize image for push notifications (thumbnail)
+        // resolve and optimize image for push notifications
         let optimizedImageUrl = imageUrl;
-        if (optimizedImageUrl && optimizedImageUrl.includes('res.cloudinary.com')) {
+        if (!optimizedImageUrl) {
+          optimizedImageUrl = getNotificationImageUrl(type);
+        } else if (optimizedImageUrl.startsWith('/uploads/')) {
+          const baseUrl = (process.env.API_URL || 'https://api.lassiloungeny.com').replace(/\/+$/, '');
+          optimizedImageUrl = `${baseUrl}${optimizedImageUrl}`;
+        } else if (optimizedImageUrl.includes('res.cloudinary.com')) {
           optimizedImageUrl = optimizedImageUrl.replace(
             '/upload/',
             '/upload/w_400,h_200,c_fill,q_auto,f_auto/'
@@ -123,21 +129,31 @@ export const createNotification = async (userId, title, body, type = 'system', a
         const soundName = (isMerchantUser && isNewOrder) ? 'new_order_sound' : 'default';
         const channelIdName = isMerchantUser ? 'merchant_orders_channel_v3' : 'high_importance_channel';
 
+        // For merchant new_order, omit the top-level 'notification' block to avoid duplicate alerts.
+        // Android OS renders the top-level 'notification' block natively, while the merchant mobile app's
+        // background handler simultaneously renders a rich, high-priority looping notification with 'View Order' button.
+        // Data-only message guarantees exactly ONE rich, interactive notification with looping ringtone.
+        const isDataOnlyMerchantOrder = isMerchantUser && isNewOrder;
+
         const message = {
-          notification: {
-            title,
-            body,
-            ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),
-          },
-          android: {
-            priority: 'high',
+          ...(!isDataOnlyMerchantOrder && {
             notification: {
-              color: isMerchantUser ? '#6B111C' : '#006778',
-              ...(!isMerchantUser && { icon: 'ic_notification' }),
-              channelId: channelIdName,
-              sound: soundName,
+              title,
+              body,
               ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),
             }
+          }),
+          android: {
+            priority: 'high',
+            ...(!isDataOnlyMerchantOrder && {
+              notification: {
+                color: isMerchantUser ? '#6B111C' : '#006778',
+                ...(!isMerchantUser && { icon: 'ic_notification' }),
+                channelId: channelIdName,
+                sound: soundName,
+                ...(optimizedImageUrl && { imageUrl: optimizedImageUrl }),
+              }
+            })
           },
           apns: {
             payload: {
@@ -179,3 +195,75 @@ export const createNotification = async (userId, title, body, type = 'system', a
     console.error('Error creating notification:', err.message);
   }
 };
+
+/**
+ * @desc    Send test notification exclusively to the requesting user's registered device (Zero impact on live clients)
+ * @route   POST /api/notifications/test-my-device
+ * @access  Private
+ */
+export const testMyDeviceNotification = asyncHandler(async (req, response) => {
+  const { type = 'new_order', delaySeconds = 0 } = req.body;
+  const userId = req.user._id;
+
+  const UserModel = req.getModel ? req.getModel('User') : User;
+  const user = await UserModel.findById(userId).select('fcmTokens email name');
+
+  if (!user?.fcmTokens?.length) {
+    throw new AppError('No active FCM token found for your device. Please open the mobile app to sync token.', 400);
+  }
+
+  const triggerTest = async () => {
+    const imageUrl = getNotificationImageUrl(type);
+    const io = req.app?.get('io');
+
+    if (type === 'new_order') {
+      await createNotification(
+        userId,
+        'New Order Request 🛎️ [TEST]',
+        'Test Customer placed a new delivery order! Total: $34.50',
+        'new_order',
+        '/orders/test_mock_order_123',
+        io,
+        req.getModel,
+        imageUrl,
+        { orderId: 'test_mock_order_123' }
+      );
+    } else if (type === 'reservation') {
+      await createNotification(
+        userId,
+        'New Reservation Request 📅 [TEST]',
+        'Test Customer requested a table for 4 on tomorrow at 7:30 PM.',
+        'reservation_new',
+        '/reservations/test_mock_res_123',
+        io,
+        req.getModel,
+        imageUrl,
+        { entityType: 'reservation', entityId: 'test_mock_res_123' }
+      );
+    } else if (type === 'catering') {
+      await createNotification(
+        userId,
+        'New Catering Inquiry 🍱 [TEST]',
+        'Test Customer inquired for a Birthday Event for 50 guests.',
+        'catering_new',
+        '/catering/test_mock_cat_123',
+        io,
+        req.getModel,
+        imageUrl,
+        { entityType: 'catering', entityId: 'test_mock_cat_123' }
+      );
+    }
+  };
+
+  if (delaySeconds > 0) {
+    setTimeout(triggerTest, delaySeconds * 1000);
+    return res.success(response, {
+      message: `Test notification scheduled in ${delaySeconds} seconds. Minimize or lock your phone now to test background alerts!`
+    });
+  }
+
+  await triggerTest();
+  return res.success(response, {
+    message: `Test notification sent directly to your device (${user.fcmTokens.length} token(s)). Check your screen!`
+  });
+});

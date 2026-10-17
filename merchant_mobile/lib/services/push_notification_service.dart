@@ -9,6 +9,8 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/order_provider.dart';
+import '../providers/reservation_provider.dart';
+import '../providers/catering_provider.dart';
 import 'api_service.dart';
 import 'package:toastification/toastification.dart';
 
@@ -95,11 +97,18 @@ class PushNotificationService {
       final activeContext = rootNavigatorKey.currentContext ?? context;
       
       if (activeContext.mounted) {
-        Provider.of<OrderProvider>(activeContext, listen: false).fetchOrders();
+        final type = (message.data['type'] ?? '').toString().toLowerCase();
+        if (type.contains('order')) {
+          Provider.of<OrderProvider>(activeContext, listen: false).fetchOrders();
+        } else if (type.contains('reservation')) {
+          Provider.of<ReservationProvider>(activeContext, listen: false).fetchReservations();
+        } else if (type.contains('catering')) {
+          Provider.of<CateringProvider>(activeContext, listen: false).fetchEnquiries(force: true);
+        }
         
         final notification = message.notification;
         final data = message.data;
-        final title = notification?.title ?? data['title'] ?? 'New Order!';
+        final title = notification?.title ?? data['title'] ?? 'New Notification!';
         final body = notification?.body ?? data['body'] ?? '';
 
         toastification.show(
@@ -133,9 +142,13 @@ class PushNotificationService {
       await androidImplementation.createNotificationChannel(_channel);
     }
 
-    final String title = data['title'] ?? 'New Order!';
+    final String title = data['title'] ?? 'New Notification!';
     final String body = data['body'] ?? '';
-    final String? imageUrl = data['image'];
+    final String? imageUrl = data['image'] ?? data['imageUrl'];
+    final String type = (data['type'] ?? 'new_order').toString().toLowerCase();
+    final bool isOrder = type.contains('order');
+    final bool isReservation = type.contains('reservation');
+    final bool isCatering = type.contains('catering');
 
     ByteArrayAndroidBitmap? largeIconBitmap;
     StyleInformation styleInformation = BigTextStyleInformation(
@@ -168,6 +181,17 @@ class PushNotificationService {
     int notificationId = data.hashCode;
     if (data['orderId'] != null) {
       notificationId = data['orderId'].hashCode;
+    } else if (data['entityId'] != null) {
+      notificationId = data['entityId'].hashCode;
+    }
+
+    final List<AndroidNotificationAction> actions = [];
+    if (isOrder) {
+      actions.add(const AndroidNotificationAction('view_order', 'View Order', showsUserInterface: true));
+    } else if (isReservation) {
+      actions.add(const AndroidNotificationAction('view_reservation', 'View Reservation', showsUserInterface: true));
+    } else if (isCatering) {
+      actions.add(const AndroidNotificationAction('view_catering', 'View Inquiry', showsUserInterface: true));
     }
 
     await localNotifications.show(
@@ -187,11 +211,9 @@ class PushNotificationService {
           priority: Priority.high,
           playSound: true,
           sound: const RawResourceAndroidNotificationSound('new_order_sound'),
-          fullScreenIntent: true,
-          additionalFlags: Int32List.fromList(<int>[4]), // FLAG_INSISTENT
-          actions: <AndroidNotificationAction>[
-            const AndroidNotificationAction('view_order', 'View Order', showsUserInterface: true),
-          ],
+          fullScreenIntent: isOrder,
+          additionalFlags: isOrder ? Int32List.fromList(<int>[4]) : null, // FLAG_INSISTENT loops only for orders
+          actions: actions.isNotEmpty ? actions : null,
         ),
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
@@ -221,15 +243,7 @@ class PushNotificationService {
     await showRichNotificationFromData(mergedData);
   }
 
-  Future<Uint8List?> _downloadImage(String url) async {
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) return response.bodyBytes;
-    } catch (e) {
-      debugPrint('Error downloading notification image: $e');
-    }
-    return null;
-  }
+
 
   void _onNotificationTap(NotificationResponse response) {
     if (response.payload == null || response.payload!.isEmpty) {

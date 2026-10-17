@@ -18,7 +18,9 @@ class OtaUpdateService {
     // Google Play In-App Update API (Native Play Store update only)
     if (Platform.isAndroid) {
       try {
-        final updateInfo = await InAppUpdate.checkForUpdate();
+        final updateInfo = await InAppUpdate.checkForUpdate().timeout(
+          const Duration(seconds: 5),
+        );
         if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable) {
           if (updateInfo.immediateUpdateAllowed) {
             await InAppUpdate.performImmediateUpdate();
@@ -27,6 +29,17 @@ class OtaUpdateService {
             await InAppUpdate.startFlexibleUpdate();
             await InAppUpdate.completeFlexibleUpdate();
             return;
+          } else {
+            try {
+              await InAppUpdate.performImmediateUpdate();
+              return;
+            } catch (_) {
+              try {
+                await InAppUpdate.startFlexibleUpdate();
+                await InAppUpdate.completeFlexibleUpdate();
+                return;
+              } catch (_) {}
+            }
           }
         } else if (isManual &&
             updateInfo.updateAvailability == UpdateAvailability.updateNotAvailable) {
@@ -36,7 +49,10 @@ class OtaUpdateService {
           return;
         }
       } catch (e) {
-        // Throws if the app is running in debug or was not installed via Play Store.
+        // If initial check failed (e.g. network handshake timeout at app launch), allow retry on dashboard
+        if (!isManual) {
+          _hasCheckedForUpdate = false;
+        }
         debugPrint('Play Store In-App Update check skipped or error: $e');
         if (isManual && context.mounted) {
           _showPlayStoreRedirectOption(context);

@@ -1,6 +1,7 @@
 import CateringInquiry from '../models/CateringInquiry.js';
 import Restaurant from '../models/Restaurant.js';
 import { createNotification } from './notificationController.js';
+import { getNotificationImageUrl } from '../utils/imageUrl.js';
 import { sendPushNotification } from '../services/webPushService.js';
 
 const getModels = (req) => ({
@@ -49,21 +50,28 @@ export const createInquiry = async (req, res) => {
     // -- Background Notifications --
     try {
       const io = req.app?.get('io');
-      const User = req.getModel?.('User') || (await import('../models/User.js')).default;
-      const merchantUsers = await User.find({
-        role: 'merchant',
-        'managedRestaurants.restaurantId': restaurant._id
+      const UserModel = req.getModel ? req.getModel('User') : (req.app?.get('tenantModels')?.[req.tenantId]?.User || (await import('../models/User.js')).default);
+      const merchantUsers = await UserModel.find({
+        $or: [
+          { restaurantId: restaurant._id },
+          ...(restaurant.ownerId ? [{ _id: restaurant.ownerId }] : []),
+          { role: { $in: ['admin', 'merchant'] } }
+        ],
+        role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] },
+        fcmTokens: { $exists: true, $not: { $size: 0 } }
       });
+
+      console.log(`[FCM Catering] Found ${merchantUsers.length} merchant users for restaurant ${restaurant._id}`);
       
-      const imageUrl = 'https://res.cloudinary.com/h2cylj8r/image/upload/v1787569372/restaurant-platform/notifications/ouwuhg99wjuxrfzksswe.png';
+      const imageUrl = getNotificationImageUrl('catering');
       
       for (const mUser of merchantUsers) {
         await createNotification(
           mUser._id,
-          'New Catering Inquiry',
+          'New Catering Inquiry 🍱',
           `${customerName} inquired for a ${eventType} event for ${guestCount} guests.`,
           'catering_new',
-          `/merchant/catering/${inquiry._id}`,
+          `/catering/${inquiry._id}`,
           io,
           req.getModel,
           imageUrl,
@@ -71,8 +79,12 @@ export const createInquiry = async (req, res) => {
         );
       }
 
+      if (io) {
+        io.to(restaurant._id.toString()).emit('new_catering', inquiry);
+      }
+
       await sendPushNotification(restaurant, {
-        title: 'New Catering Inquiry',
+        title: 'New Catering Inquiry 🍱',
         body: `${customerName} inquired for a ${eventType} event for ${guestCount} guests.`,
         data: { url: `/merchant/catering/${inquiry._id}` }
       });

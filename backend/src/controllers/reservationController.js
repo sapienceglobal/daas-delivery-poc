@@ -1,6 +1,7 @@
 import Reservation from '../models/Reservation.js';
 import Restaurant from '../models/Restaurant.js';
 import { createNotification } from './notificationController.js';
+import { getNotificationImageUrl } from '../utils/imageUrl.js';
 import { sendPushNotification } from '../services/webPushService.js';
 
 const getModels = (req) => ({
@@ -55,21 +56,28 @@ export const createReservation = async (req, res) => {
     // -- Background Notifications --
     try {
       const io = req.app?.get('io');
-      const User = req.getModel?.('User') || (await import('../models/User.js')).default;
-      const merchantUsers = await User.find({
-        role: 'merchant',
-        'managedRestaurants.restaurantId': restaurant._id
+      const UserModel = req.getModel ? req.getModel('User') : (req.app?.get('tenantModels')?.[req.tenantId]?.User || (await import('../models/User.js')).default);
+      const merchantUsers = await UserModel.find({
+        $or: [
+          { restaurantId: restaurant._id },
+          ...(restaurant.ownerId ? [{ _id: restaurant.ownerId }] : []),
+          { role: { $in: ['admin', 'merchant'] } }
+        ],
+        role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] },
+        fcmTokens: { $exists: true, $not: { $size: 0 } }
       });
+
+      console.log(`[FCM Reservation] Found ${merchantUsers.length} merchant users for restaurant ${restaurant._id}`);
       
-      const imageUrl = 'https://res.cloudinary.com/h2cylj8r/image/upload/v1787569372/restaurant-platform/notifications/ouwuhg99wjuxrfzksswe.png'; // Using generic new order/reservation image
+      const imageUrl = getNotificationImageUrl('reservation');
       
       for (const mUser of merchantUsers) {
         await createNotification(
           mUser._id,
-          'New Reservation Request',
+          'New Reservation Request 📅',
           `${customerName} requested a table for ${partySize} on ${date} at ${time}.`,
           'reservation_new',
-          `/merchant/reservations/${reservation._id}`,
+          `/reservations/${reservation._id}`,
           io,
           req.getModel,
           imageUrl,
@@ -77,8 +85,12 @@ export const createReservation = async (req, res) => {
         );
       }
 
+      if (io) {
+        io.to(restaurant._id.toString()).emit('new_reservation', reservation);
+      }
+
       await sendPushNotification(restaurant, {
-        title: 'New Reservation Request',
+        title: 'New Reservation Request 📅',
         body: `${customerName} requested a table for ${partySize} on ${date} at ${time}.`,
         data: { url: `/merchant/reservations/${reservation._id}` }
       });

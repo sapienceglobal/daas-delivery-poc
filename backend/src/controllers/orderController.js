@@ -23,6 +23,7 @@ import { calculateOrderPricing, roundMoney } from '../services/orderPricing.js';
 import { sendOrderConfirmationEmail, sendInvoiceEmail, sendPaymentLinkEmail, sendGuestOrderWelcomeEmail } from '../services/emailService.js';
 import { generateInvoiceHTML, generateKOTHTML } from '../services/documentService.js';
 import { createNotification } from './notificationController.js';
+import { getNotificationImageUrl } from '../utils/imageUrl.js';
 import { sendPushNotification } from '../services/webPushService.js';
 import { sendOrderAlert, sendInvoiceWhatsApp } from '../services/whatsappService.js';
 import logger from '../utils/logger.js';
@@ -1059,8 +1060,7 @@ export const createOrder = asyncHandler(async (req, response) => {
           });
 
           console.log(`[FCM] Found ${merchantUsers.length} merchant users with FCM tokens for restaurant ${restaurant._id}`);
-          // Using a premium, vibrant image of Indian cuisine/restaurant atmosphere for a true "industry level" feel
-          const newOrderImageUrl = 'https://res.cloudinary.com/h2cylj8r/image/upload/v1787569372/restaurant-platform/notifications/ouwuhg99wjuxrfzksswe.png';
+          const newOrderImageUrl = getNotificationImageUrl('new_order');
           for (const mUser of merchantUsers) {
             console.log(`[FCM] Sending notification to merchant user ${mUser._id} (role: ${mUser.role}, tokens: ${mUser.fcmTokens?.length})`);
             await createNotification(
@@ -1384,7 +1384,7 @@ export const cancelOrder = asyncHandler(async (req, response) => {
         fcmTokens: { $exists: true, $not: { $size: 0 } }
       });
 
-      const cancelledImageUrl = 'https://res.cloudinary.com/h2cylj8r/image/upload/v1787717732/restaurant-platform/notifications/f0fdu2yszonc5nwxewak.png';
+      const cancelledImageUrl = getNotificationImageUrl('order_cancelled');
 
       for (const mUser of merchantUsers) {
         await createNotification(

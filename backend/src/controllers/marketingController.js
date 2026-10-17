@@ -6,6 +6,7 @@ import * as res from '../utils/responseFormatter.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { getFirebaseAdmin } from '../config/firebase.js';
 import { getMessaging } from 'firebase-admin/messaging';
+import { normalizeImageUrl } from '../utils/imageUrl.js';
 
 // chunk an array into smaller arrays of a specified size
 const chunkArray = (array, size) => {
@@ -89,12 +90,14 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
   const UserModel = req.getModel('User');
   const NotificationModel = req.getModel('Notification');
 
+  const resolvedImageUrl = imageUrl ? normalizeImageUrl(imageUrl) : '';
+
   // 1. Create campaign record
   const campaign = await CampaignModel.create({
     restaurantId: targetRestaurantId,
     title,
     message,
-    imageUrl: imageUrl || '',
+    imageUrl: resolvedImageUrl,
     actionUrl: actionUrl || '',
     audience: audience || 'all_customers',
     status: 'pending'
@@ -114,7 +117,7 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
   const pushNotification = {
     title,
     body: message,
-    ...(imageUrl && { imageUrl }),
+    ...(resolvedImageUrl && { imageUrl: resolvedImageUrl }),
   };
 
   const pushAndroid = {
@@ -123,7 +126,7 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
       icon: 'ic_notification',
       channelId: 'high_importance_channel',
       sound: 'default',
-      ...(imageUrl && { imageUrl }),
+      ...(resolvedImageUrl && { imageUrl: resolvedImageUrl }),
     }
   };
 
@@ -132,7 +135,7 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
     campaignId: campaign._id.toString(),
     title: String(title),
     body: String(message),
-    ...(imageUrl && { image: String(imageUrl), imageUrl: String(imageUrl) }),
+    ...(resolvedImageUrl && { image: String(resolvedImageUrl), imageUrl: String(resolvedImageUrl) }),
     ...(actionUrl && { actionUrl: String(actionUrl) })
   };
 
@@ -170,7 +173,7 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
           userId: cust._id,
           title,
           body: message,
-          image: imageUrl || null,
+          image: resolvedImageUrl || null,
           channel: 'in_app',
           type: 'marketing',
           actionUrl: actionUrl || null,
@@ -286,7 +289,7 @@ export const broadcastCampaign = asyncHandler(async (req, response) => {
         userId: uid,
         title,
         body: message,
-        image: imageUrl || null,
+        image: resolvedImageUrl || null,
         channel: 'in_app',
         type: 'marketing',
         actionUrl: actionUrl || null,

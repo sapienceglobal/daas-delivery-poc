@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/ota_update_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -49,12 +50,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     );
     _textFadeController.forward();
 
-    // Start animation immediately after first frame
+    // Start animation immediately after first frame & check for Google Play updates
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         setState(() {
           _opacity = 1.0;
         });
+        OtaUpdateService().checkForUpdate(context);
       }
     });
 

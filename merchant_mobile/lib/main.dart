@@ -61,8 +61,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   debugPrint("Handling a background message: ${message.messageId}");
   
-  // Natively trigger our insistent looping notification if it's a data-only message (or any background message we intercept)
-  if (message.data['type'] == 'new_order') {
+  // Only trigger local notification for data-only messages (message.notification == null).
+  // This prevents Android OS and Flutter from both creating duplicate notifications.
+  if (message.notification == null && message.data['type'] == 'new_order') {
     await PushNotificationService.showRichNotificationFromData(message.data);
   }
 }
