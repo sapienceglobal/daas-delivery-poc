@@ -14,8 +14,8 @@ export function pushToDataLayer(payload) {
   if (typeof window === 'undefined') return;
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push(payload);
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('[GTM dataLayer]', payload);
+  if (payload.event) {
+    console.log(`📊 [Analytics GTM] ${payload.event}:`, payload);
   }
 }
 
