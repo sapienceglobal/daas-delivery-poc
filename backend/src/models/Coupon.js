@@ -108,8 +108,14 @@ CouponSchema.methods.isValid = function (cartValue, userId, pastOrderCount = 0, 
   if (now > this.endDate) return { valid: false, reason: 'Coupon has expired' };
   if (this.maxUses && this.usedCount >= this.maxUses) return { valid: false, reason: 'Coupon usage limit reached' };
   if (cartValue < this.minCartValue) return { valid: false, reason: `Minimum cart value of $${this.minCartValue} required` };
-  if (this.firstOrderOnly && pastOrderCount > 0) return { valid: false, reason: 'This coupon is valid for first orders only' };
-  if (this.minOrdersRequired > 0 && pastOrderCount < this.minOrdersRequired) return { valid: false, reason: `You must complete ${this.minOrdersRequired} orders to unlock this coupon` };
+  if (this.firstOrderOnly) {
+    if (!userId) return { valid: false, reason: 'Please log in or sign up to apply first-time customer coupons' };
+    if (pastOrderCount > 0) return { valid: false, reason: 'This coupon is valid for first orders only' };
+  }
+  if (this.minOrdersRequired > 0) {
+    if (!userId) return { valid: false, reason: 'Please log in to your account to use loyalty coupons' };
+    if (pastOrderCount < this.minOrdersRequired) return { valid: false, reason: `You must complete ${this.minOrdersRequired} orders to unlock this coupon` };
+  }
 
   // check payment method constraint
   if (paymentMethod && this.allowedPaymentMethods && !this.allowedPaymentMethods.includes('All')) {

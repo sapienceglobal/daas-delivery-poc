@@ -5,7 +5,7 @@ import * as couponController from '../controllers/couponController.js';
 const router = Router();
 
 // customer
-router.post('/validate', protect, couponController.validateCoupon);
+router.post('/validate', optionalAuth, couponController.validateCoupon);
 router.get('/active', optionalAuth, couponController.getActiveCoupons); // Public route for apps to fetch banners
 
 // admin / Merchant

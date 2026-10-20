@@ -11,27 +11,47 @@ export const validateCoupon = asyncHandler(async (req, response) => {
   const CouponModel = req.getModel ? req.getModel('Coupon') : Coupon;
   const OrderModel = req.getModel ? req.getModel('Order') : Order;
 
-  const coupon = await CouponModel.findOne({ code: code.toUpperCase() });
+  const coupon = await CouponModel.findOne({ code: code.toUpperCase().trim() });
   if (!coupon) throw new AppError('Invalid coupon code', 404);
 
-  if (coupon.specificRestaurant && restaurantId && coupon.specificRestaurant.toString() !== restaurantId) {
+  if (coupon.specificRestaurant && restaurantId && coupon.specificRestaurant.toString() !== restaurantId.toString()) {
     throw new AppError('This coupon is not valid for this restaurant', 400);
   }
 
-  const pastOrderCount = await OrderModel.countDocuments({ userId: req.user._id });
+  const userId = req.user ? req.user._id : null;
 
-  // Anti-fraud: For first-order-only coupons, also check phone-based order history
-  let effectivePastOrderCount = pastOrderCount;
-  if (coupon.firstOrderOnly && req.user.phone) {
-    const phoneOrderCount = await OrderModel.countDocuments({
-      customerPhone: req.user.phone,
-      userId: { $ne: req.user._id }
-    });
-    effectivePastOrderCount = pastOrderCount + phoneOrderCount;
+  // For guest users, clearly prompt login if the coupon requires customer account history
+  if (!userId) {
+    if (coupon.firstOrderOnly) {
+      throw new AppError('Please log in or sign up to apply first-time customer coupons', 400);
+    }
+    if (coupon.minOrdersRequired > 0) {
+      throw new AppError('Please log in to your account to apply this loyalty coupon', 400);
+    }
+    if (coupon.applicableUsers && coupon.applicableUsers.length > 0) {
+      throw new AppError('Please log in to your account to use this exclusive coupon', 400);
+    }
+  }
+
+  let pastOrderCount = 0;
+  let effectivePastOrderCount = 0;
+
+  if (userId) {
+    pastOrderCount = await OrderModel.countDocuments({ userId });
+    effectivePastOrderCount = pastOrderCount;
+
+    // Anti-fraud: For first-order-only coupons, also check phone-based order history
+    if (coupon.firstOrderOnly && req.user.phone) {
+      const phoneOrderCount = await OrderModel.countDocuments({
+        customerPhone: req.user.phone,
+        userId: { $ne: userId }
+      });
+      effectivePastOrderCount = pastOrderCount + phoneOrderCount;
+    }
   }
 
   // pass null for paymentMethod during live validation so it applies successfully and frontend can enforce the UI lock
-  const validation = coupon.isValid(cartValue || 0, req.user._id, effectivePastOrderCount, null);
+  const validation = coupon.isValid(cartValue || 0, userId, effectivePastOrderCount, null);
 
   if (!validation.valid) {
     throw new AppError(validation.reason, 400);
