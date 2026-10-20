@@ -41,10 +41,10 @@ export const initCronJobs = (io, getModel) => {
         );
       }
 
-      // 2a. Auto-cancel accepted/preparing orders (all types) stuck for 2+ hours
-      // Do not auto-cancel orders whose rider dispatch is legitimately scheduled for the future
+      // 2. Auto-Complete: 2 hours ago for 'accepted', 'preparing', 'ready' (both pickup & delivery)
+      // Do not auto-complete orders whose rider dispatch is legitimately scheduled for the future
       const stalePrepOrders = await Order.find({
-        status: { $in: ['accepted', 'preparing'] },
+        status: { $in: ['accepted', 'preparing', 'ready'] },
         updatedAt: { $lt: prepCutoff },
         $nor: [
           { dispatchStatus: 'scheduled', dispatchAt: { $gt: new Date() } }
@@ -52,29 +52,14 @@ export const initCronJobs = (io, getModel) => {
       });
 
       for (const order of stalePrepOrders) {
-        await processAutoCancel(
-          order, 
-          'Auto-cancelled: Order stuck in preparation for too long',
-          `We're sorry, your order at ${order.restaurantName} seems to be stuck and has been auto-cancelled. Any eligible charges and loyalty points have been reversed.`,
-          io, 
-          getModel
-        );
-      }
-
-      // 2b. Auto-cancel 'ready' orders ONLY for delivery orders (not pickup/dine-in)
-      // Pickup customers may come later to collect; they should not be auto-cancelled.
-      const staleReadyDeliveryOrders = await Order.find({
-        status: 'ready',
-        orderType: { $nin: ['pickup', 'dine-in', 'dine_in'] },
-        updatedAt: { $lt: prepCutoff }
-      });
-
-      for (const order of staleReadyDeliveryOrders) {
-        await processAutoCancel(
-          order, 
-          'Auto-cancelled: Ready order not picked up by delivery driver for too long',
-          `We're sorry, your order at ${order.restaurantName} could not be delivered and has been auto-cancelled. Any eligible charges and loyalty points have been reversed.`,
-          io, 
+        const isPickup = ['pickup', 'dine-in', 'dine_in'].includes(order.orderType);
+        await processAutoComplete(
+          order,
+          'Auto-completed: Order assumed completed after 2 hours',
+          isPickup
+            ? `Your pickup order from ${order.restaurantName} has been completed. Hope you enjoyed your meal!`
+            : `Your order from ${order.restaurantName} has been marked as delivered. Hope you enjoyed your meal!`,
+          io,
           getModel
         );
       }
@@ -87,36 +72,13 @@ export const initCronJobs = (io, getModel) => {
       });
 
       for (const order of staleDeliveryOrders) {
-        try {
-          order.status = 'delivered';
-          order.statusUpdates.push({
-            status: 'delivered',
-            description: 'Auto-completed: Assumed delivered after 4 hours'
-          });
-          await order.save();
-          await awardLoyaltyPoints(order);
-
-          if (io) {
-            const payload = buildOrderSocketPayload(order);
-            io.to(order.restaurantId.toString()).emit('order_updated', payload);
-            io.to(`order_${order._id}`).emit('order_status_changed', payload);
-          }
-
-          if (order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
-            await createNotification(
-              order.userId,
-              'Order Delivered',
-              `Your order from ${order.restaurantName} has been marked as delivered. Hope you enjoyed your meal!`,
-              'order_update',
-              `/orders/${order._id}`,
-              io,
-              getModel
-            );
-          }
-          logger.info(`Successfully auto-completed order ${order._id}`);
-        } catch (err) {
-          logger.error(`Error auto-completing order ${order._id}:`, err);
-        }
+        await processAutoComplete(
+          order,
+          'Auto-completed: Assumed delivered after 4 hours',
+          `Your order from ${order.restaurantName} has been marked as delivered. Hope you enjoyed your meal!`,
+          io,
+          getModel
+        );
       }
 
       // --- Rule 4: Auto-complete stale pickup/dine-in 'ready' orders (8 hours) ---
@@ -124,36 +86,69 @@ export const initCronJobs = (io, getModel) => {
       // assume customer already collected the food and auto-complete it.
       const stalePickupReadyOrders = await Order.find({
         status: { $in: ['ready', 'ready_for_pickup'] },
-        orderType: { $in: ['pickup', 'dine_in'] },
+        orderType: { $in: ['pickup', 'dine_in', 'dine-in'] },
         updatedAt: { $lt: pickupReadyCutoff }
       });
 
       for (const order of stalePickupReadyOrders) {
-        try {
-          order.status = 'picked_up';
-          order.statusUpdates.push({
-            status: 'picked_up',
-            description: 'Auto-completed: Pickup order assumed collected after 8 hours'
-          });
-          await order.save();
-          await awardLoyaltyPoints(order);
-
-          if (io) {
-            const payload = buildOrderSocketPayload(order);
-            io.to(order.restaurantId.toString()).emit('order_updated', payload);
-            io.to(`order_${order._id}`).emit('order_status_changed', payload);
-          }
-
-          logger.info(`Auto-completed pickup order ${order._id} (assumed collected)`);
-        } catch (err) {
-          logger.error(`Error auto-completing pickup order ${order._id}:`, err);
-        }
+        await processAutoComplete(
+          order,
+          'Auto-completed: Pickup order assumed collected after 8 hours',
+          `Your pickup order from ${order.restaurantName} has been completed. Hope you enjoyed your meal!`,
+          io,
+          getModel
+        );
       }
 
     } catch (err) {
       logger.error('Error in Advanced Auto-Resolution Cron Job:', err);
     }
   });
+};
+
+const processAutoComplete = async (order, internalReason, customerMessage, io, getModel) => {
+  try {
+    const isPickup = ['pickup', 'dine-in', 'dine_in'].includes(order.orderType);
+    const finalStatus = isPickup ? 'picked_up' : 'delivered';
+
+    order.status = finalStatus;
+    if (order.paymentMethod === 'cash' || order.paymentMethod === 'cod') {
+      order.paymentStatus = 'paid';
+    }
+    order.statusUpdates.push({
+      status: finalStatus,
+      description: internalReason
+    });
+
+    await order.save();
+
+    // award loyalty points
+    await awardLoyaltyPoints(order);
+
+    // emit socket events
+    if (io) {
+      const payload = buildOrderSocketPayload(order);
+      io.to(order.restaurantId.toString()).emit('order_updated', payload);
+      io.to(`order_${order._id}`).emit('order_status_changed', payload);
+    }
+
+    // notify Customer
+    if (order.userId && !['merchant_app', 'merchant_web'].includes(order.orderSource)) {
+      await createNotification(
+        order.userId,
+        isPickup ? 'Order Completed' : 'Order Delivered',
+        customerMessage,
+        'order_update',
+        `/orders/${order._id}`,
+        io,
+        getModel
+      );
+    }
+
+    logger.info(`Successfully auto-completed order ${order._id} (${finalStatus}) due to resolution logic.`);
+  } catch (innerError) {
+    logger.error(`Error processing auto-completion for order ${order._id}:`, innerError);
+  }
 };
 
 const processAutoCancel = async (order, internalReason, customerMessage, io, getModel) => {
