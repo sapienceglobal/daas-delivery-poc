@@ -99,7 +99,7 @@ class PushNotificationService {
       if (activeContext.mounted) {
         final type = (message.data['type'] ?? '').toString().toLowerCase();
         if (type.contains('order')) {
-          Provider.of<OrderProvider>(activeContext, listen: false).fetchOrders();
+          Provider.of<OrderProvider>(activeContext, listen: false).fetchOrders(force: true);
         } else if (type.contains('reservation')) {
           Provider.of<ReservationProvider>(activeContext, listen: false).fetchReservations();
         } else if (type.contains('catering')) {

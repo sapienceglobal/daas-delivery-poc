@@ -281,6 +281,9 @@ class OrderProvider extends ChangeNotifier {
           _orders[idx] = freshOrder;
         } else {
           _orders.insert(0, freshOrder);
+          _totalOrders++;
+          _orderStats['total'] = (_orderStats['total'] ?? 0) + 1;
+          _orderStats['new'] = (_orderStats['new'] ?? 0) + 1;
         }
         notifyListeners();
       }
