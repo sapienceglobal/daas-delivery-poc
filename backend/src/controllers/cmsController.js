@@ -155,13 +155,18 @@ export const updateCmsConfig = asyncHandler(async (req, response) => {
   
   let cms = await CmsModel.findOne({ restaurantId });
 
+  const sanitizedPromotions = promotions ? {
+    menuPage: (promotions.menuPage && promotions.menuPage !== '') ? promotions.menuPage : null,
+    mobileHome: (promotions.mobileHome && promotions.mobileHome !== '') ? promotions.mobileHome : null
+  } : undefined;
+
   if (cms) {
     cms.heroBanners = heroBanners || cms.heroBanners;
     cms.aboutUs = aboutUs || cms.aboutUs;
     cms.cateringOccasions = cateringOccasions || cms.cateringOccasions;
     cms.cateringPackages = cateringPackages || cms.cateringPackages;
     cms.bookingSettings = bookingSettings || cms.bookingSettings;
-    if (promotions) cms.promotions = promotions;
+    if (sanitizedPromotions) cms.promotions = sanitizedPromotions;
     await cms.save();
   } else {
     // merge provided fields with default placeholders for missing fields
@@ -172,9 +177,13 @@ export const updateCmsConfig = asyncHandler(async (req, response) => {
       cateringOccasions: cateringOccasions || defaultCmsConfig.cateringOccasions,
       cateringPackages: cateringPackages || defaultCmsConfig.cateringPackages,
       bookingSettings: bookingSettings || defaultCmsConfig.bookingSettings,
-      promotions: promotions || defaultCmsConfig.promotions
+      promotions: sanitizedPromotions || defaultCmsConfig.promotions
     });
   }
+
+  cms = await CmsModel.findById(cms._id)
+    .populate('promotions.menuPage')
+    .populate('promotions.mobileHome');
 
   res.success(response, { 
     message: 'CMS configuration updated successfully',

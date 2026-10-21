@@ -6,6 +6,8 @@ import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/screens/menu_screen.dart';
+import 'dart:convert';
+import 'package:single_restaurant_mobile/services/api_service.dart';
 import 'package:single_restaurant_mobile/services/coupon_service.dart';
 import 'package:single_restaurant_mobile/theme/app_responsive.dart';
 import 'package:single_restaurant_mobile/theme/app_spacing.dart';
@@ -120,11 +122,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Future<void> _fetchActiveCoupon() async {
     try {
+      // 1. First priority: Check CMS for the pinned coupon for mobile home screen
+      final cmsRes = await ApiService.get('/api/cms?restaurantId=lassi-lounge');
+      if (cmsRes.statusCode == 200) {
+        final cmsData = json.decode(cmsRes.body);
+        final cmsPromo = cmsData['data']?['promotions']?['mobileHome'];
+        if (cmsPromo is Map && cmsPromo['code'] != null) {
+          final isExpired = cmsPromo['isActive'] == false ||
+              (cmsPromo['endDate'] != null &&
+                  DateTime.tryParse(cmsPromo['endDate'].toString()) != null &&
+                  DateTime.parse(cmsPromo['endDate'].toString()).isBefore(DateTime.now()));
+          if (!isExpired) {
+            if (mounted) {
+              setState(() {
+                _activeCoupon = Map<String, dynamic>.from(cmsPromo);
+              });
+            }
+            return;
+          }
+        }
+      }
+
+      // 2. Fallback: If no CMS coupon pinned or expired, use the first active coupon
       final coupons = await CouponService().getCoupons(activeOnly: true);
       if (coupons.isNotEmpty) {
         if (mounted) {
           setState(() {
-            _activeCoupon = coupons.first;
+            _activeCoupon = Map<String, dynamic>.from(coupons.first);
           });
         }
       }
@@ -235,7 +259,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             onRefresh: () async {
               final authProv = context.read<AuthProvider>();
               await Future.wait([
-                provider.fetchRestaurantData(),
+                provider.fetchRestaurantData(force: true),
+                _fetchActiveCoupon(),
                 if (authProv.isAuthenticated)
                   context.read<NotificationProvider>().fetchNotifications(),
               ]);
