@@ -15,23 +15,15 @@ class HomePromoCardsCarousel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final coupon = activeCoupon ??
-        const {
-          'promoType': 'FIRST ORDER OFFER',
-          'value': 20,
-          'type': 'percentage',
-          'code': 'WELCOME20',
-          'description':
-              'Enjoy 20% off on your very first order on our Website and App!',
-        };
+    final showCoupon = activeCoupon != null;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          WelcomeOfferCard(coupon: coupon),
-          const LoyaltyPromoCard(),
+          if (showCoupon) WelcomeOfferCard(coupon: activeCoupon!),
+          LoyaltyPromoCard(isFirst: !showCoupon),
           const FastDeliveryCard(),
         ],
       ),
@@ -40,7 +32,8 @@ class HomePromoCardsCarousel extends StatelessWidget {
 }
 
 class LoyaltyPromoCard extends StatelessWidget {
-  const LoyaltyPromoCard({super.key});
+  final bool isFirst;
+  const LoyaltyPromoCard({super.key, this.isFirst = false});
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +52,7 @@ class LoyaltyPromoCard extends StatelessWidget {
           child: Container(
             width: 220,
             height: 185,
-            margin: const EdgeInsets.only(right: 10),
+            margin: EdgeInsets.only(left: isFirst ? 16 : 0, right: 10),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: const Color(0xFFFAF3EC),

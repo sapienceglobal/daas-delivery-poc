@@ -8,7 +8,6 @@ import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/screens/menu_screen.dart';
 import 'dart:convert';
 import 'package:single_restaurant_mobile/services/api_service.dart';
-import 'package:single_restaurant_mobile/services/coupon_service.dart';
 import 'package:single_restaurant_mobile/theme/app_responsive.dart';
 import 'package:single_restaurant_mobile/theme/app_spacing.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
@@ -143,17 +142,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         }
       }
 
-      // 2. Fallback: If no CMS coupon pinned or expired, use the first active coupon
-      final coupons = await CouponService().getCoupons(activeOnly: true);
-      if (coupons.isNotEmpty) {
-        if (mounted) {
-          setState(() {
-            _activeCoupon = Map<String, dynamic>.from(coupons.first);
-          });
-        }
+      // If CMS has mobileHome set to None (null) or it is expired, hide the card
+      if (mounted) {
+        setState(() {
+          _activeCoupon = null;
+        });
       }
     } catch (e) {
       debugPrint('Failed to load active coupon: $e');
+      if (mounted) {
+        setState(() {
+          _activeCoupon = null;
+        });
+      }
     }
   }
 

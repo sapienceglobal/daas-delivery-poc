@@ -36,10 +36,18 @@ export default function CategorySidebar({
         const BRANDED_ID = process.env.NEXT_PUBLIC_BRANDED_RESTAURANT_ID || 'lassi-lounge';
         const res = await api.get(`/api/cms?restaurantId=${BRANDED_ID}`);
         if (res.data?.promotions?.menuPage) {
-          setActiveCoupon(res.data.promotions.menuPage);
+          const promo = res.data.promotions.menuPage;
+          const isExpiredPromo = promo.isActive === false || 
+            (promo.endDate && new Date(promo.endDate).getTime() < Date.now());
+          if (!isExpiredPromo) {
+            setActiveCoupon(promo);
+            return;
+          }
         }
+        setActiveCoupon(null);
       } catch (err) {
         console.error('Failed to fetch CMS promotions:', err);
+        setActiveCoupon(null);
       }
     };
     fetchCoupon();

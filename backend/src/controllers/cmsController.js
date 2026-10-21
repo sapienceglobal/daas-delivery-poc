@@ -155,9 +155,16 @@ export const updateCmsConfig = asyncHandler(async (req, response) => {
   
   let cms = await CmsModel.findOne({ restaurantId });
 
+  const extractId = (val) => {
+    if (!val) return null;
+    if (typeof val === 'object' && val._id) return val._id;
+    if (typeof val === 'string' && val.trim() !== '' && val !== 'null' && val !== 'undefined') return val;
+    return null;
+  };
+
   const sanitizedPromotions = promotions ? {
-    menuPage: (promotions.menuPage && promotions.menuPage !== '') ? promotions.menuPage : null,
-    mobileHome: (promotions.mobileHome && promotions.mobileHome !== '') ? promotions.mobileHome : null
+    menuPage: extractId(promotions.menuPage),
+    mobileHome: extractId(promotions.mobileHome)
   } : undefined;
 
   if (cms) {
@@ -166,7 +173,10 @@ export const updateCmsConfig = asyncHandler(async (req, response) => {
     cms.cateringOccasions = cateringOccasions || cms.cateringOccasions;
     cms.cateringPackages = cateringPackages || cms.cateringPackages;
     cms.bookingSettings = bookingSettings || cms.bookingSettings;
-    if (sanitizedPromotions) cms.promotions = sanitizedPromotions;
+    if (sanitizedPromotions) {
+      cms.promotions = sanitizedPromotions;
+      cms.markModified('promotions');
+    }
     await cms.save();
   } else {
     // merge provided fields with default placeholders for missing fields
