@@ -139,7 +139,7 @@ class _WelcomeOfferCardState extends State<WelcomeOfferCard>
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Expanded(
                     child: Text(
                       desc,
@@ -147,9 +147,9 @@ class _WelcomeOfferCardState extends State<WelcomeOfferCard>
                         color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 10.5,
                         fontWeight: FontWeight.w400,
-                        height: 1.2,
+                        height: 1.25,
                       ),
-                      maxLines: 2,
+                      maxLines: 4,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
