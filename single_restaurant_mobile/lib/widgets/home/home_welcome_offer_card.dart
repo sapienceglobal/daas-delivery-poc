@@ -139,18 +139,20 @@ class _WelcomeOfferCardState extends State<WelcomeOfferCard>
                       ),
                     ),
                   ),
-                  const SizedBox(height: 6),
                   Expanded(
-                    child: Text(
-                      desc,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w400,
-                        height: 1.25,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        desc,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w400,
+                          height: 1.25,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   GestureDetector(
