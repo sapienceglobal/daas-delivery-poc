@@ -89,49 +89,49 @@ export default function KitchenDisplayView({ orders = [], restaurantId, onUpdate
     let textColor = '';
     
     if (type === 'new') {
-      headerBg = 'bg-[#fef2f2] border-[#fecaca]';
-      textColor = 'text-[#dc2626]';
+      headerBg = 'bg-rose-500/10 border-rose-500/20';
+      textColor = 'text-rose-500';
     } else if (type === 'preparing') {
-      headerBg = 'bg-[#fff7ed] border-[#fed7aa]';
-      textColor = 'text-[#ea580c]';
+      headerBg = 'bg-amber-500/10 border-amber-500/20';
+      textColor = 'text-amber-500';
     } else {
-      headerBg = 'bg-[#f0fdf4] border-[#bbf7d0]';
-      textColor = 'text-[#16a34a]';
+      headerBg = 'bg-emerald-500/10 border-emerald-500/20';
+      textColor = 'text-emerald-500';
     }
 
     return (
-      <div key={order._id} className={`flex flex-col bg-white rounded-xl shadow-sm border ${isLate && type !== 'ready' ? 'border-[#f87171] ring-2 ring-[#fee2e2]' : 'border-[#e5e7eb]'} overflow-hidden`}>
+      <div key={order._id} className={`flex flex-col bg-admin-card rounded-2xl shadow-md border ${isLate && type !== 'ready' ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-admin-border'} overflow-hidden transition-all duration-200 hover:shadow-lg`}>
         <div className={`px-4 py-3 border-b flex justify-between items-center ${headerBg}`}>
           <div>
-            <span className={`text-[16px] font-black ${textColor}`}>#{order.orderNumber || order._id.toString().slice(-4)}</span>
-            <span className="text-[12px] font-bold text-[#4b5563] ml-2 capitalize">{order.type || 'Delivery'}</span>
+            <span className={`text-[16px] font-black font-outfit ${textColor}`}>#{order.orderNumber || order._id?.toString().slice(-4) || 'N/A'}</span>
+            <span className="text-[12px] font-bold text-admin-text-secondary ml-2 capitalize">{order.type || 'Delivery'}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Clock className={`w-4 h-4 ${isLate && type !== 'ready' ? 'text-[#dc2626]' : 'text-[#6b7280]'}`} />
-            <span className={`text-[14px] font-bold ${isLate && type !== 'ready' ? 'text-[#dc2626]' : 'text-[#374151]'}`}>{elapsedMinutes}m</span>
+          <div className="flex items-center gap-1.5">
+            <Clock className={`w-4 h-4 ${isLate && type !== 'ready' ? 'text-rose-500' : 'text-admin-text-secondary'}`} />
+            <span className={`text-[13px] font-bold ${isLate && type !== 'ready' ? 'text-rose-500' : 'text-admin-text'}`}>{elapsedMinutes}m</span>
           </div>
         </div>
 
         <div className="p-4 flex-1">
-          <div className="text-[14px] font-bold text-[#111827] mb-3 pb-2 border-b border-[#f3f4f6]">
+          <div className="text-[14px] font-bold text-admin-text mb-3 pb-2 border-b border-admin-border font-outfit">
             {order.customerName} {order.tableNumber ? `- Table ${order.tableNumber}` : ''}
           </div>
           
           <div className="space-y-3 mb-4">
             {(order.items || []).map((item, idx) => (
               <div key={idx} className="flex justify-between items-start">
-                <div className="flex gap-2 text-[14px]">
-                  <span className="font-bold text-[#111827]">{item.quantity}x</span>
+                <div className="flex gap-2.5 text-[14px]">
+                  <span className="font-bold text-admin-text min-w-[24px]">{item.quantity}x</span>
                   <div className="flex flex-col">
-                    <span className="font-semibold text-[#1f2937]">{item.name}</span>
+                    <span className="font-semibold text-admin-text">{item.name}</span>
                     {item.selectedSize?.name && (
-                      <span className="text-[12px] text-[#6b7280] font-bold">Size: {item.selectedSize.name}</span>
+                      <span className="text-[12px] text-admin-text-secondary font-medium">Size: {item.selectedSize.name}</span>
                     )}
                     {(item.addOns || []).map((addon, i) => (
-                      <span key={i} className="text-[12px] text-[#6b7280] italic">+ {addon.name}</span>
+                      <span key={i} className="text-[12px] text-admin-text-secondary italic">+ {addon.name}</span>
                     ))}
                     {item.specialInstructions && (
-                      <span className="text-[12px] font-medium text-[#d97706] bg-[#fffbeb] px-1 py-0.5 rounded mt-1 border border-[#fef3c7]">
+                      <span className="text-[12px] font-medium text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-lg mt-1 border border-amber-500/20">
                         Note: {item.specialInstructions}
                       </span>
                     )}
@@ -142,11 +142,11 @@ export default function KitchenDisplayView({ orders = [], restaurantId, onUpdate
           </div>
         </div>
 
-        <div className="p-3 bg-[#f9fafb] border-t border-[#f3f4f6] flex gap-2">
+        <div className="p-3 bg-admin-surface/50 border-t border-admin-border flex gap-2">
           {type === 'new' && (
             <button 
               onClick={() => updateOrderStatus(order._id, 'preparing')}
-              className="flex-1 bg-[#111827] text-white py-3 rounded-lg font-bold text-[14px] hover:bg-[#1f2937] transition-colors flex items-center justify-center gap-2"
+              className="flex-1 bg-brand hover:opacity-90 text-white py-2.5 rounded-xl font-bold text-[13px] transition-all flex items-center justify-center gap-2 shadow-sm"
             >
               <Flame className="w-4 h-4" /> Start Prep
             </button>
@@ -154,13 +154,13 @@ export default function KitchenDisplayView({ orders = [], restaurantId, onUpdate
           {type === 'preparing' && (
             <button 
               onClick={() => updateOrderStatus(order._id, 'ready')}
-              className="flex-1 bg-[#16a34a] text-white py-3 rounded-lg font-bold text-[14px] hover:bg-[#15803d] transition-colors flex items-center justify-center gap-2"
+              className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-[13px] transition-all flex items-center justify-center gap-2 shadow-sm"
             >
               <CheckCircle className="w-4 h-4" /> Mark Ready
             </button>
           )}
           {type === 'ready' && (
-            <div className="flex-1 py-3 text-center text-[14px] font-bold text-[#6b7280]">
+            <div className="flex-1 py-2.5 text-center text-[13px] font-bold text-admin-text-secondary">
               Waiting for Pickup...
             </div>
           )}
@@ -170,30 +170,30 @@ export default function KitchenDisplayView({ orders = [], restaurantId, onUpdate
   };
 
   return (
-    <div ref={containerRef} className={`flex flex-col h-full ${isFullscreen ? 'bg-[#f3f4f6] fixed inset-0 z-[9999] p-4' : ''}`}>
+    <div ref={containerRef} className={`flex flex-col h-full ${isFullscreen ? 'bg-admin-bg fixed inset-0 z-[9999] p-6' : ''}`}>
       {/* Header */}
-      <div className={`flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-[#e5e7eb] ${isFullscreen ? '' : 'mt-0'}`}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#111827] rounded-lg flex items-center justify-center text-white">
+      <div className={`flex justify-between items-center mb-6 bg-admin-surface p-4 rounded-2xl shadow-sm border border-admin-border ${isFullscreen ? '' : 'mt-0'}`}>
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 bg-brand/10 border border-brand/20 rounded-xl flex items-center justify-center text-brand">
             <Monitor className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-[20px] font-black text-[#111827]">Live Kitchen Display</h1>
-            <p className="text-[12px] text-[#6b7280] font-medium">Unified Station • {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
+            <h1 className="text-[20px] font-black text-admin-text font-outfit">Live Kitchen Display</h1>
+            <p className="text-[12px] text-admin-text-secondary font-medium">Unified Station • {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
           </div>
         </div>
         
         <div className="flex gap-3">
           <button 
             onClick={() => { playSound(); setSoundEnabled(!soundEnabled); }}
-            className={`px-4 py-2 rounded-lg font-bold text-[13px] flex items-center gap-2 transition-colors border ${soundEnabled ? 'bg-[#eff6ff] text-[#1d4ed8] border-[#bfdbfe] hover:bg-[#dbeafe]' : 'bg-[#f3f4f6] text-[#6b7280] border-[#e5e7eb] hover:bg-[#e5e7eb]'}`}
+            className={`px-4 py-2.5 rounded-xl font-bold text-[13px] flex items-center gap-2 transition-all border ${soundEnabled ? 'bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20' : 'bg-admin-card text-admin-text-secondary border-admin-border hover:bg-admin-surface-hover hover:text-admin-text'}`}
           >
             {soundEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
             {soundEnabled ? 'Sound On' : 'Sound Off'}
           </button>
           <button 
             onClick={toggleFullscreen}
-            className="px-4 py-2 bg-[#111827] text-white rounded-lg font-bold text-[13px] hover:bg-[#1f2937] transition-colors flex items-center gap-2"
+            className="px-4 py-2.5 bg-brand hover:opacity-90 text-white rounded-xl font-bold text-[13px] transition-all flex items-center gap-2 shadow-sm"
           >
             {isFullscreen ? <Shrink className="w-4 h-4" /> : <Expand className="w-4 h-4" />}
             {isFullscreen ? 'Exit Fullscreen' : 'Full Screen'}
@@ -205,49 +205,49 @@ export default function KitchenDisplayView({ orders = [], restaurantId, onUpdate
       <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 overflow-hidden">
         
         {/* New Column */}
-        <div className="flex flex-col bg-[#f9fafb] rounded-2xl p-4 border border-[#e5e7eb] overflow-hidden">
+        <div className="flex flex-col bg-admin-surface/60 rounded-2xl p-4 border border-admin-border overflow-hidden backdrop-blur-sm">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-[16px] font-black text-[#1f2937] flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#ef4444]"></span>
+            <h2 className="text-[15px] font-black text-admin-text flex items-center gap-2 font-outfit">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
               NEW ({newOrders.length})
             </h2>
           </div>
           <div className="flex-1 overflow-y-auto pr-2 space-y-4 pb-10 custom-scrollbar">
             {newOrders.map(o => renderOrderCard(o, 'new'))}
             {newOrders.length === 0 && (
-              <div className="text-center py-10 text-[#9ca3af] font-bold text-[13px]">No new orders</div>
+              <div className="text-center py-12 text-admin-text-secondary font-medium text-[13px]">No new orders</div>
             )}
           </div>
         </div>
 
         {/* Preparing Column */}
-        <div className="flex flex-col bg-[#f9fafb] rounded-2xl p-4 border border-[#e5e7eb] overflow-hidden">
+        <div className="flex flex-col bg-admin-surface/60 rounded-2xl p-4 border border-admin-border overflow-hidden backdrop-blur-sm">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-[16px] font-black text-[#1f2937] flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#f97316]"></span>
+            <h2 className="text-[15px] font-black text-admin-text flex items-center gap-2 font-outfit">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
               PREPARING ({preparingOrders.length})
             </h2>
           </div>
           <div className="flex-1 overflow-y-auto pr-2 space-y-4 pb-10 custom-scrollbar">
             {preparingOrders.map(o => renderOrderCard(o, 'preparing'))}
             {preparingOrders.length === 0 && (
-              <div className="text-center py-10 text-[#9ca3af] font-bold text-[13px]">No orders in prep</div>
+              <div className="text-center py-12 text-admin-text-secondary font-medium text-[13px]">No orders in prep</div>
             )}
           </div>
         </div>
 
         {/* Ready Column */}
-        <div className="flex flex-col bg-[#f9fafb] rounded-2xl p-4 border border-[#e5e7eb] overflow-hidden">
+        <div className="flex flex-col bg-admin-surface/60 rounded-2xl p-4 border border-admin-border overflow-hidden backdrop-blur-sm">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-[16px] font-black text-[#1f2937] flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#22c55e]"></span>
+            <h2 className="text-[15px] font-black text-admin-text flex items-center gap-2 font-outfit">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
               READY ({readyOrders.length})
             </h2>
           </div>
           <div className="flex-1 overflow-y-auto pr-2 space-y-4 pb-10 custom-scrollbar">
             {readyOrders.map(o => renderOrderCard(o, 'ready'))}
             {readyOrders.length === 0 && (
-              <div className="text-center py-10 text-[#9ca3af] font-bold text-[13px]">No ready orders</div>
+              <div className="text-center py-12 text-admin-text-secondary font-medium text-[13px]">No ready orders</div>
             )}
           </div>
         </div>

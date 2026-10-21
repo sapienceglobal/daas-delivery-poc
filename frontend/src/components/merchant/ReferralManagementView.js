@@ -6,13 +6,15 @@ import {
   Save, X, RefreshCw, Ban, ShieldCheck, Sparkles
 } from 'lucide-react';
 import StatCard from './StatCard';
+import PageHeaderGradient from './common/PageHeaderGradient';
+import TableScrollContainer from './common/TableScrollContainer';
 import { referralAPI } from '@/lib/api';
 import { showToast, PageLoader } from '@/components/ui';
 
 function Toggle({ checked, onChange, size = 'md', disabled = false, label }) {
   const dims = size === 'sm'
-    ? { trackW: 36, trackH: 20, knob: 16, on: 18 }
-    : { trackW: 44, trackH: 24, knob: 20, on: 22 };
+    ? { trackW: 38, trackH: 22, knob: 16, on: 18 }
+    : { trackW: 46, trackH: 26, knob: 20, on: 22 };
 
   const handleKeyDown = (e) => {
     if (disabled) return;
@@ -31,14 +33,14 @@ function Toggle({ checked, onChange, size = 'md', disabled = false, label }) {
       tabIndex={disabled ? -1 : 0}
       onClick={() => !disabled && onChange(!checked)}
       onKeyDown={handleKeyDown}
-      className={`relative inline-flex shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8b0000] focus-visible:ring-offset-2 ${
+      className={`relative inline-flex shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-      }`}
-      style={{ width: dims.trackW, height: dims.trackH, backgroundColor: checked ? '#16a34a' : '#d1d5db' }}
+      } ${checked ? 'bg-emerald-500 shadow-sm shadow-emerald-500/20' : 'bg-admin-border-subtle'}`}
+      style={{ width: dims.trackW, height: dims.trackH }}
     >
       <span
         className="pointer-events-none inline-block rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out"
-        style={{ width: dims.knob, height: dims.knob, transform: `translateX(${checked ? dims.on : 2}px)` }}
+        style={{ width: dims.knob, height: dims.knob, transform: `translateX(${checked ? dims.on : 3}px)` }}
       />
     </div>
   );
@@ -172,38 +174,38 @@ export default function ReferralManagementView({ restaurant }) {
     switch (status) {
       case 'coupon_issued':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#fffbeb] text-[#b45309] border border-[#fde68a]">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 font-outfit">
             <Clock className="w-3 h-3" /> Coupon Issued
           </span>
         );
       case 'redeemed':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#eff6ff] text-[#1d4ed8] border border-[#bfdbfe]">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20 font-outfit">
             <Clock className="w-3 h-3" /> Ordered
           </span>
         );
       case 'rewarded':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#ecfdf5] text-[#047857] border border-[#a7f3d0]">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-outfit">
             <CheckCircle2 className="w-3 h-3" /> Delivered & Rewarded
           </span>
         );
       case 'revoked':
       case 'cancelled':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#fef2f2] text-[#b91c1c] border border-[#fecaca]">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20 font-outfit">
             <XCircle className="w-3 h-3" /> Revoked
           </span>
         );
       case 'expired':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#f3f4f6] text-[#4b5563] border border-[#e5e7eb]">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-admin-surface-2 text-admin-muted border border-admin-border font-outfit">
             Expired
           </span>
         );
       default:
         return (
-          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#f3f4f6] text-[#4b5563] border border-[#e5e7eb]">
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-admin-surface-2 text-admin-muted border border-admin-border font-outfit">
             {status}
           </span>
         );
@@ -213,93 +215,84 @@ export default function ReferralManagementView({ restaurant }) {
   if (loading) return <PageLoader text="Loading Referral System..." />;
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-6 pb-12">
       
       {/* Title Area */}
-      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
-        <div>
+      <PageHeaderGradient
+        title="Referral Program Management"
+        subtitle="Configure welcome offers, referrer rewards, fraud guards & track customer redemptions in real time."
+        actions={
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#fee2e2] flex items-center justify-center text-[#8b0000] border border-[#fca5a5]">
-              <Share2 className="w-5 h-5" />
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-admin-surface border border-admin-border text-xs font-outfit">
+              <span className="font-bold text-admin-text-secondary">Status:</span>
+              <span className={`font-black flex items-center gap-1.5 ${settingsForm.enabled ? 'text-emerald-500' : 'text-rose-500'}`}>
+                <span className={`w-2 h-2 rounded-full ${settingsForm.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
+                {settingsForm.enabled ? 'Active' : 'Disabled'}
+              </span>
             </div>
-            <div>
-              <h1 className="text-[28px] font-bold text-[#111827]">Referral Program Management</h1>
-              <p className="text-sm text-[#6b7280] mt-1">
-                Configure welcome offers, referrer rewards, fraud guards &amp; track customer redemptions in real time.
-              </p>
-            </div>
+
+            <button
+              onClick={() => setShowSettings(true)}
+              className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-hover text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-primary/25 hover:shadow-lg hover:brightness-105 active:scale-[0.98] transition-all cursor-pointer font-outfit"
+            >
+              <Settings className="w-4 h-4 text-white" /> Program Settings
+            </button>
           </div>
-        </div>
+        }
+      />
 
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-[#e5e7eb] text-xs">
-            <span className="font-bold text-[#6b7280]">Status:</span>
-            <span className={`font-bold ${settingsForm.enabled ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
-              {settingsForm.enabled ? 'Active' : 'Disabled'}
-            </span>
-          </div>
-
-          <button
-            onClick={() => setShowSettings(true)}
-            className="flex items-center gap-1.5 bg-[#8b0000] text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-[#7f0000] transition-colors shadow-sm"
-          >
-            <Settings className="w-4 h-4" /> Program Settings
-          </button>
-        </div>
-      </div>
-
-      {/* 6 Stat Cards Grid with Explicit Colors */}
+      {/* 6 Stat Cards Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard
           title="Total Referrals"
           value={stats?.totalReferrals || 0}
           icon={Users}
-          iconBg="bg-[#eff6ff]"
-          iconColor="text-[#2563eb]"
+          iconBg="bg-blue-500/10 dark:bg-blue-500/20"
+          iconColor="text-blue-500"
         />
         <StatCard
           title="Coupons Issued"
           value={stats?.couponIssued || 0}
           icon={Ticket}
-          iconBg="bg-[#fffbeb]"
-          iconColor="text-[#d97706]"
+          iconBg="bg-amber-500/10 dark:bg-amber-500/20"
+          iconColor="text-amber-500"
         />
         <StatCard
           title="Converted Orders"
           value={stats?.rewarded || 0}
           icon={CheckCircle2}
-          iconBg="bg-[#ecfdf5]"
-          iconColor="text-[#059669]"
+          iconBg="bg-emerald-500/10 dark:bg-emerald-500/20"
+          iconColor="text-emerald-500"
         />
         <StatCard
           title="Discount Given"
           value={`$${(stats?.discountGiven || 0).toFixed(0)}`}
           icon={DollarSign}
-          iconBg="bg-[#f3e8ff]"
-          iconColor="text-[#9333ea]"
+          iconBg="bg-purple-500/10 dark:bg-purple-500/20"
+          iconColor="text-purple-500"
         />
         <StatCard
           title="Loyalty Points"
           value={stats?.pointsAwarded || 0}
           icon={Gift}
-          iconBg="bg-[#fdf2f8]"
-          iconColor="text-[#db2777]"
+          iconBg="bg-pink-500/10 dark:bg-pink-500/20"
+          iconColor="text-pink-500"
         />
         <StatCard
           title="Fraud Flags"
           value={stats?.flagged || 0}
           icon={ShieldAlert}
-          iconBg="bg-[#fef2f2]"
-          iconColor="text-[#dc2626]"
+          iconBg="bg-rose-500/10 dark:bg-rose-500/20"
+          iconColor="text-rose-500"
         />
       </div>
 
       {/* Main Ledger & Search Filter */}
-      <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-[#f3f4f6] flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#f9fafb]/50">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold text-[#111827]">Referral Records &amp; Benefit Log</h2>
-            <span className="text-xs bg-[#f3f4f6] text-[#4b5563] px-2.5 py-0.5 rounded-full font-semibold border border-[#e5e7eb]">
+      <div className="bg-admin-surface rounded-2xl border border-admin-border shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-admin-border flex flex-col md:flex-row md:items-center justify-between gap-3 bg-admin-surface-2/60">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-sm font-bold text-admin-text font-outfit">Referral Records & Benefit Log</h2>
+            <span className="text-xs bg-admin-surface text-admin-muted px-2.5 py-0.5 rounded-full font-bold border border-admin-border font-outfit">
               {pagination.total} records
             </span>
           </div>
@@ -312,7 +305,7 @@ export default function ReferralManagementView({ restaurant }) {
                 setStatusFilter(e.target.value);
                 setPagination(prev => ({ ...prev, page: 1 }));
               }}
-              className="text-xs border border-[#e5e7eb] rounded-lg px-3 py-2 bg-white text-[#1f2937] font-medium focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000]"
+              className="text-xs border border-admin-border rounded-xl px-3 py-2 bg-admin-surface text-admin-text font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             >
               <option value="">All Statuses</option>
               <option value="coupon_issued">Coupon Issued</option>
@@ -328,9 +321,9 @@ export default function ReferralManagementView({ restaurant }) {
                 placeholder="Search name, code, coupon..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="text-xs border border-[#e5e7eb] rounded-lg pl-8 pr-3 py-2 bg-white text-[#1f2937] placeholder:text-[#9ca3af] focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000] w-56"
+                className="text-xs border border-admin-border rounded-xl pl-8 pr-3 py-2 bg-admin-surface text-admin-text placeholder:text-admin-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary w-56 transition-all"
               />
-              <Search className="w-3.5 h-3.5 text-[#9ca3af] absolute left-2.5 top-2.5" />
+              <Search className="w-3.5 h-3.5 text-admin-muted absolute left-2.5 top-2.5 pointer-events-none" />
             </form>
 
             <button
@@ -339,7 +332,7 @@ export default function ReferralManagementView({ restaurant }) {
                 loadReferralList();
                 loadInitialData();
               }}
-              className="p-2 rounded-lg border border-[#e5e7eb] text-[#6b7280] hover:text-[#111827] hover:bg-[#f9fafb] transition-colors"
+              className="p-2 rounded-xl border border-admin-border bg-admin-surface text-admin-muted hover:text-admin-text hover:bg-admin-surface-2 transition-colors"
               title="Refresh"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -348,61 +341,61 @@ export default function ReferralManagementView({ restaurant }) {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <TableScrollContainer>
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#f9fafb] text-[#6b7280] font-bold border-b border-[#e5e7eb] uppercase tracking-wider text-[11px]">
+            <thead className="bg-admin-surface-2/60 text-admin-muted font-bold border-b border-admin-border uppercase tracking-wider text-[11px] font-outfit">
               <tr>
-                <th className="px-4 py-3">Date &amp; Code</th>
-                <th className="px-4 py-3">Referrer (Owner)</th>
-                <th className="px-4 py-3">Invited Friend</th>
-                <th className="px-4 py-3">Coupon Details</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Benefit Given</th>
-                <th className="px-4 py-3">Order Info</th>
-                <th className="px-4 py-3 text-right">Action</th>
+                <th className="px-4 py-3.5">Date & Code</th>
+                <th className="px-4 py-3.5">Referrer (Owner)</th>
+                <th className="px-4 py-3.5">Invited Friend</th>
+                <th className="px-4 py-3.5">Coupon Details</th>
+                <th className="px-4 py-3.5">Status</th>
+                <th className="px-4 py-3.5">Benefit Given</th>
+                <th className="px-4 py-3.5">Order Info</th>
+                <th className="px-4 py-3.5 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#f3f4f6] text-[#374151]">
+            <tbody className="divide-y divide-admin-border dark:divide-white/[0.08] text-admin-text">
               {tableLoading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[#6b7280]">
+                  <td colSpan={8} className="py-12 text-center text-admin-muted">
                     <div className="flex items-center justify-center gap-2">
-                      <RefreshCw className="w-4 h-4 animate-spin text-[#8b0000]" />
+                      <RefreshCw className="w-4 h-4 animate-spin text-primary" />
                       Loading records...
                     </div>
                   </td>
                 </tr>
               ) : referrals.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[#6b7280]">
+                  <td colSpan={8} className="py-12 text-center text-admin-muted font-semibold">
                     No referral records found matching your filters.
                   </td>
                 </tr>
               ) : (
                 referrals.map((r) => (
-                  <tr key={r.id} className="hover:bg-[#f9fafb] transition-colors">
+                  <tr key={r.id} className="hover:bg-admin-surface-2/50 transition-colors">
                     <td className="px-4 py-3.5 font-medium whitespace-nowrap">
-                      <div className="font-bold text-[#111827]">{r.code}</div>
-                      <div className="text-[11px] text-[#6b7280]">{new Date(r.createdAt).toLocaleDateString()}</div>
+                      <div className="font-bold text-admin-text font-outfit">{r.code}</div>
+                      <div className="text-[11px] text-admin-muted mt-0.5">{new Date(r.createdAt).toLocaleDateString()}</div>
                       {r.flagged && (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] text-[#b91c1c] font-bold mt-0.5 bg-[#fef2f2] px-1.5 py-0.5 rounded border border-[#fecaca]">
+                        <span className="inline-flex items-center gap-0.5 text-[10px] text-rose-500 font-bold mt-1 bg-rose-500/10 px-1.5 py-0.5 rounded-md border border-rose-500/20 font-outfit">
                           <AlertTriangle className="w-2.5 h-2.5" /> {r.flagReason || 'Flagged'}
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-3.5">
-                      <div className="font-bold text-[#111827]">{r.referrer?.name || 'N/A'}</div>
-                      <div className="text-[11px] text-[#6b7280]">{r.referrer?.email || r.referrer?.phone}</div>
+                      <div className="font-bold text-admin-text font-outfit">{r.referrer?.name || 'N/A'}</div>
+                      <div className="text-[11px] text-admin-muted">{r.referrer?.email || r.referrer?.phone}</div>
                     </td>
                     <td className="px-4 py-3.5">
-                      <div className="font-bold text-[#111827]">{r.referee?.name || 'New Customer'}</div>
-                      <div className="text-[11px] text-[#6b7280]">{r.referee?.email || r.referee?.phone}</div>
+                      <div className="font-bold text-admin-text font-outfit">{r.referee?.name || 'New Customer'}</div>
+                      <div className="text-[11px] text-admin-muted">{r.referee?.email || r.referee?.phone}</div>
                     </td>
                     <td className="px-4 py-3.5 whitespace-nowrap">
-                      <span className="font-mono font-bold text-[#111827] bg-[#f3f4f6] border border-[#e5e7eb] px-2 py-0.5 rounded text-[11px]">
+                      <span className="font-mono font-bold text-admin-text bg-admin-surface-2 border border-admin-border px-2 py-0.5 rounded text-[11px]">
                         {r.coupon?.code}
                       </span>
-                      <div className="text-[11px] text-[#6b7280] mt-0.5">
+                      <div className="text-[11px] text-admin-muted mt-1">
                         ${r.coupon?.discount} OFF (min ${r.coupon?.minOrder})
                       </div>
                     </td>
@@ -410,34 +403,34 @@ export default function ReferralManagementView({ restaurant }) {
                       {getStatusBadge(r.status)}
                     </td>
                     <td className="px-4 py-3.5 whitespace-nowrap">
-                      <div className="font-semibold text-[#111827]">
-                        Friend: <span className="text-[#16a34a] font-bold">${r.discountGiven || r.coupon?.discount || 0}</span>
+                      <div className="font-semibold text-admin-text font-outfit">
+                        Friend: <span className="text-emerald-500 font-bold">${r.discountGiven || r.coupon?.discount || 0}</span>
                       </div>
-                      <div className="text-[11px] text-[#6b7280]">
+                      <div className="text-[11px] text-admin-muted">
                         Referrer: {r.rewardPoints ? `${r.rewardPoints} pts` : `$${r.rewardValue} pending`}
                       </div>
                     </td>
                     <td className="px-4 py-3.5 whitespace-nowrap">
                       {r.order ? (
                         <div>
-                          <div className="font-bold text-[#111827]">#{r.order.orderNumber}</div>
-                          <div className="text-[11px] text-[#6b7280]">${r.order.total?.toFixed(2)}</div>
+                          <div className="font-bold text-admin-text font-outfit">#{r.order.orderNumber}</div>
+                          <div className="text-[11px] text-admin-muted">${r.order.total?.toFixed(2)}</div>
                         </div>
                       ) : (
-                        <span className="text-[#9ca3af] text-[11px]">—</span>
+                        <span className="text-admin-muted text-[11px]">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3.5 text-right whitespace-nowrap">
                       {r.status === 'coupon_issued' ? (
                         <button
                           onClick={() => handleCancelReferral(r.id)}
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#dc2626] hover:text-[#991b1b] hover:bg-[#fee2e2] px-2.5 py-1 rounded transition-colors border border-[#fecaca]"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg transition-colors border border-rose-500/20 font-outfit"
                           title="Cancel unused coupon"
                         >
                           <Ban className="w-3 h-3" /> Cancel
                         </button>
                       ) : (
-                        <span className="text-[#d1d5db] text-xs">—</span>
+                        <span className="text-admin-muted text-xs">—</span>
                       )}
                     </td>
                   </tr>
@@ -445,26 +438,26 @@ export default function ReferralManagementView({ restaurant }) {
               )}
             </tbody>
           </table>
-        </div>
+        </TableScrollContainer>
 
         {/* Pagination Footer */}
         {pagination.totalPages > 1 && (
-          <div className="p-3 border-t border-[#f3f4f6] flex items-center justify-between text-xs text-[#6b7280] bg-[#f9fafb]/50">
+          <div className="p-3.5 border-t border-admin-border flex items-center justify-between text-xs text-admin-muted bg-admin-surface-2/60">
             <div>
-              Page <strong className="text-[#111827]">{pagination.page}</strong> of <strong className="text-[#111827]">{pagination.totalPages}</strong>
+              Page <strong className="text-admin-text font-outfit">{pagination.page}</strong> of <strong className="text-admin-text font-outfit">{pagination.totalPages}</strong>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 disabled={pagination.page <= 1}
                 onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                className="px-3 py-1.5 rounded-lg border border-[#e5e7eb] text-[#374151] font-semibold hover:bg-white disabled:opacity-40 transition-colors"
+                className="px-3 py-1.5 rounded-xl border border-admin-border bg-admin-surface text-admin-text font-bold hover:bg-admin-surface-2 disabled:opacity-40 transition-colors font-outfit"
               >
                 Previous
               </button>
               <button
                 disabled={pagination.page >= pagination.totalPages}
                 onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                className="px-3 py-1.5 rounded-lg border border-[#e5e7eb] text-[#374151] font-semibold hover:bg-white disabled:opacity-40 transition-colors"
+                className="px-3 py-1.5 rounded-xl border border-admin-border bg-admin-surface text-admin-text font-bold hover:bg-admin-surface-2 disabled:opacity-40 transition-colors font-outfit"
               >
                 Next
               </button>
@@ -475,23 +468,23 @@ export default function ReferralManagementView({ restaurant }) {
 
       {/* Program Settings Modal via Portal at document.body with z-[99999] */}
       {showSettings && mounted && createPortal(
-        <div className={`fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm duration-200 ${isClosing ? 'animate-out fade-out' : 'animate-in fade-in'}`}>
-          <div className={`bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-[#e5e7eb] overflow-hidden flex flex-col duration-200 ${isClosing ? 'animate-out zoom-out-95' : 'animate-in zoom-in-95'}`}>
+        <div className={`fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md duration-200 ${isClosing ? 'animate-out fade-out' : 'animate-in fade-in'}`}>
+          <div className={`bg-admin-surface rounded-2xl max-w-2xl w-full shadow-2xl border border-admin-border overflow-hidden flex flex-col duration-200 ${isClosing ? 'animate-out zoom-out-95' : 'animate-in zoom-in-95'}`}>
             
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-[#f3f4f6] flex items-center justify-between bg-[#f9fafb]">
+            <div className="px-6 py-4 border-b border-admin-border flex items-center justify-between bg-admin-surface-2/60">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#fee2e2] flex items-center justify-center text-[#8b0000]">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                   <Settings className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-[#111827] text-base">Referral Program Configuration</h3>
-                  <p className="text-xs text-[#6b7280]">Adjust discount values, minimum orders &amp; anti-fraud rules</p>
+                  <h3 className="font-bold text-admin-text text-base font-outfit">Referral Program Configuration</h3>
+                  <p className="text-xs text-admin-muted">Adjust discount values, minimum orders & anti-fraud rules</p>
                 </div>
               </div>
               <button
                 onClick={handleCloseModal}
-                className="p-2 hover:bg-[#e5e7eb] rounded-full transition-colors text-[#6b7280] hover:text-[#111827]"
+                className="p-1.5 hover:bg-admin-surface-2 rounded-xl transition-colors text-admin-muted hover:text-admin-text"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -501,10 +494,10 @@ export default function ReferralManagementView({ restaurant }) {
             <form id="referralSettingsForm" onSubmit={handleSaveSettings} className="p-6 space-y-5 overflow-y-auto max-h-[72vh] text-xs">
               
               {/* Program Enabled Card with Toggle */}
-              <div className="flex items-center justify-between p-4 bg-[#f9fafb] rounded-xl border border-[#e5e7eb]">
+              <div className="flex items-center justify-between p-4 bg-admin-surface-2/60 rounded-xl border border-admin-border">
                 <div>
-                  <div className="font-bold text-[#111827] text-sm">Enable Referral Program</div>
-                  <div className="text-xs text-[#6b7280] mt-0.5">Allow customers to share referral codes and claim welcome savings</div>
+                  <div className="font-bold text-admin-text text-sm font-outfit">Enable Referral Program</div>
+                  <div className="text-xs text-admin-muted mt-0.5">Allow customers to share referral codes and claim welcome savings</div>
                 </div>
                 <Toggle
                   checked={settingsForm.enabled}
@@ -516,7 +509,7 @@ export default function ReferralManagementView({ restaurant }) {
               {/* Discount and Reward Values */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block font-bold text-[#111827] text-xs mb-1.5">Friend's Discount ($ OFF)</label>
+                  <label className="block font-bold text-admin-text text-xs mb-1.5 font-outfit">Friend's Discount ($ OFF)</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -524,16 +517,16 @@ export default function ReferralManagementView({ restaurant }) {
                       max="1000"
                       value={settingsForm.refereeDiscountValue}
                       onChange={(e) => setSettingsForm(prev => ({ ...prev, refereeDiscountValue: Number(e.target.value) }))}
-                      className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white font-semibold focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000]"
+                      className="w-full border border-admin-border rounded-xl px-3.5 py-2 text-sm text-admin-text bg-admin-surface font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                       required
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#9ca3af] pointer-events-none">$</span>
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-admin-muted pointer-events-none">$</span>
                   </div>
-                  <span className="text-[11px] text-[#6b7280] block mt-1">Coupon value given to referee</span>
+                  <span className="text-[11px] text-admin-muted block mt-1">Coupon value given to referee</span>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#111827] text-xs mb-1.5">Min Order Required ($)</label>
+                  <label className="block font-bold text-admin-text text-xs mb-1.5 font-outfit">Min Order Required ($)</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -541,16 +534,16 @@ export default function ReferralManagementView({ restaurant }) {
                       max="10000"
                       value={settingsForm.refereeMinOrder}
                       onChange={(e) => setSettingsForm(prev => ({ ...prev, refereeMinOrder: Number(e.target.value) }))}
-                      className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white font-semibold focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000]"
+                      className="w-full border border-admin-border rounded-xl px-3.5 py-2 text-sm text-admin-text bg-admin-surface font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                       required
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#9ca3af] pointer-events-none">$</span>
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-admin-muted pointer-events-none">$</span>
                   </div>
-                  <span className="text-[11px] text-[#6b7280] block mt-1">Min cart subtotal for coupon</span>
+                  <span className="text-[11px] text-admin-muted block mt-1">Min cart subtotal for coupon</span>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#111827] text-xs mb-1.5">Referrer Reward ($)</label>
+                  <label className="block font-bold text-admin-text text-xs mb-1.5 font-outfit">Referrer Reward ($)</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -558,74 +551,74 @@ export default function ReferralManagementView({ restaurant }) {
                       max="1000"
                       value={settingsForm.referrerRewardValue}
                       onChange={(e) => setSettingsForm(prev => ({ ...prev, referrerRewardValue: Number(e.target.value) }))}
-                      className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white font-semibold focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000]"
+                      className="w-full border border-admin-border rounded-xl px-3.5 py-2 text-sm text-admin-text bg-admin-surface font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                       required
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#9ca3af] pointer-events-none">$</span>
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-admin-muted pointer-events-none">$</span>
                   </div>
-                  <span className="text-[11px] text-[#6b7280] block mt-1">Loyalty points given on delivery</span>
+                  <span className="text-[11px] text-admin-muted block mt-1">Loyalty points given on delivery</span>
                 </div>
               </div>
 
               {/* Expiry & Eligibility Rules */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block font-bold text-[#111827] text-xs mb-1.5">Coupon Validity (Days)</label>
+                  <label className="block font-bold text-admin-text text-xs mb-1.5 font-outfit">Coupon Validity (Days)</label>
                   <input
                     type="number"
                     min="1"
                     max="365"
                     value={settingsForm.couponValidityDays}
                     onChange={(e) => setSettingsForm(prev => ({ ...prev, couponValidityDays: Number(e.target.value) }))}
-                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white font-semibold focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000]"
+                    className="w-full border border-admin-border rounded-xl px-3.5 py-2 text-sm text-admin-text bg-admin-surface font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     required
                   />
-                  <span className="text-[11px] text-[#6b7280] block mt-1">Days before friend's coupon expires</span>
+                  <span className="text-[11px] text-admin-muted block mt-1">Days before friend's coupon expires</span>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#111827] text-xs mb-1.5">Code Apply Window (Days)</label>
+                  <label className="block font-bold text-admin-text text-xs mb-1.5 font-outfit">Code Apply Window (Days)</label>
                   <input
                     type="number"
                     min="1"
                     max="90"
                     value={settingsForm.applyWindowDays}
                     onChange={(e) => setSettingsForm(prev => ({ ...prev, applyWindowDays: Number(e.target.value) }))}
-                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white font-semibold focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000]"
+                    className="w-full border border-admin-border rounded-xl px-3.5 py-2 text-sm text-admin-text bg-admin-surface font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     required
                   />
-                  <span className="text-[11px] text-[#6b7280] block mt-1">Allowed days after account signup</span>
+                  <span className="text-[11px] text-admin-muted block mt-1">Allowed days after account signup</span>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#111827] text-xs mb-1.5">Max Rewards / Referrer</label>
+                  <label className="block font-bold text-admin-text text-xs mb-1.5 font-outfit">Max Rewards / Referrer</label>
                   <input
                     type="number"
                     min="0"
                     max="1000"
                     value={settingsForm.maxRewardsPerReferrer}
                     onChange={(e) => setSettingsForm(prev => ({ ...prev, maxRewardsPerReferrer: Number(e.target.value) }))}
-                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white font-semibold focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000]"
+                    className="w-full border border-admin-border rounded-xl px-3.5 py-2 text-sm text-admin-text bg-admin-surface font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     required
                   />
-                  <span className="text-[11px] text-[#6b7280] block mt-1">0 = unlimited rewards per user</span>
+                  <span className="text-[11px] text-admin-muted block mt-1">0 = unlimited rewards per user</span>
                 </div>
               </div>
 
               {/* Anti-Farming & Eligibility */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold text-[#111827] text-xs mb-1.5">Max Applies / IP / Day</label>
+                  <label className="block font-bold text-admin-text text-xs mb-1.5 font-outfit">Max Applies / IP / Day</label>
                   <input
                     type="number"
                     min="1"
                     max="50"
                     value={settingsForm.maxAppliesPerIpPerDay}
                     onChange={(e) => setSettingsForm(prev => ({ ...prev, maxAppliesPerIpPerDay: Number(e.target.value) }))}
-                    className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white font-semibold focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000]"
+                    className="w-full border border-admin-border rounded-xl px-3.5 py-2 text-sm text-admin-text bg-admin-surface font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     required
                   />
-                  <span className="text-[11px] text-[#6b7280] block mt-1">Prevents device/network farm abuse</span>
+                  <span className="text-[11px] text-admin-muted block mt-1">Prevents device/network farm abuse</span>
                 </div>
 
                 <div className="flex items-center gap-2.5 pt-4">
@@ -634,9 +627,9 @@ export default function ReferralManagementView({ restaurant }) {
                     id="requireReferrerOrder"
                     checked={settingsForm.requireReferrerOrder}
                     onChange={(e) => setSettingsForm(prev => ({ ...prev, requireReferrerOrder: e.target.checked }))}
-                    className="w-4 h-4 text-[#8b0000] rounded border-[#d1d5db] focus:ring-[#8b0000]"
+                    className="w-4 h-4 text-primary rounded border-admin-border focus:ring-primary"
                   />
-                  <label htmlFor="requireReferrerOrder" className="font-bold text-[#111827] cursor-pointer">
+                  <label htmlFor="requireReferrerOrder" className="font-bold text-admin-text cursor-pointer font-outfit">
                     Require referrer to have at least 1 delivered order
                   </label>
                 </div>
@@ -644,24 +637,24 @@ export default function ReferralManagementView({ restaurant }) {
 
               {/* Public Text Templates */}
               <div>
-                <label className="block font-bold text-[#111827] text-xs mb-1.5">Customer Description Template</label>
+                <label className="block font-bold text-admin-text text-xs mb-1.5 font-outfit">Customer Description Template</label>
                 <textarea
                   rows={2}
                   value={settingsForm.description}
                   onChange={(e) => setSettingsForm(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white font-medium focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000] leading-relaxed resize-none"
+                  className="w-full border border-admin-border rounded-xl px-3.5 py-2 text-sm text-admin-text bg-admin-surface font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary leading-relaxed resize-none"
                   maxLength={300}
                 />
-                <span className="text-[11px] text-[#6b7280] block mt-1">Placeholders: &#123;restaurant&#125;, &#123;refereeDiscount&#125;, &#123;referrerReward&#125;</span>
+                <span className="text-[11px] text-admin-muted block mt-1">Placeholders: &#123;restaurant&#125;, &#123;refereeDiscount&#125;, &#123;referrerReward&#125;</span>
               </div>
 
               <div>
-                <label className="block font-bold text-[#111827] text-xs mb-1.5">Terms &amp; Conditions</label>
+                <label className="block font-bold text-admin-text text-xs mb-1.5 font-outfit">Terms & Conditions</label>
                 <textarea
                   rows={3}
                   value={settingsForm.termsAndConditions}
                   onChange={(e) => setSettingsForm(prev => ({ ...prev, termsAndConditions: e.target.value }))}
-                  className="w-full border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white font-medium focus:outline-none focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000] leading-relaxed resize-none"
+                  className="w-full border border-admin-border rounded-xl px-3.5 py-2 text-sm text-admin-text bg-admin-surface font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary leading-relaxed resize-none"
                   maxLength={2000}
                 />
               </div>
@@ -669,11 +662,11 @@ export default function ReferralManagementView({ restaurant }) {
             </form>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-[#f3f4f6] flex items-center justify-end gap-3 bg-[#f9fafb] rounded-b-2xl">
+            <div className="px-6 py-4 border-t border-admin-border flex items-center justify-end gap-3 bg-admin-surface-2/60 rounded-b-2xl">
               <button
                 type="button"
                 onClick={handleCloseModal}
-                className="px-4 py-2 text-sm font-bold text-[#4b5563] hover:text-[#111827] hover:bg-[#e5e7eb] rounded-lg transition-colors"
+                className="px-4 py-2 text-xs font-bold text-admin-muted hover:text-admin-text hover:bg-admin-surface rounded-xl transition-colors font-outfit"
               >
                 Cancel
               </button>
@@ -681,12 +674,12 @@ export default function ReferralManagementView({ restaurant }) {
                 type="submit"
                 form="referralSettingsForm"
                 disabled={savingSettings}
-                className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-[#8b0000] rounded-lg hover:bg-[#7f0000] transition-colors shadow-sm disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-gradient-to-r from-primary to-primary-hover rounded-xl shadow-md shadow-primary/20 hover:shadow-lg transition-all disabled:opacity-50 font-outfit"
               >
                 {savingSettings ? (
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <Save className="w-4 h-4" />
+                  <Save className="w-3.5 h-3.5" />
                 )}
                 {savingSettings ? 'Saving...' : 'Save Settings'}
               </button>

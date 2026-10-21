@@ -158,6 +158,10 @@ import Customer from '../models/Customer.js';
 import User from '../models/User.js';
 
 export const createCoupon = asyncHandler(async (req, response) => {
+  if (req.body.description && typeof req.body.description === 'string' && req.body.description.length > 500) {
+    throw new AppError('Description cannot exceed 500 characters', 400);
+  }
+
   req.body.createdBy = req.user._id;
   req.body.source = req.body.source || 'manual';
   if (req.user.role === 'merchant') {
@@ -209,6 +213,10 @@ export const createCoupon = asyncHandler(async (req, response) => {
 });
 
 export const updateCoupon = asyncHandler(async (req, response) => {
+  if (req.body.description && typeof req.body.description === 'string' && req.body.description.length > 500) {
+    throw new AppError('Description cannot exceed 500 characters', 400);
+  }
+
   const CouponModel = req.getModel ? req.getModel('Coupon') : Coupon;
   const existingCoupon = await CouponModel.findById(req.params.id);
   if (!existingCoupon) throw new AppError('Coupon not found', 404);

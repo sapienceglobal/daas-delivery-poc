@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, ChevronLeft, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Users, ChevronLeft, Plus, Edit2, Trash2, LayoutGrid, ArrowRightLeft, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import { tableAPI } from '@/lib/api';
-import { Button, showToast, Skeleton, Modal, Input, GlassCard, Badge, ConfirmDialog } from '@/components/ui';
+import { showToast, PageLoader, ConfirmDialog } from '@/components/ui';
+import PageHeaderGradient from '@/components/merchant/common/PageHeaderGradient';
 
 export default function TablesPage() {
   const router = useRouter();
@@ -69,10 +70,10 @@ export default function TablesPage() {
     try {
       if (editingTable) {
         await tableAPI.update(editingTable._id, formData);
-        showToast('Table updated', 'success');
+        showToast('Table updated successfully', 'success');
       } else {
         await tableAPI.create({ ...formData, restaurantId: user.restaurantId });
-        showToast('Table created', 'success');
+        showToast('Table created successfully', 'success');
       }
       setModalOpen(false);
       loadTables();
@@ -85,13 +86,13 @@ export default function TablesPage() {
     setConfirmData({
       isOpen: true,
       title: 'Remove Table',
-      message: 'Are you sure you want to remove this table?',
+      message: 'Are you sure you want to remove this table from the floor plan?',
       confirmText: 'Remove',
       variant: 'danger',
       onConfirm: async () => {
         try {
           await tableAPI.delete(id);
-          showToast('Table removed', 'success');
+          showToast('Table removed successfully', 'success');
           loadTables();
         } catch (err) {
           showToast('Failed to remove table', 'error');
@@ -116,9 +117,9 @@ export default function TablesPage() {
       setConfirmData({
         isOpen: true,
         title: 'Table Occupied',
-        message: `Table ${table.tableNumber} is occupied. Clear it to make it available, or add more items?`,
+        message: `Table ${table.tableNumber} is currently occupied. Clear it to make it available, or jump to POS terminal to add more items?`,
         confirmText: 'Clear Table',
-        cancelText: 'Add Items (POS)',
+        cancelText: 'Open POS Cart',
         variant: 'primary',
         onConfirm: () => handleClearTable(table._id),
         onCancel: () => router.push(`/merchant/pos?tableId=${table._id}&tableNumber=${table.tableNumber}`)
@@ -161,130 +162,300 @@ export default function TablesPage() {
       loadTables();
     } catch (err) {
       showToast(err.message || 'Action failed', 'error');
-    } finally {
-      setLoading(false);
     }
   };
 
-  if (loading && tables.length === 0) return <div className="p-8"><Skeleton className="h-64 w-full" /></div>;
+  if (loading && tables.length === 0) return <PageLoader text="Loading Dining Floor Plan..." />;
+
+  const occupiedCount = tables.filter(t => t.status === 'occupied').length;
+  const availableCount = tables.filter(t => t.status === 'available').length;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => router.push('/merchant')}>
-            <ChevronLeft className="h-4 w-4 mr-1" /> Dashboard
-          </Button>
-          <h1 className="text-2xl font-black text-brand-text flex items-center gap-3">
-            <Users className="h-6 w-6 text-brand-blue" /> Table Management
-          </h1>
+    <div className="space-y-6 pb-12 max-w-7xl mx-auto">
+      {/* Header section */}
+      <PageHeaderGradient
+        badgeIcon={LayoutGrid}
+        badgeText="Dine-In Floor Plan"
+        title="Table Management"
+        subtitle="Manage live table status, dine-in occupancy, bill splitting, and table merge/move operations."
+        actions={
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <button 
+              onClick={() => { setActionType('move'); setActionModalOpen(true); }}
+              className="flex items-center gap-2 bg-admin-surface border border-admin-border text-admin-text px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-admin-surface-2 transition-colors shadow-sm font-outfit"
+            >
+              <ArrowRightLeft className="w-4 h-4 text-primary" /> Move / Merge
+            </button>
+            <button 
+              onClick={() => openModal()}
+              className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-hover text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-primary/20 hover:shadow-lg transition-all font-outfit"
+            >
+              <Plus className="w-4 h-4" /> Add Table
+            </button>
+          </div>
+        }
+      />
+
+      {/* Summary KPI Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-admin-surface border border-admin-border rounded-2xl p-4 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[11px] font-bold text-admin-muted uppercase tracking-wider font-outfit">Total Tables</div>
+            <div className="text-xl font-black text-admin-text font-outfit mt-0.5">{tables.length}</div>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+            <LayoutGrid className="w-5 h-5" />
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => { setActionType('move'); setActionModalOpen(true); }}>
-            Move / Merge
-          </Button>
-          <Button onClick={() => openModal()}>
-            <Plus className="h-4 w-4 mr-2" /> Add Table
-          </Button>
+        <div className="bg-admin-surface border border-admin-border rounded-2xl p-4 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[11px] font-bold text-admin-muted uppercase tracking-wider font-outfit">Occupied</div>
+            <div className="text-xl font-black text-rose-500 font-outfit mt-0.5">{occupiedCount}</div>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center font-bold">
+            <AlertCircle className="w-5 h-5" />
+          </div>
+        </div>
+        <div className="bg-admin-surface border border-admin-border rounded-2xl p-4 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[11px] font-bold text-admin-muted uppercase tracking-wider font-outfit">Available</div>
+            <div className="text-xl font-black text-emerald-500 font-outfit mt-0.5">{availableCount}</div>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+        </div>
+        <div className="bg-admin-surface border border-admin-border rounded-2xl p-4 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[11px] font-bold text-admin-muted uppercase tracking-wider font-outfit">Total Capacity</div>
+            <div className="text-xl font-black text-admin-text font-outfit mt-0.5">
+              {tables.reduce((acc, t) => acc + (t.capacity || 0), 0)} Seats
+            </div>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold">
+            <Users className="w-5 h-5" />
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 mt-8">
-        {tables.map(table => (
-          <GlassCard 
-            key={table._id} 
-            className={`relative flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-all hover:scale-105 ${table.status === 'occupied' ? 'border-brand-red/50 bg-brand-red/5' : 'border-brand-green/50 hover:border-brand-green'}`}
-            onClick={() => handleTableClick(table)}
-          >
-            <div className="absolute top-2 right-2 flex gap-1">
-              <button onClick={(e) => { e.stopPropagation(); openModal(table); }} className="p-1 text-brand-muted hover:text-brand-text"><Edit2 className="h-3 w-3" /></button>
-              <button onClick={(e) => { e.stopPropagation(); handleDelete(table._id); }} className="p-1 text-brand-red/60 hover:text-brand-red"><Trash2 className="h-3 w-3" /></button>
+      {/* Grid of Tables */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-5 mt-4">
+        {tables.map(table => {
+          const isOccupied = table.status === 'occupied';
+          return (
+            <div 
+              key={table._id} 
+              className={`relative flex flex-col items-center justify-center p-5 text-center cursor-pointer rounded-2xl border transition-all hover:scale-[1.03] shadow-sm ${
+                isOccupied 
+                  ? 'border-rose-500/40 bg-rose-500/5 dark:bg-rose-500/10 hover:border-rose-500' 
+                  : 'border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-500/10 hover:border-emerald-500'
+              }`}
+              onClick={() => handleTableClick(table)}
+            >
+              <div className="absolute top-2.5 right-2.5 flex gap-1 z-10">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); openModal(table); }} 
+                  className="p-1 rounded-lg text-admin-muted hover:text-admin-text hover:bg-admin-surface-2 transition-colors"
+                >
+                  <Edit2 className="h-3 w-3" />
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleDelete(table._id); }} 
+                  className="p-1 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+              
+              <div className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center mb-3 font-outfit ${
+                isOccupied 
+                  ? 'border-rose-500/50 bg-rose-500/20 text-rose-500 shadow-md shadow-rose-500/10' 
+                  : 'border-emerald-500/50 bg-emerald-500/20 text-emerald-500 shadow-md shadow-emerald-500/10'
+              }`}>
+                <span className="text-xl font-black">{table.tableNumber}</span>
+              </div>
+              
+              <p className="text-xs text-admin-muted font-bold font-outfit">{table.capacity} Seats ({table.shape || 'square'})</p>
+              
+              <span className={`mt-2.5 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border font-outfit ${
+                isOccupied 
+                  ? 'bg-rose-500/15 text-rose-500 border-rose-500/30' 
+                  : 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30'
+              }`}>
+                {table.status.toUpperCase()}
+              </span>
             </div>
-            
-            <div className={`w-16 h-16 rounded-xl border-4 flex items-center justify-center mb-3 ${table.status === 'occupied' ? 'border-brand-red/50 text-brand-red' : 'border-brand-green/50 text-brand-green'}`}>
-              <span className="text-xl font-black">{table.tableNumber}</span>
-            </div>
-            <p className="text-xs text-brand-muted font-bold">{table.capacity} Seats</p>
-            <Badge color={table.status === 'occupied' ? 'red' : 'green'} className="mt-2 text-[10px]">
-              {table.status.toUpperCase()}
-            </Badge>
-          </GlassCard>
-        ))}
+          );
+        })}
+
         {tables.length === 0 && (
-          <div className="col-span-full py-12 text-center text-brand-muted">
-            No tables added yet. Click "Add Table" to build your floor plan.
+          <div className="col-span-full py-16 text-center bg-admin-surface border border-dashed border-admin-border rounded-2xl">
+            <LayoutGrid className="w-12 h-12 text-admin-muted mx-auto mb-3" />
+            <h3 className="text-sm font-bold text-admin-text font-outfit">No Tables Created</h3>
+            <p className="text-xs text-admin-muted mt-1">Click "Add Table" to build your restaurant's seating layout.</p>
           </div>
         )}
       </div>
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingTable ? "Edit Table" : "Add Table"}>
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
-          <Input label="Table Number/Name" name="tableNumber" value={formData.tableNumber} onChange={(e) => setFormData({...formData, tableNumber: e.target.value})} required />
-          <Input label="Capacity" name="capacity" type="number" value={formData.capacity} onChange={(e) => setFormData({...formData, capacity: Number(e.target.value)})} required min="1" />
-          
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-brand-muted">Shape</label>
-            <select className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-2.5 text-brand-text outline-none focus:border-brand-cyan transition-colors" value={formData.shape} onChange={(e) => setFormData({...formData, shape: e.target.value})}>
-              <option value="square">Square</option>
-              <option value="round">Round</option>
-              <option value="rectangle">Rectangle</option>
-            </select>
-          </div>
+      {/* Add / Edit Table Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-admin-border">
+              <h2 className="text-base font-bold text-admin-text font-outfit">{editingTable ? "Edit Table" : "Add Table"}</h2>
+              <button onClick={() => setModalOpen(false)} className="p-1.5 hover:bg-admin-surface-2 rounded-xl text-admin-muted hover:text-admin-text transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit} noValidate className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-bold text-admin-text mb-1 font-outfit">Table Number / Label *</label>
+                <input 
+                  type="text" 
+                  value={formData.tableNumber} 
+                  onChange={(e) => setFormData({...formData, tableNumber: e.target.value})} 
+                  placeholder="e.g. T-1, Patio-4"
+                  className="w-full bg-admin-surface border border-admin-border rounded-xl px-3.5 py-2 text-xs text-admin-text focus:outline-none focus:border-primary"
+                  required 
+                />
+              </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button variant="ghost" onClick={() => setModalOpen(false)} className="flex-1">Cancel</Button>
-            <Button type="submit" className="flex-1">{editingTable ? 'Update Table' : 'Add Table'}</Button>
-          </div>
-        </form>
-      </Modal>
+              <div>
+                <label className="block font-bold text-admin-text mb-1 font-outfit">Seating Capacity *</label>
+                <input 
+                  type="number" 
+                  min="1"
+                  value={formData.capacity} 
+                  onChange={(e) => setFormData({...formData, capacity: Number(e.target.value)})} 
+                  className="w-full bg-admin-surface border border-admin-border rounded-xl px-3.5 py-2 text-xs text-admin-text focus:outline-none focus:border-primary"
+                  required 
+                />
+              </div>
+              
+              <div>
+                <label className="block font-bold text-admin-text mb-1 font-outfit">Table Geometry</label>
+                <select 
+                  className="w-full bg-admin-surface border border-admin-border rounded-xl px-3.5 py-2 text-xs text-admin-text outline-none focus:border-primary cursor-pointer font-medium" 
+                  value={formData.shape} 
+                  onChange={(e) => setFormData({...formData, shape: e.target.value})}
+                >
+                  <option value="square">Square</option>
+                  <option value="round">Round</option>
+                  <option value="rectangle">Rectangle</option>
+                </select>
+              </div>
 
-      <Modal isOpen={actionModalOpen} onClose={() => setActionModalOpen(false)} title="Move or Merge Tables">
-        <div className="flex gap-2 mb-6">
-          <Button type="button" variant={actionType === 'move' ? 'primary' : 'secondary'} className="flex-1" onClick={() => setActionType('move')}>Move Table</Button>
-          <Button type="button" variant={actionType === 'merge' ? 'primary' : 'secondary'} className="flex-1" onClick={() => setActionType('merge')}>Merge Tables</Button>
+              <div className="pt-2 flex justify-end gap-2.5">
+                <button 
+                  type="button" 
+                  onClick={() => setModalOpen(false)} 
+                  className="px-4 py-2 text-xs font-bold text-admin-muted hover:text-admin-text hover:bg-admin-surface-2 rounded-xl transition-colors font-outfit"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-5 py-2 bg-gradient-to-r from-primary to-primary-hover text-white rounded-xl text-xs font-bold shadow-md shadow-primary/20 hover:shadow-lg transition-all font-outfit"
+                >
+                  {editingTable ? 'Update Table' : 'Add Table'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-        
-        <form onSubmit={handleActionSubmit} noValidate className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-brand-muted">
-              {actionType === 'move' ? 'Move FROM Table (Must be occupied)' : 'Merge Table (This will be marked occupied)'}
-            </label>
-            <select 
-              className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-2.5 text-brand-text outline-none focus:border-brand-cyan transition-colors" 
-              value={sourceTableId} 
-              onChange={(e) => setSourceTableId(e.target.value)} 
-              required
-            >
-              <option value="">Select Table...</option>
-              {tables.filter(t => actionType === 'move' ? t.status === 'occupied' : true).map(t => (
-                <option key={t._id} value={t._id}>Table {t.tableNumber} ({t.status})</option>
-              ))}
-            </select>
-          </div>
+      )}
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-brand-muted">
-              {actionType === 'move' ? 'Move TO Table (Must be available)' : 'Into MAIN Table (Must be occupied)'}
-            </label>
-            <select 
-              className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-2.5 text-brand-text outline-none focus:border-brand-cyan transition-colors" 
-              value={targetTableId} 
-              onChange={(e) => setTargetTableId(e.target.value)} 
-              required
-            >
-              <option value="">Select Table...</option>
-              {tables.filter(t => actionType === 'move' ? t.status === 'available' : t.status === 'occupied').map(t => (
-                <option key={t._id} value={t._id}>Table {t.tableNumber} ({t.status})</option>
-              ))}
-            </select>
-          </div>
+      {/* Move / Merge Modal */}
+      {actionModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-admin-border">
+              <h2 className="text-base font-bold text-admin-text font-outfit">Move or Merge Tables</h2>
+              <button onClick={() => setActionModalOpen(false)} className="p-1.5 hover:bg-admin-surface-2 rounded-xl text-admin-muted hover:text-admin-text transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button variant="ghost" onClick={() => setActionModalOpen(false)} className="flex-1" type="button">Cancel</Button>
-            <Button type="submit" loading={loading} className="flex-1">Confirm {actionType === 'move' ? 'Move' : 'Merge'}</Button>
+            <div className="flex gap-2">
+              <button 
+                type="button" 
+                onClick={() => setActionType('move')}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all font-outfit ${
+                  actionType === 'move'
+                    ? 'bg-gradient-to-r from-primary to-primary-hover text-white shadow-md'
+                    : 'bg-admin-surface border border-admin-border text-admin-muted hover:text-admin-text'
+                }`}
+              >
+                Move Table
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setActionType('merge')}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all font-outfit ${
+                  actionType === 'merge'
+                    ? 'bg-gradient-to-r from-primary to-primary-hover text-white shadow-md'
+                    : 'bg-admin-surface border border-admin-border text-admin-muted hover:text-admin-text'
+                }`}
+              >
+                Merge Tables
+              </button>
+            </div>
+            
+            <form onSubmit={handleActionSubmit} noValidate className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-bold text-admin-text mb-1 font-outfit">
+                  {actionType === 'move' ? 'Move FROM Table (Must be occupied)' : 'Merge Table (This will be marked occupied)'}
+                </label>
+                <select 
+                  className="w-full bg-admin-surface border border-admin-border rounded-xl px-3.5 py-2 text-xs text-admin-text outline-none focus:border-primary cursor-pointer font-medium" 
+                  value={sourceTableId} 
+                  onChange={(e) => setSourceTableId(e.target.value)} 
+                  required
+                >
+                  <option value="">Select Table...</option>
+                  {tables.filter(t => actionType === 'move' ? t.status === 'occupied' : true).map(t => (
+                    <option key={t._id} value={t._id}>Table {t.tableNumber} ({t.status})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-admin-text mb-1 font-outfit">
+                  {actionType === 'move' ? 'Move TO Table (Must be available)' : 'Into MAIN Table (Must be occupied)'}
+                </label>
+                <select 
+                  className="w-full bg-admin-surface border border-admin-border rounded-xl px-3.5 py-2 text-xs text-admin-text outline-none focus:border-primary cursor-pointer font-medium" 
+                  value={targetTableId} 
+                  onChange={(e) => setTargetTableId(e.target.value)} 
+                  required
+                >
+                  <option value="">Select Table...</option>
+                  {tables.filter(t => actionType === 'move' ? t.status === 'available' : t.status === 'occupied').map(t => (
+                    <option key={t._id} value={t._id}>Table {t.tableNumber} ({t.status})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2.5">
+                <button 
+                  type="button" 
+                  onClick={() => setActionModalOpen(false)} 
+                  className="px-4 py-2 text-xs font-bold text-admin-muted hover:text-admin-text hover:bg-admin-surface-2 rounded-xl transition-colors font-outfit"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-5 py-2 bg-gradient-to-r from-primary to-primary-hover text-white rounded-xl text-xs font-bold shadow-md shadow-primary/20 hover:shadow-lg transition-all font-outfit"
+                >
+                  Confirm {actionType === 'move' ? 'Move' : 'Merge'}
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
-      </Modal>
+        </div>
+      )}
 
       <ConfirmDialog 
         isOpen={confirmData.isOpen}

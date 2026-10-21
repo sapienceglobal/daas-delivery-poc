@@ -12,10 +12,6 @@ import { useAuth } from '@/context/AuthContext';
  * sizing/animation/focus behaviour can never drift between instances.
  */
 function Toggle({ checked, onChange, size = 'md', disabled = false, label }) {
-// note: sizes are set via inline px styles, not Tailwind w-*/h-* classes.
-  // the JIT compiler wasn't generating a rare value like w-11 (44px) for this
-  // element, so the track collapsed to the knob's own width. Inline styles
-  // sidestep that entirely, regardless of Tailwind content/purge config.
   const dims = size === 'sm'
     ? { trackW: 36, trackH: 20, knob: 16, on: 18 }
     : { trackW: 44, trackH: 24, knob: 20, on: 22 };
@@ -37,10 +33,10 @@ function Toggle({ checked, onChange, size = 'md', disabled = false, label }) {
       tabIndex={disabled ? -1 : 0}
       onClick={() => !disabled && onChange(!checked)}
       onKeyDown={handleKeyDown}
-      className={`relative inline-flex shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8b0000] focus-visible:ring-offset-2 ${
+      className={`relative inline-flex shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-      }`}
-      style={{ width: dims.trackW, height: dims.trackH, backgroundColor: checked ? '#8b0000' : '#d1d5db' }}
+      } ${checked ? 'bg-brand' : 'bg-slate-300 dark:bg-slate-700'}`}
+      style={{ width: dims.trackW, height: dims.trackH }}
     >
       <span
         className="pointer-events-none inline-block rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out"
@@ -50,11 +46,8 @@ function Toggle({ checked, onChange, size = 'md', disabled = false, label }) {
   );
 }
 
-// shared base classes so every text/number field looks and behaves the same
-// (a couple of fields — e.g. Service Charge — were previously missing focus
-// styles entirely, which made them feel unresponsive next to the rest).
 const fieldBase =
-  'bg-[#f9fafb]/50 text-[#1f2937] border border-[#e5e7eb] rounded-lg transition-colors focus:outline-none focus:border-[#8b0000] focus:bg-[#ffffff]';
+  'bg-admin-surface-light text-admin-text border border-admin-border rounded-xl transition-colors focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand placeholder:text-admin-text-muted';
 
 export default function SettingsView({ restaurant, onRefresh }) {
   const { user, refreshUser } = useAuth();
@@ -346,17 +339,17 @@ export default function SettingsView({ restaurant, onRefresh }) {
   if (!restaurant) return null;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden bg-transparent text-admin-text">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 p-6 border-b border-[#f3f4f6] bg-[#ffffff] shrink-0">
+      <div className="flex items-center justify-between gap-4 p-5 sm:p-6 border-b border-admin-border bg-admin-surface shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-[#111827]">Settings</h1>
-          <p className="text-sm text-[#6b7280] mt-1">Manage your restaurant settings and preferences.</p>
+          <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-admin-text tracking-tight">Settings</h1>
+          <p className="text-xs sm:text-sm text-admin-text-secondary mt-1">Manage your restaurant settings and preferences.</p>
         </div>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="bg-[#8b0000] hover:bg-[#7f0000] active:bg-[#6f0000] text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
+          className="bg-brand hover:brightness-110 active:brightness-95 text-white px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0 cursor-pointer"
         >
           {saving && (
             <span className="h-3.5 w-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
@@ -366,9 +359,9 @@ export default function SettingsView({ restaurant, onRefresh }) {
       </div>
 
       <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-        {/* Tab Navigation — vertical sidebar on desktop, horizontal scroll strip on mobile */}
-        <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-[#f3f4f6] bg-[#ffffff] flex flex-col shrink-0 overflow-x-auto md:overflow-y-auto custom-scrollbar">
-          <div className="flex flex-row md:flex-col gap-1 p-3 md:p-4 min-w-max md:min-w-0">
+        {/* Tab Navigation */}
+        <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-admin-border bg-admin-surface flex flex-col shrink-0 overflow-x-auto md:overflow-y-auto custom-scrollbar">
+          <div className="flex flex-row md:flex-col gap-1.5 p-3 md:p-4 min-w-max md:min-w-0">
             {tabs.map(tab => {
               const isActive = activeTab === tab.id;
               return (
@@ -377,16 +370,16 @@ export default function SettingsView({ restaurant, onRefresh }) {
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium whitespace-nowrap transition-colors duration-150 ${
+                  className={`relative flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-[#fff1f2] text-[#8b0000]'
-                      : 'text-[#4b5563] hover:bg-[#f9fafb] hover:text-[#111827]'
+                      ? 'bg-admin-card text-brand shadow-2xs border border-admin-border'
+                      : 'text-admin-text-secondary hover:bg-admin-surface-light hover:text-admin-text'
                   }`}
                 >
                   {isActive && (
-                    <span className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-[#8b0000]" />
+                    <span className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-brand" />
                   )}
-                  <tab.icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#8b0000]' : 'text-[#9ca3af]'}`} />
+                  <tab.icon className={`w-4.5 h-4.5 shrink-0 ${isActive ? 'text-brand' : 'text-admin-text-muted'}`} />
                   {tab.label}
                 </button>
               );
@@ -395,68 +388,68 @@ export default function SettingsView({ restaurant, onRefresh }) {
         </div>
 
         {/* Right Content */}
-        <div className="flex-1 overflow-y-auto bg-[#f9fafb]/50 p-4 md:p-6 custom-scrollbar">
-          <div className="max-w-5xl mx-auto space-y-6">
+        <div className="flex-1 overflow-y-auto bg-transparent p-4 md:p-6 custom-scrollbar">
+          <div className="max-w-5xl mx-auto space-y-6 pb-12">
 
             {/* General Settings */}
-            <div className={`bg-[#ffffff] rounded-xl border border-[#e5e7eb] shadow-sm overflow-hidden ${activeTab !== 'general' && activeTab !== 'all' ? 'hidden' : ''}`}>
-              <div className="border-b border-[#f3f4f6] p-5 bg-[#ffffff] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#fff1f2]">
-                  <Settings className="w-4.5 h-4.5 text-[#8b0000]" />
+            <div className={`bg-admin-card rounded-2xl border border-admin-border shadow-sm overflow-hidden text-admin-text ${activeTab !== 'general' && activeTab !== 'all' ? 'hidden' : ''}`}>
+              <div className="border-b border-admin-border p-5 bg-admin-surface flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-brand/10 border border-brand/20">
+                  <Settings className="w-4.5 h-4.5 text-brand" />
                 </span>
-                <h2 className="text-base font-bold text-[#111827]">General Settings</h2>
+                <h2 className="font-heading text-base font-bold text-admin-text">General Settings</h2>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Restaurant Name</label>
-                  <input type="text" value={formData.name} onChange={(e) => handleChange('name', e.target.value)} className={`w-full px-3 py-2 text-sm ${fieldBase}`} />
+                  <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-2">Restaurant Name</label>
+                  <input type="text" value={formData.name} onChange={(e) => handleChange('name', e.target.value)} className={`w-full px-3.5 py-2.5 text-sm ${fieldBase}`} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Restaurant Type</label>
-                  <input type="text" value={formData.cuisine} onChange={(e) => handleChange('cuisine', e.target.value)} className={`w-full px-3 py-2 text-sm ${fieldBase}`} />
+                  <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-2">Restaurant Type</label>
+                  <input type="text" value={formData.cuisine} onChange={(e) => handleChange('cuisine', e.target.value)} className={`w-full px-3.5 py-2.5 text-sm ${fieldBase}`} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Default Currency</label>
-                  <select value={formData.currency} onChange={(e) => handleChange('currency', e.target.value)} className={`w-full px-3 py-2 text-sm cursor-pointer ${fieldBase}`}>
+                  <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-2">Default Currency</label>
+                  <select value={formData.currency} onChange={(e) => handleChange('currency', e.target.value)} className={`w-full px-3.5 py-2.5 text-sm cursor-pointer ${fieldBase}`}>
                     <option value="USD ($) - US Dollar">USD ($) - US Dollar</option>
                     <option value="EUR (€) - Euro">EUR (€) - Euro</option>
                     <option value="INR (₹) - Indian Rupee">INR (₹) - Indian Rupee</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Timezone</label>
-                  <select value={formData.timezone} onChange={(e) => handleChange('timezone', e.target.value)} className={`w-full px-3 py-2 text-sm cursor-pointer ${fieldBase}`}>
+                  <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-2">Timezone</label>
+                  <select value={formData.timezone} onChange={(e) => handleChange('timezone', e.target.value)} className={`w-full px-3.5 py-2.5 text-sm cursor-pointer ${fieldBase}`}>
                     <option value="(UTC-05:00) Eastern Time (ET)">Eastern Time (New York) - Auto adjusts for DST</option>
                     <option value="(UTC-08:00) Pacific Time (PT)">Pacific Time (Los Angeles) - Auto adjusts for DST</option>
                     <option value="(UTC+05:30) Indian Standard Time (IST)">(UTC+05:30) Indian Standard Time (IST)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Date Format</label>
-                  <div className="flex gap-4 h-[38px] items-center">
-                    <label className="flex items-center gap-2 text-sm text-[#111827] cursor-pointer">
-                      <input type="radio" name="dateFormat" checked={formData.dateFormat === 'MM/DD/YYYY'} onChange={() => handleChange('dateFormat', 'MM/DD/YYYY')} className="accent-[#8b0000] w-4 h-4 border-gray-400 bg-white cursor-pointer" /> MM/DD/YYYY
+                  <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-2">Date Format</label>
+                  <div className="flex gap-4 h-[42px] items-center">
+                    <label className="flex items-center gap-2 text-sm text-admin-text cursor-pointer">
+                      <input type="radio" name="dateFormat" checked={formData.dateFormat === 'MM/DD/YYYY'} onChange={() => handleChange('dateFormat', 'MM/DD/YYYY')} className="accent-brand w-4 h-4 cursor-pointer" /> MM/DD/YYYY
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-[#111827] cursor-pointer">
-                      <input type="radio" name="dateFormat" checked={formData.dateFormat === 'DD/MM/YYYY'} onChange={() => handleChange('dateFormat', 'DD/MM/YYYY')} className="accent-[#8b0000] w-4 h-4 border-gray-400 bg-white cursor-pointer" /> DD/MM/YYYY
+                    <label className="flex items-center gap-2 text-sm text-admin-text cursor-pointer">
+                      <input type="radio" name="dateFormat" checked={formData.dateFormat === 'DD/MM/YYYY'} onChange={() => handleChange('dateFormat', 'DD/MM/YYYY')} className="accent-brand w-4 h-4 cursor-pointer" /> DD/MM/YYYY
                     </label>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Time Format</label>
-                  <div className="flex gap-4 h-[38px] items-center">
-                    <label className="flex items-center gap-2 text-sm text-[#111827] cursor-pointer">
-                      <input type="radio" name="timeFormat" checked={formData.timeFormat === '12 Hour (AM/PM)'} onChange={() => handleChange('timeFormat', '12 Hour (AM/PM)')} className="accent-[#8b0000] w-4 h-4 border-gray-400 bg-white cursor-pointer" /> 12 Hour
+                  <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-2">Time Format</label>
+                  <div className="flex gap-4 h-[42px] items-center">
+                    <label className="flex items-center gap-2 text-sm text-admin-text cursor-pointer">
+                      <input type="radio" name="timeFormat" checked={formData.timeFormat === '12 Hour (AM/PM)'} onChange={() => handleChange('timeFormat', '12 Hour (AM/PM)')} className="accent-brand w-4 h-4 cursor-pointer" /> 12 Hour
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-[#111827] cursor-pointer">
-                      <input type="radio" name="timeFormat" checked={formData.timeFormat === '24 Hour (HH:mm)'} onChange={() => handleChange('timeFormat', '24 Hour (HH:mm)')} className="accent-[#8b0000] w-4 h-4 border-gray-400 bg-white cursor-pointer" /> 24 Hour
+                    <label className="flex items-center gap-2 text-sm text-admin-text cursor-pointer">
+                      <input type="radio" name="timeFormat" checked={formData.timeFormat === '24 Hour (HH:mm)'} onChange={() => handleChange('timeFormat', '24 Hour (HH:mm)')} className="accent-brand w-4 h-4 cursor-pointer" /> 24 Hour
                     </label>
                   </div>
                 </div>
-                <div className="md:col-span-2 flex items-center justify-between p-4 bg-[#f9fafb] rounded-lg border border-[#e5e7eb]">
+                <div className="md:col-span-2 flex items-center justify-between p-4 bg-admin-surface-light rounded-xl border border-admin-border">
                   <div>
-                    <p className="text-sm font-bold text-[#111827]">Enable Tips</p>
-                    <p className="text-xs text-[#6b7280]">Allow customers to add tips on orders</p>
+                    <p className="text-sm font-bold text-admin-text">Enable Tips</p>
+                    <p className="text-xs text-admin-text-secondary mt-0.5">Allow customers to add tips on orders</p>
                   </div>
                   <Toggle
                     checked={formData.enableTips}
@@ -468,103 +461,103 @@ export default function SettingsView({ restaurant, onRefresh }) {
             </div>
 
             {/* Business Info */}
-            <div className={`bg-[#ffffff] rounded-xl border border-[#e5e7eb] shadow-sm overflow-hidden ${activeTab !== 'business' && activeTab !== 'all' ? 'hidden' : ''}`}>
-              <div className="border-b border-[#f3f4f6] p-5 bg-[#ffffff] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#fff1f2]">
-                  <MapPin className="w-4.5 h-4.5 text-[#8b0000]" />
+            <div className={`bg-admin-card rounded-2xl border border-admin-border shadow-sm overflow-hidden text-admin-text ${activeTab !== 'business' && activeTab !== 'all' ? 'hidden' : ''}`}>
+              <div className="border-b border-admin-border p-5 bg-admin-surface flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-brand/10 border border-brand/20">
+                  <MapPin className="w-4.5 h-4.5 text-brand" />
                 </span>
-                <h2 className="text-base font-bold text-[#111827]">Business Information</h2>
+                <h2 className="font-heading text-base font-bold text-admin-text">Business Information</h2>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-3">Restaurant Logo</label>
+                  <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-3">Restaurant Logo</label>
                   <div className="flex items-center gap-6">
-                    <div className="w-32 h-24 border-2 border-dashed border-[#d1d5db] rounded-xl flex items-center justify-center overflow-hidden bg-[#f9fafb] shrink-0">
+                    <div className="w-32 h-24 border-2 border-dashed border-admin-border rounded-2xl flex items-center justify-center overflow-hidden bg-admin-surface-light/40 shrink-0">
                       {formData.logo ? (
                         <img src={formData.logo} alt="Logo" className="w-full h-full object-contain p-2" />
                       ) : (
-                        <div className="flex flex-col items-center gap-1.5 text-[#9ca3af]">
+                        <div className="flex flex-col items-center gap-1.5 text-admin-text-muted">
                           <ImageIcon className="w-6 h-6" />
                           <span className="text-xs font-medium">No Logo</span>
                         </div>
                       )}
                     </div>
                     <div className="space-y-2">
-                      <label className="cursor-pointer bg-[#ffffff] border border-[#d1d5db] hover:bg-[#f9fafb] active:bg-[#f3f4f6] text-[#374151] px-4 py-2 rounded-lg text-sm font-bold inline-block transition-colors">
+                      <label className="cursor-pointer bg-admin-surface border border-admin-border hover:bg-admin-surface-light text-admin-text px-4 py-2 rounded-xl text-xs sm:text-sm font-bold inline-block transition-all shadow-2xs">
                         Change Logo
                         <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
                       </label>
                       <br />
-                      <button type="button" onClick={() => handleChange('logo', '')} className="text-[#dc2626] text-sm font-bold hover:underline">Remove</button>
-                      <p className="text-xs text-[#6b7280]">PNG, JPG or SVG. Max size 2MB</p>
+                      <button type="button" onClick={() => handleChange('logo', '')} className="text-rose-500 text-xs sm:text-sm font-bold hover:underline cursor-pointer">Remove</button>
+                      <p className="text-xs text-admin-text-muted">PNG, JPG or SVG. Max size 2MB</p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Email</label>
-                  <input type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} className={`w-full px-3 py-2 text-sm ${fieldBase}`} />
+                  <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-2">Email</label>
+                  <input type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} className={`w-full px-3.5 py-2.5 text-sm ${fieldBase}`} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Phone</label>
-                  <input type="text" value={formData.phone} onChange={(e) => handleChange('phone', e.target.value)} className={`w-full px-3 py-2 text-sm ${fieldBase}`} />
+                  <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-2">Phone</label>
+                  <input type="text" value={formData.phone} onChange={(e) => handleChange('phone', e.target.value)} className={`w-full px-3.5 py-2.5 text-sm ${fieldBase}`} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Address</label>
-                  <input type="text" value={formData.address} onChange={(e) => handleChange('address', e.target.value)} className={`w-full px-3 py-2 text-sm ${fieldBase}`} />
+                  <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-2">Address</label>
+                  <input type="text" value={formData.address} onChange={(e) => handleChange('address', e.target.value)} className={`w-full px-3.5 py-2.5 text-sm ${fieldBase}`} />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Website</label>
-                  <input type="text" value={formData.website} onChange={(e) => handleChange('website', e.target.value)} className={`w-full px-3 py-2 text-sm ${fieldBase}`} />
+                  <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-2">Website</label>
+                  <input type="text" value={formData.website} onChange={(e) => handleChange('website', e.target.value)} className={`w-full px-3.5 py-2.5 text-sm ${fieldBase}`} />
                 </div>
               </div>
             </div>
 
             {/* Operating Hours */}
-            <div className={`bg-[#ffffff] rounded-xl border border-[#e5e7eb] shadow-sm overflow-hidden ${activeTab !== 'hours' && activeTab !== 'all' ? 'hidden' : ''}`}>
-              <div className="border-b border-[#f3f4f6] p-5 bg-[#ffffff] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#fff1f2]">
-                  <Clock className="w-4.5 h-4.5 text-[#8b0000]" />
+            <div className={`bg-admin-card rounded-2xl border border-admin-border shadow-sm overflow-hidden text-admin-text ${activeTab !== 'hours' && activeTab !== 'all' ? 'hidden' : ''}`}>
+              <div className="border-b border-admin-border p-5 bg-admin-surface flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-brand/10 border border-brand/20">
+                  <Clock className="w-4.5 h-4.5 text-brand" />
                 </span>
-                <h2 className="text-base font-bold text-[#111827]">Operating Hours</h2>
+                <h2 className="font-heading text-base font-bold text-admin-text">Operating Hours</h2>
               </div>
               <div className="p-6 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-[#f9fafb] border border-[#e5e7eb] rounded-xl mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-admin-surface-light border border-admin-border rounded-xl mb-4">
                   <div>
-                    <h4 className="text-sm font-bold text-[#111827]">Standard Operating Hours</h4>
-                    <p className="text-xs text-[#6b7280]">These hours will apply to all open days.</p>
+                    <h4 className="font-heading text-sm font-bold text-admin-text">Standard Operating Hours</h4>
+                    <p className="text-xs text-admin-text-secondary mt-0.5">These hours will apply to all open days.</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="time"
                       value={operatingHours['monday']?.open || ''}
                       onChange={(e) => handleGlobalHourChange('open', e.target.value)}
-                      className={`px-3 py-2 text-sm font-bold bg-white ${fieldBase}`}
+                      className={`px-3 py-2 text-sm font-bold ${fieldBase}`}
                     />
-                    <span className="text-[#9ca3af] font-bold">TO</span>
+                    <span className="text-admin-text-muted font-bold text-xs">TO</span>
                     <input
                       type="time"
                       value={operatingHours['monday']?.close || ''}
                       onChange={(e) => handleGlobalHourChange('close', e.target.value)}
-                      className={`px-3 py-2 text-sm font-bold bg-white ${fieldBase}`}
+                      className={`px-3 py-2 text-sm font-bold ${fieldBase}`}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <h4 className="text-sm font-bold text-[#111827] px-2 mb-3">Operating Days</h4>
+                  <h4 className="font-heading text-sm font-bold text-admin-text px-2 mb-3">Operating Days</h4>
                   {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => {
                     const isClosed = !!operatingHours[day]?.isClosed;
                     return (
                       <div
                         key={day}
-                        className={`flex items-center justify-between border-b border-[#f3f4f6] py-3 last:border-0 rounded-lg px-3 -mx-3 transition-colors ${isClosed ? 'bg-[#f9fafb]' : 'bg-white'}`}
+                        className={`flex items-center justify-between border-b border-admin-border/50 py-3 last:border-0 rounded-xl px-3 transition-colors ${isClosed ? 'bg-admin-surface-light/30' : 'bg-transparent'}`}
                       >
                         <div className="w-32">
-                          <span className={`text-sm font-bold capitalize ${isClosed ? 'text-[#9ca3af]' : 'text-[#111827]'}`}>{day}</span>
+                          <span className={`text-sm font-bold capitalize ${isClosed ? 'text-admin-text-muted line-through' : 'text-admin-text'}`}>{day}</span>
                         </div>
                         <div className="flex items-center gap-4">
-                          <span className={`text-xs font-bold w-14 text-right ${isClosed ? 'text-[#9ca3af]' : 'text-[#059669]'}`}>
+                          <span className={`text-xs font-bold w-14 text-right ${isClosed ? 'text-rose-500' : 'text-emerald-500'}`}>
                             {isClosed ? 'Closed' : 'Open'}
                           </span>
                           <Toggle
@@ -582,18 +575,18 @@ export default function SettingsView({ restaurant, onRefresh }) {
             </div>
 
             {/* Order Settings */}
-            <div className={`bg-[#ffffff] rounded-xl border border-[#e5e7eb] shadow-sm overflow-hidden ${activeTab !== 'order' && activeTab !== 'all' ? 'hidden' : ''}`}>
-              <div className="border-b border-[#f3f4f6] p-5 bg-[#ffffff] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#fff1f2]">
-                  <ShoppingCart className="w-4.5 h-4.5 text-[#8b0000]" />
+            <div className={`bg-admin-card rounded-2xl border border-admin-border shadow-sm overflow-hidden text-admin-text ${activeTab !== 'order' && activeTab !== 'all' ? 'hidden' : ''}`}>
+              <div className="border-b border-admin-border p-5 bg-admin-surface flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-brand/10 border border-brand/20">
+                  <ShoppingCart className="w-4.5 h-4.5 text-brand" />
                 </span>
-                <h2 className="text-base font-bold text-[#111827]">Order Settings</h2>
+                <h2 className="font-heading text-base font-bold text-admin-text">Order Settings</h2>
               </div>
               <div className="p-6 space-y-1">
-                <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
+                <div className="flex items-center justify-between py-4 border-b border-admin-border/50">
                   <div>
-                    <p className="text-sm font-bold text-[#111827]">Accept Online Orders</p>
-                    <p className="text-xs text-[#6b7280] mt-1">Allow customers to place orders online</p>
+                    <p className="text-sm font-bold text-admin-text">Accept Online Orders</p>
+                    <p className="text-xs text-admin-text-secondary mt-0.5">Allow customers to place orders online</p>
                   </div>
                   <Toggle
                     checked={formData.acceptsOnlineOrders}
@@ -602,10 +595,10 @@ export default function SettingsView({ restaurant, onRefresh }) {
                   />
                 </div>
 
-                <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
+                <div className="flex items-center justify-between py-4 border-b border-admin-border/50">
                   <div>
-                    <p className="text-sm font-bold text-[#111827]">Auto Accept Orders</p>
-                    <p className="text-xs text-[#6b7280] mt-1">Automatically accept incoming orders</p>
+                    <p className="text-sm font-bold text-admin-text">Auto Accept Orders</p>
+                    <p className="text-xs text-admin-text-secondary mt-0.5">Automatically accept incoming orders</p>
                   </div>
                   <Toggle
                     checked={formData.autoAcceptOrders}
@@ -614,10 +607,10 @@ export default function SettingsView({ restaurant, onRefresh }) {
                   />
                 </div>
 
-                <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
+                <div className="flex items-center justify-between py-4 border-b border-admin-border/50">
                   <div>
-                    <p className="text-sm font-bold text-[#111827]">Auto Refund on Cancellation</p>
-                    <p className="text-xs text-[#6b7280] mt-1">Automatically refund customer when order is cancelled or failed</p>
+                    <p className="text-sm font-bold text-admin-text">Auto Refund on Cancellation</p>
+                    <p className="text-xs text-admin-text-secondary mt-0.5">Automatically refund customer when order is cancelled or failed</p>
                   </div>
                   <Toggle
                     checked={formData.autoRefundEnabled}
@@ -626,21 +619,21 @@ export default function SettingsView({ restaurant, onRefresh }) {
                   />
                 </div>
 
-                <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
+                <div className="flex items-center justify-between py-4 border-b border-admin-border/50">
                   <div>
-                    <p className="text-sm font-bold text-[#111827]">Order Preparation Time</p>
-                    <p className="text-xs text-[#6b7280] mt-1">Estimated time to prepare an order</p>
+                    <p className="text-sm font-bold text-admin-text">Order Preparation Time</p>
+                    <p className="text-xs text-admin-text-secondary mt-0.5">Estimated time to prepare an order</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input type="number" value={formData.preparationTime} onChange={(e) => handleChange('preparationTime', Number(e.target.value))} className={`w-20 px-2 py-1.5 text-sm text-center ${fieldBase}`} />
-                    <span className="text-sm text-[#6b7280] font-medium">mins</span>
+                    <span className="text-xs font-semibold text-admin-text-secondary">mins</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
+                <div className="flex items-center justify-between py-4 border-b border-admin-border/50">
                   <div>
-                    <p className="text-sm font-bold text-[#111827]">Rider Request Delay</p>
-                    <p className="text-xs text-[#6b7280] mt-1">Wait time before automatically requesting a rider after accepting (0 = immediate request)</p>
+                    <p className="text-sm font-bold text-admin-text">Rider Request Delay</p>
+                    <p className="text-xs text-admin-text-secondary mt-0.5">Wait time before automatically requesting a rider after accepting (0 = immediate request)</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input 
@@ -651,45 +644,45 @@ export default function SettingsView({ restaurant, onRefresh }) {
                       onChange={(e) => handleChange('deliveryDispatchDelayMinutes', Math.max(0, Math.min(180, Number(e.target.value) || 0)))} 
                       className={`w-20 px-2 py-1.5 text-sm text-center ${fieldBase}`} 
                     />
-                    <span className="text-sm text-[#6b7280] font-medium">mins</span>
+                    <span className="text-xs font-semibold text-admin-text-secondary">mins</span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between py-4">
                   <div>
-                    <p className="text-sm font-bold text-[#111827]">Minimum Order Amount</p>
-                    <p className="text-xs text-[#6b7280] mt-1">Minimum order amount for online orders</p>
+                    <p className="text-sm font-bold text-admin-text">Minimum Order Amount</p>
+                    <p className="text-xs text-admin-text-secondary mt-0.5">Minimum order amount for online orders</p>
                   </div>
                   <div className="flex items-center gap-2 relative">
-                    <span className="absolute left-3 text-sm text-[#6b7280] pointer-events-none">$</span>
+                    <span className="absolute left-3 text-sm text-admin-text-muted pointer-events-none">$</span>
                     <input type="number" value={formData.minimumOrder} onChange={(e) => handleChange('minimumOrder', Number(e.target.value))} className={`w-24 pl-6 pr-2 py-1.5 text-sm text-left ${fieldBase}`} />
                   </div>
                 </div>
 
                 {/* Notification Settings Moved Here */}
-                <div id="notifications-section" className="mt-6 pt-6 border-t border-[#f3f4f6]">
-                  <h3 className="text-sm font-bold text-[#111827] mb-4">Notification Preferences</h3>
+                <div id="notifications-section" className="mt-6 pt-6 border-t border-admin-border">
+                  <h3 className="font-heading text-sm font-bold text-admin-text mb-4">Notification Preferences</h3>
                   
-                  <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
+                  <div className="flex items-center justify-between py-4 border-b border-admin-border/50">
                     <div>
-                      <p className="text-sm font-bold text-[#111827]">Global Push Settings</p>
-                      <p className="text-xs text-[#6b7280] mt-1">Enable or disable web push alerts system-wide</p>
+                      <p className="text-sm font-bold text-admin-text">Global Push Settings</p>
+                      <p className="text-xs text-admin-text-secondary mt-0.5">Enable or disable web push alerts system-wide</p>
                     </div>
                     <Toggle checked={formData.pushEnabled} onChange={(val) => handleChange('pushEnabled', val)} label="Enable push notifications globally" />
                   </div>
 
-                  <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
+                  <div className="flex items-center justify-between py-4 border-b border-admin-border/50">
                     <div>
-                      <p className="text-sm font-bold text-[#111827]">Current Device Permission</p>
-                      <p className="text-xs text-[#6b7280] mt-1">
-                        Status: <span className={deviceSubscribed ? 'text-[#25D366] font-bold' : 'text-[#dc2626] font-bold'}>{deviceSubscribed ? 'Active on this device' : 'Inactive on this device'}</span>
+                      <p className="text-sm font-bold text-admin-text">Current Device Permission</p>
+                      <p className="text-xs text-admin-text-secondary mt-0.5">
+                        Status: <span className={deviceSubscribed ? 'text-emerald-500 font-bold' : 'text-rose-500 font-bold'}>{deviceSubscribed ? 'Active on this device' : 'Inactive on this device'}</span>
                       </p>
                       {deviceSubscribed ? (
-                        <button onClick={unsubscribeFromPushNotifications} type="button" className="mt-2 text-xs font-semibold text-[#8b0000] hover:underline">
+                        <button onClick={unsubscribeFromPushNotifications} type="button" className="mt-2 text-xs font-semibold text-rose-500 hover:underline cursor-pointer">
                           Revoke Browser Permission
                         </button>
                       ) : (
-                        <button onClick={subscribeToPushNotifications} type="button" className="mt-2 text-xs font-semibold text-[#8b0000] hover:underline">
+                        <button onClick={subscribeToPushNotifications} type="button" className="mt-2 text-xs font-semibold text-brand hover:underline cursor-pointer">
                           Enable Notifications on this Device
                         </button>
                       )}
@@ -698,17 +691,17 @@ export default function SettingsView({ restaurant, onRefresh }) {
                   
                   <div className="flex items-center justify-between py-4">
                     <div className="flex-1">
-                      <p className="text-sm font-bold text-[#111827]">WhatsApp Order Alerts</p>
-                      <p className="text-xs text-[#6b7280] mt-1">Receive new order notifications via WhatsApp</p>
+                      <p className="text-sm font-bold text-admin-text">WhatsApp Order Alerts</p>
+                      <p className="text-xs text-admin-text-secondary mt-0.5">Receive new order notifications via WhatsApp</p>
                       {formData.whatsappEnabled && (
                         <div className="mt-3">
-                          <label className="block text-xs font-bold text-[#4b5563] mb-1">WhatsApp Number</label>
+                          <label className="block text-xs font-bold text-admin-text-secondary mb-1">WhatsApp Number</label>
                           <input 
                             type="text" 
                             placeholder="+1 (xxx) xxx-xxxx"
                             value={formData.whatsappNumber} 
                             onChange={(e) => handleChange('whatsappNumber', e.target.value)} 
-                            className={`w-full max-w-xs px-3 py-2 text-sm ${fieldBase}`} 
+                            className={`w-full max-w-xs px-3.5 py-2.5 text-sm ${fieldBase}`} 
                           />
                         </div>
                       )}
@@ -723,57 +716,57 @@ export default function SettingsView({ restaurant, onRefresh }) {
             </div>
 
             {/* Taxes & Charges */}
-            <div className={`bg-[#ffffff] rounded-xl border border-[#e5e7eb] shadow-sm overflow-hidden ${activeTab !== 'taxes' && activeTab !== 'all' ? 'hidden' : ''}`}>
-              <div className="border-b border-[#f3f4f6] p-5 bg-[#ffffff] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#fff1f2]">
-                  <Percent className="w-4.5 h-4.5 text-[#8b0000]" />
+            <div className={`bg-admin-card rounded-2xl border border-admin-border shadow-sm overflow-hidden text-admin-text ${activeTab !== 'taxes' && activeTab !== 'all' ? 'hidden' : ''}`}>
+              <div className="border-b border-admin-border p-5 bg-admin-surface flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-brand/10 border border-brand/20">
+                  <Percent className="w-4.5 h-4.5 text-brand" />
                 </span>
-                <h2 className="text-base font-bold text-[#111827]">Taxes & Charges</h2>
+                <h2 className="font-heading text-base font-bold text-admin-text">Taxes & Charges</h2>
               </div>
               <div className="p-6 space-y-1">
-                <div className="pb-5 mb-1 border-b border-[#f3f4f6]">
-                  <label className="block text-sm font-bold text-[#111827] mb-2">Tax Type</label>
-                  <select value={formData.taxType} onChange={(e) => handleChange('taxType', e.target.value)} className={`w-full max-w-xs px-3 py-2 text-sm cursor-pointer ${fieldBase}`}>
+                <div className="pb-5 mb-1 border-b border-admin-border/50">
+                  <label className="block text-sm font-bold text-admin-text mb-2">Tax Type</label>
+                  <select value={formData.taxType} onChange={(e) => handleChange('taxType', e.target.value)} className={`w-full max-w-xs px-3.5 py-2.5 text-sm cursor-pointer ${fieldBase}`}>
                     <option value="Sales Tax">Sales Tax</option>
                     <option value="VAT">VAT</option>
                     <option value="GST">GST</option>
                   </select>
                 </div>
 
-                <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
-                  <p className="text-sm font-bold text-[#111827]">Tax Rate (%)</p>
+                <div className="flex items-center justify-between py-4 border-b border-admin-border/50">
+                  <p className="text-sm font-bold text-admin-text">Tax Rate (%)</p>
                   <div className="flex items-center gap-2">
                     <input type="number" step="0.01" value={formData.taxRate} onChange={(e) => handleChange('taxRate', Number(e.target.value))} className={`w-24 px-2 py-1.5 text-sm text-right ${fieldBase}`} />
-                    <span className="text-sm text-[#6b7280] font-medium">%</span>
+                    <span className="text-xs font-semibold text-admin-text-secondary">%</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
+                <div className="flex items-center justify-between py-4 border-b border-admin-border/50">
                   <div>
-                    <p className="text-sm font-bold text-[#111827]">Service Charge (%)</p>
-                    <p className="text-xs text-[#6b7280] mt-1">Applied on order subtotal</p>
+                    <p className="text-sm font-bold text-admin-text">Service Charge (%)</p>
+                    <p className="text-xs text-admin-text-secondary mt-0.5">Applied on order subtotal</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input type="number" step="0.1" value={formData.serviceCharge} onChange={(e) => handleChange('serviceCharge', Number(e.target.value))} className={`w-24 px-2 py-1.5 text-sm text-right ${fieldBase}`} />
-                    <span className="text-sm text-[#6b7280] font-medium">%</span>
+                    <span className="text-xs font-semibold text-admin-text-secondary">%</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between py-4 border-b border-[#f3f4f6]">
+                <div className="flex items-center justify-between py-4 border-b border-admin-border/50">
                   <div>
-                    <p className="text-sm font-bold text-[#111827]">Packaging Charge</p>
-                    <p className="text-xs text-[#6b7280] mt-1">Per order flat fee</p>
+                    <p className="text-sm font-bold text-admin-text">Packaging Charge</p>
+                    <p className="text-xs text-admin-text-secondary mt-0.5">Per order flat fee</p>
                   </div>
                   <div className="flex items-center gap-2 relative">
-                    <span className="absolute left-3 text-sm text-[#6b7280] pointer-events-none">$</span>
+                    <span className="absolute left-3 text-sm text-admin-text-muted pointer-events-none">$</span>
                     <input type="number" step="0.1" value={formData.packagingCharge} onChange={(e) => handleChange('packagingCharge', Number(e.target.value))} className={`w-24 pl-6 pr-2 py-1.5 text-sm text-left ${fieldBase}`} />
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between py-4">
                   <div>
-                    <p className="text-sm font-bold text-[#111827]">Round Off</p>
-                    <p className="text-xs text-[#6b7280] mt-1">Round off total amount</p>
+                    <p className="text-sm font-bold text-admin-text">Round Off</p>
+                    <p className="text-xs text-admin-text-secondary mt-0.5">Round off total amount</p>
                   </div>
                   <Toggle
                     checked={formData.roundOff}
@@ -785,26 +778,26 @@ export default function SettingsView({ restaurant, onRefresh }) {
             </div>
 
             {/* Security & 2FA */}
-            <div className={`bg-[#ffffff] rounded-xl border border-[#e5e7eb] shadow-sm overflow-hidden ${activeTab !== 'security' && activeTab !== 'all' ? 'hidden' : ''}`}>
-              <div className="border-b border-[#f3f4f6] p-5 bg-[#ffffff] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#fff1f2]">
-                  <Shield className="w-4.5 h-4.5 text-[#8b0000]" />
+            <div className={`bg-admin-card rounded-2xl border border-admin-border shadow-sm overflow-hidden text-admin-text ${activeTab !== 'security' && activeTab !== 'all' ? 'hidden' : ''}`}>
+              <div className="border-b border-admin-border p-5 bg-admin-surface flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-brand/10 border border-brand/20">
+                  <Shield className="w-4.5 h-4.5 text-brand" />
                 </span>
-                <h2 className="text-base font-bold text-[#111827]">Security & Two-Factor Auth</h2>
+                <h2 className="font-heading text-base font-bold text-admin-text">Security & Two-Factor Auth</h2>
               </div>
               <div className="p-6 space-y-6">
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-bold text-[#111827]">Two-Factor Authentication (2FA)</p>
-                    <p className="text-sm text-[#6b7280] mt-1 max-w-2xl">
+                    <p className="text-sm font-bold text-admin-text">Two-Factor Authentication (2FA)</p>
+                    <p className="text-xs sm:text-sm text-admin-text-secondary mt-1 max-w-2xl leading-relaxed">
                       Add an extra layer of security to your account. When enabled, you'll need to enter a 6-digit code from your authenticator app (like Google Authenticator) every time you sign in to the HQ Portal.
                     </p>
                   </div>
                   {isTwoFactorEnabled ? (
                     showDisable2FAForm ? (
-                      <div className="flex flex-col gap-3 p-5 bg-[#f9fafb] border border-[#e5e7eb] rounded-xl w-full sm:w-auto shadow-sm">
-                        <p className="text-sm font-bold text-[#111827]">Disable Two-Factor Authentication</p>
-                        <p className="text-sm text-[#6b7280]">Enter your current 6-digit code to confirm.</p>
+                      <div className="flex flex-col gap-3 p-5 bg-admin-surface-light border border-admin-border rounded-xl w-full sm:w-auto shadow-sm">
+                        <p className="text-sm font-bold text-admin-text">Disable Two-Factor Authentication</p>
+                        <p className="text-xs text-admin-text-secondary">Enter your current 6-digit code to confirm.</p>
                         <div className="flex items-center gap-3 mt-1">
                           <input
                             type="text"
@@ -812,7 +805,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
                             placeholder="000000"
                             value={disableCode}
                             onChange={(e) => setDisableCode(e.target.value)}
-                            className={`w-32 px-3 py-2 text-center tracking-[0.25em] font-mono text-lg border border-[#e5e7eb] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#dc2626] focus:border-[#dc2626] ${fieldBase}`}
+                            className={`w-32 px-3 py-2 text-center tracking-[0.25em] font-mono text-lg border border-admin-border rounded-xl focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 ${fieldBase}`}
                           />
                           <button
                             onClick={async () => {
@@ -835,7 +828,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
                               }
                             }}
                             disabled={loading2FA || !disableCode}
-                            className="px-5 py-2.5 bg-[#dc2626] text-white hover:bg-[#b91c1c] rounded-lg text-sm font-bold transition-colors disabled:opacity-50 shadow-sm"
+                            className="px-4 py-2 bg-rose-600 text-white hover:bg-rose-700 rounded-xl text-xs sm:text-sm font-bold transition-all disabled:opacity-50 shadow-sm cursor-pointer"
                           >
                             {loading2FA ? 'Disabling...' : 'Confirm'}
                           </button>
@@ -844,7 +837,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
                               setDisableCode('');
                               setShowDisable2FAForm(false);
                             }}
-                            className="px-4 py-2.5 text-[#6b7280] hover:text-[#111827] text-sm font-bold transition-colors"
+                            className="px-3 py-2 text-admin-text-secondary hover:text-admin-text text-xs sm:text-sm font-bold transition-colors cursor-pointer"
                           >
                             Cancel
                           </button>
@@ -854,7 +847,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
                       <button
                         onClick={() => setShowDisable2FAForm(true)}
                         disabled={loading2FA}
-                        className="px-5 py-2.5 bg-white border border-[#fecaca] text-[#dc2626] hover:bg-[#fef2f2] hover:border-[#fca5a5] rounded-lg text-sm font-bold transition-all disabled:opacity-50 shadow-sm"
+                        className="px-4 py-2 bg-admin-surface border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 rounded-xl text-xs sm:text-sm font-bold transition-all disabled:opacity-50 shadow-2xs cursor-pointer"
                       >
                         Disable 2FA
                       </button>
@@ -874,7 +867,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
                         }
                       }}
                       disabled={loading2FA || !!qrCodeUrl}
-                      className="px-4 py-2 bg-[#8b0000] text-white hover:bg-[#7f0000] rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                      className="px-4 py-2 bg-brand text-white hover:brightness-110 rounded-xl text-xs sm:text-sm font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm"
                     >
                       {loading2FA ? 'Loading...' : 'Setup 2FA'}
                     </button>
@@ -882,20 +875,20 @@ export default function SettingsView({ restaurant, onRefresh }) {
                 </div>
 
                 {qrCodeUrl && !isTwoFactorEnabled && (
-                  <div className="mt-6 p-6 border border-[#e5e7eb] rounded-xl bg-[#f9fafb] flex flex-col sm:flex-row gap-8 items-center sm:items-start">
-                    <div className="shrink-0 bg-white p-2 rounded-lg border border-[#e5e7eb] shadow-sm">
+                  <div className="mt-6 p-6 border border-admin-border rounded-2xl bg-admin-surface-light flex flex-col sm:flex-row gap-8 items-center sm:items-start">
+                    <div className="shrink-0 bg-white p-3 rounded-2xl border border-admin-border shadow-sm">
                       <img src={qrCodeUrl} alt="2FA QR Code" className="w-40 h-40" />
                     </div>
                     <div className="flex-1 space-y-4 w-full">
                       <div>
-                        <h3 className="text-sm font-bold text-[#111827]">1. Scan the QR Code</h3>
-                        <p className="text-sm text-[#6b7280] mt-1">
+                        <h3 className="font-heading text-sm font-bold text-admin-text">1. Scan the QR Code</h3>
+                        <p className="text-xs sm:text-sm text-admin-text-secondary mt-1">
                           Open your authenticator app (e.g. Google Authenticator, Authy) and scan the QR code to the left.
                         </p>
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-[#111827]">2. Enter the Verification Code</h3>
-                        <p className="text-sm text-[#6b7280] mt-1 mb-3">
+                        <h3 className="font-heading text-sm font-bold text-admin-text">2. Enter the Verification Code</h3>
+                        <p className="text-xs sm:text-sm text-admin-text-secondary mt-1 mb-3">
                           Enter the 6-digit code generated by your app to verify and enable 2FA.
                         </p>
                         <div className="flex items-center gap-3">
@@ -905,7 +898,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
                             placeholder="000000"
                             value={twoFactorCode}
                             onChange={(e) => setTwoFactorCode(e.target.value)}
-                            className={`w-32 px-3 py-2 text-center tracking-[0.25em] font-mono text-lg border border-[#e5e7eb] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#8b0000] focus:border-[#8b0000] ${fieldBase}`}
+                            className={`w-32 px-3 py-2 text-center tracking-[0.25em] font-mono text-lg border border-admin-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand ${fieldBase}`}
                           />
                           <button
                             onClick={async () => {
@@ -929,7 +922,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
                               }
                             }}
                             disabled={loading2FA || !twoFactorCode}
-                            className="px-5 py-2.5 bg-[#111827] hover:bg-black text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+                            className="px-5 py-2.5 bg-brand hover:brightness-110 text-white rounded-xl text-xs sm:text-sm font-bold transition-all disabled:opacity-50 shadow-sm cursor-pointer"
                           >
                             {loading2FA ? 'Verifying...' : 'Verify & Enable'}
                           </button>
@@ -939,7 +932,7 @@ export default function SettingsView({ restaurant, onRefresh }) {
                               setTwoFactorSecret('');
                               setTwoFactorCode('');
                             }}
-                            className="px-4 py-2.5 text-[#6b7280] hover:text-[#111827] text-sm font-bold transition-colors"
+                            className="px-4 py-2.5 text-admin-text-secondary hover:text-admin-text text-xs sm:text-sm font-bold transition-colors cursor-pointer"
                           >
                             Cancel
                           </button>

@@ -28,6 +28,7 @@ const primary = {
   700: '#3a2acc',
   800: '#2b1f99',
   900: '#1d1466',
+  hover: '#2b1f99',
 };
 
 /* Secondary ("Jade"): secondary buttons, tags, complementary highlights */
@@ -87,7 +88,7 @@ const status = {
  * and technical/numeric data.
  */
 const fontFamily = {
-  heading: ['Space Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  heading: ['Outfit', 'Inter', 'Space Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
   body:    ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
   mono:    ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
   /* No script face at the platform level — branded overrides (e.g.

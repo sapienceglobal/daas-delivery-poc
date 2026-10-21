@@ -7,10 +7,12 @@ import 'package:single_restaurant_mobile/widgets/home/home_welcome_offer_card.da
 
 class HomePromoCardsCarousel extends StatelessWidget {
   final Map<String, dynamic>? activeCoupon;
+  final VoidCallback? onOffersTap;
 
   const HomePromoCardsCarousel({
     super.key,
     this.activeCoupon,
+    this.onOffersTap,
   });
 
   @override
@@ -22,7 +24,11 @@ class HomePromoCardsCarousel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          if (showCoupon) WelcomeOfferCard(coupon: activeCoupon!),
+          if (showCoupon)
+            WelcomeOfferCard(
+              coupon: activeCoupon!,
+              onTap: onOffersTap,
+            ),
           LoyaltyPromoCard(isFirst: !showCoupon),
           const FastDeliveryCard(),
         ],

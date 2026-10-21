@@ -32,6 +32,20 @@ class OfferHeroBanner extends StatelessWidget {
     final num minCartValue = coupon['minCartValue'] ?? 0;
     final String? networkImageUrl = coupon['image']?.toString();
 
+    // Measure the exact rendered width of discountTitle (up to the last 'F' in "OFF")
+    final TextPainter tp = TextPainter(
+      text: TextSpan(
+        text: discountTitle,
+        style: const TextStyle(
+          fontSize: 31,
+          fontWeight: FontWeight.w900,
+          letterSpacing: -0.6,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final double discountWidth = tp.width;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       height: 172,
@@ -79,7 +93,7 @@ class OfferHeroBanner extends StatelessWidget {
               ),
             ),
 
-          // 2. Rich Dark Red Gradient on the left side to ensure high-contrast text readability
+          // 2. Rich Dark Red Gradient on the left side to ensure high-contrast text readability (Original gradient)
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -105,14 +119,14 @@ class OfferHeroBanner extends StatelessWidget {
 
           // 4. Dynamic Backend Text & Actions Overlay
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 14, 12),
+            padding: const EdgeInsets.fromLTRB(16, 10, 14, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Top: "EXCLUSIVE OFFER" badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFB800),
                     borderRadius: BorderRadius.circular(6),
@@ -144,7 +158,7 @@ class OfferHeroBanner extends StatelessWidget {
                       'Get FLAT',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 14.5,
+                        fontSize: 13.5,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.3,
                         height: 1.1,
@@ -155,22 +169,26 @@ class OfferHeroBanner extends StatelessWidget {
                       discountTitle,
                       style: const TextStyle(
                         color: Color(0xFFFFC72C),
-                        fontSize: 32,
+                        fontSize: 31,
                         fontWeight: FontWeight.w900,
                         height: 1.05,
                         letterSpacing: -0.6,
                       ),
                     ),
-                    const SizedBox(height: 1),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
+                    const SizedBox(height: 2),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: discountWidth),
+                      child: Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.95),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w400,
+                          height: 1.16,
+                        ),
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -185,7 +203,7 @@ class OfferHeroBanner extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4.5),
+                            horizontal: 9, vertical: 3.5),
                         decoration: BoxDecoration(
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.65),
@@ -208,27 +226,29 @@ class OfferHeroBanner extends StatelessWidget {
                               code,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 12.5,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 5),
                             const Icon(
                               Icons.copy_outlined,
                               color: Colors.white,
-                              size: 13,
+                              size: 12.5,
                             ),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2.5),
                     Text(
                       'Min. order \$$minCartValue • T&C Apply',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 9.5,
+                        fontSize: 9,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),

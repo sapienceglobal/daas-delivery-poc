@@ -158,21 +158,21 @@ export default function CmsManagementView() {
 
     return (
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-bold text-[#374151]">{label}</label>
-        <div className={`relative w-full ${aspect === 'video' ? 'aspect-video' : 'aspect-square'} bg-[#f8fafc] rounded-xl overflow-hidden border-2 border-dashed ${currentUrl ? 'border-transparent' : 'border-[#cbd5e1] hover:border-[#8B0000]'} transition-colors flex items-center justify-center group`}>
+        <label className="text-sm font-bold text-admin-text font-outfit">{label}</label>
+        <div className={`relative w-full ${aspect === 'video' ? 'aspect-video' : 'aspect-square'} bg-admin-card rounded-2xl overflow-hidden border-2 border-dashed ${currentUrl ? 'border-transparent' : 'border-admin-border hover:border-brand'} transition-all flex items-center justify-center group shadow-sm`}>
           
           {currentUrl ? (
             <img src={currentUrl} alt={label} className="w-full h-full object-cover" />
           ) : (
-            <div className="flex flex-col items-center text-[#9ca3af] group-hover:text-[#8B0000] transition-colors">
+            <div className="flex flex-col items-center text-admin-text-secondary group-hover:text-brand transition-colors">
               <Camera className="w-8 h-8 mb-2" />
               <span className="text-xs font-medium">Click to upload</span>
             </div>
           )}
 
           {/* Hover Overlay */}
-          <div className={`absolute inset-0 bg-black/50 transition-opacity flex items-center justify-center ${currentUrl ? 'opacity-0 group-hover:opacity-100' : 'opacity-0'}`}>
-            <label className="cursor-pointer bg-white text-[#111827] px-4 py-2 rounded-lg font-bold text-sm shadow-xl hover:scale-105 transition-transform">
+          <div className={`absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity flex items-center justify-center ${currentUrl ? 'opacity-0 group-hover:opacity-100' : 'opacity-0'}`}>
+            <label className="cursor-pointer bg-admin-surface text-admin-text px-4 py-2 rounded-xl font-bold text-sm shadow-xl hover:scale-105 transition-transform border border-admin-border font-outfit">
               Change Image
               <input type="file" className="hidden" accept="image/*" onChange={(e) => onUpload(e.target.files[0])} disabled={isUploading} />
             </label>
@@ -185,9 +185,9 @@ export default function CmsManagementView() {
 
           {/* Uploading Overlay */}
           {isUploading && (
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
-              <Loader2 className="w-6 h-6 animate-spin text-[#8B0000] mb-2" />
-              <span className="text-xs font-bold text-[#8B0000]">Uploading...</span>
+            <div className="absolute inset-0 bg-admin-surface/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+              <Loader2 className="w-6 h-6 animate-spin text-brand mb-2" />
+              <span className="text-xs font-bold text-brand font-outfit">Uploading...</span>
             </div>
           )}
         </div>
@@ -195,29 +195,29 @@ export default function CmsManagementView() {
     );
   };
 
-  if (loading) return <div className="h-full flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="w-10 h-10 animate-spin text-[#8B0000]" /></div>;
+  if (loading) return <div className="h-full flex items-center justify-center bg-admin-bg"><Loader2 className="w-10 h-10 animate-spin text-brand" /></div>;
 
   return (
-    <div className="flex flex-col h-full bg-[#F8FAFC] overflow-hidden">
+    <div className="flex flex-col h-full bg-admin-bg overflow-hidden">
       
       {/* Header */}
-      <div className="shrink-0 border-b border-[#e5e7eb] bg-white px-8 py-5 flex justify-between items-center shadow-sm relative z-10">
+      <div className="shrink-0 border-b border-admin-border bg-admin-surface px-8 py-5 flex justify-between items-center shadow-sm relative z-10">
         <div>
-          <h1 className="text-2xl font-bold text-[#111827]">Website Content</h1>
-          <p className="text-sm text-[#6b7280] mt-1">Manage dynamic content, banners, and settings for your customer website.</p>
+          <h1 className="text-2xl font-bold text-admin-text font-outfit">Website Content</h1>
+          <p className="text-sm text-admin-text-secondary mt-1">Manage dynamic content, banners, and settings for your customer website.</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setIsSeoModalOpen(true)}
-            className="flex items-center gap-2 bg-white border border-[#e5e7eb] px-4 py-2.5 rounded-xl text-sm font-bold text-[#2563eb] hover:bg-[#eff6ff] hover:border-[#bfdbfe] transition-all shadow-sm"
+            className="flex items-center gap-2 bg-admin-card border border-admin-border px-4 py-2.5 rounded-xl text-sm font-bold text-blue-400 hover:bg-admin-surface-hover hover:text-blue-300 transition-all shadow-sm font-outfit"
           >
             <Globe className="w-4 h-4" /> Static Pages SEO
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 bg-[#8B0000] text-white px-6 py-2.5 rounded-xl font-bold hover:bg-[#660000] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg"
+            className="flex items-center gap-2 bg-brand text-white px-6 py-2.5 rounded-xl font-bold hover:opacity-90 transition-all shadow-md shadow-brand/20 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg font-outfit"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {saving ? 'Saving...' : 'Save Changes'}
@@ -228,8 +228,8 @@ export default function CmsManagementView() {
       <div className="flex flex-1 overflow-hidden">
         
         {/* Settings Sidebar */}
-        <div className="w-72 bg-white border-r border-[#e5e7eb] py-6 px-4 flex flex-col gap-2 overflow-y-auto custom-scrollbar shadow-[2px_0_10px_rgba(0,0,0,0.02)] z-0">
-          <p className="text-xs font-black text-[#9ca3af] uppercase tracking-wider mb-2 px-3">Sections</p>
+        <div className="w-72 bg-admin-surface border-r border-admin-border py-6 px-4 flex flex-col gap-2 overflow-y-auto custom-scrollbar z-0">
+          <p className="text-xs font-black text-admin-text-secondary uppercase tracking-wider mb-2 px-3 font-outfit">Sections</p>
           {TABS.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -238,15 +238,15 @@ export default function CmsManagementView() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-start gap-3 w-full text-left px-3 py-3 rounded-xl transition-all ${
-                  isActive ? 'bg-red-50/50 border border-[#fca5a5] shadow-sm' : 'border border-transparent hover:bg-[#f9fafb]'
+                  isActive ? 'bg-brand/10 border border-brand/30 shadow-sm' : 'border border-transparent hover:bg-admin-card text-admin-text-secondary hover:text-admin-text'
                 }`}
               >
-                <div className={`p-2 rounded-lg ${isActive ? 'bg-[#8B0000] text-white' : 'bg-[#f3f4f6] text-[#6b7280]'}`}>
+                <div className={`p-2 rounded-xl transition-colors ${isActive ? 'bg-brand text-white' : 'bg-admin-card text-admin-text-secondary'}`}>
                   <Icon className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className={`text-sm font-bold ${isActive ? 'text-[#8B0000]' : 'text-[#374151]'}`}>{tab.label}</p>
-                  <p className="text-[11px] text-[#6b7280] mt-0.5 leading-snug">{tab.desc}</p>
+                  <p className={`text-sm font-bold font-outfit ${isActive ? 'text-brand' : 'text-admin-text'}`}>{tab.label}</p>
+                  <p className="text-[11px] text-admin-text-secondary mt-0.5 leading-snug">{tab.desc}</p>
                 </div>
               </button>
             );
@@ -255,14 +255,14 @@ export default function CmsManagementView() {
 
         {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 relative">
-          <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-[#e5e7eb] p-8 min-h-[600px]">
+          <div className="max-w-5xl mx-auto bg-admin-surface rounded-2xl shadow-sm border border-admin-border p-8 min-h-[600px]">
             
             {/* HERO BANNERS */}
             {activeTab === 'hero' && (
               <div className="space-y-8 animate-in fade-in duration-300">
-                <div className="border-b border-[#f3f4f6] pb-4 mb-6">
-                  <h2 className="text-xl font-bold text-[#111827]">Hero Banners</h2>
-                  <p className="text-sm text-[#6b7280] mt-1">Upload high-quality banners for the top of each page.</p>
+                <div className="border-b border-admin-border pb-4 mb-6">
+                  <h2 className="text-xl font-bold text-admin-text font-outfit">Hero Banners</h2>
+                  <p className="text-sm text-admin-text-secondary mt-1">Upload high-quality banners for the top of each page.</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {renderImageUpload('Home Page Hero', cmsData.heroBanners?.home, (f) => updateHero('home', f), 'hero-home')}
@@ -278,9 +278,9 @@ export default function CmsManagementView() {
             {/* ABOUT US */}
             {activeTab === 'about' && (
               <div className="space-y-8 animate-in fade-in duration-300">
-                <div className="border-b border-[#f3f4f6] pb-4 mb-6">
-                  <h2 className="text-xl font-bold text-[#111827]">About Us Page</h2>
-                  <p className="text-sm text-[#6b7280] mt-1">Customize the story and gallery images shown on your About page.</p>
+                <div className="border-b border-admin-border pb-4 mb-6">
+                  <h2 className="text-xl font-bold text-admin-text font-outfit">About Us Page</h2>
+                  <p className="text-sm text-admin-text-secondary mt-1">Customize the story and gallery images shown on your About page.</p>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -288,39 +288,39 @@ export default function CmsManagementView() {
                   {renderImageUpload('Restaurant Spread Image', cmsData.aboutUs?.restaurantImage, (f) => updateAbout('restaurantImage', f), 'about-restaurantImage')}
                 </div>
                 
-                <div className="pt-8 mt-8 border-t border-[#f3f4f6]">
+                <div className="pt-8 mt-8 border-t border-admin-border">
                   <div className="flex justify-between items-center mb-6">
                     <div>
-                      <h3 className="text-lg font-bold text-[#111827]">Gallery Section Images</h3>
-                      <p className="text-xs text-[#6b7280]">Add photos to your restaurant's visual gallery.</p>
+                      <h3 className="text-lg font-bold text-admin-text font-outfit">Gallery Section Images</h3>
+                      <p className="text-xs text-admin-text-secondary">Add photos to your restaurant's visual gallery.</p>
                     </div>
-                    <label className="cursor-pointer flex items-center gap-2 text-sm font-bold text-white bg-[#8B0000] px-4 py-2 rounded-xl hover:bg-[#660000] transition-colors shadow-sm">
+                    <label className="cursor-pointer flex items-center gap-2 text-sm font-bold text-white bg-brand px-4 py-2.5 rounded-xl hover:opacity-90 transition-all shadow-sm font-outfit">
                       <Plus className="w-4 h-4" /> Add Image
                       <input type="file" className="hidden" accept="image/*" onChange={(e) => addGalleryImage(e.target.files[0])} disabled={uploadingImage === 'gallery-new'} />
                     </label>
                   </div>
                   
                   {uploadingImage === 'gallery-new' && (
-                    <div className="w-full h-32 rounded-xl border-2 border-dashed border-[#e5e7eb] flex flex-col items-center justify-center bg-[#f9fafb] mb-4">
-                      <Loader2 className="w-6 h-6 animate-spin text-[#8B0000] mb-2" />
-                      <span className="text-xs font-bold text-[#6b7280]">Uploading to gallery...</span>
+                    <div className="w-full h-32 rounded-2xl border-2 border-dashed border-admin-border flex flex-col items-center justify-center bg-admin-card mb-4">
+                      <Loader2 className="w-6 h-6 animate-spin text-brand mb-2" />
+                      <span className="text-xs font-bold text-admin-text-secondary font-outfit">Uploading to gallery...</span>
                     </div>
                   )}
 
                   {(!cmsData.aboutUs?.galleryImages || cmsData.aboutUs.galleryImages.length === 0) && uploadingImage !== 'gallery-new' ? (
-                    <div className="text-center py-12 border-2 border-dashed border-[#e5e7eb] rounded-xl bg-[#f9fafb]">
-                      <ImageIcon className="w-10 h-10 text-[#d1d5db] mx-auto mb-3" />
-                      <p className="text-sm font-bold text-[#9ca3af]">No gallery images yet</p>
+                    <div className="text-center py-12 border-2 border-dashed border-admin-border rounded-2xl bg-admin-card">
+                      <ImageIcon className="w-10 h-10 text-admin-text-secondary/40 mx-auto mb-3" />
+                      <p className="text-sm font-bold text-admin-text-secondary font-outfit">No gallery images yet</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                       {cmsData.aboutUs?.galleryImages?.map((img, idx) => (
-                        <div key={idx} className="relative aspect-square rounded-xl overflow-hidden group shadow-sm border border-[#e5e7eb]">
+                        <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden group shadow-sm border border-admin-border">
                           <img src={img.src} alt="Gallery" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <button 
                               onClick={() => removeGalleryImage(idx)}
-                              className="bg-white text-[#dc2626] p-2 rounded-full hover:bg-[#fef2f2] transition-colors shadow-lg transform translate-y-4 group-hover:translate-y-0 duration-200"
+                              className="bg-admin-surface text-rose-500 p-2.5 rounded-xl hover:bg-rose-500/10 transition-colors shadow-lg transform translate-y-4 group-hover:translate-y-0 duration-200 border border-admin-border"
                               title="Delete Image"
                             >
                               <Trash2 className="w-5 h-5" />
@@ -340,11 +340,11 @@ export default function CmsManagementView() {
                 
                 {/* 1. Catering Packages (Moved to TOP if activeTab is catering) */}
                 {activeTab === 'catering' && (
-                  <div className="space-y-6 pb-8 border-b border-[#e5e7eb]">
+                  <div className="space-y-6 pb-8 border-b border-admin-border">
                     <div className="flex justify-between items-center mb-6">
                       <div>
-                        <h2 className="text-xl font-bold text-[#1f2937]">Catering Packages</h2>
-                        <p className="text-sm text-[#6b7280]">Manage the packages displayed on the catering page.</p>
+                        <h2 className="text-xl font-bold text-admin-text font-outfit">Catering Packages</h2>
+                        <p className="text-sm text-admin-text-secondary">Manage the packages displayed on the catering page.</p>
                       </div>
                       <button 
                         onClick={() => setCmsData(prev => ({
@@ -355,7 +355,7 @@ export default function CmsManagementView() {
                             ...(prev.cateringPackages || [])
                           ]
                         }))}
-                        className="flex items-center gap-2 bg-[#8B0000] text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#660000] transition-colors"
+                        className="flex items-center gap-2 bg-brand text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-sm font-outfit"
                       >
                         <Plus className="w-4 h-4" /> Add Package
                       </button>
@@ -363,21 +363,21 @@ export default function CmsManagementView() {
 
                     <div className="space-y-6">
                       {(!cmsData.cateringPackages || cmsData.cateringPackages.length === 0) ? (
-                        <div className="text-center py-16 border-2 border-dashed border-[#e5e7eb] rounded-2xl bg-[#f9fafb]">
-                          <LayoutTemplate className="w-12 h-12 text-[#d1d5db] mx-auto mb-3" />
-                          <p className="text-sm font-bold text-[#9ca3af]">No packages added yet</p>
-                          <p className="text-xs text-[#9ca3af] mt-1 mb-4">Click the button above to add a new package.</p>
+                        <div className="text-center py-16 border-2 border-dashed border-admin-border rounded-2xl bg-admin-card">
+                          <LayoutTemplate className="w-12 h-12 text-admin-text-secondary/40 mx-auto mb-3" />
+                          <p className="text-sm font-bold text-admin-text-secondary font-outfit">No packages added yet</p>
+                          <p className="text-xs text-admin-text-secondary/60 mt-1 mb-4">Click the button above to add a new package.</p>
                         </div>
                       ) : (
                         cmsData.cateringPackages.map((pkg, idx) => (
-                          <div key={idx} className="p-6 border border-[#e5e7eb] rounded-2xl bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative group hover:border-[#cbd5e1] transition-colors">
+                          <div key={idx} className="p-6 border border-admin-border rounded-2xl bg-admin-card shadow-sm relative group hover:border-brand/40 transition-colors">
                             <button 
                               onClick={() => setCmsData(prev => {
                                 const arr = [...prev.cateringPackages];
                                 arr.splice(idx, 1);
                                 return { ...prev, cateringPackages: arr };
                               })}
-                              className="absolute top-4 right-4 text-[#ef4444] hover:bg-[#fef2f2] p-2 rounded-lg transition-colors"
+                              className="absolute top-4 right-4 text-rose-500 hover:bg-rose-500/10 p-2 rounded-xl transition-colors"
                             >
                               <Trash2 className="w-5 h-5" />
                             </button>
@@ -398,9 +398,9 @@ export default function CmsManagementView() {
                               
                               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                  <label className="text-xs font-semibold text-[#1f2937] mb-1 block">Package Name</label>
+                                  <label className="text-xs font-semibold text-admin-text-secondary mb-1 block font-outfit">Package Name</label>
                                   <input 
-                                    className="w-full border border-[#d1d5db] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white outline-none focus:border-[#8B0000]"
+                                    className="w-full border border-admin-border rounded-xl px-3.5 py-2.5 text-sm text-admin-text bg-admin-surface outline-none focus:border-brand transition-all"
                                     value={pkg.name}
                                     onChange={(e) => setCmsData(prev => {
                                       const arr = [...prev.cateringPackages];
@@ -410,10 +410,10 @@ export default function CmsManagementView() {
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-xs font-semibold text-[#1f2937] mb-1 block">Price (Starting From)</label>
+                                  <label className="text-xs font-semibold text-admin-text-secondary mb-1 block font-outfit">Price (Starting From)</label>
                                   <input 
                                     type="number"
-                                    className="w-full border border-[#d1d5db] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white outline-none focus:border-[#8B0000]"
+                                    className="w-full border border-admin-border rounded-xl px-3.5 py-2.5 text-sm text-admin-text bg-admin-surface outline-none focus:border-brand transition-all"
                                     value={pkg.price}
                                     onChange={(e) => setCmsData(prev => {
                                       const arr = [...prev.cateringPackages];
@@ -432,25 +432,25 @@ export default function CmsManagementView() {
                                       arr[idx].popular = e.target.checked;
                                       return { ...prev, cateringPackages: arr };
                                     })}
-                                    className="w-4 h-4 rounded border-gray-300 text-[#2563eb]"
+                                    className="w-4 h-4 rounded border-admin-border text-brand focus:ring-brand/20 bg-admin-surface cursor-pointer"
                                   />
-                                  <label htmlFor={`popular-${idx}`} className="text-sm font-medium text-[#1f2937]">
+                                  <label htmlFor={`popular-${idx}`} className="text-sm font-medium text-admin-text cursor-pointer">
                                     Mark as "Popular" Package
                                   </label>
                                 </div>
                               </div>
                             </div>
 
-                            <div className="pt-4 mt-6 border-t border-[#f3f4f6]">
+                            <div className="pt-4 mt-6 border-t border-admin-border">
                               <div className="flex justify-between items-center mb-4">
-                                <label className="text-sm font-semibold text-[#1f2937]">Package Features</label>
+                                <label className="text-sm font-semibold text-admin-text font-outfit">Package Features</label>
                                 <button 
                                   onClick={() => setCmsData(prev => {
                                     const arr = [...prev.cateringPackages];
                                     arr[idx].features.push(''); // Add feature to bottom of list
                                     return { ...prev, cateringPackages: arr };
                                   })}
-                                  className="text-xs font-medium text-[#2563eb] hover:underline flex items-center gap-1"
+                                  className="text-xs font-medium text-brand hover:underline flex items-center gap-1 font-outfit"
                                 >
                                   <Plus className="w-3 h-3" /> Add Feature
                                 </button>
@@ -459,7 +459,7 @@ export default function CmsManagementView() {
                                 {pkg.features?.map((feat, fIdx) => (
                                   <div key={fIdx} className="flex gap-2">
                                     <input 
-                                      className="flex-1 border border-[#d1d5db] rounded-lg px-3 py-1.5 text-sm text-[#1f2937] bg-white outline-none focus:border-[#8B0000]"
+                                      className="flex-1 border border-admin-border rounded-xl px-3.5 py-2 text-sm text-admin-text bg-admin-surface outline-none focus:border-brand transition-all"
                                       value={feat}
                                       placeholder="e.g. 2 Appetizers"
                                       onChange={(e) => setCmsData(prev => {
@@ -474,7 +474,7 @@ export default function CmsManagementView() {
                                         arr[idx].features.splice(fIdx, 1);
                                         return { ...prev, cateringPackages: arr };
                                       })}
-                                      className="p-1.5 text-[#ef4444] hover:bg-[#fef2f2] rounded"
+                                      className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
                                     >
                                       <Trash2 className="w-4 h-4" />
                                     </button>
@@ -494,14 +494,14 @@ export default function CmsManagementView() {
                 <div className="space-y-6">
                   <div className="flex justify-between items-end mb-6">
                     <div>
-                      <h2 className="text-xl font-bold text-[#111827]">
+                      <h2 className="text-xl font-bold text-admin-text font-outfit">
                         {activeTab === 'catering' ? 'Catering Occasions' : 'Booking Settings'}
                       </h2>
-                      <p className="text-sm text-[#6b7280] mt-1">Manage the dynamic cards displayed in this section.</p>
+                      <p className="text-sm text-admin-text-secondary mt-1">Manage the dynamic cards displayed in this section.</p>
                     </div>
                     <button 
                       onClick={() => handleAddDynamicItem(activeTab)}
-                      className="flex items-center gap-2 bg-[#f3f4f6] text-[#111827] px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#e5e7eb] transition-colors"
+                      className="flex items-center gap-2 bg-admin-card text-admin-text border border-admin-border px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-admin-surface-hover transition-all font-outfit"
                     >
                       <Plus className="w-4 h-4" /> Add New Box
                     </button>
@@ -509,16 +509,16 @@ export default function CmsManagementView() {
                   
                   <div className="space-y-4">
                     {((activeTab === 'catering' ? cmsData.cateringOccasions : cmsData.bookingSettings) || []).length === 0 ? (
-                       <div className="text-center py-16 border-2 border-dashed border-[#e5e7eb] rounded-2xl bg-[#f9fafb]">
-                         <LayoutTemplate className="w-12 h-12 text-[#d1d5db] mx-auto mb-3" />
-                         <p className="text-sm font-bold text-[#9ca3af]">No items added yet</p>
-                         <p className="text-xs text-[#9ca3af] mt-1 mb-4">Click the button above to add a new card.</p>
+                       <div className="text-center py-16 border-2 border-dashed border-admin-border rounded-2xl bg-admin-card">
+                         <LayoutTemplate className="w-12 h-12 text-admin-text-secondary/40 mx-auto mb-3" />
+                         <p className="text-sm font-bold text-admin-text-secondary font-outfit">No items added yet</p>
+                         <p className="text-xs text-admin-text-secondary/60 mt-1 mb-4">Click the button above to add a new card.</p>
                        </div>
                     ) : (
                       (activeTab === 'catering' ? cmsData.cateringOccasions : cmsData.bookingSettings).map((item, idx) => (
-                        <div key={idx} className="flex flex-col md:flex-row gap-6 p-5 border border-[#e5e7eb] rounded-2xl bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)] relative group hover:border-[#cbd5e1] transition-colors">
+                        <div key={idx} className="flex flex-col md:flex-row gap-6 p-6 border border-admin-border rounded-2xl bg-admin-card shadow-sm relative group hover:border-brand/40 transition-colors">
                           
-                          <div className="hidden md:flex items-center justify-center text-[#d1d5db] cursor-grab">
+                          <div className="hidden md:flex items-center justify-center text-admin-text-secondary/40 cursor-grab">
                             <GripVertical className="w-5 h-5" />
                           </div>
 
@@ -537,9 +537,9 @@ export default function CmsManagementView() {
 
                           <div className="flex-1 space-y-3 pt-6">
                             <div>
-                              <label className="text-xs font-semibold text-[#6b7280] mb-1 block">Title / Heading</label>
+                              <label className="text-xs font-semibold text-admin-text-secondary mb-1 block font-outfit">Title / Heading</label>
                               <input 
-                                className="w-full border border-[#d1d5db] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white outline-none focus:border-[#8B0000]"
+                                className="w-full border border-admin-border rounded-xl px-3.5 py-2.5 text-sm text-admin-text bg-admin-surface outline-none focus:border-brand transition-all"
                                 value={item.title}
                                 placeholder="e.g. Corporate Events"
                                 onChange={(e) => setCmsData(prev => {
@@ -551,10 +551,10 @@ export default function CmsManagementView() {
                             </div>
                             {activeTab === 'booking' && (
                               <div>
-                                <label className="text-xs font-semibold text-[#6b7280] mb-1 block">Description</label>
+                                <label className="text-xs font-semibold text-admin-text-secondary mb-1 block font-outfit">Description</label>
                                 <textarea 
                                   rows="2"
-                                  className="w-full border border-[#d1d5db] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white outline-none focus:border-[#8B0000] custom-scrollbar"
+                                  className="w-full border border-admin-border rounded-xl px-3.5 py-2.5 text-sm text-admin-text bg-admin-surface outline-none focus:border-brand custom-scrollbar transition-all"
                                   value={item.desc}
                                   placeholder="Short description about this setting..."
                                   onChange={(e) => setCmsData(prev => {
@@ -567,12 +567,12 @@ export default function CmsManagementView() {
                             )}
                             {activeTab === 'catering' && (
                               <div>
-                                <label className="text-xs font-semibold text-[#6b7280] mb-1 flex justify-between">
+                                <label className="text-xs font-semibold text-admin-text-secondary mb-1 flex justify-between font-outfit">
                                   <span>Lucide Icon Name</span>
-                                  <a href="https://lucide.dev/icons" target="_blank" rel="noreferrer" className="text-[#2563eb] hover:underline font-normal">View Icons</a>
+                                  <a href="https://lucide.dev/icons" target="_blank" rel="noreferrer" className="text-brand hover:underline font-normal">View Icons</a>
                                 </label>
                                 <input 
-                                  className="w-full border border-[#d1d5db] rounded-lg px-3 py-2 text-sm text-[#1f2937] bg-white outline-none focus:border-[#8B0000]"
+                                  className="w-full border border-admin-border rounded-xl px-3.5 py-2.5 text-sm text-admin-text bg-admin-surface outline-none focus:border-brand transition-all"
                                   value={item.icon}
                                   placeholder="e.g. Heart, Briefcase, Cake"
                                   onChange={(e) => setCmsData(prev => {
@@ -588,7 +588,7 @@ export default function CmsManagementView() {
                           <div className="absolute top-4 right-4 md:relative md:top-0 md:right-0 md:pt-6">
                             <button 
                               onClick={() => handleRemoveDynamicItem(activeTab, idx)}
-                              className="p-2 text-[#9ca3af] hover:text-[#dc2626] hover:bg-[#fef2f2] rounded-lg transition-colors"
+                              className="p-2 text-admin-text-secondary hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
                               title="Delete Item"
                             >
                               <Trash2 className="w-5 h-5" />
@@ -607,38 +607,38 @@ export default function CmsManagementView() {
             {/* PROMOTIONS PLACEMENT */}
             {activeTab === 'promotions' && (
               <div className="space-y-8 animate-in fade-in duration-300">
-                <div className="border-b border-[#f3f4f6] pb-4 mb-6">
-                  <h2 className="text-xl font-bold text-[#111827]">Coupon Placements</h2>
-                  <p className="text-sm text-[#6b7280] mt-1">Select which active coupons should be displayed in specific areas of the customer app.</p>
+                <div className="border-b border-admin-border pb-4 mb-6">
+                  <h2 className="text-xl font-bold text-admin-text font-outfit">Coupon Placements</h2>
+                  <p className="text-sm text-admin-text-secondary mt-1">Select which active coupons should be displayed in specific areas of the customer app.</p>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
-                    <label className="text-sm font-bold text-[#374151] block mb-2">Menu Page (Sidebar)</label>
-                    <p className="text-xs text-[#6b7280] mb-3">This coupon appears on the left sidebar of the customer web menu.</p>
+                    <label className="text-sm font-bold text-admin-text block mb-2 font-outfit">Menu Page (Sidebar)</label>
+                    <p className="text-xs text-admin-text-secondary mb-3">This coupon appears on the left sidebar of the customer web menu.</p>
                     <select
                       value={cmsData.promotions?.menuPage?._id || cmsData.promotions?.menuPage || ''}
                       onChange={(e) => setCmsData(prev => ({ ...prev, promotions: { ...prev.promotions, menuPage: e.target.value } }))}
-                      className="w-full border border-[#d1d5db] rounded-xl px-4 py-3 text-sm text-[#1f2937] bg-white outline-none focus:border-[#8B0000]"
+                      className="w-full border border-admin-border rounded-xl px-4 py-3 text-sm text-admin-text bg-admin-card outline-none focus:border-brand cursor-pointer"
                     >
-                      <option value="">-- None (Hide Coupon) --</option>
+                      <option value="" className="bg-admin-surface text-admin-text">-- None (Hide Coupon) --</option>
                       {activeCoupons.map(c => (
-                        <option key={c._id} value={c._id}>{c.code} - {c.name || c.description}</option>
+                        <option key={c._id} value={c._id} className="bg-admin-surface text-admin-text">{c.code} - {c.name || c.description}</option>
                       ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="text-sm font-bold text-[#374151] block mb-2">Mobile App (Home Screen)</label>
-                    <p className="text-xs text-[#6b7280] mb-3">This coupon appears prominently on the Flutter mobile app home screen.</p>
+                    <label className="text-sm font-bold text-admin-text block mb-2 font-outfit">Mobile App (Home Screen)</label>
+                    <p className="text-xs text-admin-text-secondary mb-3">This coupon appears prominently on the Flutter mobile app home screen.</p>
                     <select
                       value={cmsData.promotions?.mobileHome?._id || cmsData.promotions?.mobileHome || ''}
                       onChange={(e) => setCmsData(prev => ({ ...prev, promotions: { ...prev.promotions, mobileHome: e.target.value } }))}
-                      className="w-full border border-[#d1d5db] rounded-xl px-4 py-3 text-sm text-[#1f2937] bg-white outline-none focus:border-[#8B0000]"
+                      className="w-full border border-admin-border rounded-xl px-4 py-3 text-sm text-admin-text bg-admin-card outline-none focus:border-brand cursor-pointer"
                     >
-                      <option value="">-- None (Hide Coupon) --</option>
+                      <option value="" className="bg-admin-surface text-admin-text">-- None (Hide Coupon) --</option>
                       {activeCoupons.map(c => (
-                        <option key={c._id} value={c._id}>{c.code} - {c.name || c.description}</option>
+                        <option key={c._id} value={c._id} className="bg-admin-surface text-admin-text">{c.code} - {c.name || c.description}</option>
                       ))}
                     </select>
                   </div>

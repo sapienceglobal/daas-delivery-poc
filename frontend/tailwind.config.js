@@ -19,6 +19,7 @@
  * ============================================================================
  */
 
+const colors = require('tailwindcss/colors');
 const theme = require('./src/styles/theme.js');
 
 /** Wraps a token name as `rgb(var(--token) / <alpha-value>)`-free direct var()
@@ -40,6 +41,7 @@ module.exports = {
     screens: theme.screens,
 
     colors: {
+      ...colors,
       transparent: 'transparent',
       current: 'currentColor',
       white: '#ffffff',
@@ -57,7 +59,9 @@ module.exports = {
         800: cssVar('color-primary-800'),
         900: cssVar('color-primary-900'),
         DEFAULT: cssVar('color-primary-600'),
+        hover: cssVar('color-primary-hover'),
       },
+      'primary-hover': cssVar('color-primary-hover'),
       secondary: {
         50:  cssVar('color-secondary-50'),
         100: cssVar('color-secondary-100'),
@@ -96,6 +100,36 @@ module.exports = {
         DEFAULT: cssVar('color-text'),
         secondary: cssVar('color-text-secondary'),
       },
+
+      // Admin & Merchant Panel Luxury Tokens (matching Salon Management)
+      'admin-bg':            cssVar('color-admin-bg'),
+      'admin-surface':       cssVar('color-admin-surface'),
+      'admin-surface-light': cssVar('color-admin-surface-light'),
+      'admin-surface-hover': cssVar('color-admin-surface-hover'),
+      'admin-card':          cssVar('color-admin-card'),
+      'admin-card-hover':    cssVar('color-admin-card-hover'),
+      'admin-sidebar':       cssVar('color-admin-sidebar'),
+      'admin-border':        cssVar('color-admin-border'),
+      'admin-border-light':  cssVar('color-admin-border-light'),
+      'admin-text':          cssVar('color-admin-text'),
+      'admin-text-secondary':cssVar('color-admin-text-secondary'),
+      'admin-text-muted':    cssVar('color-admin-text-muted'),
+      'admin-surface-2':     cssVar('color-admin-surface-light'),
+      'admin-muted':         cssVar('color-admin-text-muted'),
+      'admin-border-subtle': cssVar('color-admin-border'),
+
+      brand: {
+        DEFAULT: cssVar('color-brand'),
+        light:   cssVar('color-brand-light'),
+        dark:    cssVar('color-brand-dark'),
+      },
+
+      'accent-green':  cssVar('color-accent-green'),
+      'accent-blue':   cssVar('color-accent-blue'),
+      'accent-yellow': cssVar('color-accent-yellow'),
+      'accent-red':    cssVar('color-accent-red'),
+      'accent-purple': cssVar('color-accent-purple'),
+      'accent-cyan':   cssVar('color-accent-cyan'),
 
       // Status — system feedback only.
       success: {

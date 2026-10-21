@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, AlertTriangle, Info, ChevronDown, ChevronUp, Search, Calendar, RefreshCcw } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Info, ChevronDown, ChevronUp, Search, Calendar, RefreshCcw, Activity } from 'lucide-react';
 import { api } from '../../lib/api';
 import { PageLoader, showToast } from '../ui';
+import PageHeaderGradient from './common/PageHeaderGradient';
+import TableScrollContainer from './common/TableScrollContainer';
 
 const severityConfig = {
-  critical: { icon: ShieldAlert, color: 'text-error', bg: 'bg-error-bg', border: 'border-error/20' },
-  warning: { icon: AlertTriangle, color: 'text-warning', bg: 'bg-warning-bg', border: 'border-warning/20' },
-  info: { icon: Info, color: 'text-info', bg: 'bg-info-bg', border: 'border-info/20' },
+  critical: { icon: ShieldAlert, color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+  warning: { icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  info: { icon: Info, color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
 };
 
 export default function SystemAuditView() {
@@ -27,7 +29,6 @@ export default function SystemAuditView() {
       if (severityFilter !== 'all') queryParams.append('severity', severityFilter);
       
       const res = await api.get(`/api/audit?${queryParams.toString()}`);
-      // assuming backend uses resFormatter, res.data might be { data: logs, pagination } or just the array
       const logsArray = Array.isArray(res.data) ? res.data : (res.data?.data || []);
       setLogs(logsArray); 
     } catch (err) {
@@ -54,66 +55,61 @@ export default function SystemAuditView() {
   if (loading && logs.length === 0) return <PageLoader text="Loading Audit Logs..." />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-[20px] border border-[#e5e7eb] shadow-sm">
-        <div>
-          <h2 className="text-xl font-bold text-[#111827] tracking-tight flex items-center gap-3">
-            <ShieldAlert className="w-5 h-5 text-error" />
-            System Audit Logs
-          </h2>
-          <p className="text-[#6b7280] mt-1 text-sm max-w-xl">
-            Immutable log of critical system events, orphaned payments, and automated recovery actions.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <Search className="w-4 h-4 text-[#9ca3af] absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search logs..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#f9fafb] border border-[#e5e7eb] rounded-xl py-2 pl-10 pr-4 text-sm text-[#111827] placeholder:text-[#9ca3af] focus:outline-none focus:border-[#8b0000] transition-colors"
-            />
+      <PageHeaderGradient
+        title="System Audit Logs"
+        subtitle="Immutable ledger of critical system events, payment recovery actions, and API events."
+        actions={
+          <div className="flex items-center gap-2.5 w-full md:w-auto flex-wrap">
+            <div className="relative flex-1 md:w-60">
+              <Search className="w-4 h-4 text-admin-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search logs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-admin-surface border border-admin-border rounded-xl py-2 pl-9 pr-3.5 text-xs text-admin-text placeholder:text-admin-muted focus:outline-none focus:border-primary transition-all font-medium"
+              />
+            </div>
+            <select
+              value={severityFilter}
+              onChange={(e) => setSeverityFilter(e.target.value)}
+              className="bg-admin-surface border border-admin-border rounded-xl py-2 px-3 text-xs text-admin-text focus:outline-none focus:border-primary transition-all cursor-pointer font-medium"
+            >
+              <option value="all">All Severities</option>
+              <option value="critical">Critical</option>
+              <option value="warning">Warning</option>
+              <option value="info">Info</option>
+            </select>
+            <button 
+              onClick={fetchLogs}
+              className="p-2 bg-admin-surface hover:bg-admin-surface-2 rounded-xl border border-admin-border transition-colors text-admin-muted hover:text-admin-text"
+              title="Refresh Logs"
+            >
+              <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin text-primary' : ''}`} />
+            </button>
           </div>
-          <select
-            value={severityFilter}
-            onChange={(e) => setSeverityFilter(e.target.value)}
-            className="bg-[#f9fafb] border border-[#e5e7eb] rounded-xl py-2 px-4 text-sm text-[#111827] focus:outline-none focus:border-[#8b0000] transition-colors cursor-pointer"
-          >
-            <option value="all" className="bg-white text-[#111827]">All Severities</option>
-            <option value="critical" className="bg-white text-[#111827]">Critical</option>
-            <option value="warning" className="bg-white text-[#111827]">Warning</option>
-            <option value="info" className="bg-white text-[#111827]">Info</option>
-          </select>
-          <button 
-            onClick={fetchLogs}
-            className="p-2 bg-white hover:bg-[#f9fafb] rounded-xl border border-[#e5e7eb] transition-colors text-[#6b7280] hover:text-[#111827]"
-            title="Refresh Logs"
-          >
-            <RefreshCcw className={`w-5 h-5 ${loading ? 'animate-spin text-[#111827]' : ''}`} />
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Main Table */}
-      <div className="bg-white border border-[#e5e7eb] rounded-[20px] overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      <div className="bg-admin-surface border border-admin-border rounded-2xl overflow-hidden shadow-sm">
+        <TableScrollContainer>
+          <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-[#f9fafb] border-b border-[#e5e7eb] text-xs uppercase tracking-wider text-[#6b7280] font-medium">
-                <th className="p-4 w-12"></th>
-                <th className="p-4">Severity</th>
-                <th className="p-4">Event</th>
-                <th className="p-4">Message</th>
-                <th className="p-4 text-right">Timestamp</th>
+              <tr className="bg-admin-surface-2/60 border-b border-admin-border text-[11px] uppercase tracking-wider text-admin-muted font-bold font-outfit">
+                <th className="p-3.5 w-10"></th>
+                <th className="p-3.5">Severity</th>
+                <th className="p-3.5">Event</th>
+                <th className="p-3.5">Message</th>
+                <th className="p-3.5 text-right">Timestamp</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e5e7eb]">
+            <tbody className="divide-y divide-admin-border dark:divide-white/[0.08] text-admin-text">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="p-8 text-center text-[#6b7280]">
+                  <td colSpan="5" className="p-12 text-center text-admin-muted font-medium">
                     No logs found matching your criteria.
                   </td>
                 </tr>
@@ -127,58 +123,58 @@ export default function SystemAuditView() {
                     <React.Fragment key={log._id}>
                       <tr 
                         onClick={() => toggleExpand(log._id)}
-                        className={`hover:bg-[#f9fafb] transition-colors cursor-pointer group ${isExpanded ? 'bg-[#f9fafb]' : ''}`}
+                        className={`hover:bg-admin-surface-2/50 transition-colors cursor-pointer group ${isExpanded ? 'bg-admin-surface-2/40' : ''}`}
                       >
-                        <td className="p-4 text-center">
+                        <td className="p-3.5 text-center">
                           {isExpanded ? 
-                            <ChevronUp className="w-4 h-4 text-[#9ca3af] group-hover:text-[#4b5563] transition-colors" /> : 
-                            <ChevronDown className="w-4 h-4 text-[#9ca3af] group-hover:text-[#4b5563] transition-colors" />
+                            <ChevronUp className="w-4 h-4 text-admin-muted group-hover:text-admin-text transition-colors" /> : 
+                            <ChevronDown className="w-4 h-4 text-admin-muted group-hover:text-admin-text transition-colors" />
                           }
                         </td>
-                        <td className="p-4">
-                          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${config.bg} ${config.color} ${config.border}`}>
-                            <Icon className="w-3.5 h-3.5" />
+                        <td className="p-3.5 whitespace-nowrap">
+                          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border font-outfit ${config.bg} ${config.color} ${config.border}`}>
+                            <Icon className="w-3 h-3" />
                             {log.severity.charAt(0).toUpperCase() + log.severity.slice(1)}
                           </div>
                         </td>
-                        <td className="p-4">
-                          <span className="font-mono text-xs text-[#374151] bg-[#f3f4f6] px-2 py-1 rounded">
+                        <td className="p-3.5 whitespace-nowrap">
+                          <span className="font-mono text-[11px] text-admin-text bg-admin-surface-2 border border-admin-border px-2 py-0.5 rounded-md font-semibold">
                             {log.event}
                           </span>
                         </td>
-                        <td className="p-4 text-sm text-[#4b5563] max-w-md truncate pr-8" title={log.message}>
+                        <td className="p-3.5 text-xs text-admin-text max-w-md truncate pr-6 opacity-90" title={log.message}>
                           {log.message}
                         </td>
-                        <td className="p-4 text-right text-xs text-[#6b7280] whitespace-nowrap">
+                        <td className="p-3.5 text-right text-[11px] text-admin-muted whitespace-nowrap font-medium">
                           {new Date(log.timestamp).toLocaleString()}
                         </td>
                       </tr>
                       {/* Expanded View */}
                       {isExpanded && (
-                        <tr className="bg-[#f8fafc]">
+                        <tr className="bg-admin-surface-2/30">
                           <td colSpan="5" className="p-0">
-                            <div className="p-6 border-b border-[#e5e7eb] overflow-hidden animate-in slide-in-from-top-2 duration-200">
-                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                <div className="lg:col-span-1 space-y-4">
+                            <div className="p-5 border-b border-admin-border overflow-hidden animate-in slide-in-from-top-2 duration-200">
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                                <div className="lg:col-span-1 space-y-3">
                                   <div>
-                                    <h4 className="text-xs text-[#6b7280] uppercase tracking-wider mb-1">Detailed Message</h4>
-                                    <p className="text-sm text-[#374151] leading-relaxed">{log.message}</p>
+                                    <h4 className="text-[10px] text-admin-muted uppercase tracking-wider mb-1 font-bold font-outfit">Detailed Message</h4>
+                                    <p className="text-xs text-admin-text leading-relaxed">{log.message}</p>
                                   </div>
                                   <div className="flex gap-4">
                                     <div>
-                                      <h4 className="text-xs text-[#6b7280] uppercase tracking-wider mb-1">Event Type</h4>
-                                      <span className="font-mono text-xs text-info">{log.event}</span>
+                                      <h4 className="text-[10px] text-admin-muted uppercase tracking-wider mb-1 font-bold font-outfit">Event Type</h4>
+                                      <span className="font-mono text-xs text-primary font-bold">{log.event}</span>
                                     </div>
                                     <div>
-                                      <h4 className="text-xs text-[#6b7280] uppercase tracking-wider mb-1">Time</h4>
-                                      <span className="text-sm text-[#374151]">{new Date(log.timestamp).toLocaleString()}</span>
+                                      <h4 className="text-[10px] text-admin-muted uppercase tracking-wider mb-1 font-bold font-outfit">Timestamp</h4>
+                                      <span className="text-xs text-admin-text">{new Date(log.timestamp).toLocaleString()}</span>
                                     </div>
                                   </div>
                                 </div>
                                 <div className="lg:col-span-2">
-                                  <h4 className="text-xs text-[#6b7280] uppercase tracking-wider mb-2">Raw Metadata JSON</h4>
-                                  <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 overflow-x-auto shadow-inner">
-                                    <pre className="text-xs text-[#374151] font-mono">
+                                  <h4 className="text-[10px] text-admin-muted uppercase tracking-wider mb-1.5 font-bold font-outfit">Raw Metadata JSON</h4>
+                                  <div className="bg-admin-surface border border-admin-border rounded-xl p-3.5 overflow-x-auto shadow-inner">
+                                    <pre className="text-[11px] text-admin-text font-mono leading-relaxed">
                                       {JSON.stringify(log.metadata, null, 2)}
                                     </pre>
                                   </div>
@@ -194,7 +190,7 @@ export default function SystemAuditView() {
               )}
             </tbody>
           </table>
-        </div>
+        </TableScrollContainer>
       </div>
     </div>
   );

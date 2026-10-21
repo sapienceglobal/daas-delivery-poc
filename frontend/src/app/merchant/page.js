@@ -43,7 +43,7 @@ export default function MerchantOverview() {
               roomId, 
               timeframe === 'custom' ? null : timeframe, 
               timeframe === 'custom' && customStartDate ? customStartDate.toISOString().split('T')[0] : null, 
-              timeframe === 'custom' && customEndDate ? customEndDate.toISOString().split('T')[0] : null
+              timeframe === 'custom' && (customEndDate || customStartDate) ? (customEndDate || customStartDate).toISOString().split('T')[0] : null
             ).catch(() => ({ data: null })) 
           : { data: null },
       ]);

@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:single_restaurant_mobile/screens/offers_screen.dart';
+import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class WelcomeOfferCard extends StatefulWidget {
   final Map<String, dynamic> coupon;
-  const WelcomeOfferCard({super.key, required this.coupon});
+  final VoidCallback? onTap;
+
+  const WelcomeOfferCard({
+    super.key,
+    required this.coupon,
+    this.onTap,
+  });
 
   @override
   State<WelcomeOfferCard> createState() => _WelcomeOfferCardState();
@@ -38,6 +46,7 @@ class _WelcomeOfferCardState extends State<WelcomeOfferCard>
   void _copyCode() {
     if (_isCopied) return;
     Clipboard.setData(ClipboardData(text: widget.coupon['code']));
+    ToastUtils.showSuccess(context, 'Coupon code copied!');
     setState(() {
       _isCopied = true;
     });
@@ -52,6 +61,124 @@ class _WelcomeOfferCardState extends State<WelcomeOfferCard>
     });
   }
 
+  void _navigateToOffers() {
+    if (widget.onTap != null) {
+      widget.onTap!();
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OffersScreen(onBack: () => Navigator.pop(context)),
+        ),
+      );
+    }
+  }
+
+  int? _getDaysUntilExpiry(Map<String, dynamic> coupon) {
+    final rawExpiry = coupon['endDate'] ??
+        coupon['expiresAt'] ??
+        coupon['expiryDate'] ??
+        coupon['validUntil'];
+    if (rawExpiry == null) return null;
+
+    DateTime? expiryDate;
+    if (rawExpiry is DateTime) {
+      expiryDate = rawExpiry;
+    } else if (rawExpiry is int) {
+      if (rawExpiry < 10000000000) {
+        expiryDate = DateTime.fromMillisecondsSinceEpoch(rawExpiry * 1000);
+      } else {
+        expiryDate = DateTime.fromMillisecondsSinceEpoch(rawExpiry);
+      }
+    } else {
+      final str = rawExpiry.toString().trim();
+      final numVal = int.tryParse(str);
+      if (numVal != null && str.length >= 10 && !str.contains('-')) {
+        if (numVal < 10000000000) {
+          expiryDate = DateTime.fromMillisecondsSinceEpoch(numVal * 1000);
+        } else {
+          expiryDate = DateTime.fromMillisecondsSinceEpoch(numVal);
+        }
+      } else {
+        expiryDate = DateTime.tryParse(str);
+      }
+    }
+
+    if (expiryDate == null) return null;
+
+    final now = DateTime.now();
+    final localExpiry = expiryDate.toLocal();
+
+    // If already expired in past, do not show
+    if (localExpiry.isBefore(now)) return null;
+
+    final today = DateTime(now.year, now.month, now.day);
+    final expiryDay =
+        DateTime(localExpiry.year, localExpiry.month, localExpiry.day);
+    final diffDays = expiryDay.difference(today).inDays;
+
+    // Show tag only if expiring within 10 days
+    if (diffDays >= 0 && diffDays <= 10) {
+      return diffDays;
+    }
+    return null;
+  }
+
+  Widget _buildExpiryBadge(int daysLeft) {
+    final bool isUrgent = daysLeft <= 2;
+    final String text = daysLeft == 0
+        ? 'Expires today'
+        : daysLeft == 1
+            ? 'Expires in 1 day'
+            : 'Expires in $daysLeft days';
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 108),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerRight,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+          decoration: BoxDecoration(
+            color: isUrgent
+                ? const Color(0xFFD32F2F)
+                : const Color(0xFFD97706),
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.22),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isUrgent
+                    ? Icons.local_fire_department_rounded
+                    : Icons.timer_outlined,
+                color: Colors.white,
+                size: 10.5,
+              ),
+              const SizedBox(width: 3.5),
+              Text(
+                text,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final coupon = widget.coupon;
@@ -62,156 +189,165 @@ class _WelcomeOfferCardState extends State<WelcomeOfferCard>
     final desc = coupon['description'] ??
         'Enjoy $discountStr on your very first order on our Website and App!';
     final code = (coupon['code'] ?? 'WELCOME20').toString().toUpperCase();
+    final daysLeft = _getDaysUntilExpiry(coupon);
 
-    return Container(
-      width: 220,
-      height: 185,
-      margin: const EdgeInsets.only(left: 16, right: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF6E0D14),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF6E0D14).withValues(alpha: 0.25),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Stack(
-          children: [
-            // Decorative gold mandala corner pattern watermark
-            Positioned(
-              top: -15,
-              right: -15,
-              child: Opacity(
-                opacity: 0.28,
-                child: Image.asset(
-                  'assets/images/branded/lassi-lounge/mandala_pattern.png',
-                  width: 110,
-                  height: 110,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox(),
+    return GestureDetector(
+      onTap: _navigateToOffers,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 220,
+        height: 185,
+        margin: const EdgeInsets.only(left: 16, right: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF6E0D14),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6E0D14).withValues(alpha: 0.25),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Stack(
+            children: [
+              // Decorative gold mandala corner pattern watermark
+              Positioned(
+                top: -15,
+                right: -15,
+                child: Opacity(
+                  opacity: 0.28,
+                  child: Image.asset(
+                    'assets/images/branded/lassi-lounge/mandala_pattern.png',
+                    width: 110,
+                    height: 110,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                  ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.card_giftcard,
-                        color: Color(0xFFE5A93C),
-                        size: 15,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          titleStr,
-                          style: const TextStyle(
-                            color: Color(0xFFE5A93C),
-                            fontWeight: FontWeight.w800,
-                            fontSize: 10,
-                            letterSpacing: 0.7,
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.card_giftcard,
+                          color: Color(0xFFE5A93C),
+                          size: 15,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            titleStr,
+                            style: const TextStyle(
+                              color: Color(0xFFE5A93C),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 10,
+                              letterSpacing: 0.7,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
+                        ),
+                        if (daysLeft != null) ...[
+                          const SizedBox(width: 6),
+                          _buildExpiryBadge(daysLeft),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        discountStr,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 27,
+                          fontWeight: FontWeight.w900,
+                          height: 1.05,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          desc,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.95),
+                            fontSize: desc.length > 90 ? 10.5 : 11.5,
+                            fontWeight: FontWeight.w500,
+                            height: desc.length > 90 ? 1.20 : 1.24,
+                          ),
+                          maxLines: 5,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      discountStr,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 27,
-                        fontWeight: FontWeight.w900,
-                        height: 1.05,
-                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        desc,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w400,
-                          height: 1.25,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _copyCode,
-                    child: ScaleTransition(
-                      scale: _scaleAnimation,
-                      child: CustomPaint(
-                        painter: _DashedBorderPainter(
-                          color: _isCopied
-                              ? const Color(0xFFE5A93C)
-                              : const Color(0xFFE5A93C).withValues(alpha: 0.8),
-                          borderRadius: 8,
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
+                    GestureDetector(
+                      onTap: _copyCode,
+                      child: ScaleTransition(
+                        scale: _scaleAnimation,
+                        child: CustomPaint(
+                          painter: _DashedBorderPainter(
                             color: _isCopied
                                 ? const Color(0xFFE5A93C)
-                                : Colors.black.withValues(alpha: 0.20),
-                            borderRadius: BorderRadius.circular(8),
+                                : const Color(0xFFE5A93C).withValues(alpha: 0.8),
+                            borderRadius: 8,
                           ),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  _isCopied ? 'CODE COPIED!' : 'CODE: $code',
-                                  style: TextStyle(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _isCopied
+                                  ? const Color(0xFFE5A93C)
+                                  : Colors.black.withValues(alpha: 0.20),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _isCopied ? 'CODE COPIED!' : 'CODE: $code',
+                                    style: TextStyle(
+                                      color: _isCopied
+                                          ? const Color(0xFF6E0D14)
+                                          : const Color(0xFFFFD275),
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 10.5,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    _isCopied ? Icons.check : Icons.copy_rounded,
                                     color: _isCopied
                                         ? const Color(0xFF6E0D14)
                                         : const Color(0xFFFFD275),
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 10.5,
-                                    letterSpacing: 0.5,
+                                    size: 13,
                                   ),
-                                ),
-                                const SizedBox(width: 6),
-                                Icon(
-                                  _isCopied ? Icons.check : Icons.copy_rounded,
-                                  color: _isCopied
-                                      ? const Color(0xFF6E0D14)
-                                      : const Color(0xFFFFD275),
-                                  size: 13,
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

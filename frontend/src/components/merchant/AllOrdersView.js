@@ -3,7 +3,7 @@ import {
   Search, Filter, ChevronLeft, ChevronRight, 
   MoreVertical, ShoppingCart, Calendar, CalendarCheck, 
   ClipboardList, ShoppingBag, Bike, CheckCircle, 
-  MapPin, Bell, ChevronDown, Download, Eye, Truck, UtensilsCrossed, X, Printer, PackageX, RefreshCcw, Loader2
+  MapPin, Bell, ChevronDown, Download, Eye, Truck, UtensilsCrossed, X, Printer, PackageX, RefreshCcw, Loader2, Sparkles
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { showToast } from '@/components/ui';
@@ -11,6 +11,7 @@ import { api } from '@/lib/api';
 import { useMerchantContext } from '@/context/MerchantContext';
 import { formatDate, formatTime } from '@/lib/formatters';
 import StatCard from './StatCard';
+import TableScrollContainer from './common/TableScrollContainer';
 import PremiumDatePicker from '@/components/ui/PremiumDatePicker';
 
 export default function AllOrdersView({ orders = [], stats: serverStats = null, onRowClick }) {
@@ -29,20 +30,17 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // ─── LOAD MORE STATE ───
+  // Load More State
   const ITEMS_PER_LOAD = 15;
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_LOAD);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // reset list on filter change
   useEffect(() => {
     setVisibleCount(ITEMS_PER_LOAD);
     setSelectedOrders([]);
   }, [searchQuery, dateRange, statusFilter, orderTypeFilter, paymentFilter, activeTab]);
 
-  // ---------------------------------------------------------
   // 1. STATS CALCULATIONS (Strictly real data)
-  // ---------------------------------------------------------
   const stats = useMemo(() => {
     const hasFilter = searchQuery || dateRange || statusFilter !== 'All Status' || orderTypeFilter !== 'All Types' || paymentFilter !== 'All Payment Status' || activeTab !== 'All';
     if (!hasFilter && serverStats && typeof serverStats.total === 'number' && serverStats.total > 0) {
@@ -71,68 +69,64 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
     return { total: totalCount, newOrders, preparing, ready, outForDelivery, completed };
   }, [orders, serverStats, searchQuery, dateRange, statusFilter, orderTypeFilter, paymentFilter, activeTab]);
 
-  // tabs Counts
+  // Tabs Counts
   const tabCounts = useMemo(() => {
     let dineIn = 0, pickup = 0, delivery = 0;
     orders.forEach(o => {
       const type = (o.orderType || o.type || '').toLowerCase();
       if (type === 'dine_in') dineIn++;
       else if (type === 'pickup') pickup++;
-      else delivery++;
+      else if (type === 'delivery') delivery++;
     });
     return { all: orders.length, dineIn, pickup, delivery };
   }, [orders]);
 
-  // ---------------------------------------------------------
-  // 2. FILTERING LOGIC
-  // ---------------------------------------------------------
+  // 2. FILTERING
   const filteredOrders = useMemo(() => {
-    return orders.filter(o => {
-      // search
-      const searchStr = searchQuery.toLowerCase();
-      const matchesSearch = !searchQuery || 
-        o._id?.toLowerCase().includes(searchStr) || 
-        o.orderNumber?.toLowerCase().includes(searchStr) ||
-        o.customerName?.toLowerCase().includes(searchStr) ||
-        o.customerPhone?.toLowerCase().includes(searchStr);
-
-      // status
-      const matchesStatus = statusFilter === 'All Status' || (o.status || '').toLowerCase() === statusFilter.toLowerCase();
-      
-      // order Type Dropdown & Tab
-      const oType = (o.orderType || o.type || 'delivery').toLowerCase();
-      
-      let matchesDropdownType = true;
-      if (orderTypeFilter === 'Delivery') matchesDropdownType = oType === 'delivery';
-      else if (orderTypeFilter === 'Takeaway') matchesDropdownType = oType === 'pickup';
-      else if (orderTypeFilter === 'Dine-in') matchesDropdownType = oType === 'dine_in';
-
-      let matchesTabType = true;
-      if (activeTab === 'Delivery') matchesTabType = oType === 'delivery';
-      else if (activeTab === 'Takeaway') matchesTabType = oType === 'pickup';
-      else if (activeTab === 'Dine-in') matchesTabType = oType === 'dine_in';
-
-      // payment Type
-      const pType = (o.paymentMethod || '').toLowerCase();
-      const pStatus = (o.paymentStatus || '').toLowerCase();
-      let matchesPayment = true;
-      if (paymentFilter === 'Paid') matchesPayment = pStatus === 'paid' || pStatus === 'completed';
-      else if (paymentFilter === 'Unpaid') matchesPayment = pStatus === 'pending' || pStatus === 'unpaid';
-
-      // date Range
-      let matchesDate = true;
-      if (dateRange) {
-        const orderDateStr = new Date(o.createdAt).toISOString().split('T')[0];
-        matchesDate = orderDateStr === dateRange;
+    return orders.filter(order => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const orderNum = (order.orderNumber || order._id || '').toString().toLowerCase();
+        const custName = (order.customerName || '').toLowerCase();
+        const custPhone = (order.customerPhone || '').toLowerCase();
+        if (!orderNum.includes(q) && !custName.includes(q) && !custPhone.includes(q)) return false;
       }
 
-      return matchesSearch && matchesStatus && matchesDropdownType && matchesTabType && matchesPayment && matchesDate;
-    }).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [orders, searchQuery, statusFilter, orderTypeFilter, paymentFilter, activeTab, dateRange]);
+      if (dateRange) {
+        const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+        if (orderDate !== dateRange) return false;
+      }
 
-  // ---------------------------------------------------------
-  // 3. LOAD MORE LOGIC
-  // ---------------------------------------------------------
+      if (statusFilter !== 'All Status') {
+        const s = (order.status || '').toLowerCase();
+        const filterVal = statusFilter.toLowerCase();
+        if (filterVal === 'out for delivery' && s !== 'out_for_delivery' && s !== 'out for delivery') return false;
+        else if (filterVal !== 'out for delivery' && s !== filterVal) return false;
+      }
+
+      if (orderTypeFilter !== 'All Types') {
+        const t = (order.orderType || order.type || '').toLowerCase();
+        if (t !== orderTypeFilter.toLowerCase()) return false;
+      }
+
+      if (paymentFilter !== 'All Payment Status') {
+        const ps = (order.paymentStatus || '').toLowerCase();
+        if (paymentFilter === 'Paid' && ps !== 'paid') return false;
+        if (paymentFilter === 'Unpaid' && ps === 'paid') return false;
+      }
+
+      if (activeTab !== 'All') {
+        const t = (order.orderType || order.type || '').toLowerCase();
+        if (activeTab === 'Dine-in' && t !== 'dine_in') return false;
+        if (activeTab === 'Takeaway' && t !== 'pickup') return false;
+        if (activeTab === 'Delivery' && t !== 'delivery') return false;
+      }
+
+      return true;
+    });
+  }, [orders, searchQuery, dateRange, statusFilter, orderTypeFilter, paymentFilter, activeTab]);
+
+  // Sliced for pagination
   const displayedOrders = useMemo(() => {
     return filteredOrders.slice(0, visibleCount);
   }, [filteredOrders, visibleCount]);
@@ -144,31 +138,7 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
     setTimeout(() => {
       setVisibleCount(prev => prev + ITEMS_PER_LOAD);
       setIsLoadingMore(false);
-    }, 400); // Smooth premium delay
-  };
-
-  const handleExportCSV = () => {
-    const ordersToExport = selectedOrders.length > 0 
-      ? orders.filter(o => selectedOrders.includes(o._id)) 
-      : filteredOrders;
-      
-    if (!ordersToExport.length) return;
-    const headers = ['Order ID', 'Customer Name', 'Phone', 'Order Type', 'Status', 'Date', 'Amount', 'Payment Method'];
-    const csvContent = [
-      headers.join(','),
-      ...ordersToExport.map(o => [
-        o._id, `"${o.customerName || 'Guest'}"`, `"${o.customerPhone || ''}"`,
-        o.type || o.orderType || 'delivery', o.status || 'new',
-        new Date(o.createdAt).toLocaleString(), o.total || 0, o.paymentMethod || 'cash'
-      ].join(','))
-    ].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `orders_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    }, 200);
   };
 
   const handleSelectAll = (e) => {
@@ -181,21 +151,48 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
 
   const handleSelectOrder = (id) => {
     setSelectedOrders(prev => 
-      prev.includes(id) ? prev.filter(orderId => orderId !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
 
-  const handleBulkRefund = async () => {
-    const validOrders = orders.filter(o => selectedOrders.includes(o._id) && o.paymentStatus !== 'refunded' && !o.refunded);
-    const skipped = selectedOrders.length - validOrders.length;
-    
-    if (validOrders.length === 0) {
-      showToast(`All ${selectedOrders.length} selected orders are already refunded.`, 'error');
+  const handleExportCSV = () => {
+    const listToExport = selectedOrders.length > 0 
+      ? orders.filter(o => selectedOrders.includes(o._id)) 
+      : filteredOrders;
+
+    if (listToExport.length === 0) {
+      showToast('No orders to export', 'error');
       return;
     }
 
-    if (skipped > 0) {
-      showToast(`${skipped} orders skipped because they are already refunded.`, 'info');
+    const headers = ['Order ID', 'Customer Name', 'Customer Phone', 'Type', 'Status', 'Total ($)', 'Payment Method', 'Payment Status', 'Created At'];
+    const rows = listToExport.map(o => [
+      `"${o.orderNumber || o._id?.toString()}"`,
+      `"${o.customerName || 'Guest'}"`,
+      `"${o.customerPhone || 'N/A'}"`,
+      `"${o.orderType || o.type || 'delivery'}"`,
+      `"${o.status || 'pending'}"`,
+      (o.total || 0).toFixed(2),
+      `"${o.paymentMethod || 'cash'}"`,
+      `"${o.paymentStatus || 'pending'}"`,
+      `"${new Date(o.createdAt).toLocaleString()}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `orders_export_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleBulkRefund = async () => {
+    const validOrders = orders.filter(o => selectedOrders.includes(o._id) && o.paymentStatus === 'paid');
+    if (validOrders.length === 0) {
+      showToast('None of the selected orders have a paid status to refund.', 'error');
+      return;
     }
 
     setIsProcessing(true);
@@ -216,29 +213,28 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
     }
   };
 
-  // UI Helpers
   const getTypeBadge = (type) => {
     const t = (type || 'delivery').toLowerCase();
-    if (t === 'pickup') return <span className="flex items-center gap-1 text-[#ea580c] text-xs font-bold"><ShoppingBag className="w-3.5 h-3.5"/> Takeaway</span>;
-    if (t === 'dine_in') return <span className="flex items-center gap-1 text-[#9333ea] text-xs font-bold"><UtensilsCrossed className="w-3.5 h-3.5"/> Dine-in</span>;
-    return <span className="flex items-center gap-1 text-[#16a34a] text-xs font-bold"><Truck className="w-3.5 h-3.5"/> Delivery</span>;
+    if (t === 'pickup') return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-500 border border-amber-500/25"><ShoppingBag className="w-3.5 h-3.5" /> Takeaway</span>;
+    if (t === 'dine_in') return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-500 border border-purple-500/25"><UtensilsCrossed className="w-3.5 h-3.5" /> Dine-in</span>;
+    return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-500 border border-emerald-500/25"><Truck className="w-3.5 h-3.5" /> Delivery</span>;
   };
 
   const getStatusBadge = (status) => {
     switch (status?.toLowerCase()) {
-      case 'preparing': return <span className="text-[#ea580c] font-bold text-xs border border-[#ffedd5] bg-[#fff7ed] px-2 py-1 rounded">Preparing</span>;
+      case 'preparing': return <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-500 border border-purple-500/30">Preparing</span>;
       case 'new': 
-      case 'pending': return <span className="text-[#dc2626] font-bold text-xs border border-[#fee2e2] bg-[#fef2f2] px-2 py-1 rounded">New</span>;
+      case 'pending': return <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-500 border border-rose-500/30">New</span>;
       case 'out for delivery':
-      case 'out_for_delivery': return <span className="text-[#16a34a] font-bold text-xs border border-[#bbf7d0] bg-[#f0fdf4] px-2 py-1 rounded">Out for Delivery</span>;
-      case 'accepted': return <span className="text-[#2563eb] font-bold text-xs border border-[#bfdbfe] bg-[#eff6ff] px-2 py-1 rounded">Accepted</span>;
-      case 'ready': return <span className="text-[#3b82f6] font-bold text-xs border border-[#bfdbfe] bg-[#eff6ff] px-2 py-1 rounded">Ready</span>;
+      case 'out_for_delivery': return <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/15 text-blue-500 border border-blue-500/30">Out for Delivery</span>;
+      case 'accepted': return <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30">Accepted</span>;
+      case 'ready': return <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold bg-teal-500/15 text-teal-500 border border-teal-500/30">Ready</span>;
       case 'delivered':
       case 'picked_up':
-      case 'completed': return <span className="text-[#16a34a] font-bold text-xs border border-[#bbf7d0] bg-[#f0fdf4] px-2 py-1 rounded">Completed</span>;
-      case 'cancelled': return <span className="text-[#6b7280] font-bold text-xs border border-[#e5e7eb] bg-[#f9fafb] px-2 py-1 rounded">Cancelled</span>;
-      case 'failed': return <span className="text-[#b91c1c] font-bold text-xs border border-[#fecaca] bg-[#fef2f2] px-2 py-1 rounded">Failed</span>;
-      default: return <span className="text-[#6b7280] font-bold text-xs border border-[#e5e7eb] bg-[#f3f4f6] px-2 py-1 rounded capitalize">{status}</span>;
+      case 'completed': return <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">Completed</span>;
+      case 'cancelled': return <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold bg-slate-500/15 text-slate-400 border border-slate-500/30">Cancelled</span>;
+      case 'failed': return <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40">Failed</span>;
+      default: return <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold bg-slate-500/15 text-slate-400 border border-slate-500/30 capitalize">{status}</span>;
     }
   };
 
@@ -248,97 +244,118 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
     const isAutoRefund = order?.refunded && ps === 'refunded' && !isManualRefund;
     if (ps === 'refunded') return (
       <div className="flex flex-col gap-0.5">
-        <span className="text-[#dc2626] font-bold text-xs bg-[#fef2f2] px-2 py-0.5 rounded border border-[#fecaca]">Refunded</span>
-        {isAutoRefund && <span className="text-[#d97706] font-bold text-[9px] bg-[#fffbeb] px-1.5 py-0.5 rounded inline-block w-max">⚡ Auto</span>}
+        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/15 text-rose-500 border border-rose-500/30">Refunded</span>
+        {isAutoRefund && <span className="text-amber-500 font-bold text-[9px] bg-amber-500/10 px-1.5 py-0.5 rounded inline-block w-max">⚡ Auto</span>}
       </div>
     );
-    if (ps === 'partially_refunded') return <span className="text-[#d97706] font-bold text-xs bg-[#fffbeb] px-2 py-0.5 rounded border border-[#fde68a]">Partial Refund</span>;
-    if (ps === 'failed') return <span className="text-[#dc2626] font-bold text-xs bg-[#fee2e2] px-2 py-0.5 rounded border border-[#fecaca]">⚠️ Failed</span>;
+    if (ps === 'partially_refunded') return <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30">Partial Refund</span>;
+    if (ps === 'failed') return <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/15 text-rose-500 border border-rose-500/30">⚠️ Failed</span>;
     const isOnline = ['credit_card', 'debit_card', 'apple_pay', 'google_pay', 'stripe_online'].includes(method?.toLowerCase());
-    if (ps === 'paid') return <span className="text-[#16a34a] font-bold text-xs bg-[#dcfce7] px-2 py-0.5 rounded border border-[#bbf7d0]">Paid</span>;
-    if (isOnline) return <span className="text-[#2563eb] font-bold text-xs bg-[#dbeafe] px-2 py-0.5 rounded border border-[#bfdbfe]">Online</span>;
-    if (method?.toLowerCase() === 'payment_link') return <span className="text-[#8b0000] font-bold text-xs bg-[#fef2f2] px-2 py-0.5 rounded border border-[#fecaca]">{ps === 'paid' ? 'Link Paid' : 'Link Pending'}</span>;
-    if (method?.toLowerCase() === 'cash' || (ps === 'pending' && !isOnline)) return <span className="text-[#ea580c] font-bold text-xs bg-[#ffedd5] px-2 py-0.5 rounded border border-[#fed7aa]">Cash / COD</span>;
-    return <span className="text-[#6b7280] font-bold text-xs bg-[#f3f4f6] px-2 py-0.5 rounded capitalize border border-[#e5e7eb]">{pStatus || 'Unknown'}</span>;
+    if (ps === 'paid') return <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">Paid</span>;
+    if (isOnline) return <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/15 text-blue-500 border border-blue-500/30">Online</span>;
+    if (method?.toLowerCase() === 'payment_link') return <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand/15 text-brand border border-brand/30">{ps === 'paid' ? 'Link Paid' : 'Link Pending'}</span>;
+    if (method?.toLowerCase() === 'cash' || (ps === 'pending' && !isOnline)) return <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30">Cash / COD</span>;
+    return <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-500/15 text-slate-400 border border-slate-500/30 capitalize">{pStatus || 'Unknown'}</span>;
   };
 
   if (!mounted) return null;
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 sm:space-y-8 pb-20">
       
-      {/* Header aligned exactly to image */}
-      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4">
+      {/* ── HEADER ROW ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-bold text-[#111827]">Orders</h1>
-          <p className="text-sm text-[#6b7280] mt-1">Manage and track all restaurant orders in one place.</p>
+          <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-admin-text tracking-tight">
+            Orders & Invoices
+          </h1>
+          <p className="text-xs sm:text-sm text-admin-text-secondary mt-1">
+            Real-time orders, delivery tracking, billing status, and invoices.
+          </p>
         </div>
-        <div className="flex flex-col items-end gap-3">
-          <button onClick={() => router.push('/merchant/pos')} className="flex items-center gap-1.5 bg-[#8b0000] text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-[#7f0000] transition-colors shadow-sm">
-            <span className="text-[14px] leading-none">+</span> New Order
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={() => router.push('/merchant/pos')}
+            className="flex items-center gap-2 bg-brand text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:brightness-110 transition-all shadow-sm cursor-pointer"
+          >
+            <span className="text-base leading-none">+</span> New Order (POS)
           </button>
         </div>
       </div>
 
-      {/* 6 Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        {[{
-          label: 'Total Orders', value: stats.total, icon: ShoppingCart, color: 'text-[#ea580c]', bg: 'bg-[#ffedd5]'
-        }, {
-          label: 'New Orders', value: stats.newOrders, icon: CalendarCheck, color: 'text-[#991b1b]', bg: 'bg-[#fef2f2]'
-        }, {
-          label: 'Preparing', value: stats.preparing, icon: ClipboardList, color: 'text-[#9333ea]', bg: 'bg-[#faf5ff]'
-        }, {
-          label: 'Ready', value: stats.ready, icon: ShoppingBag, color: 'text-[#3b82f6]', bg: 'bg-[#eff6ff]'
-        }, {
-          label: 'Out for Delivery', value: stats.outForDelivery, icon: Bike, color: 'text-[#16a34a]', bg: 'bg-[#dcfce7]'
-        }, {
-          label: 'Completed', value: stats.completed, icon: CheckCircle, color: 'text-[#d97706]', bg: 'bg-[#fef9c3]'
-        }].map((stat, i) => (
-          <StatCard 
-            key={i}
-            title={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            iconColor={stat.color}
-            iconBg={stat.bg}
-          />
-        ))}
+      {/* ── 6 STATS CARDS (Salon Management Luxury StatCards) ── */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5 sm:gap-4">
+        <StatCard
+          label="Total Orders"
+          value={stats.total}
+          icon={ShoppingCart}
+          color="bg-amber-500/15 text-amber-500"
+        />
+        <StatCard
+          label="New Orders"
+          value={stats.newOrders}
+          icon={CalendarCheck}
+          color="bg-rose-500/15 text-rose-500"
+        />
+        <StatCard
+          label="Preparing"
+          value={stats.preparing}
+          icon={ClipboardList}
+          color="bg-purple-500/15 text-purple-500"
+        />
+        <StatCard
+          label="Ready"
+          value={stats.ready}
+          icon={ShoppingBag}
+          color="bg-blue-500/15 text-blue-500"
+        />
+        <StatCard
+          label="Out for Delivery"
+          value={stats.outForDelivery}
+          icon={Bike}
+          color="bg-emerald-500/15 text-emerald-500"
+        />
+        <StatCard
+          label="Completed"
+          value={stats.completed}
+          icon={CheckCircle}
+          color="bg-teal-500/15 text-teal-500"
+        />
       </div>
 
-      {/* Main Table Card */}
-      <div className="bg-white rounded-[20px] shadow-sm border border-[#e5e7eb] overflow-hidden flex flex-col">
+      {/* ── MAIN TABLE CARD (Salon Management Luxury Table Surface) ── */}
+      <div className="bg-admin-card rounded-2xl shadow-sm border border-admin-border overflow-hidden flex flex-col">
         
-        {/* Filters Row */}
-        <div className="p-5 border-b border-[#f3f4f6] flex flex-wrap gap-4 items-center justify-between">
-          <div className="relative flex-1 min-w-[250px] max-w-sm">
-            <Search className="w-4 h-4 text-[#9ca3af] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        {/* Filters Bar */}
+        <div className="p-4 sm:p-5 border-b border-admin-border flex flex-wrap gap-3.5 items-center justify-between bg-admin-surface/40">
+          <div className="relative flex-1 min-w-[240px] max-w-sm">
+            <Search className="w-4 h-4 text-admin-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input 
               type="text" 
               placeholder="Search by Order ID, Customer, Phone..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full !pl-10 py-2 rounded-lg border border-[#e5e7eb] bg-[#f9fafb] text-xs font-medium text-[#111827] outline-none focus:border-[#991b1b] transition-colors"
+              className="w-full pl-10 pr-3 py-2 rounded-xl border border-admin-border bg-admin-surface text-xs font-medium text-admin-text placeholder:text-admin-text-muted outline-none focus:border-brand transition-colors"
             />
           </div>
           
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex flex-col w-[150px]">
-              <label className="text-xs font-bold text-[#6b7280] mb-1">Date Range</label>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="w-[140px]">
               <PremiumDatePicker 
                 selected={dateRange ? new Date(dateRange + 'T00:00:00') : null}
                 onChange={(d) => setDateRange(d ? d.toISOString().split('T')[0] : '')}
-                className="!bg-[#f9fafb] hover:!bg-white !py-[7.5px] !text-xs !font-bold !text-[#111827] cursor-pointer w-full"
+                className="!bg-admin-surface !py-2 !text-xs !font-bold !text-admin-text cursor-pointer w-full !border-admin-border rounded-xl"
                 placeholderText="All Dates"
                 isClearable={true}
               />
             </div>
 
-            <div className="flex flex-col">
-              <label className="text-xs font-bold text-[#6b7280] mb-1">Order Type</label>
+            <div>
               <select 
-                value={orderTypeFilter} onChange={(e) => setOrderTypeFilter(e.target.value)}
-                className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-xs font-bold text-[#111827] outline-none pr-6 cursor-pointer hover:bg-white transition-colors"
+                value={orderTypeFilter}
+                onChange={(e) => setOrderTypeFilter(e.target.value)}
+                className="bg-admin-surface border border-admin-border rounded-xl px-3 py-2 text-xs font-semibold text-admin-text outline-none cursor-pointer hover:border-brand/40 transition-colors"
               >
                 <option>All Types</option>
                 <option>Delivery</option>
@@ -347,11 +364,11 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
               </select>
             </div>
 
-            <div className="flex flex-col">
-              <label className="text-xs font-bold text-[#6b7280] mb-1">Order Status</label>
+            <div>
               <select 
-                value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-xs font-bold text-[#111827] outline-none pr-6 cursor-pointer hover:bg-white transition-colors"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-admin-surface border border-admin-border rounded-xl px-3 py-2 text-xs font-semibold text-admin-text outline-none cursor-pointer hover:border-brand/40 transition-colors"
               >
                 <option>All Status</option>
                 <option>New</option>
@@ -365,11 +382,11 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
               </select>
             </div>
 
-            <div className="flex flex-col">
-              <label className="text-xs font-bold text-[#6b7280] mb-1">Payment Status</label>
+            <div>
               <select 
-                value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)}
-                className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-xs font-bold text-[#111827] outline-none pr-6 cursor-pointer hover:bg-white transition-colors"
+                value={paymentFilter}
+                onChange={(e) => setPaymentFilter(e.target.value)}
+                className="bg-admin-surface border border-admin-border rounded-xl px-3 py-2 text-xs font-semibold text-admin-text outline-none cursor-pointer hover:border-brand/40 transition-colors"
               >
                 <option>All Payment Status</option>
                 <option>Paid</option>
@@ -377,32 +394,35 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
               </select>
             </div>
 
-            <div className="flex items-end h-[50px]">
-              <button 
-                onClick={() => {
-                  setSearchQuery('');
-                  setDateRange('');
-                  setStatusFilter('All Status');
-                  setOrderTypeFilter('All Types');
-                  setPaymentFilter('All Payment Status');
-                  setActiveTab('All');
-                }}
-                className="bg-white border border-[#e5e7eb] rounded-lg px-4 py-2 text-xs font-bold text-[#374151] flex items-center gap-2 hover:bg-gray-50 transition-colors"
-              >
-                <RefreshCcw className="w-3.5 h-3.5" /> Clear Filters
-              </button>
-            </div>
-            <div className="flex items-end h-[50px]">
-              <button onClick={handleExportCSV} className="bg-white border border-[#e5e7eb] rounded-lg px-4 py-2 text-xs font-bold text-[#374151] flex items-center gap-2 hover:bg-gray-50 transition-colors">
-                <Download className="w-3.5 h-3.5" /> Export
-              </button>
-            </div>
+            <button 
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setDateRange('');
+                setStatusFilter('All Status');
+                setOrderTypeFilter('All Types');
+                setPaymentFilter('All Payment Status');
+                setActiveTab('All');
+              }}
+              className="bg-admin-surface border border-admin-border rounded-xl px-3 py-2 text-xs font-semibold text-admin-text-secondary flex items-center gap-1.5 hover:text-admin-text hover:bg-admin-surface-light transition-colors cursor-pointer"
+              title="Reset Filters"
+            >
+              <RefreshCcw className="w-3.5 h-3.5" /> Clear
+            </button>
+
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="bg-admin-surface border border-admin-border rounded-xl px-3.5 py-2 text-xs font-semibold text-admin-text-secondary flex items-center gap-1.5 hover:text-admin-text hover:bg-admin-surface-light transition-colors cursor-pointer shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5" /> Export
+            </button>
           </div>
         </div>
 
-        {/* Tabs Row */}
-        <div className="px-5 border-b border-[#f3f4f6] flex items-center justify-between overflow-x-auto hide-scrollbar">
-          <div className="flex items-center gap-8 min-w-max">
+        {/* Channel Filter Tabs */}
+        <div className="px-5 border-b border-admin-border flex items-center justify-between overflow-x-auto hide-scrollbar bg-admin-surface-light/30">
+          <div className="flex items-center gap-6 min-w-max">
             {[
               { id: 'All', label: `All Orders (${tabCounts.all})` },
               { id: 'Dine-in', label: `Dine-in (${tabCounts.dineIn})` },
@@ -411,8 +431,11 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
             ].map(tab => (
               <button 
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-4 text-xs font-extrabold transition-colors border-b-2 whitespace-nowrap ${activeTab === tab.id ? 'border-[#991b1b] text-[#991b1b]' : 'border-transparent text-[#6b7280] hover:text-[#374151]'}`}
+                className={`py-3.5 text-xs font-bold transition-colors border-b-2 whitespace-nowrap cursor-pointer ${
+                  activeTab === tab.id ? 'border-brand text-brand' : 'border-transparent text-admin-text-secondary hover:text-admin-text'
+                }`}
               >
                 {tab.label}
               </button>
@@ -420,40 +443,39 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto custom-scrollbar relative">
+        {/* Table wrapped in TableScrollContainer with smooth scroll arrows */}
+        <TableScrollContainer innerClassName="min-h-[300px]">
           <table className="w-full text-left border-collapse min-w-[1100px]">
-            <thead className="bg-[#f9fafb] sticky top-0 z-10 border-b border-[#e5e7eb]">
+            <thead className="bg-admin-surface-light sticky top-0 z-10 border-b border-admin-border text-admin-text-secondary">
               <tr>
-                <th className="px-4 py-4 w-12 text-center">
+                <th className="px-4 py-3.5 w-12 text-center">
                   <input 
                     type="checkbox" 
                     checked={selectedOrders.length === displayedOrders.length && displayedOrders.length > 0}
                     onChange={handleSelectAll}
-                    style={{ backgroundColor: 'white' }}
-                    className="w-3.5 h-3.5 rounded !bg-white border-[#d1d5db] text-[#991b1b] focus:ring-[#991b1b] cursor-pointer" 
+                    className="w-4 h-4 rounded border-admin-border text-brand focus:ring-brand cursor-pointer" 
                   />
                 </th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Order ID</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Customer</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Type</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Status</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Order Time</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Items</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Amount</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Payment</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider">Delivery / Table</th>
-                <th className="px-4 py-4 text-xs font-extrabold text-[#6b7280] uppercase tracking-wider text-center">Actions</th>
+                <th className="px-4 py-3.5 text-xs font-extrabold uppercase tracking-wider">Order ID</th>
+                <th className="px-4 py-3.5 text-xs font-extrabold uppercase tracking-wider">Customer</th>
+                <th className="px-4 py-3.5 text-xs font-extrabold uppercase tracking-wider">Type</th>
+                <th className="px-4 py-3.5 text-xs font-extrabold uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3.5 text-xs font-extrabold uppercase tracking-wider">Order Time</th>
+                <th className="px-4 py-3.5 text-xs font-extrabold uppercase tracking-wider">Items</th>
+                <th className="px-4 py-3.5 text-xs font-extrabold uppercase tracking-wider">Amount</th>
+                <th className="px-4 py-3.5 text-xs font-extrabold uppercase tracking-wider">Payment</th>
+                <th className="px-4 py-3.5 text-xs font-extrabold uppercase tracking-wider">Fulfillment</th>
+                <th className="px-4 py-3.5 text-xs font-extrabold uppercase tracking-wider text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#f3f4f6]">
+            <tbody className="divide-y divide-admin-border">
               {displayedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="11" className="px-6 py-12">
-                    <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-[#e5e7eb] rounded-xl bg-[#f9fafb]">
-                      <PackageX className="w-12 h-12 text-[#d1d5db] mb-3" />
-                      <p className="text-sm font-bold text-[#9ca3af]">No orders found</p>
-                      <p className="text-xs text-[#9ca3af] mt-1">Try adjusting your filters, search terms, or date range.</p>
+                  <td colSpan="11" className="px-6 py-16">
+                    <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-admin-border rounded-2xl bg-admin-surface-light/30">
+                      <PackageX className="w-12 h-12 text-admin-text-muted mb-3" />
+                      <p className="text-sm font-bold text-admin-text">No orders found</p>
+                      <p className="text-xs text-admin-text-muted mt-1">Try adjusting your filters, search terms, or date range.</p>
                     </div>
                   </td>
                 </tr>
@@ -463,79 +485,85 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
                   return (
                     <tr 
                       key={order._id || idx} 
-                      className={`transition-colors ${isSelected ? 'bg-red-50' : 'hover:bg-gray-50/50'} ${
-                        order.status === 'failed' ? 'bg-[#fff5f5]'
-                        : order.refunded ? 'bg-[#fffdf0]'
-                        : ''
+                      className={`transition-colors ${
+                        isSelected 
+                          ? 'bg-brand/10' 
+                          : 'hover:bg-admin-surface-light/40'
                       }`}
                     >
-                      <td className="px-4 py-4 text-center">
+                      <td className="px-4 py-3.5 text-center">
                         <input 
                           type="checkbox" 
                           checked={isSelected}
                           onChange={() => handleSelectOrder(order._id)}
-                          style={{ backgroundColor: 'white' }}
-                          className="w-3.5 h-3.5 rounded !bg-white border-[#d1d5db] text-[#991b1b] focus:ring-[#991b1b] cursor-pointer" 
+                          className="w-4 h-4 rounded border-admin-border text-brand focus:ring-brand cursor-pointer" 
                         />
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-[#111827]">#{order.orderNumber || order._id?.toString().slice(-6) || 'N/A'}</span>
+                          <span className="font-mono text-xs font-bold text-admin-text">
+                            #{order.orderNumber || order._id?.toString().slice(-6) || 'N/A'}
+                          </span>
                           {order.isRemake && (
-                            <span className="px-1.5 py-0.5 rounded bg-[#ffedd5] text-[#9a3412] text-[10px] font-bold tracking-wider">
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 text-[10px] font-bold tracking-wider">
                               REMADE
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-[#f3f4f6] flex items-center justify-center text-xs font-bold text-[#6b7280]">
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand/20 to-brand/5 border border-brand/30 flex items-center justify-center text-xs font-bold text-brand shrink-0">
                             {(order.customerName || 'G')[0].toUpperCase()}
                           </div>
-                          <div>
-                            <div className="text-sm font-bold text-[#111827]">{order.customerName || 'Guest'}</div>
-                            <div className="text-xs text-[#6b7280]">{order.customerPhone || 'N/A'}</div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-admin-text truncate max-w-[130px]">{order.customerName || 'Guest'}</div>
+                            <div className="text-[11px] text-admin-text-muted truncate max-w-[130px]">{order.customerPhone || 'N/A'}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-3.5">
                         {getTypeBadge(order.orderType || order.type)}
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-3.5">
                         {getStatusBadge(order.status)}
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="text-sm font-bold text-[#111827]">{formatTime(order.createdAt, restaurant?.timeFormat, restaurant?.timezone)}</div>
-                        <div className="text-[11px] text-[#6b7280]">{formatDate(order.createdAt, restaurant?.dateFormat, restaurant?.timezone)}</div>
+                      <td className="px-4 py-3.5">
+                        <div className="text-xs font-bold text-admin-text">{formatTime(order.createdAt, restaurant?.timeFormat, restaurant?.timezone)}</div>
+                        <div className="text-[11px] text-admin-text-muted">{formatDate(order.createdAt, restaurant?.dateFormat, restaurant?.timezone)}</div>
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="text-xs font-bold text-[#374151]">{order.items?.length || 0} Items</div>
+                      <td className="px-4 py-3.5">
+                        <div className="text-xs font-semibold text-admin-text-secondary">{order.items?.length || 0} Items</div>
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="text-sm font-black text-[#111827]">${order.total?.toFixed(2) || '0.00'}</div>
+                      <td className="px-4 py-3.5">
+                        <div className="font-heading text-sm font-extrabold text-admin-text">${Number(order.total || 0).toFixed(2)}</div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-3.5">
                         {getPaymentBadge(order.paymentMethod, order.paymentStatus, order)}
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-3.5">
                         {(order.orderType || order.type) === 'delivery' ? (
                           <>
-                            <div className="text-xs font-bold text-[#374151]">Rider: {order.courierName || 'Assigning'}</div>
-                            <div className="text-xs font-bold text-[#16a34a]">{order.status === 'out_for_delivery' ? 'ETA: 15 mins' : (order.status === 'delivered' ? 'Delivered' : '')}</div>
+                            <div className="text-xs font-semibold text-admin-text-secondary">Rider: {order.courierName || 'Assigning'}</div>
+                            <div className="text-[11px] font-bold text-emerald-500">{order.status === 'out_for_delivery' ? 'ETA: 15 mins' : (order.status === 'delivered' ? 'Delivered' : '')}</div>
                           </>
                         ) : (order.orderType || order.type) === 'dine_in' ? (
                           <>
-                            <div className="text-xs font-bold text-[#374151]">Table {order.tableNumber || '-'}</div>
-                            <div className="text-xs text-[#6b7280]">{order.guestCount || 0} Guests</div>
+                            <div className="text-xs font-semibold text-admin-text">Table {order.tableNumber || '-'}</div>
+                            <div className="text-[11px] text-admin-text-muted">{order.guestCount || 0} Guests</div>
                           </>
                         ) : (
-                          <div className="text-xs font-bold text-[#374151]">-</div>
+                          <div className="text-xs text-admin-text-muted">Takeaway Counter</div>
                         )}
                       </td>
-                      <td className="px-4 py-4 text-center">
+                      <td className="px-4 py-3.5 text-center">
                         <div className="flex items-center justify-center">
-                          <button onClick={() => onRowClick && onRowClick(order._id)} className="w-8 h-8 rounded-md border border-[#e5e7eb] bg-white flex items-center justify-center text-[#6b7280] hover:text-[#991b1b] hover:border-[#991b1b] hover:bg-red-50 transition-colors shadow-sm">
+                          <button
+                            type="button"
+                            onClick={() => onRowClick && onRowClick(order._id)}
+                            className="w-8 h-8 rounded-lg border border-admin-border bg-admin-surface flex items-center justify-center text-admin-text-secondary hover:text-brand hover:border-brand/50 transition-colors shadow-2xs cursor-pointer"
+                            title="View Order Details"
+                          >
                             <Eye className="w-4 h-4" />
                           </button>
                         </div>
@@ -546,47 +574,60 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
               )}
             </tbody>
           </table>
-        </div>
+        </TableScrollContainer>
 
-        {/* ─── LOAD MORE BUTTON ─── */}
-        <div className="px-6 py-4 border-t border-[#f3f4f6] flex flex-col sm:flex-row items-center justify-between bg-white rounded-b-[20px] gap-4">
-          <span className="text-xs font-semibold text-[#6b7280]">
-            Showing <strong className="text-[#374151]">{displayedOrders.length}</strong> of <strong className="text-[#374151]">{filteredOrders.length}</strong> orders
+        {/* Pagination & Load More */}
+        <div className="px-6 py-4 border-t border-admin-border flex flex-col sm:flex-row items-center justify-between bg-admin-surface/30 gap-4">
+          <span className="text-xs font-medium text-admin-text-muted">
+            Showing <strong className="text-admin-text font-bold">{displayedOrders.length}</strong> of <strong className="text-admin-text font-bold">{filteredOrders.length}</strong> orders
           </span>
 
           {hasMoreItems && (
             <button
+              type="button"
               onClick={handleLoadMore}
               disabled={isLoadingMore}
-              className="flex items-center justify-center gap-2 w-full sm:w-[160px] h-[36px] bg-white border border-[#e5e7eb] text-[#374151] rounded-lg text-[13px] font-bold hover:bg-[#f9fafb] hover:text-[#8B0000] hover:border-[#8B0000] transition-all shadow-sm"
+              className="flex items-center justify-center gap-2 w-full sm:w-[160px] h-[36px] bg-admin-surface border border-admin-border text-admin-text rounded-xl text-xs font-bold hover:bg-admin-surface-light hover:border-brand/40 transition-all shadow-2xs cursor-pointer"
             >
-              {isLoadingMore ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading...</> : 'Load More'}
+              {isLoadingMore ? <><Loader2 className="w-3.5 h-3.5 animate-spin text-brand" /> Loading...</> : 'Load More Orders'}
             </button>
           )}
         </div>
 
-        {/* Bulk Actions Bar */}
+        {/* Floating Bulk Actions Bar */}
         {selectedOrders.length > 0 && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#111827] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-6 z-50 animate-in slide-in-from-bottom-5">
+          <div className="fixed bottom-6 left-1/2 -translate-y-1/2 -translate-x-1/2 bg-[#090D16] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-50 border border-white/10 animate-fadeIn">
             <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-[#374151] flex items-center justify-center text-xs font-bold text-white">
+              <span className="w-6 h-6 rounded-full bg-brand flex items-center justify-center text-xs font-bold text-white shadow-sm">
                 {selectedOrders.length}
               </span>
-              <span className="text-sm font-bold">Orders Selected</span>
+              <span className="text-xs font-bold">Selected</span>
             </div>
-            <div className="h-4 w-px bg-[#374151]"></div>
+            <div className="h-4 w-px bg-white/20" />
             <div className="flex items-center gap-2">
-              <button onClick={() => { handleExportCSV(); setSelectedOrders([]); showToast('Orders exported to CSV', 'success'); }} className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#1f2937] text-sm font-bold hover:bg-[#374151] transition-colors border border-[#374151]">
+              <button
+                type="button"
+                onClick={() => { handleExportCSV(); setSelectedOrders([]); showToast('Orders exported to CSV', 'success'); }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 text-xs font-semibold hover:bg-white/20 transition-colors border border-white/10 cursor-pointer"
+              >
                 <Download className="w-3.5 h-3.5" /> Export Selected
               </button>
               <button 
+                type="button"
                 onClick={handleBulkRefund} 
                 disabled={isProcessing}
-                className={`px-4 py-1.5 rounded-full text-sm font-bold text-white transition-colors ${isProcessing ? 'bg-gray-500 cursor-not-allowed opacity-50' : 'bg-[#7f1d1d] hover:bg-[#991b1b]'}`}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold text-white transition-colors cursor-pointer ${
+                  isProcessing ? 'bg-rose-900/50 cursor-not-allowed opacity-50' : 'bg-rose-600 hover:bg-rose-700'
+                }`}
               >
                 {isProcessing ? 'Processing...' : 'Issue Refund'}
               </button>
-              <button onClick={() => setSelectedOrders([])} className="p-1.5 rounded-full hover:bg-[#374151] text-gray-400 hover:text-white transition-colors ml-2">
+              <button
+                type="button"
+                onClick={() => setSelectedOrders([])}
+                className="p-1 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors ml-1 cursor-pointer"
+                title="Deselect all"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>

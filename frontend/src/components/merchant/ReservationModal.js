@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Calendar, Clock, Users, Phone, Mail, User, MapPin, Loader2 } from 'lucide-react';
 import { showToast } from '@/components/ui';
 import PremiumDatePicker from '@/components/ui/PremiumDatePicker';
 
 export default function ReservationModal({ isOpen, onClose, onSave, reservation, restaurantId }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [formData, setFormData] = useState({
     customerName: '',
     customerPhone: '',
@@ -45,7 +48,7 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
     }
   }, [isOpen, reservation]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -65,63 +68,80 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
     }
   };
 
-  const inputClasses = "w-full bg-white border border-[#e5e7eb] rounded-lg px-3 py-2.5 text-sm text-[#1f2937] outline-none focus:border-[#8B0000] focus:ring-1 focus:ring-[#8B0000] transition-colors placeholder:text-[#9ca3af]";
-  const iconInputClasses = "w-full bg-white border border-[#e5e7eb] rounded-lg pl-10 pr-3 py-2.5 text-sm text-[#1f2937] outline-none focus:border-[#8B0000] focus:ring-1 focus:ring-[#8B0000] transition-colors placeholder:text-[#9ca3af]";
+  const inputClasses = "w-full bg-admin-surface-light border border-admin-border rounded-xl px-3.5 py-2.5 text-sm text-admin-text outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-colors placeholder:text-admin-text-muted";
+  const iconInputClasses = "w-full bg-admin-surface-light border border-admin-border rounded-xl pl-10 pr-3.5 py-2.5 text-sm text-admin-text outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-colors placeholder:text-admin-text-muted";
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+  return createPortal(
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+      <div className="bg-admin-surface border border-admin-border rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="px-8 py-5 border-b border-[#e5e7eb] flex justify-between items-center bg-white sticky top-0 z-10">
+        <div className="px-6 py-5 border-b border-admin-border flex justify-between items-center bg-admin-surface sticky top-0 z-10">
           <div>
-            <h2 className="text-xl font-bold text-[#111827]">
+            <h2 className="text-lg sm:text-xl font-bold font-heading text-admin-text">
               {reservation ? 'Edit Reservation' : 'New Reservation'}
             </h2>
-            <p className="text-sm text-[#6b7280] mt-1">Manage guest details and table blocking.</p>
+            <p className="text-xs sm:text-sm text-admin-text-secondary mt-0.5">Manage guest details and table blocking.</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-[#f3f4f6] rounded-full text-[#6b7280] transition-colors">
+          <button 
+            onClick={onClose} 
+            className="p-2 hover:bg-admin-surface-light rounded-xl text-admin-text-secondary hover:text-admin-text transition-colors cursor-pointer"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-hidden flex flex-col md:flex-row bg-[#f9fafb]">
+        <div className="flex-1 overflow-hidden flex flex-col md:flex-row bg-admin-bg">
           
           {/* Left Sidebar Navigation */}
-          <div className="w-full md:w-64 bg-[#f9fafb] border-r border-[#e5e7eb] p-6 flex flex-col gap-2 shrink-0">
+          <div className="w-full md:w-64 bg-admin-surface border-r border-admin-border p-4 md:p-5 flex flex-col gap-2 shrink-0">
             <button 
               type="button"
               onClick={() => setActiveSection('customer')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeSection === 'customer' ? 'bg-white text-[#8B0000] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:bg-white hover:text-[#374151]'}`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeSection === 'customer' 
+                  ? 'bg-admin-card text-brand shadow-2xs border border-admin-border' 
+                  : 'text-admin-text-secondary hover:bg-admin-surface-light hover:text-admin-text'
+              }`}
             >
               <User className="w-4 h-4" /> Customer Details
             </button>
             <button 
               type="button"
               onClick={() => setActiveSection('booking')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeSection === 'booking' ? 'bg-white text-[#8B0000] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:bg-white hover:text-[#374151]'}`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeSection === 'booking' 
+                  ? 'bg-admin-card text-brand shadow-2xs border border-admin-border' 
+                  : 'text-admin-text-secondary hover:bg-admin-surface-light hover:text-admin-text'
+              }`}
             >
               <Calendar className="w-4 h-4" /> Booking Info
             </button>
             <button 
               type="button"
               onClick={() => setActiveSection('special')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeSection === 'special' ? 'bg-white text-[#8B0000] shadow-sm border border-[#e5e7eb]' : 'text-[#6b7280] hover:bg-white hover:text-[#374151]'}`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeSection === 'special' 
+                  ? 'bg-admin-card text-brand shadow-2xs border border-admin-border' 
+                  : 'text-admin-text-secondary hover:bg-admin-surface-light hover:text-admin-text'
+              }`}
             >
               <MapPin className="w-4 h-4" /> Special Requests
             </button>
           </div>
 
           {/* Form Body */}
-          <div className="flex-1 overflow-y-auto p-8 bg-white custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-admin-card custom-scrollbar">
             <form id="reservation-form" onSubmit={handleSubmit}>
               
               {/* Customer Details Section */}
               <div className={activeSection === 'customer' ? 'block animate-in fade-in slide-in-from-right-4' : 'hidden'}>
-                <h3 className="text-lg font-bold text-[#111827] mb-6">Guest Information</h3>
+                <h3 className="text-base sm:text-lg font-bold font-heading text-admin-text mb-6">Guest Information</h3>
                 <div className="space-y-5 max-w-lg">
                   <div>
-                    <label className="block text-xs font-bold text-[#374151] mb-2 uppercase tracking-wider">Full Name <span className="text-[#DC2626]">*</span></label>
+                    <label className="block text-xs font-bold text-admin-text-secondary mb-2 uppercase tracking-wider">
+                      Full Name <span className="text-rose-500">*</span>
+                    </label>
                     <input
                       type="text"
                       required
@@ -132,9 +152,11 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#374151] mb-2 uppercase tracking-wider">Phone Number <span className="text-[#DC2626]">*</span></label>
+                    <label className="block text-xs font-bold text-admin-text-secondary mb-2 uppercase tracking-wider">
+                      Phone Number <span className="text-rose-500">*</span>
+                    </label>
                     <div className="relative">
-                      <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
+                      <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-admin-text-muted" />
                       <input
                         type="tel"
                         required
@@ -146,9 +168,11 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#374151] mb-2 uppercase tracking-wider">Email Address</label>
+                    <label className="block text-xs font-bold text-admin-text-secondary mb-2 uppercase tracking-wider">
+                      Email Address
+                    </label>
                     <div className="relative">
-                      <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
+                      <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-admin-text-muted" />
                       <input
                         type="email"
                         value={formData.customerEmail}
@@ -157,19 +181,21 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
                         placeholder="john@example.com"
                       />
                     </div>
-                    <p className="text-xs text-[#6b7280] mt-1.5">Used for sending booking confirmation emails.</p>
+                    <p className="text-xs text-admin-text-muted mt-1.5">Used for sending booking confirmation emails.</p>
                   </div>
                 </div>
               </div>
 
               {/* Booking Details Section */}
               <div className={activeSection === 'booking' ? 'block animate-in fade-in slide-in-from-right-4' : 'hidden'}>
-                <h3 className="text-lg font-bold text-[#111827] mb-6">Reservation Details</h3>
+                <h3 className="text-base sm:text-lg font-bold font-heading text-admin-text mb-6">Reservation Details</h3>
                 <div className="space-y-6 max-w-2xl">
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-xs font-bold text-[#374151] mb-2 uppercase tracking-wider">Date <span className="text-[#DC2626]">*</span></label>
+                      <label className="block text-xs font-bold text-admin-text-secondary mb-2 uppercase tracking-wider">
+                        Date <span className="text-rose-500">*</span>
+                      </label>
                       <PremiumDatePicker
                         selected={formData.date ? new Date(formData.date + 'T00:00:00') : null}
                         onChange={(d) => {
@@ -180,7 +206,9 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-[#374151] mb-2 uppercase tracking-wider">Time <span className="text-[#DC2626]">*</span></label>
+                      <label className="block text-xs font-bold text-admin-text-secondary mb-2 uppercase tracking-wider">
+                        Time <span className="text-rose-500">*</span>
+                      </label>
                       <PremiumDatePicker
                         selected={formData.time ? new Date(`2000-01-01T${formData.time}:00`) : null}
                         onChange={(d) => {
@@ -199,9 +227,11 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-xs font-bold text-[#374151] mb-2 uppercase tracking-wider">Party Size <span className="text-[#DC2626]">*</span></label>
+                      <label className="block text-xs font-bold text-admin-text-secondary mb-2 uppercase tracking-wider">
+                        Party Size <span className="text-rose-500">*</span>
+                      </label>
                       <div className="relative">
-                        <Users className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
+                        <Users className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-admin-text-muted" />
                         <input
                           type="number"
                           min="1"
@@ -213,7 +243,7 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-[#374151] mb-2 uppercase tracking-wider">Status</label>
+                      <label className="block text-xs font-bold text-admin-text-secondary mb-2 uppercase tracking-wider">Status</label>
                       <select
                         value={formData.status}
                         onChange={(e) => setFormData({...formData, status: e.target.value})}
@@ -228,9 +258,9 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2 border-t border-[#f3f4f6]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-3 border-t border-admin-border">
                     <div>
-                      <label className="block text-xs font-bold text-[#374151] mb-2 uppercase tracking-wider">Seating Area</label>
+                      <label className="block text-xs font-bold text-admin-text-secondary mb-2 uppercase tracking-wider">Seating Area</label>
                       <select
                         value={formData.location || ''}
                         onChange={(e) => setFormData({...formData, location: e.target.value})}
@@ -242,7 +272,7 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-[#374151] mb-2 uppercase tracking-wider">Occasion</label>
+                      <label className="block text-xs font-bold text-admin-text-secondary mb-2 uppercase tracking-wider">Occasion</label>
                       <select
                         value={formData.occasion || ''}
                         onChange={(e) => setFormData({...formData, occasion: e.target.value})}
@@ -262,9 +292,9 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
 
               {/* Special Requests Section */}
               <div className={activeSection === 'special' ? 'block animate-in fade-in slide-in-from-right-4' : 'hidden'}>
-                <h3 className="text-lg font-bold text-[#111827] mb-6">Special Requests</h3>
+                <h3 className="text-base sm:text-lg font-bold font-heading text-admin-text mb-6">Special Requests</h3>
                 <div className="max-w-2xl">
-                  <label className="block text-xs font-bold text-[#374151] mb-2 uppercase tracking-wider">Notes & Requests</label>
+                  <label className="block text-xs font-bold text-admin-text-secondary mb-2 uppercase tracking-wider">Notes & Requests</label>
                   <textarea
                     rows="6"
                     value={formData.specialRequests}
@@ -272,7 +302,7 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
                     className={`${inputClasses} resize-none`}
                     placeholder="E.g. Allergies, high chair required, window seat preferred..."
                   ></textarea>
-                  <p className="text-xs text-[#6b7280] mt-2">These notes will be visible to the floor staff.</p>
+                  <p className="text-xs text-admin-text-muted mt-2">These notes will be visible to the floor staff.</p>
                 </div>
               </div>
 
@@ -281,25 +311,25 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-5 border-t border-[#e5e7eb] bg-white flex justify-between items-center z-10 shrink-0">
+        <div className="px-6 py-4 border-t border-admin-border bg-admin-surface flex justify-between items-center z-10 shrink-0">
           
           <div className="flex gap-2">
             {activeSection !== 'customer' && (
               <button 
                 type="button" 
                 onClick={() => setActiveSection(activeSection === 'special' ? 'booking' : 'customer')}
-                className="px-4 py-2.5 rounded-lg text-sm font-bold text-[#374151] bg-[#f9fafb] border border-[#e5e7eb] hover:bg-[#f3f4f6] transition-colors"
+                className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-admin-text bg-admin-surface-light border border-admin-border hover:bg-admin-surface-hover transition-colors cursor-pointer"
               >
                 Previous Step
               </button>
             )}
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex gap-2.5 sm:gap-3">
             <button 
               type="button" 
               onClick={onClose}
-              className="px-5 py-2.5 rounded-lg text-sm font-bold text-[#374151] bg-white border border-[#e5e7eb] hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-admin-text-secondary hover:text-admin-text bg-admin-surface-light border border-admin-border hover:bg-admin-surface-hover transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -308,7 +338,7 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
               <button 
                 type="button"
                 onClick={() => setActiveSection(activeSection === 'customer' ? 'booking' : 'special')}
-                className="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-[#111827] hover:bg-black transition-colors shadow-md"
+                className="px-5 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 transition-colors shadow-2xs cursor-pointer"
               >
                 Next Step
               </button>
@@ -317,7 +347,7 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
                 type="submit" 
                 form="reservation-form"
                 disabled={isSubmitting}
-                className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-[#8B0000] hover:bg-red-900 transition-colors shadow-md disabled:opacity-50 flex items-center gap-2"
+                className="px-5 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-brand hover:brightness-110 transition-colors shadow-md disabled:opacity-50 flex items-center gap-2 cursor-pointer"
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 {isSubmitting ? 'Saving...' : reservation ? 'Save Changes' : 'Confirm Reservation'}
@@ -327,6 +357,7 @@ export default function ReservationModal({ isOpen, onClose, onSave, reservation,
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

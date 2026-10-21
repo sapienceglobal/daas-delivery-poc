@@ -162,32 +162,30 @@ export default function MenuManagementModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
-      style={{ colorScheme: 'light' }}
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div 
-        className="bg-white rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.25)] border border-[#e5e7eb] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
-        style={{ colorScheme: 'light' }}
+        className="bg-admin-surface rounded-3xl shadow-2xl border border-admin-border w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 text-admin-text"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex justify-between items-center p-6 lg:p-8 border-b border-[#f3f4f6] bg-white sticky top-0 z-10 shrink-0">
+        <div className="flex justify-between items-center p-6 lg:p-7 border-b border-admin-border bg-admin-surface sticky top-0 z-10 shrink-0">
           <div>
-            <h2 className="text-2xl font-black text-[#111827] tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-black font-heading text-admin-text tracking-tight">
               {item?._id ? 'Edit Menu Item' : 'Add New Menu Item'}
             </h2>
-            <p className="text-sm text-[#6b7280] mt-1 font-medium">
+            <p className="text-xs sm:text-sm text-admin-text-secondary mt-1 font-medium">
               {item?._id ? 'Update details for your menu item.' : 'Fill in the details to add a new item to your menu.'}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-[#f3f4f6] rounded-full transition-colors text-[#6b7280] border border-transparent hover:border-[#e5e7eb]">
+          <button onClick={onClose} className="p-2 hover:bg-admin-surface-light rounded-full transition-colors text-admin-text-secondary hover:text-admin-text border border-transparent hover:border-admin-border cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 custom-scrollbar bg-[#f8fafc]">
+        <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 custom-scrollbar bg-admin-bg/50">
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
@@ -195,17 +193,17 @@ export default function MenuManagementModal({
             <div className="lg:col-span-7 space-y-8">
               
               {/* Section: Basic Info */}
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#e5e7eb] space-y-5">
+              <div className="bg-admin-card p-6 rounded-2xl shadow-sm border border-admin-border space-y-5">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="bg-[#fef2f2] p-1.5 rounded-lg text-[#8B0000]">
+                  <div className="bg-brand/10 p-1.5 rounded-lg text-brand">
                     <Tag className="w-4 h-4" />
                   </div>
-                  <h3 className="text-lg font-bold text-[#111827]">Basic Information</h3>
+                  <h3 className="text-base sm:text-lg font-bold font-heading text-admin-text">Basic Information</h3>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Item Name *</label>
+                    <label className="block text-xs font-bold text-admin-text uppercase tracking-wider mb-2">Item Name *</label>
                     <input
                       value={itemForm.name || ''}
                       onChange={(e) => {
@@ -213,44 +211,44 @@ export default function MenuManagementModal({
                         if (errors.name) setErrors(e => ({ ...e, name: null }));
                       }}
                       placeholder="e.g. Garlic Naan"
-                      className={`w-full rounded-xl bg-[#f9fafb] border ${errors.name ? 'border-[#dc2626] focus:ring-[#dc2626]/20 focus:border-[#dc2626]' : 'border-[#e5e7eb] focus:ring-[#8B0000]/20 focus:border-[#8B0000]'} text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 transition-all`}
+                      className={`w-full rounded-xl bg-admin-surface border ${errors.name ? 'border-rose-500 focus:ring-rose-500/20 focus:border-rose-500' : 'border-admin-border focus:ring-brand/20 focus:border-brand'} text-xs sm:text-sm text-admin-text px-4 py-2.5 sm:py-3 focus:outline-none focus:ring-2 transition-all`}
                     />
-                    {errors.name && <p className="text-[#dc2626] text-xs mt-1 font-bold">{errors.name}</p>}
+                    {errors.name && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.name}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Category *</label>
+                    <label className="block text-xs font-bold text-admin-text uppercase tracking-wider mb-2">Category *</label>
                     <select
                       value={itemForm.categoryId || ''}
                       onChange={(e) => {
                         setItemForm(f => ({ ...f, categoryId: e.target.value }));
                         if (errors.categoryId) setErrors(e => ({ ...e, categoryId: null }));
                       }}
-                      className={`w-full rounded-xl bg-[#f9fafb] border ${errors.categoryId ? 'border-[#dc2626] focus:ring-[#dc2626]/20 focus:border-[#dc2626]' : 'border-[#e5e7eb] focus:ring-[#8B0000]/20 focus:border-[#8B0000]'} text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 transition-all appearance-none cursor-pointer`}
+                      className={`w-full rounded-xl bg-admin-surface border ${errors.categoryId ? 'border-rose-500 focus:ring-rose-500/20 focus:border-rose-500' : 'border-admin-border focus:ring-brand/20 focus:border-brand'} text-xs sm:text-sm text-admin-text px-4 py-2.5 sm:py-3 focus:outline-none focus:ring-2 transition-all cursor-pointer`}
                     >
                       <option value="">Select category</option>
                       {categories.map(cat => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
                     </select>
-                    {errors.categoryId && <p className="text-[#dc2626] text-xs mt-1 font-bold">{errors.categoryId}</p>}
+                    {errors.categoryId && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.categoryId}</p>}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Description</label>
+                  <label className="block text-xs font-bold text-admin-text uppercase tracking-wider mb-2">Description</label>
                   <textarea
                     value={itemForm.description || ''}
                     onChange={(e) => setItemForm(f => ({ ...f, description: e.target.value }))}
                     placeholder="Describe the item, ingredients, and taste..."
-                    className="w-full rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm text-[#111827] px-4 py-3 h-24 resize-none focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20 focus:border-[#8B0000] transition-all"
+                    className="w-full rounded-xl bg-admin-surface border border-admin-border text-xs sm:text-sm text-admin-text px-4 py-3 h-24 resize-none focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <label className="block text-xs font-bold text-admin-text uppercase tracking-wider mb-2 flex items-center gap-2">
                       Base Price ($) *
                     </label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6b7280] font-bold">$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-admin-text-muted font-bold">$</span>
                       <input
                         type="number"
                         step="0.01"
@@ -260,38 +258,38 @@ export default function MenuManagementModal({
                           if (errors.price) setErrors(e => ({ ...e, price: null }));
                         }}
                         placeholder="0.00"
-                        className={`w-full rounded-xl bg-[#f9fafb] border ${errors.price ? 'border-[#dc2626] focus:ring-[#dc2626]/20 focus:border-[#dc2626]' : 'border-[#e5e7eb] focus:ring-[#8B0000]/20 focus:border-[#8B0000]'} text-sm font-bold text-[#111827] pl-8 pr-4 py-3 focus:outline-none focus:ring-2 transition-all`}
+                        className={`w-full rounded-xl bg-admin-surface border ${errors.price ? 'border-rose-500 focus:ring-rose-500/20 focus:border-rose-500' : 'border-admin-border focus:ring-brand/20 focus:border-brand'} text-xs sm:text-sm font-bold text-admin-text pl-8 pr-4 py-2.5 sm:py-3 focus:outline-none focus:ring-2 transition-all`}
                       />
                     </div>
-                    {errors.price && <p className="text-[#dc2626] text-xs mt-1 font-bold">{errors.price}</p>}
+                    {errors.price && <p className="text-rose-500 text-xs mt-1 font-bold">{errors.price}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Prep Time (mins)</label>
+                    <label className="block text-xs font-bold text-admin-text uppercase tracking-wider mb-2">Prep Time (mins)</label>
                     <div className="relative">
                       <input
                         type="number"
                         value={itemForm.preparationTime || ''}
                         onChange={(e) => setItemForm(f => ({ ...f, preparationTime: e.target.value }))}
                         placeholder="15"
-                        className="w-full rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm font-bold text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20 focus:border-[#8B0000] transition-all"
+                        className="w-full rounded-xl bg-admin-surface border border-admin-border text-xs sm:text-sm font-bold text-admin-text px-4 py-2.5 sm:py-3 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9ca3af] text-xs font-bold">MIN</span>
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-admin-text-muted text-xs font-bold">MIN</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Section: Media & SEO */}
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#e5e7eb] space-y-5">
+              {/* Section: Media & Tags */}
+              <div className="bg-admin-card p-6 rounded-2xl shadow-sm border border-admin-border space-y-5">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="bg-[#fef2f2] p-1.5 rounded-lg text-[#8B0000]">
+                  <div className="bg-brand/10 p-1.5 rounded-lg text-brand">
                     <ImageIcon className="w-4 h-4" />
                   </div>
-                  <h3 className="text-lg font-bold text-[#111827]">Media & Tags</h3>
+                  <h3 className="text-base sm:text-lg font-bold font-heading text-admin-text">Media & Tags</h3>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Image Link OR Upload (Multiple)</label>
+                  <label className="block text-xs font-bold text-admin-text uppercase tracking-wider mb-2">Image Link OR Upload (Multiple)</label>
                   <div className="flex gap-2">
                     <input
                       value={itemForm.image || ''}
@@ -304,7 +302,7 @@ export default function MenuManagementModal({
                         });
                       }}
                       placeholder="https://example.com/image.jpg"
-                      className="flex-1 rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20 focus:border-[#8B0000] transition-all"
+                      className="flex-1 rounded-xl bg-admin-surface border border-admin-border text-xs sm:text-sm text-admin-text px-4 py-2.5 sm:py-3 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
                     />
                     <input 
                       type="file" 
@@ -318,9 +316,9 @@ export default function MenuManagementModal({
                       type="button"
                       disabled={isUploadingImage}
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-2 px-4 py-3 bg-white border border-[#e5e7eb] text-[#374151] rounded-xl hover:bg-[#f3f4f6] transition-colors font-medium text-sm whitespace-nowrap disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2.5 sm:py-3 bg-admin-surface border border-admin-border text-admin-text rounded-xl hover:bg-admin-surface-light transition-colors font-medium text-xs sm:text-sm whitespace-nowrap disabled:opacity-50 cursor-pointer"
                     >
-                      {isUploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      {isUploadingImage ? <Loader2 className="w-4 h-4 animate-spin text-brand" /> : <Upload className="w-4 h-4" />}
                       Upload Files
                     </button>
                   </div>
@@ -329,14 +327,14 @@ export default function MenuManagementModal({
                       {itemForm.images.map((imgUrl, idx) => {
                         const isMain = itemForm.image === imgUrl;
                         return (
-                          <div key={idx} className={`relative group w-full aspect-square rounded-xl overflow-hidden border-2 ${isMain ? 'border-[#8B0000]' : 'border-[#e5e7eb]'}`}>
+                          <div key={idx} className={`relative group w-full aspect-square rounded-xl overflow-hidden border-2 ${isMain ? 'border-brand' : 'border-admin-border'}`}>
                             <img src={imgUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'} />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                               {!isMain && (
                                 <button 
                                   type="button"
                                   onClick={() => setItemForm(f => ({ ...f, image: imgUrl }))}
-                                  className="px-2 py-1 bg-white text-xs font-bold text-[#8B0000] rounded shadow-sm hover:scale-105 transition-transform"
+                                  className="px-2 py-1 bg-white text-xs font-bold text-brand rounded shadow-sm hover:scale-105 transition-transform cursor-pointer"
                                 >
                                   Set Main
                                 </button>
@@ -348,13 +346,13 @@ export default function MenuManagementModal({
                                   images: f.images.filter(url => url !== imgUrl),
                                   image: f.image === imgUrl ? (f.images.find(url => url !== imgUrl) || '') : f.image
                                 }))}
-                                className="px-2 py-1 bg-[#dc2626] text-xs font-bold text-white rounded shadow-sm hover:scale-105 transition-transform"
+                                className="px-2 py-1 bg-rose-600 text-xs font-bold text-white rounded shadow-sm hover:scale-105 transition-transform cursor-pointer"
                               >
                                 Remove
                               </button>
                             </div>
                             {isMain && (
-                              <div className="absolute top-1 right-1 bg-[#8B0000] text-white p-1.5 rounded-full shadow-md">
+                              <div className="absolute top-1 right-1 bg-brand text-white p-1 rounded-full shadow-md">
                                 <Sparkles className="w-3 h-3" />
                               </div>
                             )}
@@ -366,155 +364,155 @@ export default function MenuManagementModal({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Search Tags</label>
+                  <label className="block text-xs font-bold text-admin-text uppercase tracking-wider mb-2">Search Tags</label>
                   <input
                     value={itemForm.tags || ''}
                     onChange={(e) => setItemForm(f => ({ ...f, tags: e.target.value }))}
                     placeholder="e.g. spicy, popular, healthy (comma separated)"
-                    className="w-full rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20 focus:border-[#8B0000] transition-all"
+                    className="w-full rounded-xl bg-admin-surface border border-admin-border text-xs sm:text-sm text-admin-text px-4 py-2.5 sm:py-3 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all"
                   />
                 </div>
               </div>
 
               {/* Section: Google Search & SEO (Authorized roles only) */}
               {isAuthorizedForSEO && (
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#e5e7eb] space-y-5">
+                <div className="bg-admin-card p-6 rounded-2xl shadow-sm border border-admin-border space-y-5">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <div className="bg-[#eff6ff] p-1.5 rounded-lg text-[#2563eb]">
+                      <div className="bg-blue-500/10 p-1.5 rounded-lg text-blue-500">
                         <Globe className="w-4 h-4" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold text-[#111827]">Google Search & SEO</h3>
-                        <p className="text-xs text-[#6b7280]">Edit title & description for Google search and social media sharing</p>
+                        <h3 className="text-base sm:text-lg font-bold font-heading text-admin-text">Google Search & SEO</h3>
+                        <p className="text-xs text-admin-text-secondary">Edit title & description for Google search and social media sharing</p>
                       </div>
                     </div>
                   </div>
 
-                {/* SEO Title with Counter */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider">
-                      Meta Title
-                    </label>
-                    <span className={`text-xs font-semibold ${
-                      (itemForm.seoTitle || '').length > 60
-                        ? 'text-[#dc2626]'
-                        : (itemForm.seoTitle || '').length > 50
-                        ? 'text-[#ea580c]'
-                        : 'text-[#6b7280]'
-                    }`}>
-                      {(itemForm.seoTitle || '').length} / 60
-                    </span>
+                  {/* SEO Title with Counter */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-admin-text uppercase tracking-wider">
+                        Meta Title
+                      </label>
+                      <span className={`text-xs font-semibold ${
+                        (itemForm.seoTitle || '').length > 60
+                          ? 'text-rose-500'
+                          : (itemForm.seoTitle || '').length > 50
+                          ? 'text-amber-500'
+                          : 'text-admin-text-secondary'
+                      }`}>
+                        {(itemForm.seoTitle || '').length} / 60
+                      </span>
+                    </div>
+                    <input
+                      maxLength={60}
+                      value={itemForm.seoTitle || ''}
+                      onChange={(e) => setItemForm(f => ({ ...f, seoTitle: e.target.value }))}
+                      placeholder={`e.g. ${itemForm.name || 'Mango Lassi'} - Fresh & Creamy | Order Online`}
+                      className="w-full rounded-xl bg-admin-surface border border-admin-border text-xs sm:text-sm text-admin-text px-4 py-2.5 sm:py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    />
+                    <p className="text-[11px] text-admin-text-muted mt-1">
+                      Appears as the clickable title in Google search results. Leave blank to use default item name.
+                    </p>
                   </div>
-                  <input
-                    maxLength={60}
-                    value={itemForm.seoTitle || ''}
-                    onChange={(e) => setItemForm(f => ({ ...f, seoTitle: e.target.value }))}
-                    placeholder={`e.g. ${itemForm.name || 'Mango Lassi'} - Fresh & Creamy | Order Online`}
-                    className="w-full rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] transition-all"
-                  />
-                  <p className="text-[11px] text-[#9ca3af] mt-1">
-                    Appears as the clickable title in Google search results. Leave blank to use default item name.
-                  </p>
-                </div>
 
-                {/* SEO Description with Counter */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider">
-                      Meta Description
-                    </label>
-                    <span className={`text-xs font-semibold ${
-                      (itemForm.seoDescription || '').length > 155
-                        ? 'text-[#dc2626]'
-                        : (itemForm.seoDescription || '').length > 130
-                        ? 'text-[#ea580c]'
-                        : 'text-[#6b7280]'
-                    }`}>
-                      {(itemForm.seoDescription || '').length} / 155
-                    </span>
+                  {/* SEO Description with Counter */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-admin-text uppercase tracking-wider">
+                        Meta Description
+                      </label>
+                      <span className={`text-xs font-semibold ${
+                        (itemForm.seoDescription || '').length > 155
+                          ? 'text-rose-500'
+                          : (itemForm.seoDescription || '').length > 130
+                          ? 'text-amber-500'
+                          : 'text-admin-text-secondary'
+                      }`}>
+                        {(itemForm.seoDescription || '').length} / 155
+                      </span>
+                    </div>
+                    <textarea
+                      rows={3}
+                      maxLength={155}
+                      value={itemForm.seoDescription || ''}
+                      onChange={(e) => setItemForm(f => ({ ...f, seoDescription: e.target.value }))}
+                      placeholder={`e.g. Order delicious ${itemForm.name || 'Mango Lassi'} online from Lassi Lounge NY. Made fresh daily with authentic ingredients.`}
+                      className="w-full rounded-xl bg-admin-surface border border-admin-border text-xs sm:text-sm text-admin-text px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
+                    />
+                    <p className="text-[11px] text-admin-text-muted mt-1">
+                      Appears below the title in Google search results. Recommended: 120-155 characters.
+                    </p>
                   </div>
-                  <textarea
-                    rows={3}
-                    maxLength={155}
-                    value={itemForm.seoDescription || ''}
-                    onChange={(e) => setItemForm(f => ({ ...f, seoDescription: e.target.value }))}
-                    placeholder={`e.g. Order delicious ${itemForm.name || 'Mango Lassi'} online from Lassi Lounge NY. Made fresh daily with authentic ingredients.`}
-                    className="w-full rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm text-[#111827] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] transition-all resize-none"
-                  />
-                  <p className="text-[11px] text-[#9ca3af] mt-1">
-                    Appears below the title in Google search results. Recommended: 120-155 characters.
-                  </p>
-                </div>
 
-                {/* Google Search Live SERP Preview Box */}
-                <div className="p-4 rounded-xl bg-[#f8fafc] border border-[#cbd5e1] space-y-1.5">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-[#475569] uppercase tracking-wider mb-2">
-                    <Search className="w-3.5 h-3.5 text-[#2563eb]" />
-                    <span>Google Search Live Preview</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-[#8B0000] flex items-center justify-center text-[9px] text-white font-bold shrink-0">
-                      LL
+                  {/* Google Search Live SERP Preview Box */}
+                  <div className="p-4 rounded-xl bg-admin-surface-light border border-admin-border space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-admin-text-secondary uppercase tracking-wider mb-2">
+                      <Search className="w-3.5 h-3.5 text-blue-500" />
+                      <span>Google Search Live Preview</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full bg-brand flex items-center justify-center text-[9px] text-white font-bold shrink-0">
+                        LL
+                      </div>
+                      <a
+                        href={`/item/${itemForm.slug || (itemForm.name ? itemForm.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') : (item?._id || 'item-preview'))}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-admin-text leading-tight truncate hover:underline"
+                        title="Open live dish page in new tab"
+                      >
+                        <span className="font-medium text-admin-text">Lassi Lounge NY</span>
+                        <span className="text-admin-text-muted ml-1">· https://www.lassiloungeny.com › item › {
+                          itemForm.slug || (itemForm.name ? itemForm.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') : 'dish-item')
+                        }</span>
+                      </a>
                     </div>
                     <a
                       href={`/item/${itemForm.slug || (itemForm.name ? itemForm.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') : (item?._id || 'item-preview'))}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-[#202124] leading-tight truncate hover:underline"
+                      className="text-[15px] sm:text-[17px] font-normal text-blue-500 hover:underline cursor-pointer leading-snug line-clamp-1 pt-0.5 block"
                       title="Open live dish page in new tab"
                     >
-                      <span className="font-medium text-[#202124]">Lassi Lounge NY</span>
-                      <span className="text-[#5f6368] ml-1">· https://www.lassiloungeny.com › item › {
-                        itemForm.slug || (itemForm.name ? itemForm.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') : 'dish-item')
-                      }</span>
+                      {itemForm.seoTitle?.trim() || `${itemForm.name || 'Dish Name'} - Order Online`} | Lassi Lounge NY
                     </a>
+                    <p className="text-xs sm:text-[13px] text-admin-text-secondary leading-relaxed line-clamp-2">
+                      {itemForm.seoDescription?.trim() || (itemForm.description ? itemForm.description.slice(0, 155) : 'Order fresh and authentic Indian cuisine online from Lassi Lounge NY. Fast delivery and easy pickup in New York.')}
+                    </p>
                   </div>
-                  <a
-                    href={`/item/${itemForm.slug || (itemForm.name ? itemForm.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') : (item?._id || 'item-preview'))}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[17px] font-normal text-[#1a0dab] hover:underline cursor-pointer leading-snug line-clamp-1 pt-0.5 block"
-                    title="Open live dish page in new tab"
-                  >
-                    {itemForm.seoTitle?.trim() || `${itemForm.name || 'Dish Name'} - Order Online`} | Lassi Lounge NY
-                  </a>
-                  <p className="text-[13px] text-[#4d5156] leading-relaxed line-clamp-2">
-                    {itemForm.seoDescription?.trim() || (itemForm.description ? itemForm.description.slice(0, 155) : 'Order fresh and authentic Indian cuisine online from Lassi Lounge NY. Fast delivery and easy pickup in New York.')}
-                  </p>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
             {/* Right Column - Modifiers & Properties */}
             <div className="lg:col-span-5 space-y-8">
               
               {/* Properties Grid */}
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#e5e7eb] space-y-5">
+              <div className="bg-admin-card p-6 rounded-2xl shadow-sm border border-admin-border space-y-5">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="bg-[#fef2f2] p-1.5 rounded-lg text-[#8B0000]">
+                  <div className="bg-brand/10 p-1.5 rounded-lg text-brand">
                     <Activity className="w-4 h-4" />
                   </div>
-                  <h3 className="text-lg font-bold text-[#111827]">Properties</h3>
+                  <h3 className="text-base sm:text-lg font-bold font-heading text-admin-text">Properties</h3>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    ['isVeg', 'Vegetarian', 'bg-[#dcfce7] text-[#166534] border-[#bbf7d0]'],
-                    ['isVegan', 'Vegan', 'bg-[#d1fae5] text-[#065f46] border-[#a7f3d0]'],
-                    ['isSpicy', 'Spicy', 'bg-[#fee2e2] text-[#991b1b] border-[#fecaca]'],
-                    ['isGlutenFree', 'Gluten Free', 'bg-[#fef3c7] text-[#92400e] border-[#fde68a]'],
-                    ['isBestseller', 'Bestseller', 'bg-[#fef9c3] text-[#854d0e] border-[#fef08a]'],
-                    ['isAvailable', 'Active (Available)', 'bg-[#dbeafe] text-[#1e40af] border-[#bfdbfe]'],
+                    ['isVeg', 'Vegetarian', 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'],
+                    ['isVegan', 'Vegan', 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/30'],
+                    ['isSpicy', 'Spicy', 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'],
+                    ['isGlutenFree', 'Gluten Free', 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'],
+                    ['isBestseller', 'Bestseller', 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/30'],
+                    ['isAvailable', 'Active (Available)', 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30'],
                   ].map(([key, label, colorClass]) => {
                     const isChecked = Boolean(itemForm[key]);
                     return (
                       <label 
                         key={key} 
                         className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                          isChecked ? colorClass : 'bg-white border-[#e5e7eb] text-[#374151] hover:bg-[#f3f4f6]'
+                          isChecked ? colorClass : 'bg-admin-surface border-admin-border text-admin-text-secondary hover:text-admin-text hover:bg-admin-surface-light'
                         }`}
                       >
                         <input
@@ -531,39 +529,39 @@ export default function MenuManagementModal({
               </div>
 
               {/* Modifiers & Variations */}
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#e5e7eb] space-y-5">
+              <div className="bg-admin-card p-6 rounded-2xl shadow-sm border border-admin-border space-y-5">
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Size Variations</label>
+                  <label className="block text-xs font-bold text-admin-text uppercase tracking-wider mb-2">Size Variations</label>
                   <textarea
                     value={itemForm.sizeVariationsText || ''}
                     onChange={(e) => setItemForm(f => ({ ...f, sizeVariationsText: e.target.value }))}
                     placeholder={"Small:5.99\nLarge:9.99"}
-                    className="w-full rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm text-[#111827] px-4 py-3 h-24 resize-none focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20 focus:border-[#8B0000] transition-all font-mono"
+                    className="w-full rounded-xl bg-admin-surface border border-admin-border text-xs sm:text-sm text-admin-text px-4 py-3 h-24 resize-none focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all font-mono"
                   />
-                  <p className="text-xs font-bold text-[#9ca3af] mt-1 uppercase">Format: Name:Price (1 per line)</p>
+                  <p className="text-[11px] font-bold text-admin-text-muted mt-1 uppercase">Format: Name:Price (1 per line)</p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-2">Add-ons</label>
+                  <label className="block text-xs font-bold text-admin-text uppercase tracking-wider mb-2">Add-ons</label>
                   <textarea
                     value={itemForm.addOnsText || ''}
                     onChange={(e) => setItemForm(f => ({ ...f, addOnsText: e.target.value }))}
                     placeholder={"Extra Cheese:2.00\nExtra Sauce:0.50"}
-                    className="w-full rounded-xl bg-[#f9fafb] border border-[#e5e7eb] text-sm text-[#111827] px-4 py-3 h-24 resize-none focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20 focus:border-[#8B0000] transition-all font-mono"
+                    className="w-full rounded-xl bg-admin-surface border border-admin-border text-xs sm:text-sm text-admin-text px-4 py-3 h-24 resize-none focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all font-mono"
                   />
-                  <p className="text-xs font-bold text-[#9ca3af] mt-1 uppercase">Format: Name:Price (1 per line)</p>
+                  <p className="text-[11px] font-bold text-admin-text-muted mt-1 uppercase">Format: Name:Price (1 per line)</p>
                 </div>
               </div>
 
               {/* AI Pricing */}
-              <div className="bg-gradient-to-br from-[#fef2f2] to-white p-5 rounded-2xl border border-[#fecaca] flex items-center justify-between shadow-sm">
+              <div className="bg-gradient-to-br from-brand/10 to-admin-surface p-5 rounded-2xl border border-brand/20 flex items-center justify-between shadow-2xs">
                 <div>
-                  <h4 className="text-sm font-bold text-[#8B0000]">Smart Pricing</h4>
-                  <p className="text-xs text-[#991b1b]/70 mt-0.5">Let AI optimize your prices</p>
+                  <h4 className="text-sm font-bold font-heading text-brand">Smart Pricing</h4>
+                  <p className="text-xs text-admin-text-secondary mt-0.5">Let AI optimize your prices based on demand</p>
                 </div>
                 <button 
                   onClick={handleSmartPricing}
-                  className="flex items-center gap-1.5 bg-[#8B0000] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#7f1d1d] transition-all shadow-sm"
+                  className="flex items-center gap-1.5 bg-brand text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:brightness-110 transition-all shadow-sm cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5" /> Analyze
                 </button>
@@ -574,17 +572,17 @@ export default function MenuManagementModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 border-t border-[#f3f4f6] bg-white flex justify-end gap-3 shrink-0">
+        <div className="p-5 lg:p-6 border-t border-admin-border bg-admin-surface flex justify-end gap-3 shrink-0">
           <button 
             onClick={onClose} 
-            className="px-6 py-3 rounded-xl border border-[#e5e7eb] text-sm font-bold text-[#374151] bg-white hover:bg-[#f9fafb] transition-all"
+            className="px-5 py-2.5 rounded-xl border border-admin-border text-xs sm:text-sm font-bold text-admin-text bg-admin-surface hover:bg-admin-surface-light transition-all cursor-pointer"
           >
             Cancel
           </button>
           <button 
             disabled={isSaving}
             onClick={handleSaveItem} 
-            className={`px-8 py-3 rounded-xl text-white text-sm font-bold flex items-center gap-2 shadow-lg transition-all ${isSaving ? 'bg-[#9ca3af] cursor-not-allowed' : 'bg-[#8B0000] hover:bg-[#7f1d1d] shadow-red-900/20'}`}
+            className={`px-6 py-2.5 rounded-xl text-white text-xs sm:text-sm font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer ${isSaving ? 'bg-admin-text-muted cursor-not-allowed' : 'bg-brand hover:brightness-110 shadow-brand/20'}`}
           >
             <Save className="w-4 h-4" /> {item?._id ? 'Save Changes' : 'Create Item'}
           </button>

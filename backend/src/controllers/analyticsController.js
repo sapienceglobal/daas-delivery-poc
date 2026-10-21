@@ -92,9 +92,9 @@ const computeSalesAnalytics = async (req, restaurantId, days, queryStart, queryE
   let startDate;
   let numDays = null;
   
-  if (queryStart && queryEnd) {
+  if (queryStart) {
     startDate = getTzDateBoundaryUTC(queryStart, tz, false);
-    endOfToday = getTzDateBoundaryUTC(queryEnd, tz, true);
+    endOfToday = getTzDateBoundaryUTC(queryEnd || queryStart, tz, true);
   } else if (days === 'yesterday') {
     startDate = getTzMidnightUTC(tz, 1);
     endOfToday = new Date(getTzMidnightUTC(tz, 0).getTime() - 1);
@@ -167,7 +167,8 @@ const computeSalesAnalytics = async (req, restaurantId, days, queryStart, queryE
                   dayOfWeek: { $dayOfWeek: { date: "$createdAt", timezone: tz } },
                   hour: { $hour: { date: "$createdAt", timezone: tz } }
                 },
-                orders: { $sum: 1 }
+                orders: { $sum: 1 },
+                revenue: netRevenue
               }
             }
           ],

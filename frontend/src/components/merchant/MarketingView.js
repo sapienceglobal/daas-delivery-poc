@@ -3,68 +3,70 @@
 import { useState, useEffect } from 'react';
 import {
   Megaphone, Send, Clock, Users, CheckCircle2, XCircle,
-  Loader2, Upload, Link as LinkIcon, Type, AlignLeft, Target, Trash2, Calendar
+  Loader2, Upload, Link as LinkIcon, Type, AlignLeft, Target, Trash2, Calendar, Sparkles
 } from 'lucide-react';
 import { marketingAPI, api } from '@/lib/api';
 import { showToast, ConfirmModal } from '@/components/ui';
+import PageHeaderGradient from './common/PageHeaderGradient';
 
 const PhonePreview = ({ title, message, imageUrl }) => {
   return (
-    <div className="relative mx-auto w-[280px] h-[550px] bg-black rounded-2xl shadow-2xl overflow-hidden flex flex-col items-center shrink-0 border-[6px] border-black">
-      {/* Notch */}
-      <div className="absolute top-0 w-32 h-6 bg-black rounded-b-xl z-20"></div>
+    <div className="relative mx-auto w-[280px] h-[550px] bg-slate-950 rounded-[38px] shadow-2xl overflow-hidden flex flex-col items-center shrink-0 border-[6px] border-slate-900 ring-1 ring-white/10">
+      {/* Notch / Dynamic Island */}
+      <div className="absolute top-2 w-28 h-5 bg-black rounded-full z-20 flex items-center justify-end px-3">
+        <div className="w-2.5 h-2.5 rounded-full bg-slate-800/80"></div>
+      </div>
 
       {/* Wallpaper/Background */}
-      <div className="absolute inset-0 bg-gray-50">
-        {/* Abstract shapes for wallpaper effect using primary/secondary colors */}
-        <div className="absolute top-[-10%] left-[-20%] w-64 h-64 bg-red-100 rounded-full mix-blend-multiply filter blur-[32px] opacity-70 animate-pulse"></div>
-        <div className="absolute top-[20%] right-[-10%] w-64 h-64 bg-blue-100 rounded-full mix-blend-multiply filter blur-[32px] opacity-70 animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute bottom-[-20%] left-[10%] w-64 h-64 bg-yellow-100 rounded-full mix-blend-multiply filter blur-[32px] opacity-70 animate-pulse" style={{ animationDelay: '4s' }}></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950">
+        <div className="absolute top-[-10%] left-[-20%] w-64 h-64 bg-primary/20 rounded-full filter blur-[32px] opacity-70 animate-pulse"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-indigo-500/20 rounded-full filter blur-[32px] opacity-70 animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
 
       {/* Time bar */}
-      <div className="mt-6 text-[#1f2937] font-semibold text-xs z-10 flex w-full px-6 justify-between items-center">
+      <div className="mt-8 text-white/90 font-semibold text-xs z-10 flex w-full px-6 justify-between items-center font-outfit">
         <span>9:41</span>
-        <div className="flex gap-1 items-center">
-          <div className="w-3 h-2 bg-[#1f2937] rounded-sm opacity-80"></div>
-          <div className="w-3 h-3 bg-[#1f2937] rounded-full opacity-80"></div>
+        <div className="flex gap-1.5 items-center">
+          <div className="w-3.5 h-2 border border-white/60 rounded-xs flex items-center px-0.5">
+            <div className="w-full h-1 bg-white rounded-xs"></div>
+          </div>
         </div>
       </div>
 
-      <div className="w-full flex-1 flex flex-col px-4 pt-10 relative z-10">
-        <h3 className="text-4xl font-light text-[#1f2937] opacity-80 mb-6 text-center">9:41</h3>
+      <div className="w-full flex-1 flex flex-col px-3.5 pt-8 relative z-10">
+        <h3 className="text-4xl font-extralight text-white/80 mb-6 text-center font-outfit tracking-tight">9:41</h3>
 
         {/* Notification Card */}
-        <div className="w-full bg-white/80 backdrop-blur-md rounded-xl shadow-lg border border-[#e5e7eb] overflow-hidden transition-all duration-300">
-          <div className="px-3 py-2 flex items-center justify-between border-b border-[#e5e7eb]/50">
+        <div className="w-full bg-slate-900/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/15 overflow-hidden transition-all duration-300">
+          <div className="px-3.5 py-2 flex items-center justify-between border-b border-white/10">
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 bg-[#7a0b10] rounded flex items-center justify-center shadow-sm">
-                <span className="text-xs text-white font-bold leading-none">L</span>
+              <div className="w-5 h-5 bg-primary rounded-lg flex items-center justify-center shadow-sm">
+                <span className="text-[11px] text-white font-black leading-none font-outfit">L</span>
               </div>
-              <span className="text-xs font-semibold text-[#1f2937] tracking-wide">LASSI LOUNGE</span>
+              <span className="text-[11px] font-bold text-white tracking-wide font-outfit">LASSI LOUNGE</span>
             </div>
-            <span className="text-xs text-[#9ca3af] font-medium">now</span>
+            <span className="text-[10px] text-white/60 font-medium">now</span>
           </div>
 
           {imageUrl && (
-            <div className="w-full h-32 bg-gray-50 overflow-hidden">
+            <div className="w-full h-28 bg-slate-800 overflow-hidden">
               <img src={imageUrl} alt="preview" className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'} />
             </div>
           )}
 
           <div className="p-3">
-            <h4 className="text-sm font-bold text-[#1f2937] mb-1 leading-tight">
+            <h4 className="text-xs font-bold text-white mb-1 leading-tight font-outfit">
               {title || 'Campaign Title'}
             </h4>
-            <p className="text-xs text-[#6b7280] leading-snug line-clamp-3">
-              {message || 'Your promotional message will appear here...'}
+            <p className="text-[11px] text-white/70 leading-snug line-clamp-3">
+              {message || 'Your promotional message will appear here in the live push banner...'}
             </p>
           </div>
         </div>
       </div>
 
       {/* Home Indicator */}
-      <div className="absolute bottom-2 w-24 h-1 bg-[#1f2937] opacity-30 rounded-full z-20"></div>
+      <div className="absolute bottom-2 w-28 h-1 bg-white/40 rounded-full z-20"></div>
     </div>
   );
 };
@@ -183,71 +185,80 @@ export default function MarketingView({ restaurantId }) {
 
   return (
     <div className="space-y-8 max-w-[1400px] mx-auto pb-12">
-      <div className="bg-[#f9fafb] -mx-4 sm:-mx-8 px-4 sm:px-8 py-8 border-b border-[#e5e7eb]">
-        <h2 className="text-3xl font-bold text-[#1f2937] flex items-center gap-3">
-          <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center border border-[#e5e7eb]">
-            <Megaphone className="w-6 h-6 text-[#7a0b10]" />
-          </div>
-          Push Notification Campaigns
-        </h2>
-        <p className="text-[#6b7280] mt-2 text-lg max-w-2xl">Create and broadcast beautiful marketing messages directly to your customers' mobile devices to drive engagement and sales.</p>
+      {/* Page Header */}
+      <PageHeaderGradient
+        title="Push Notification Campaigns"
+        subtitle="Compose and broadcast rich push alerts directly to your customers' mobile screens to drive flash sales and engagement."
+      />
 
-        {/* Real-time Audience Reach Overview */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 max-w-4xl">
-          <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 flex items-center gap-3 shadow-xs">
-            <div className="w-10 h-10 bg-[#fef2f2] rounded-lg flex items-center justify-center text-[#7a0b10]">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-[#6b7280] uppercase tracking-wider">Total Customers</div>
-              <div className="text-xl font-bold text-[#1f2937]">{audienceStats.totalCustomers || 0}</div>
-            </div>
+      {/* Real-time Audience Reach Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
+        <div className="bg-white dark:bg-admin-card border border-slate-200 dark:border-admin-border rounded-2xl p-4.5 flex items-center gap-4 shadow-sm hover:shadow-md transition-all">
+          <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0 border border-primary/20 shadow-2xs">
+            <Users className="w-6 h-6" />
           </div>
-
-          <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 flex items-center gap-3 shadow-xs">
-            <div className="w-10 h-10 bg-[#f0fdf4] rounded-lg flex items-center justify-center text-[#16a34a]">
-              <CheckCircle2 className="w-5 h-5" />
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider font-outfit mb-0.5">
+              Total Customers
             </div>
-            <div>
-              <div className="text-xs font-semibold text-[#6b7280] uppercase tracking-wider">Push-Registered</div>
-              <div className="text-xl font-bold text-[#1f2937]">{audienceStats.pushActiveUsers || 0} Accounts</div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white font-outfit tracking-tight">
+              {audienceStats.totalCustomers || 0}
             </div>
           </div>
+        </div>
 
-          <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 flex items-center gap-3 shadow-xs">
-            <div className="w-10 h-10 bg-[#eff6ff] rounded-lg flex items-center justify-center text-[#2563eb]">
-              <Megaphone className="w-5 h-5" />
+        <div className="bg-white dark:bg-admin-card border border-slate-200 dark:border-admin-border rounded-2xl p-4.5 flex items-center gap-4 shadow-sm hover:shadow-md transition-all">
+          <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 border border-emerald-500/20 shadow-2xs">
+            <CheckCircle2 className="w-6 h-6" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider font-outfit mb-0.5">
+              Push-Registered
             </div>
-            <div>
-              <div className="text-xs font-semibold text-[#6b7280] uppercase tracking-wider">Instant Broadcast Reach</div>
-              <div className="text-xs font-bold text-[#2563eb] mt-0.5">100% of App Installs (FCM Topic)</div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white font-outfit tracking-tight">
+              {audienceStats.pushActiveUsers || 0}{' '}
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Accounts</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-admin-card border border-slate-200 dark:border-admin-border rounded-2xl p-4.5 flex items-center gap-4 shadow-sm hover:shadow-md transition-all">
+          <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 border border-blue-500/20 shadow-2xs">
+            <Megaphone className="w-6 h-6" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider font-outfit mb-0.5">
+              Instant Reach
+            </div>
+            <div className="text-sm font-bold text-blue-600 dark:text-blue-400 font-outfit mt-0.5">
+              100% of App Installs (FCM Topic)
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
         {/* Left: Compose Form (5 cols) */}
-        <div className="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-[#e5e7eb] p-6 lg:p-8 h-fit">
-          <h3 className="text-xl font-bold text-[#1f2937] mb-6 flex items-center gap-2">
-            Compose Message
+        <div className="lg:col-span-5 bg-admin-surface rounded-2xl shadow-sm border border-admin-border p-6 lg:p-7 h-fit">
+          <h3 className="text-base font-bold text-admin-text mb-5 flex items-center gap-2 font-outfit">
+            <Sparkles className="w-4 h-4 text-primary" /> Compose Message
           </h3>
-          <form onSubmit={handleBroadcastRequest} className="space-y-5">
+          <form onSubmit={handleBroadcastRequest} className="space-y-4">
             {/* Title */}
             <div>
-              <label className="block text-sm font-bold text-[#1f2937] mb-1">Campaign Title *</label>
+              <label className="block text-xs font-bold text-admin-text mb-1.5 font-outfit">Campaign Title *</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Type className="h-5 w-5 text-[#9ca3af]" />
+                  <Type className="h-4 w-4 text-admin-muted" />
                 </div>
                 <input
                   type="text"
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  placeholder="e.g. Weekend Special!"
-                  className="w-full h-12 pl-10 pr-4 bg-white border border-[#e5e7eb] rounded-lg text-sm text-[#1f2937] outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  placeholder="e.g. Weekend Delight 20% OFF!"
+                  className="w-full h-11 pl-9 pr-3.5 bg-admin-surface border border-admin-border rounded-xl text-xs text-admin-text outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-medium"
                   required
                 />
               </div>
@@ -255,10 +266,10 @@ export default function MarketingView({ restaurantId }) {
 
             {/* Message */}
             <div>
-              <label className="block text-sm font-bold text-[#1f2937] mb-1">Message *</label>
+              <label className="block text-xs font-bold text-admin-text mb-1.5 font-outfit">Message Content *</label>
               <div className="relative">
                 <div className="absolute top-3 left-3 pointer-events-none">
-                  <AlignLeft className="h-5 w-5 text-[#9ca3af]" />
+                  <AlignLeft className="h-4 w-4 text-admin-muted" />
                 </div>
                 <textarea
                   name="message"
@@ -266,7 +277,7 @@ export default function MarketingView({ restaurantId }) {
                   onChange={handleChange}
                   placeholder="Type your promotional message here..."
                   rows={4}
-                  className="w-full pl-10 pr-4 pt-3 pb-3 bg-white border border-[#e5e7eb] rounded-lg text-sm text-[#1f2937] outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
+                  className="w-full pl-9 pr-3.5 pt-2.5 pb-2.5 bg-admin-surface border border-admin-border rounded-xl text-xs text-admin-text outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none transition-all font-medium leading-relaxed"
                   required
                 />
               </div>
@@ -274,33 +285,33 @@ export default function MarketingView({ restaurantId }) {
 
             {/* Image Upload Dropzone */}
             <div>
-              <label className="block text-sm font-bold text-[#1f2937] mb-1">Hero Image (Optional)</label>
+              <label className="block text-xs font-bold text-admin-text mb-1.5 font-outfit">Hero Banner Image (Optional)</label>
 
               {!formData.imageUrl ? (
-                <label className="relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[#e5e7eb] rounded-xl hover:bg-gray-50 transition-all cursor-pointer group bg-white">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <label className="relative flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-admin-border rounded-xl hover:bg-admin-surface-2 transition-all cursor-pointer group bg-admin-surface">
+                  <div className="flex flex-col items-center justify-center pt-3 pb-3">
                     {isUploadingImage ? (
-                      <Loader2 className="w-8 h-8 text-[#7a0b10] animate-spin mb-2" />
+                      <Loader2 className="w-6 h-6 text-primary animate-spin mb-1.5" />
                     ) : (
-                      <Upload className="w-8 h-8 text-[#9ca3af] group-hover:text-[#7a0b10] transition-colors mb-2" />
+                      <Upload className="w-6 h-6 text-admin-muted group-hover:text-primary transition-colors mb-1.5" />
                     )}
-                    <p className="text-sm text-[#6b7280] font-medium">
-                      {isUploadingImage ? 'Uploading...' : 'Click to upload image'}
+                    <p className="text-xs text-admin-text font-bold font-outfit">
+                      {isUploadingImage ? 'Uploading...' : 'Click to upload banner'}
                     </p>
-                    <p className="text-xs text-[#9ca3af] mt-1">PNG, JPG up to 5MB</p>
+                    <p className="text-[10px] text-admin-muted mt-0.5">PNG, JPG up to 5MB</p>
                   </div>
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploadingImage} />
                 </label>
               ) : (
-                <div className="relative w-full h-32 rounded-xl overflow-hidden border border-[#e5e7eb] group">
+                <div className="relative w-full h-28 rounded-xl overflow-hidden border border-admin-border group">
                   <img src={formData.imageUrl} alt="Uploaded" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
-                      className="bg-[#dc2626] hover:bg-opacity-90 text-white p-2 rounded-full shadow-lg transition-transform hover:scale-105"
+                      className="bg-rose-500 hover:bg-rose-600 text-white p-2 rounded-full shadow-lg transition-transform hover:scale-105"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -309,28 +320,28 @@ export default function MarketingView({ restaurantId }) {
 
             {/* Action URL */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-bold text-[#1f2937]">Action URL / App Target (Optional)</label>
-                <div className="flex items-center gap-1.5 text-xs text-[#6b7280]">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-admin-text font-outfit">Action URL / App Target (Optional)</label>
+                <div className="flex items-center gap-1 text-[11px] text-admin-muted font-outfit">
                   <span>Presets:</span>
                   <button
                     type="button"
                     onClick={() => setActionPreset('/offers')}
-                    className="text-[#7a0b10] hover:underline font-semibold bg-red-50 px-2 py-0.5 rounded cursor-pointer"
+                    className="text-primary hover:underline font-bold bg-primary/10 px-1.5 py-0.5 rounded cursor-pointer"
                   >
-                    Offers Tab
+                    Offers
                   </button>
                   <button
                     type="button"
                     onClick={() => setActionPreset('/menu')}
-                    className="text-[#7a0b10] hover:underline font-semibold bg-red-50 px-2 py-0.5 rounded cursor-pointer"
+                    className="text-primary hover:underline font-bold bg-primary/10 px-1.5 py-0.5 rounded cursor-pointer"
                   >
                     Menu
                   </button>
                   <button
                     type="button"
                     onClick={() => setActionPreset('/orders')}
-                    className="text-[#7a0b10] hover:underline font-semibold bg-red-50 px-2 py-0.5 rounded cursor-pointer"
+                    className="text-primary hover:underline font-bold bg-primary/10 px-1.5 py-0.5 rounded cursor-pointer"
                   >
                     Orders
                   </button>
@@ -338,7 +349,7 @@ export default function MarketingView({ restaurantId }) {
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <LinkIcon className="h-5 w-5 text-[#9ca3af]" />
+                  <LinkIcon className="h-4 w-4 text-admin-muted" />
                 </div>
                 <input
                   type="text"
@@ -346,29 +357,29 @@ export default function MarketingView({ restaurantId }) {
                   value={formData.actionUrl}
                   onChange={handleChange}
                   placeholder="/offers, /menu or https://..."
-                  className="w-full h-12 pl-10 pr-4 bg-white border border-[#e5e7eb] rounded-lg text-sm text-[#1f2937] outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  className="w-full h-11 pl-9 pr-3.5 bg-admin-surface border border-admin-border rounded-xl text-xs text-admin-text outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all font-medium"
                 />
               </div>
             </div>
 
             {/* Target Audience */}
             <div>
-              <label className="block text-sm font-bold text-[#1f2937] mb-1">Target Audience</label>
+              <label className="block text-xs font-bold text-admin-text mb-1.5 font-outfit">Target Audience</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Target className="h-5 w-5 text-[#9ca3af]" />
+                  <Target className="h-4 w-4 text-admin-muted" />
                 </div>
                 <select
                   name="audience"
                   value={formData.audience}
                   onChange={handleChange}
-                  className="w-full h-12 pl-10 pr-10 bg-white border border-[#e5e7eb] rounded-lg text-sm text-[#1f2937] outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none cursor-pointer"
+                  className="w-full h-11 pl-9 pr-9 bg-admin-surface border border-admin-border rounded-xl text-xs text-admin-text outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none cursor-pointer font-medium"
                 >
-                  <option value="all_customers">All App Users</option>
+                  <option value="all_customers">All App Users (FCM Broadcast)</option>
                   <option value="inactive_30_days">Inactive Users (30+ Days)</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <svg className="w-4 h-4 text-[#9ca3af]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  <svg className="w-4 h-4 text-admin-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                 </div>
               </div>
             </div>
@@ -376,21 +387,21 @@ export default function MarketingView({ restaurantId }) {
             <button
               type="submit"
               disabled={sending}
-              className="w-full h-12 mt-4 bg-[#7a0b10] text-white rounded-lg font-bold text-base flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md"
+              className="w-full h-11 mt-3 bg-gradient-to-r from-primary to-primary-hover text-white rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md shadow-primary/25 hover:shadow-lg hover:brightness-105 active:scale-[0.99] disabled:opacity-50 font-outfit cursor-pointer"
             >
               {sending ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> Broadcasting...</>
+                <><Loader2 className="w-4 h-4 animate-spin text-white" /> Broadcasting Notification...</>
               ) : (
-                <><Send className="w-5 h-5" /> Send Broadcast Now</>
+                <><Send className="w-4 h-4 text-white" /> Send Broadcast Now</>
               )}
             </button>
           </form>
         </div>
 
-        {/* Middle: Live Preview (3 cols) */}
+        {/* Middle: Live Phone Preview (3 cols) */}
         <div className="lg:col-span-3 hidden xl:flex flex-col items-center">
-          <h3 className="text-xl font-bold text-[#1f2937] mb-6 flex items-center gap-2 w-full pl-4">
-            Live Preview
+          <h3 className="text-base font-bold text-admin-text mb-5 flex items-center gap-2 w-full pl-2 font-outfit">
+            Live Push Preview
           </h3>
           <div className="sticky top-24">
             <PhonePreview title={formData.title} message={formData.message} imageUrl={formData.imageUrl} />
@@ -399,68 +410,70 @@ export default function MarketingView({ restaurantId }) {
 
         {/* Right: Campaign History (4 cols) */}
         <div className="lg:col-span-7 xl:col-span-4">
-          <h3 className="text-xl font-bold text-[#1f2937] mb-6 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-[#9ca3af]" />
+          <h3 className="text-base font-bold text-admin-text mb-5 flex items-center gap-2 font-outfit">
+            <Calendar className="w-4 h-4 text-admin-muted" />
             Recent Broadcasts
           </h3>
 
           {loading ? (
-            <div className="flex items-center justify-center h-40 bg-white rounded-2xl border border-[#e5e7eb]">
-              <Loader2 className="w-8 h-8 animate-spin text-[#7a0b10]" />
+            <div className="flex items-center justify-center h-40 bg-admin-surface rounded-2xl border border-admin-border">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
           ) : campaigns.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-[#e5e7eb]">
-              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Megaphone className="w-10 h-10 text-[#9ca3af]" />
+            <div className="text-center py-16 bg-admin-surface rounded-2xl border border-dashed border-admin-border">
+              <div className="w-16 h-16 bg-admin-surface-2 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <Megaphone className="w-8 h-8 text-admin-muted" />
               </div>
-              <h3 className="text-lg font-bold text-[#1f2937]">No campaigns yet</h3>
-              <p className="text-[#6b7280] text-sm mt-1 max-w-[200px] mx-auto">Your sent marketing campaigns will appear here.</p>
+              <h3 className="text-sm font-bold text-admin-text font-outfit">No campaigns broadcast yet</h3>
+              <p className="text-admin-muted text-xs mt-1 max-w-[220px] mx-auto">Your sent push marketing campaigns will appear here.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               {campaigns.map((campaign) => (
-                <div key={campaign._id} className="bg-white border border-[#e5e7eb] rounded-xl p-5 hover:shadow-md transition-all group relative overflow-hidden">
+                <div key={campaign._id} className="bg-admin-surface border border-admin-border rounded-2xl p-4.5 hover:shadow-md transition-all relative overflow-hidden group">
                   {/* Status Indicator Line */}
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${campaign.status === 'sent' ? 'bg-[#16a34a]' :
-                      campaign.status === 'failed' ? 'bg-[#dc2626]' :
-                        'bg-[#ca8a04]'
-                    }`}></div>
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                    campaign.status === 'sent' ? 'bg-emerald-500' :
+                    campaign.status === 'failed' ? 'bg-rose-500' :
+                    'bg-amber-500'
+                  }`}></div>
 
-                  <div className="flex justify-between items-start mb-3 pl-2">
-                    <span className={`px-2.5 py-1 rounded text-xs font-bold flex items-center gap-1.5 uppercase tracking-wide border ${campaign.status === 'sent' ? 'bg-[#f0fdf4] text-[#16a34a] border-[#bbf7d0]' :
-                        campaign.status === 'failed' ? 'bg-[#fef2f2] text-[#dc2626] border-[#fecaca]' :
-                          'bg-[#fefce8] text-[#ca8a04] border-[#fef08a]'
-                      }`}>
-                      {campaign.status === 'sent' && <CheckCircle2 className="w-3.5 h-3.5" />}
-                      {campaign.status === 'failed' && <XCircle className="w-3.5 h-3.5" />}
+                  <div className="flex justify-between items-start mb-2.5 pl-2">
+                    <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 uppercase tracking-wider border font-outfit ${
+                      campaign.status === 'sent' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                      campaign.status === 'failed' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
+                      'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                    }`}>
+                      {campaign.status === 'sent' && <CheckCircle2 className="w-3 h-3" />}
+                      {campaign.status === 'failed' && <XCircle className="w-3 h-3" />}
                       {campaign.status.replace('_', ' ')}
                     </span>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[#9ca3af]">
-                      <Clock className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-1 text-[11px] font-medium text-admin-muted">
+                      <Clock className="w-3 h-3" />
                       {new Date(campaign.createdAt).toLocaleDateString()}
                     </div>
                   </div>
 
-                  <div className="flex gap-4 pl-2">
+                  <div className="flex gap-3 pl-2">
                     {campaign.imageUrl && (
-                      <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-gray-50 border border-[#e5e7eb]">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-admin-surface-2 border border-admin-border">
                         <img src={campaign.imageUrl} alt="Campaign" className="w-full h-full object-cover" />
                       </div>
                     )}
-                    <div className="space-y-1.5 flex-1 min-w-0">
-                      <h4 className="font-bold text-[#1f2937] text-base truncate">{campaign.title}</h4>
-                      <p className="text-[#6b7280] text-sm line-clamp-2 leading-relaxed">{campaign.message}</p>
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <h4 className="font-bold text-admin-text text-sm truncate font-outfit">{campaign.title}</h4>
+                      <p className="text-admin-muted text-xs line-clamp-2 leading-relaxed">{campaign.message}</p>
                     </div>
                   </div>
 
-                  <div className="mt-5 pt-4 border-t border-[#e5e7eb] flex items-center justify-between text-xs sm:text-sm font-medium text-[#6b7280] pl-2">
-                    <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md">
-                      <Users className="w-3.5 h-3.5 text-[#9ca3af]" />
-                      {campaign.audience === 'all_customers' ? 'All APKs (FCM Topic)' : campaign.audience.replace('_', ' ')}
+                  <div className="mt-4 pt-3 border-t border-admin-border flex items-center justify-between text-xs font-medium text-admin-muted pl-2">
+                    <div className="flex items-center gap-1 bg-admin-surface-2 px-2.5 py-1 rounded-lg text-[11px]">
+                      <Users className="w-3 h-3 text-admin-muted" />
+                      {campaign.audience === 'all_customers' ? 'All App Users' : campaign.audience.replace('_', ' ')}
                     </div>
-                    <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md">
-                      <Send className="w-3.5 h-3.5 text-[#9ca3af]" />
-                      Inbox: <span className="text-[#1f2937] font-bold">{campaign.successCount || 0}</span>
+                    <div className="flex items-center gap-1 bg-admin-surface-2 px-2.5 py-1 rounded-lg text-[11px]">
+                      <Send className="w-3 h-3 text-admin-muted" />
+                      Delivered: <span className="text-admin-text font-bold font-outfit">{campaign.successCount || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -473,7 +486,7 @@ export default function MarketingView({ restaurantId }) {
       <ConfirmModal
         isOpen={isConfirmModalOpen}
         title="Broadcast Campaign"
-        message="Are you sure you want to broadcast this message to all selected users? This cannot be undone and will be sent immediately."
+        message="Are you sure you want to broadcast this message to all selected users? This will be delivered directly to their mobile devices immediately."
         confirmText="Yes, Send Now"
         cancelText="Cancel"
         onConfirm={executeBroadcast}

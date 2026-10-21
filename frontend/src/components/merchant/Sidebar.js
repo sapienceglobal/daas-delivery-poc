@@ -1,191 +1,335 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMerchantContext } from '@/context/MerchantContext';
+import { useAuth } from '@/context/AuthContext';
 import {
   Briefcase, Clock, Store, CalendarCheck, Calendar,
-  ClipboardList, ShoppingBag, ChefHat, Truck,
-  CheckCircle, XCircle, Wallet, Users, Ticket, Gift, MessageSquare, BarChart, Settings, Activity, Shield, PhoneCall,
-  Grid, Utensils, PlusCircle, Sliders, Link as LinkIcon, Eye, Headphones, Megaphone, Globe, Share2
+  ClipboardList, Users, Ticket, Gift, MessageSquare, BarChart, Settings, Shield,
+  Grid, Megaphone, Globe, Share2, Headphones, ChevronRight, CheckCircle2,
+  ChevronLeft, PanelLeftClose, PanelLeft
 } from 'lucide-react';
 
 const SIDEBAR_STRUCTURE = [
   {
-    heading: 'LIVE OPERATIONS',
+    heading: 'MAIN',
     items: [
-      { id: 'live_orders', label: 'Live Orders', icon: Clock, badge: 8, badgeColor: 'red' },
-      { id: 'kds', label: 'Kitchen Display', icon: Store },
-      { id: 'reservations', label: 'Reservations', icon: CalendarCheck, badge: 5, badgeColor: 'orange' },
-      { id: 'catering', label: 'Catering Enquiries', icon: Calendar, badge: 3, badgeColor: 'orange' },
+      { id: 'dashboard', label: 'Dashboard', icon: Briefcase, href: '/merchant' },
+      { id: 'live_orders', label: 'Live Orders', icon: Clock, badge: 8, badgeColor: 'brand', href: '/merchant/live-orders' },
+      { id: 'all_orders', label: 'All Orders & Invoices', icon: ClipboardList, href: '/merchant/all-orders' },
     ]
   },
   {
-    heading: 'ORDERS',
+    heading: 'OPERATIONS',
     items: [
-      { id: 'all_orders', label: 'All Orders', icon: ClipboardList },
+      { id: 'kds', label: 'Kitchen Display', icon: Store, href: '/merchant/kds' },
+      { id: 'reservations', label: 'Reservations', icon: CalendarCheck, badge: 5, badgeColor: 'orange', href: '/merchant/reservations' },
+      { id: 'catering', label: 'Catering Enquiries', icon: Calendar, badge: 3, badgeColor: 'orange', href: '/merchant/catering' },
+      { id: 'menu', label: 'Menu & Inventory', icon: Grid, href: '/merchant/menu' },
     ]
   },
   {
-    heading: 'MENU MANAGEMENT',
+    heading: 'CRM & MARKETING',
     items: [
-      { id: 'menu', label: 'Menu Management', icon: Grid },
+      { id: 'crm', label: 'Customers & CRM', icon: Users, href: '/merchant/crm' },
+      { id: 'messages', label: 'Support Messages', icon: MessageSquare, href: '/merchant/messages' },
+      { id: 'promotions', label: 'Promotions & Coupons', icon: Ticket, href: '/merchant/promotions' },
+      { id: 'loyalty', label: 'Loyalty Rewards', icon: Gift, href: '/merchant/loyalty' },
+      { id: 'referrals', label: 'Referral Program', icon: Share2, href: '/merchant/referrals' },
+      { id: 'marketing', label: 'Push Marketing', icon: Megaphone, href: '/merchant/marketing' },
     ]
   },
   {
-    heading: 'CUSTOMERS',
+    heading: 'FINANCE & REPORTS',
     items: [
-      { id: 'crm', label: 'Customers & CRM', icon: Users },
-      { id: 'messages', label: 'Support Messages', icon: MessageSquare },
-      { id: 'marketing', label: 'Push Marketing', icon: Megaphone },
-      { id: 'promotions', label: 'Promotions & Coupons', icon: Ticket },
-      { id: 'loyalty', label: 'Loyalty Rewards', icon: Gift },
-      { id: 'referrals', label: 'Referral Program', icon: Share2 },
+      { id: 'analytics', label: 'Reports & Analytics', icon: BarChart, href: '/merchant/analytics' },
+      { id: 'audit', label: 'System Logs', icon: Shield, href: '/merchant/audit' },
     ]
   },
   {
-    heading: 'REPORTS & FINANCE',
+    heading: 'SETTINGS & WEB',
     items: [
-      { id: 'analytics', label: 'Reports & Analytics', icon: BarChart },
-      { id: 'audit', label: 'System Logs', icon: Shield },
-    ]
-  },
-  {
-    heading: 'SETTINGS & OTHERS',
-    items: [
-      { id: 'settings', label: 'Restaurant Settings', icon: Settings },
-      { id: 'cms', label: 'Website CMS', icon: Globe },
+      { id: 'settings', label: 'Restaurant Settings', icon: Settings, href: '/merchant/settings' },
+      { id: 'cms', label: 'Website CMS & SEO', icon: Globe, href: '/merchant/cms' },
     ]
   }
 ];
 
-export default function MerchantSidebar() {
+export default function MerchantSidebar({ collapsed = false, onToggle }) {
   const pathname = usePathname();
-  const { stats = {} } = useMerchantContext();
-// determine active state
-  const isActiveNav = (id) => {
-    if (id === 'dashboard') return pathname === '/merchant';
-    const normalizedId = id.replace('_', '-');
-    return pathname.startsWith(`/merchant/${normalizedId}`);
+  const { stats = {}, restaurant } = useMerchantContext();
+  const { user } = useAuth();
+
+  const isItemActive = (href) => {
+    if (href === '/merchant') {
+      return pathname === '/merchant';
+    }
+    return pathname.startsWith(href);
   };
-// update badges based on passed stats
-  const getBadgeCount = (id, defaultBadge) => {
+
+  const getBadgeCount = (id, defaultBadge = 0) => {
     switch (id) {
-      case 'live_orders': return stats.activeOrders ?? defaultBadge;
-      case 'new_orders': return stats.newOrders ?? defaultBadge;
-      case 'preparing': return stats.preparingOrders ?? defaultBadge;
-      case 'reservations': return stats.pendingReservations ?? defaultBadge;
-      case 'catering': return stats.pendingCatering ?? defaultBadge;
-      default: return defaultBadge;
+      case 'live_orders': return Number(stats?.activeOrders ?? defaultBadge ?? 0);
+      case 'new_orders': return Number(stats?.newOrders ?? defaultBadge ?? 0);
+      case 'preparing': return Number(stats?.preparingOrders ?? defaultBadge ?? 0);
+      case 'reservations': return Number(stats?.pendingReservations ?? defaultBadge ?? 0);
+      case 'catering': return Number(stats?.pendingCatering ?? defaultBadge ?? 0);
+      default: return Number(defaultBadge ?? 0);
     }
   };
 
-  return (
-    <div className="w-[250px] h-screen bg-[#111827] flex flex-col border-r border-[#1f2937] overflow-hidden shrink-0 shadow-2xl z-50">
-      {/* Logo Area */}
-      <div className="p-6 flex flex-col items-center justify-center shrink-0">
-        <div className="mb-6">
-          <img
-            src="/assets/images/branded/lassi-lounge/logo-email.png"
-            alt="Lassi Lounge"
-            className="h-11 w-auto object-contain"
-          />
-        </div>
+  const userInitials = (user?.name || 'Admin')
+    .split(' ')
+    .filter(Boolean)
+    .map(p => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'LL';
 
-        {/* Dashboard Button */}
-        <Link
-          href="/merchant"
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all duration-300
-            ${isActiveNav('dashboard') 
-              ? 'bg-[#7a0b10] text-white shadow-[0_4px_12px_rgba(122,11,16,0.35)]' 
-              : 'text-gray-400 hover:text-white hover:bg-[#1f2937]'
-            }`}
-        >
-          <Briefcase className="h-5 w-5" />
-          <span>Dashboard</span>
-        </Link>
+  return (
+    <aside
+      className={`sticky top-0 left-0 h-screen shrink-0 bg-[#090D16] border-r border-white/[0.08] flex flex-col z-30 transition-all duration-200 select-none overflow-hidden text-[#f1f5f9] [color-scheme:dark] ${collapsed ? 'w-[80px]' : 'w-[260px]'
+        }`}
+      style={{
+        width: collapsed ? '80px' : '260px',
+        minWidth: collapsed ? '80px' : '260px',
+        maxWidth: collapsed ? '80px' : '260px',
+        colorScheme: 'dark',
+        color: '#f1f5f9',
+      }}
+    >
+      {/* --- Top Brand Header --- */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-2.5 min-h-[70px] shrink-0">
+        {!collapsed ? (
+          <div className="flex items-center justify-between w-full">
+            <Link href="/merchant" className="flex items-center gap-2.5 group">
+              <img
+                src="/assets/images/branded/lassi-lounge/logo-email.png"
+                alt="Lassi Lounge"
+                className="h-11 sm:h-12 w-auto max-w-[175px] object-contain group-hover:scale-105 transition-transform drop-shadow"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.parentElement?.querySelector('.logo-fallback');
+                  if (fallback) fallback.classList.remove('hidden');
+                }}
+              />
+              <div className="logo-fallback hidden flex flex-col">
+                <span className="font-heading font-black text-sm tracking-wider text-white">LASSI LOUNGE</span>
+                <span className="text-[9px] font-bold text-brand uppercase tracking-widest">Admin Workspace</span>
+              </div>
+            </Link>
+
+            {onToggle && (
+              <button
+                type="button"
+                onClick={onToggle}
+                className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 flex items-center justify-center text-slate-300 hover:text-white transition-all shrink-0 cursor-pointer"
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center w-full">
+            <button
+              type="button"
+              onClick={onToggle}
+              className="w-12 h-12 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-brand/40 flex items-center justify-center p-2 cursor-pointer hover:scale-105 transition-all shadow-sm group"
+              title="Expand Sidebar"
+              aria-label="Expand Sidebar"
+            >
+              <img
+                src="/assets/images/branded/lassi-lounge/Lassi-Lounge-icon.png"
+                alt="Lassi Lounge"
+                className="w-full h-full object-contain filter drop-shadow group-hover:scale-110 transition-transform"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.parentElement?.querySelector('.collapsed-fallback');
+                  if (fallback) fallback.classList.remove('hidden');
+                }}
+              />
+              <span className="collapsed-fallback hidden font-heading font-black text-xs text-brand">LL</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Navigation Links - Scrollable */}
-      <div className="flex-1 overflow-y-auto px-4 pb-8 custom-scrollbar">
-        <div className="space-y-6">
-          {SIDEBAR_STRUCTURE.map((section, idx) => (
-            <div key={idx} className="space-y-2">
-              <h4 className="text-[10px] font-extrabold text-gray-500 uppercase tracking-widest pl-2">
-                {section.heading}
-              </h4>
-              <div className="space-y-0.5">
-                {section.items.map((item) => {
-                  const isActive = isActiveNav(item.id);
-                  const Icon = item.icon;
-                  const badgeCount = getBadgeCount(item.id, item.badge);
-                  const normalizedId = item.id.replace('_', '-');
-                  
+      {/* --- User Account Profile Card (Matching Salon Management) --- */}
+      {!collapsed ? (
+        <div className="px-3 py-1.5 shrink-0">
+          <Link
+            href="/merchant/settings"
+            className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-gradient-to-r from-[#210F24]/90 via-[#161022]/90 to-[#0F101B]/90 border border-brand/30 hover:border-brand/50 shadow-[0_4px_16px_rgba(0,0,0,0.4)] transition-all group cursor-pointer"
+          >
+            {/* User Avatar Circle */}
+            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-brand to-rose-400 flex items-center justify-center text-white font-bold text-xs tracking-wider shadow-[0_0_12px_rgba(205,19,27,0.45)] shrink-0">
+              {userInitials}
+            </div>
+
+            {/* User Name & Verified Icon & Role */}
+            <div className="overflow-hidden flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-white text-[13px] truncate group-hover:text-rose-200 transition-colors">
+                  {user?.name || 'Store Manager'}
+                </span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-brand shrink-0" />
+              </div>
+              <div className="text-[11px] text-[#94a3b8] font-medium truncate mt-0.5">
+                Admin Account
+              </div>
+            </div>
+
+            <ChevronRight className="w-4 h-4 text-rose-400/80 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
+      ) : (
+        <div className="px-3 py-2 flex flex-col items-center shrink-0">
+          <Link
+            href="/merchant/settings"
+            className="w-9 h-9 rounded-full bg-gradient-to-tr from-brand to-rose-400 flex items-center justify-center text-white font-bold text-xs tracking-wider shadow-[0_0_12px_rgba(205,19,27,0.45)] shrink-0 hover:scale-105 transition-transform"
+            title={`${user?.name || 'Manager'} (Admin Account)`}
+          >
+            {userInitials}
+          </Link>
+        </div>
+      )}
+
+      {/* --- Navigation Items --- */}
+      <div className="flex-1 overflow-y-auto px-2.5 pb-6 pt-2 custom-scrollbar">
+        {SIDEBAR_STRUCTURE.map((group) => (
+          <div key={group.heading} className="mb-2">
+            {/* Section Header with Gradient Divider */}
+            {!collapsed ? (
+              <div className="flex items-center gap-2.5 px-2.5 pt-3 pb-1.5 text-[10px] font-black tracking-[0.16em] text-[#94a3b8] uppercase">
+                <span className="shrink-0">{group.heading}</span>
+                <div className="h-[1px] flex-1 bg-gradient-to-r from-slate-700/80 to-transparent" />
+              </div>
+            ) : (
+              <div className="w-6 h-[1px] bg-slate-700/80 mx-auto my-1.5" />
+            )}
+
+            {/* Section Items */}
+            <div className="flex flex-col gap-0.5">
+              {group.items.map((item) => {
+                const active = isItemActive(item.href);
+                const Icon = item.icon;
+                const badgeCount = getBadgeCount(item.id, item.badge);
+                const hasBadge = Boolean(badgeCount && badgeCount > 0);
+                const badgeText = hasBadge ? (badgeCount > 99 ? '99+' : String(badgeCount)) : '';
+
+                if (collapsed) {
                   return (
                     <Link
                       key={item.id}
-                      href={`/merchant/${normalizedId}`}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 group
-                        ${isActive 
-                          ? 'bg-[#1f2937] text-white font-bold' 
-                          : 'text-gray-400 hover:text-white hover:bg-[#1f2937] font-medium'
+                      href={item.href}
+                      className={`relative flex items-center justify-center p-2 rounded-xl transition-all duration-150 group ${active
+                          ? 'bg-gradient-to-r from-brand/25 to-transparent'
+                          : 'hover:bg-white/[0.04]'
                         }`}
+                      title={item.label}
                     >
-                      <div className="flex items-center gap-3">
-                        <Icon className={`h-4 w-4 transition-colors ${isActive ? 'text-[#7a0b10]' : 'text-gray-500 group-hover:text-gray-300'}`} />
-                        <span className="text-sm">{item.label}</span>
+                      {active && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-brand rounded-r-md shadow-[0_0_10px_rgba(205,19,27,0.6)]" />
+                      )}
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg transition-all ${active
+                            ? 'bg-brand/20 border border-brand/50 text-brand shadow-[0_0_12px_rgba(205,19,27,0.3)]'
+                            : 'bg-[#131926] border border-[#334155] text-[#cbd5e1] group-hover:text-white group-hover:border-[#475569]'
+                          }`}
+                      >
+                        <Icon className="w-4 h-4 text-[#cbd5e1] group-hover:text-white" />
                       </div>
-                      
-                      {badgeCount > 0 && (
-                        <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold
-                          ${item.badgeColor === 'red' ? 'bg-[#7a0b10] text-white' : 
-                            item.badgeColor === 'orange' ? 'bg-[#f97316] text-white' : 
-                            'bg-gray-700 text-gray-300'}`}
-                        >
-                          {badgeCount}
-                        </div>
+                      {hasBadge && (
+                        <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-brand ring-2 ring-[#090D16]" />
                       )}
                     </Link>
                   );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Need Help Box */}
-      <Link href="/merchant/support">
-        <div className="p-5 shrink-0 border-t border-[#1f2937]">
-          <div className="bg-[#1f2937] rounded-xl p-4 flex flex-col gap-3 border border-[#374151] hover:border-[#4b5563] cursor-pointer transition-colors group">
-            <div className="flex items-center gap-3">
-              <div className="bg-[#374151] p-2 rounded-lg group-hover:bg-[#4b5563] transition-colors">
-                <Headphones className="w-4 h-4 text-gray-300" />
-              </div>
-              <div>
-                <h4 className="text-gray-200 text-sm font-bold">Need Help?</h4>
-                <p className="text-gray-400 text-xs mt-0.5">Contact Support</p>
-              </div>
+                }
+
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className={`relative flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-150 group ${active
+                        ? 'bg-gradient-to-r from-brand/20 to-brand/5 border border-brand/30 text-white font-semibold shadow-sm'
+                        : 'text-[#cbd5e1] hover:text-white hover:bg-white/[0.06] font-medium'
+                      }`}
+                  >
+                    {active && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-5 bg-brand rounded-r-md shadow-[0_0_10px_rgba(205,19,27,0.6)]" />
+                    )}
+
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all ${active
+                            ? 'bg-brand/25 border border-brand/50 text-brand shadow-[0_0_10px_rgba(205,19,27,0.35)]'
+                            : 'bg-[#131926] border border-[#334155] text-[#cbd5e1] group-hover:text-white group-hover:border-[#475569]'
+                          }`}
+                      >
+                        <Icon className="w-4 h-4 text-[#cbd5e1] group-hover:text-white" />
+                      </div>
+                      <span className={`text-xs truncate tracking-tight font-medium ${active ? 'text-white font-bold' : 'text-[#cbd5e1] group-hover:text-white'
+                        }`}>
+                        {item.label}
+                      </span>
+                    </div>
+
+                    {hasBadge && (
+                      <span
+                        className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shrink-0 ${active
+                            ? 'bg-brand text-white shadow-sm'
+                            : item.badgeColor === 'brand'
+                              ? 'bg-brand/20 text-brand border border-brand/30'
+                              : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          }`}
+                      >
+                        {badgeText}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* --- Need Help / Support Box at Bottom --- */}
+      {!collapsed ? (
+        <div className="p-3 shrink-0 border-t border-white/[0.08]">
+          <Link
+            href="/merchant/support"
+            className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-brand/40 transition-all group cursor-pointer"
+          >
+            <div className="w-8 h-8 rounded-lg bg-white/[0.06] group-hover:bg-brand/20 border border-white/10 group-hover:border-brand/40 flex items-center justify-center text-[#cbd5e1] group-hover:text-brand transition-colors shrink-0">
+              <Headphones className="w-4 h-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-bold text-white group-hover:text-rose-200 transition-colors truncate">
+                Help & Support
+              </div>
+              <div className="text-[10px] text-[#94a3b8] truncate mt-0.5">
+                Contact Assistant
+              </div>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-transform" />
+          </Link>
         </div>
-      </Link>
-      
-      {/* Custom scrollbar styling embedded for this component */}
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(75, 85, 99, 0.4);
-          border-radius: 10px;
-        }
-        .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-          background: rgba(75, 85, 99, 0.8);
-        }
-      `}</style>
-    </div>
+      ) : (
+        <div className="p-3 shrink-0 border-t border-white/[0.08] flex justify-center">
+          <Link
+            href="/merchant/support"
+            className="w-9 h-9 rounded-xl bg-white/[0.04] hover:bg-brand/20 border border-white/10 hover:border-brand/40 flex items-center justify-center text-[#cbd5e1] hover:text-brand transition-all"
+            title="Help & Support"
+          >
+            <Headphones className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
+    </aside>
   );
 }

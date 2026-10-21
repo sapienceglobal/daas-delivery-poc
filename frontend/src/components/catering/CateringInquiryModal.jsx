@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X, Loader2, Calendar, Users, Phone, Mail, User, FileText } from 'lucide-react';
 import { cateringAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 import PremiumDatePicker from '@/components/ui/PremiumDatePicker';
 
 export default function CateringInquiryModal({ isOpen, onClose, restaurantId, initialPackage = 'Custom / Unsure' }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     customerName: '',
@@ -21,11 +25,10 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
 
   const [errors, setErrors] = useState({});
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // clear error when user starts typing
     if (errors[e.target.name]) {
       setErrors({ ...errors, [e.target.name]: false });
     }
@@ -44,8 +47,12 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
     return Object.keys(newErrors).length === 0;
   };
 
-  const getInputClass = (fieldName) => 
-    `w-full h-11 px-3 rounded-lg border focus:ring-1 text-[14px] bg-white text-[#1a1a1a] outline-none transition-colors ${errors[fieldName] ? '!border-[#dc2626] focus:!border-[#dc2626] focus:!ring-[#dc2626]' : 'border-[#eadfdb] focus:border-[#7a0b10] focus:ring-[#7a0b10]'}`;
+  const inputClass = (fieldName) => 
+    `w-full px-3.5 py-2.5 rounded-xl border text-sm bg-admin-surface-light text-admin-text outline-none transition-colors placeholder:text-admin-text-muted ${
+      errors[fieldName] 
+        ? '!border-rose-500 focus:!border-rose-500 focus:!ring-1 focus:!ring-rose-500' 
+        : 'border-admin-border focus:border-brand focus:ring-1 focus:ring-brand'
+    }`;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -83,88 +90,99 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-24 pb-8">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
       {/* Modal Content */}
-      <div className="relative bg-white rounded-2xl w-full max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto ll-soft-scroll shadow-2xl animate-scale-in z-10">
-        <div className="sticky top-0 bg-white/95 backdrop-blur-md px-6 py-4 border-b border-[#eadfdb] flex items-center justify-between z-20">
+      <div className="relative bg-admin-surface border border-admin-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl animate-in fade-in zoom-in-95 duration-200 z-10 flex flex-col">
+        
+        {/* Header */}
+        <div className="sticky top-0 bg-admin-surface/95 backdrop-blur-md px-6 py-5 border-b border-admin-border flex items-center justify-between z-20">
           <div>
-            <h2 className="text-[20px] font-black text-[#7a0b10]">Request Catering Quote</h2>
-            <p className="text-[12px] text-[#6b7280]">Fill out the details below and we'll get back to you.</p>
+            <h2 className="text-lg sm:text-xl font-black font-heading text-admin-text">New Catering Enquiry</h2>
+            <p className="text-xs sm:text-sm text-admin-text-secondary mt-0.5">Fill out the guest details and event requirements.</p>
           </div>
           <button 
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+            className="p-2 rounded-xl hover:bg-admin-surface-light text-admin-text-secondary hover:text-admin-text transition-colors cursor-pointer"
+            aria-label="Close"
           >
-            <X className="h-5 w-5" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Form Body */}
         <form onSubmit={handleSubmit} noValidate className="p-6 space-y-6">
           {/* Contact Details */}
           <div>
-            <h3 className="text-[13px] font-bold text-[#1a1a1a] uppercase tracking-wider mb-4 border-b border-[#eadfdb] pb-2">Contact Information</h3>
+            <h3 className="text-xs font-bold text-admin-text uppercase tracking-wider mb-4 border-b border-admin-border pb-2.5">
+              Contact Information
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Full Name *</label>
+                <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-1.5">
+                  Full Name <span className="text-rose-500">*</span>
+                </label>
                 <input 
                   type="text" 
                   name="customerName"
                   required
                   value={formData.customerName}
                   onChange={handleChange}
-                  className={getInputClass('customerName')}
+                  className={inputClass('customerName')}
                   placeholder="John Doe"
                 />
-                {errors.customerName && <p className="!text-[#dc2626] text-[11px] mt-1.5 font-bold">This field is required.</p>}
+                {errors.customerName && <p className="text-rose-500 text-[11px] mt-1 font-bold">This field is required.</p>}
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Email Address *</label>
+                <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-1.5">
+                  Email Address <span className="text-rose-500">*</span>
+                </label>
                 <input 
                   type="email" 
                   name="customerEmail"
                   required
                   value={formData.customerEmail}
                   onChange={handleChange}
-                  className={getInputClass('customerEmail')}
+                  className={inputClass('customerEmail')}
                   placeholder="john@example.com"
                 />
-                {errors.customerEmail && <p className="!text-[#dc2626] text-[11px] mt-1.5 font-bold">This field is required.</p>}
+                {errors.customerEmail && <p className="text-rose-500 text-[11px] mt-1 font-bold">This field is required.</p>}
               </div>
               <div className="md:col-span-2">
-                <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Phone Number *</label>
+                <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-1.5">
+                  Phone Number <span className="text-rose-500">*</span>
+                </label>
                 <input 
                   type="tel" 
                   name="customerPhone"
                   required
                   value={formData.customerPhone}
                   onChange={handleChange}
-                  className={getInputClass('customerPhone')}
+                  className={inputClass('customerPhone')}
                   placeholder="(555) 123-4567"
                 />
-                {errors.customerPhone && <p className="!text-[#dc2626] text-[11px] mt-1.5 font-bold">This field is required.</p>}
+                {errors.customerPhone && <p className="text-rose-500 text-[11px] mt-1 font-bold">This field is required.</p>}
               </div>
             </div>
           </div>
 
           {/* Event Details */}
           <div>
-            <h3 className="text-[13px] font-bold text-[#1a1a1a] uppercase tracking-wider mb-4 border-b border-[#eadfdb] pb-2">Event Details</h3>
+            <h3 className="text-xs font-bold text-admin-text uppercase tracking-wider mb-4 border-b border-admin-border pb-2.5">
+              Event Details
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Event Type *</label>
+                <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-1.5">
+                  Event Type <span className="text-rose-500">*</span>
+                </label>
                 <select 
                   name="eventType"
                   required
                   value={formData.eventType}
                   onChange={handleChange}
-                  className={getInputClass('eventType')}
+                  className={inputClass('eventType')}
                 >
                   <option value="">Select event type...</option>
                   <option value="Wedding">Wedding</option>
@@ -173,10 +191,12 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
                   <option value="Family Gathering">Family Gathering</option>
                   <option value="Other">Other</option>
                 </select>
-                {errors.eventType && <p className="!text-[#dc2626] text-[11px] mt-1.5 font-bold">This field is required.</p>}
+                {errors.eventType && <p className="text-rose-500 text-[11px] mt-1 font-bold">This field is required.</p>}
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Event Date *</label>
+                <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-1.5">
+                  Event Date <span className="text-rose-500">*</span>
+                </label>
                 <PremiumDatePicker 
                   selected={formData.eventDate ? new Date(formData.eventDate + 'T00:00:00') : null}
                   onChange={(date) => {
@@ -185,14 +205,16 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
                       if (errors.eventDate) setErrors({ ...errors, eventDate: false });
                     }
                   }}
-                  className={getInputClass('eventDate')}
+                  className={inputClass('eventDate')}
                   minDate={new Date()}
                   placeholderText="Select event date"
                 />
-                {errors.eventDate && <p className="!text-[#dc2626] text-[11px] mt-1.5 font-bold">This field is required.</p>}
+                {errors.eventDate && <p className="text-rose-500 text-[11px] mt-1 font-bold">This field is required.</p>}
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Guest Count *</label>
+                <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-1.5">
+                  Guest Count <span className="text-rose-500">*</span>
+                </label>
                 <input 
                   type="number" 
                   name="guestCount"
@@ -200,18 +222,20 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
                   min="1"
                   value={formData.guestCount}
                   onChange={handleChange}
-                  className={getInputClass('guestCount')}
+                  className={inputClass('guestCount')}
                   placeholder="e.g. 50"
                 />
-                {errors.guestCount && <p className="!text-[#dc2626] text-[11px] mt-1.5 font-bold">This field is required.</p>}
+                {errors.guestCount && <p className="text-rose-500 text-[11px] mt-1 font-bold">This field is required.</p>}
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Package Preference</label>
+                <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-1.5">
+                  Package Preference
+                </label>
                 <select 
                   name="packagePreference"
                   value={formData.packagePreference}
                   onChange={handleChange}
-                  className="w-full h-11 px-3 rounded-lg border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] text-[14px] bg-white text-[#1a1a1a] outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-admin-border bg-admin-surface-light text-admin-text text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-colors"
                 >
                   <option value="Basic Package">Basic Package</option>
                   <option value="Premium Package">Premium Package</option>
@@ -220,38 +244,42 @@ export default function CateringInquiryModal({ isOpen, onClose, restaurantId, in
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-[12px] font-bold text-[#4b5563] mb-1">Additional Notes</label>
+                <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-1.5">
+                  Additional Notes
+                </label>
                 <textarea 
                   name="additionalNotes"
                   value={formData.additionalNotes}
                   onChange={handleChange}
                   rows={3}
-                  className="w-full p-3 rounded-lg border border-[#eadfdb] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] text-[14px] bg-white text-[#1a1a1a] [&:-webkit-autofill]:shadow-[0_0_0_1000px_white_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a] outline-none resize-none"
-                  placeholder="Tell us about any dietary restrictions or special requests..."
+                  className="w-full p-3.5 rounded-xl border border-admin-border bg-admin-surface-light text-admin-text text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-colors resize-none placeholder:text-admin-text-muted"
+                  placeholder="Tell us about any dietary restrictions, budget expectations, or special requests..."
                 />
               </div>
             </div>
           </div>
 
-          <div className="pt-4 flex flex-col sm:flex-row justify-end gap-4 mt-6">
+          {/* Action Buttons */}
+          <div className="pt-2 flex flex-col sm:flex-row justify-end gap-3 border-t border-admin-border">
             <button 
               type="button"
               onClick={onClose}
-              className="w-full sm:w-[160px] h-12 rounded-lg border border-[#eadfdb] text-[#4b5563] text-[13px] font-bold hover:bg-gray-50 transition-colors flex items-center justify-center"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-admin-border text-admin-text-secondary hover:text-admin-text hover:bg-admin-surface-light text-xs sm:text-sm font-bold transition-colors cursor-pointer"
             >
-              CANCEL
+              Cancel
             </button>
             <button 
               type="submit"
               disabled={loading}
-              className="w-full sm:w-[200px] h-12 rounded-lg bg-[#7a0b10] text-white text-[13px] font-black uppercase tracking-wider hover:bg-[#680307] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-brand hover:brightness-110 text-white text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
             >
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              SUBMIT INQUIRY
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              Submit Inquiry
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

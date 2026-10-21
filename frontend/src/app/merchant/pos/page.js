@@ -13,7 +13,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { menuAPI, orderAPI, employeeAPI, paymentAPI, restaurantAPI, couponAPI } from '@/lib/api';
 import {
-  Button, showToast, Skeleton, Input
+  Button, showToast, Skeleton, Input, PageLoader
 } from '@/components/ui';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
@@ -723,29 +723,32 @@ function POSContent() {
     return results;
   }, [menu, activeCategory, searchQuery]);
 
-  if (loading) return <div className="p-8"><Skeleton className="h-64 w-full" /></div>;
+  if (loading) return <PageLoader text="Loading POS Terminal..." />;
 
   return (
-    <div className="h-[calc(100vh-80px)] overflow-hidden flex flex-col md:flex-row gap-6 p-4">
+    <div className="h-[calc(100vh-80px)] overflow-hidden flex flex-col md:flex-row gap-5 p-4 text-admin-text">
 
       {/* Left: Menu Items */}
       <div className="flex-1 flex flex-col gap-4 overflow-hidden">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <button className="flex items-center gap-1 px-3 py-1.5 text-sm font-bold text-[#374151] hover:bg-[#f3f4f6] rounded-md transition-colors" onClick={() => router.push('/merchant')}>
+          <div className="flex items-center gap-3">
+            <button 
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-admin-muted hover:text-admin-text hover:bg-admin-surface rounded-xl border border-admin-border transition-colors font-outfit" 
+              onClick={() => router.push('/merchant')}
+            >
               <ChevronLeft className="h-4 w-4" /> Dashboard
             </button>
-            <h1 className="text-xl font-black text-[#111827] flex items-center gap-2">
-              <Store className="h-5 w-5 text-[#8b0000]" /> Point of Sale
+            <h1 className="text-xl font-black text-admin-text flex items-center gap-2 font-outfit">
+              <Store className="h-5 w-5 text-primary" /> Point of Sale
             </h1>
           </div>
           <div className="relative flex-1 max-w-md">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9ca3af]">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-admin-muted pointer-events-none">
               <Search className="w-4 h-4" />
             </div>
             <input
               type="text"
-              placeholder="Search menu items..."
+              placeholder="Search dishes, drinks, appetizers..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -753,7 +756,7 @@ function POSContent() {
                   setActiveCategory('all_items');
                 }
               }}
-              className="w-full pl-10 pr-3 py-2 bg-white border border-[#e5e7eb] rounded-lg text-sm focus:outline-none focus:border-[#8b0000] transition-shadow placeholder-[#9ca3af] text-[#111827]"
+              className="w-full pl-10 pr-3.5 py-2 bg-admin-surface border border-admin-border rounded-xl text-xs font-medium text-admin-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-admin-muted"
             />
           </div>
         </div>
@@ -769,8 +772,10 @@ function POSContent() {
               <button
                 key={cat._id}
                 onClick={() => setActiveCategory(cat._id)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors
-                  ${activeCategory === cat._id ? 'bg-[#8b0000] text-white' : 'bg-white border border-[#e5e7eb] text-[#6b7280] hover:text-[#111827]'}`}
+                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all font-outfit
+                  ${activeCategory === cat._id 
+                    ? 'bg-gradient-to-r from-primary to-primary-hover text-white shadow-md shadow-primary/20' 
+                    : 'bg-admin-surface border border-admin-border text-admin-muted hover:text-admin-text hover:bg-admin-surface-2'}`}
               >
                 {cat.name}
               </button>
@@ -779,24 +784,24 @@ function POSContent() {
 
           {/* Left Gradient & Button */}
           {canScrollLeft && (
-            <div className="absolute left-0 top-0 bottom-2 w-16 bg-gradient-to-r from-white to-transparent z-10 flex items-center pointer-events-none">
+            <div className="absolute left-0 top-0 bottom-2 w-16 bg-gradient-to-r from-admin-bg to-transparent z-10 flex items-center pointer-events-none">
               <button
                 onClick={() => scrollByAmount(-200)}
-                className="pointer-events-auto w-8 h-8 flex items-center justify-center bg-white border border-[#e5e7eb] rounded-full shadow-md text-[#4b5563] hover:text-[#8B0000] hover:border-[#8B0000] transition-colors"
+                className="pointer-events-auto w-7 h-7 flex items-center justify-center bg-admin-surface border border-admin-border rounded-full shadow-md text-admin-muted hover:text-primary hover:border-primary transition-colors"
               >
-                <ChevronLeft className="w-5 h-5 -ml-0.5" />
+                <ChevronLeft className="w-4 h-4 -ml-0.5" />
               </button>
             </div>
           )}
 
           {/* Right Gradient & Button */}
           {canScrollRight && (
-            <div className="absolute right-0 top-0 bottom-2 w-16 bg-gradient-to-l from-white to-transparent z-10 flex items-center justify-end pointer-events-none">
+            <div className="absolute right-0 top-0 bottom-2 w-16 bg-gradient-to-l from-admin-bg to-transparent z-10 flex items-center justify-end pointer-events-none">
               <button
                 onClick={() => scrollByAmount(200)}
-                className="pointer-events-auto w-8 h-8 flex items-center justify-center bg-white border border-[#e5e7eb] rounded-full shadow-md text-[#4b5563] hover:text-[#8B0000] hover:border-[#8B0000] transition-colors"
+                className="pointer-events-auto w-7 h-7 flex items-center justify-center bg-admin-surface border border-admin-border rounded-full shadow-md text-admin-muted hover:text-primary hover:border-primary transition-colors"
               >
-                <ChevronRight className="w-5 h-5 ml-0.5" />
+                <ChevronRight className="w-4 h-4 ml-0.5" />
               </button>
             </div>
           )}
@@ -807,108 +812,119 @@ function POSContent() {
           {visibleItems.map(item => (
             <div
               key={item._id}
-              className="bg-white border border-[#e5e7eb] rounded-xl cursor-pointer hover:border-[#8b0000] hover:shadow-md transition-all flex flex-col overflow-hidden shadow-sm h-48"
+              className="bg-admin-surface border border-admin-border rounded-2xl cursor-pointer hover:border-primary hover:shadow-lg transition-all flex flex-col overflow-hidden shadow-sm h-48 group"
               onClick={() => handleItemClick(item)}
             >
-              <div className="h-24 bg-[#f3f4f6] w-full shrink-0 flex items-center justify-center overflow-hidden">
+              <div className="h-24 bg-admin-surface-2 w-full shrink-0 flex items-center justify-center overflow-hidden relative">
                 {item.image || item.imageUrl ? (
-                  <img src={item.image || item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                  <img src={item.image || item.imageUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
-                  <Store className="w-8 h-8 text-[#9ca3af] opacity-50" />
+                  <Store className="w-8 h-8 text-admin-muted opacity-40" />
                 )}
               </div>
               <div className="p-3 flex flex-col justify-between flex-1">
                 <div>
-                  <h3 className="font-bold text-[#111827] text-[13px] leading-tight line-clamp-1 mb-0.5">{item.name}</h3>
-                  <p className="text-[11px] text-[#6b7280] line-clamp-1 leading-snug">{item.description || 'No description'}</p>
+                  <h3 className="font-bold text-admin-text text-xs leading-tight line-clamp-1 mb-0.5 font-outfit">{item.name}</h3>
+                  <p className="text-[11px] text-admin-muted line-clamp-1 leading-snug">{item.description || 'No description'}</p>
                 </div>
-                <p className="text-[#8b0000] font-black mt-1 text-sm">${item.price.toFixed(2)}</p>
+                <p className="text-primary font-black mt-1 text-sm font-outfit">${item.price.toFixed(2)}</p>
               </div>
             </div>
           ))}
           {visibleItems.length === 0 && (
-            <div className="col-span-full text-center text-[#9ca3af] py-8 text-sm">No items in this category.</div>
+            <div className="col-span-full text-center text-admin-muted py-12 text-xs font-semibold">No items found in this category.</div>
           )}
         </div>
       </div>
 
       {/* Right: Current Ticket */}
-      <div className="w-full md:w-[360px] lg:w-[420px] flex flex-col bg-white border border-[#e5e7eb] rounded-2xl overflow-hidden shrink-0 shadow-sm">
+      <div className="w-full md:w-[360px] lg:w-[420px] flex flex-col bg-admin-surface border border-admin-border rounded-2xl overflow-hidden shrink-0 shadow-sm">
 
         {/* Order Type & Customer Details */}
-        <div className="bg-[#f3f4f6] border-b border-[#e5e7eb] p-4 flex flex-col gap-3">
+        <div className="bg-admin-surface-2/60 border-b border-admin-border p-4 flex flex-col gap-3">
           <div className="flex gap-2">
             <button
-              className={`flex-1 py-1.5 text-[11px] font-bold rounded-md transition-colors ${orderType === 'takeout' ? 'bg-[#8b0000] text-white' : 'text-[#6b7280] hover:bg-[#f9fafb]'}`}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all font-outfit ${
+                orderType === 'takeout' 
+                  ? 'bg-gradient-to-r from-primary to-primary-hover text-white shadow-sm' 
+                  : 'text-admin-muted hover:text-admin-text hover:bg-admin-surface border border-admin-border'
+              }`}
               onClick={() => setOrderType('takeout')}
             >
-              Pickup
+              Pickup / Takeout
             </button>
             <button
-              className={`flex-1 py-1.5 text-[11px] font-bold rounded-md transition-colors ${orderType === 'delivery' ? 'bg-[#8b0000] text-white' : 'text-[#6b7280] hover:bg-[#f9fafb]'}`}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-xl transition-all font-outfit ${
+                orderType === 'delivery' 
+                  ? 'bg-gradient-to-r from-primary to-primary-hover text-white shadow-sm' 
+                  : 'text-admin-muted hover:text-admin-text hover:bg-admin-surface border border-admin-border'
+              }`}
               onClick={() => setOrderType('delivery')}
             >
-              Delivery
+              Delivery Order
             </button>
           </div>
 
           {/* Customer Summary & Edit Button */}
-          <div className="bg-white border border-[#e5e7eb] rounded-lg p-2.5 flex items-center justify-between shadow-sm cursor-pointer hover:border-[#8b0000] transition-colors" onClick={openCustomerModal}>
+          <div 
+            className="bg-admin-surface border border-admin-border rounded-xl p-3 flex items-center justify-between shadow-xs cursor-pointer hover:border-primary transition-colors" 
+            onClick={openCustomerModal}
+          >
             <div className="flex-1 flex flex-col min-w-0 pr-2">
-              <div className="flex items-center gap-1.5 mb-1">
-                <User className="w-3.5 h-3.5 text-[#9ca3af]" />
-                <span className="text-[12px] font-bold text-[#111827] truncate">
-                  {savedCustomerDetails.customerName || 'Add Customer'} {savedCustomerDetails.customerPhone && `• ${savedCustomerDetails.customerPhone}`}
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <User className="w-3.5 h-3.5 text-admin-muted" />
+                <span className="text-xs font-bold text-admin-text truncate font-outfit">
+                  {savedCustomerDetails.customerName || 'Add Customer Details'} {savedCustomerDetails.customerPhone && `• ${savedCustomerDetails.customerPhone}`}
                 </span>
               </div>
               {orderType === 'delivery' && (
                 <div className="flex items-start gap-1.5 mt-0.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#9ca3af] mt-0.5 shrink-0" />
-                  <span className="text-[11px] text-[#6b7280] line-clamp-2">
-                    {savedCustomerDetails.addressLine1 ? `${savedCustomerDetails.addressLine1}${savedCustomerDetails.addressLine2 ? ', ' + savedCustomerDetails.addressLine2 : ''}, ${savedCustomerDetails.city}, ${savedCustomerDetails.addressState} ${savedCustomerDetails.zipCode}` : 'Add Delivery Address'}
-                    {savedCustomerDetails.quoteError ? ' (Fee Error)' : savedCustomerDetails.deliveryQuote ? ` (Fee: $${savedCustomerDetails.deliveryQuote.fee.toFixed(2)})` : ''}
+                  <MapPin className="w-3.5 h-3.5 text-admin-muted mt-0.5 shrink-0" />
+                  <span className="text-[11px] text-admin-muted line-clamp-2">
+                    {savedCustomerDetails.addressLine1 ? `${savedCustomerDetails.addressLine1}${savedCustomerDetails.addressLine2 ? ', ' + savedCustomerDetails.addressLine2 : ''}, ${savedCustomerDetails.city}, ${savedCustomerDetails.addressState} ${savedCustomerDetails.zipCode}` : 'Tap to add delivery address'}
+                    {savedCustomerDetails.quoteError ? ' (Delivery Fee Error)' : savedCustomerDetails.deliveryQuote ? ` (Fee: $${savedCustomerDetails.deliveryQuote.fee.toFixed(2)})` : ''}
                   </span>
                 </div>
               )}
             </div>
-            <button className="text-[11px] font-bold text-[#8b0000] bg-[#8b0000]/10 px-2.5 py-1 rounded-md shrink-0">
+            <button className="text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-lg shrink-0 font-outfit">
               Edit
             </button>
           </div>
         </div>
 
         {/* Ticket Items */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[#f9fafb]">
+        <div className="flex-1 overflow-y-auto p-3.5 space-y-2 bg-admin-surface-2/30">
           {ticket.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-[#9ca3af] text-sm gap-3">
-              <ShoppingBag className="h-12 w-12 opacity-30" />
-              <p>Search or select items to start</p>
+            <div className="h-full flex flex-col items-center justify-center text-admin-muted text-xs gap-2 py-12">
+              <ShoppingBag className="h-10 w-10 opacity-30 text-admin-muted" />
+              <p className="font-semibold">Cart is empty. Select menu items to begin.</p>
             </div>
           ) : (
             ticket.map((item, idx) => (
-              <div key={idx} className="flex flex-col bg-white p-3 rounded-xl border border-[#e5e7eb] shadow-sm">
-                <div className="flex justify-between items-start mb-2">
+              <div key={idx} className="flex flex-col bg-admin-surface p-3 rounded-xl border border-admin-border shadow-xs">
+                <div className="flex justify-between items-start mb-1.5">
                   <div className="flex-1 pr-2">
-                    <p className="text-[13px] font-bold text-[#111827] leading-tight">{item.name}</p>
-                    {item.selectedSize && <p className="text-[11px] text-[#6b7280]">Size: {item.selectedSize.name}</p>}
-                    {item.selectedAddOns?.length > 0 && <p className="text-[11px] text-[#6b7280]">Extras: {item.selectedAddOns.map(a => a.name).join(', ')}</p>}
-                    {item.specialInstructions && <p className="text-[11px] text-[#e8a020] truncate">Note: {item.specialInstructions}</p>}
-                    <p className="text-[11px] text-[#6b7280]">${item.price.toFixed(2)} each</p>
+                    <p className="text-xs font-bold text-admin-text leading-tight font-outfit">{item.name}</p>
+                    {item.selectedSize && <p className="text-[10px] text-admin-muted">Size: {item.selectedSize.name}</p>}
+                    {item.selectedAddOns?.length > 0 && <p className="text-[10px] text-admin-muted">Extras: {item.selectedAddOns.map(a => a.name).join(', ')}</p>}
+                    {item.specialInstructions && <p className="text-[10px] text-amber-500 truncate">Note: {item.specialInstructions}</p>}
+                    <p className="text-[10px] text-admin-muted">${item.price.toFixed(2)} each</p>
                   </div>
-                  <span className="font-bold text-[#8b0000] text-sm">${item.lineTotal.toFixed(2)}</span>
+                  <span className="font-bold text-primary text-xs font-outfit">${item.lineTotal.toFixed(2)}</span>
                 </div>
-                <div className="flex items-center justify-between mt-1">
-                  <div className="flex items-center gap-1 bg-[#f3f4f6] rounded-lg p-0.5 border border-[#e5e7eb]">
-                    <button onClick={() => updateQuantity(idx, item.quantity - 1)} className="p-1.5 bg-white rounded-md shadow-sm text-[#111827] hover:text-[#8b0000]">
-                      <Minus className="h-3.5 w-3.5" />
+                <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-admin-border/50">
+                  <div className="flex items-center gap-1 bg-admin-surface-2 rounded-lg p-0.5 border border-admin-border">
+                    <button onClick={() => updateQuantity(idx, item.quantity - 1)} className="p-1 bg-admin-surface rounded-md shadow-xs text-admin-text hover:text-primary">
+                      <Minus className="h-3 w-3" />
                     </button>
-                    <span className="text-[13px] font-black w-6 text-center text-[#111827]">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(idx, item.quantity + 1)} className="p-1.5 bg-white rounded-md shadow-sm text-[#111827] hover:text-[#8b0000]">
-                      <Plus className="h-3.5 w-3.5" />
+                    <span className="text-xs font-black w-6 text-center text-admin-text font-outfit">{item.quantity}</span>
+                    <button onClick={() => updateQuantity(idx, item.quantity + 1)} className="p-1 bg-admin-surface rounded-md shadow-xs text-admin-text hover:text-primary">
+                      <Plus className="h-3 w-3" />
                     </button>
                   </div>
-                  <button onClick={() => removeItem(idx)} className="p-2 text-[#9ca3af] hover:text-[#ef4444] transition-colors">
-                    <Trash2 className="h-4 w-4" />
+                  <button onClick={() => removeItem(idx)} className="p-1.5 text-admin-muted hover:text-rose-500 transition-colors">
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
@@ -917,23 +933,23 @@ function POSContent() {
         </div>
 
         {/* Coupon & Totals */}
-        <div className="p-4 bg-white border-t border-[#e5e7eb]">
+        <div className="p-4 bg-admin-surface border-t border-admin-border">
           <div className="flex items-center gap-2 mb-3">
             <div className="relative flex-1">
-              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
-                <Tag className="w-4 h-4 text-[#9ca3af]" />
+              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 pointer-events-none">
+                <Tag className="w-3.5 h-3.5 text-admin-muted" />
               </div>
               <input
-                type="text" placeholder="Promo/Coupon Code"
+                type="text" placeholder="Promo / Coupon Code"
                 value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())}
-                className="w-full pl-10 pr-3 py-2 text-[13px] bg-[#f9fafb] border border-[#e5e7eb] rounded-lg focus:border-[#8b0000] uppercase outline-none text-[#111827] placeholder-[#9ca3af]"
+                className="w-full pl-9 pr-3 py-1.5 text-xs bg-admin-surface border border-admin-border rounded-xl focus:border-primary uppercase outline-none text-admin-text placeholder:text-admin-muted font-medium"
               />
             </div>
             <button
               type="button"
               onClick={handleApplyCoupon}
               disabled={couponLoading || couponApplied || ticket.length === 0}
-              className={`text-[13px] font-bold text-white bg-[#8b0000] hover:bg-[#7a0b10] px-4 rounded-lg h-[38px] transition-colors ${(couponLoading || couponApplied || ticket.length === 0) ? 'opacity-50 cursor-not-allowed' : ''
+              className={`text-xs font-bold text-white bg-gradient-to-r from-primary to-primary-hover px-4 rounded-xl h-[34px] transition-all font-outfit ${(couponLoading || couponApplied || ticket.length === 0) ? 'opacity-50 cursor-not-allowed' : 'shadow-xs'
                 }`}
             >
               {couponLoading ? '...' : 'Apply'}
@@ -941,114 +957,128 @@ function POSContent() {
           </div>
 
           {couponApplied && (
-            <div className="flex items-center justify-between mb-3 px-3 py-2 bg-[#f2fcf5] border border-[#d1fae5] rounded-lg">
-              <span className="text-[#1fae64] text-[12px] font-bold">
+            <div className="flex items-center justify-between mb-3 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+              <span className="text-emerald-500 text-[11px] font-bold font-outfit">
                 {couponCode} Applied <span className="font-medium ml-1">(-${couponDiscount.toFixed(2)})</span>
               </span>
-              <button onClick={handleRemoveCoupon} className="text-[#1fae64] hover:text-[#16a34a] transition-colors" aria-label="Remove coupon">
-                <Trash2 className="w-4 h-4" />
+              <button onClick={handleRemoveCoupon} className="text-emerald-500 hover:text-emerald-600 transition-colors" aria-label="Remove coupon">
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
 
-          <div className="space-y-1.5 mb-4 border-t border-dashed border-[#e5e7eb] pt-3">
-            <div className="flex justify-between items-center text-[13px] text-[#4b5563]">
+          <div className="space-y-1.5 mb-3 border-t border-dashed border-admin-border pt-2.5 text-xs">
+            <div className="flex justify-between items-center text-admin-muted">
               <span>Subtotal ({ticket.length} Items)</span>
-              <span className="font-bold text-[#111827]">${subtotal.toFixed(2)}</span>
+              <span className="font-bold text-admin-text font-outfit">${subtotal.toFixed(2)}</span>
             </div>
 
             {orderType === 'delivery' && (
-              <div className="flex justify-between items-center text-[13px] text-[#4b5563]">
+              <div className="flex justify-between items-center text-admin-muted">
                 <span>Delivery Fee</span>
-                <span className="font-bold text-[#111827]">
+                <span className="font-bold text-admin-text font-outfit">
                   {deliveryFee === 0 ? 'FREE' : `$${deliveryFee.toFixed(2)}`}
                 </span>
               </div>
             )}
 
-            <div className="flex justify-between items-center text-[13px] text-[#4b5563]">
+            <div className="flex justify-between items-center text-admin-muted">
               <span>{restaurant?.taxType || 'Taxes & Charges'}</span>
-              <span className="font-bold text-[#111827]">${tax.toFixed(2)}</span>
+              <span className="font-bold text-admin-text font-outfit">${tax.toFixed(2)}</span>
             </div>
 
-            <div className="flex justify-between items-center text-[13px] text-[#4b5563]">
+            <div className="flex justify-between items-center text-admin-muted">
               <span>Platform Fee</span>
-              <span className="font-bold text-[#111827]">${platformFee.toFixed(2)}</span>
+              <span className="font-bold text-admin-text font-outfit">${platformFee.toFixed(2)}</span>
             </div>
 
-            <div className="flex justify-between items-center text-[13px] text-[#4b5563]">
+            <div className="flex justify-between items-center text-admin-muted">
               <span>Service Fee</span>
-              <span className="font-bold text-[#111827]">${serviceFee.toFixed(2)}</span>
+              <span className="font-bold text-admin-text font-outfit">${serviceFee.toFixed(2)}</span>
             </div>
 
             {packagingFee > 0 && (
-              <div className="flex justify-between items-center text-[13px] text-[#4b5563]">
+              <div className="flex justify-between items-center text-admin-muted">
                 <span>Packaging Fee</span>
-                <span className="font-bold text-[#111827]">${packagingFee.toFixed(2)}</span>
+                <span className="font-bold text-admin-text font-outfit">${packagingFee.toFixed(2)}</span>
               </div>
             )}
 
             {couponApplied && couponDiscount > 0 && (
-              <div className="flex justify-between items-center text-[13px] text-[#1fae64]">
-                <span className="font-bold">Discount ({couponCode})</span>
-                <span className="font-black">-${couponDiscount.toFixed(2)}</span>
+              <div className="flex justify-between items-center text-emerald-500 font-bold">
+                <span>Discount ({couponCode})</span>
+                <span className="font-black font-outfit">-${couponDiscount.toFixed(2)}</span>
               </div>
             )}
 
-            <div className="flex justify-between text-xl font-black text-[#111827] pt-3 border-t border-[#e5e7eb] mt-2">
-              <span>Total</span>
-              <span>${total.toFixed(2)}</span>
+            <div className="flex justify-between text-base font-black text-admin-text pt-2.5 border-t border-admin-border mt-1 font-outfit">
+              <span>Total Amount</span>
+              <span className="text-primary font-black">${total.toFixed(2)}</span>
             </div>
           </div>
 
           <button
-            className="w-full py-4 text-lg font-black shadow-md bg-[#8b0000] text-white rounded-xl hover:bg-[#7a0000] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 text-sm font-black shadow-md bg-gradient-to-r from-primary to-primary-hover text-white rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed font-outfit"
             onClick={initiateCheckout}
             disabled={ticket.length === 0 || !isCustomerInfoComplete(savedCustomerDetails)}
           >
-            <CreditCard className="w-5 h-5" /> Charge ${total.toFixed(2)}
+            <CreditCard className="w-4 h-4" /> Charge ${total.toFixed(2)}
           </button>
         </div>
       </div>
 
       {/* PAYMENT MODAL */}
       {mounted && showPaymentModal && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-[500px] overflow-hidden shadow-2xl flex flex-col">
-            <div className="p-5 border-b border-[#e5e7eb] bg-[#f3f4f6] flex justify-between items-center">
-              <h2 className="text-xl font-black text-[#111827]">Complete Payment</h2>
-              <button onClick={() => setShowPaymentModal(false)} className="p-2 text-[#9ca3af] hover:text-[#111827] rounded-full hover:bg-[#f3f4f6]"><LogOut className="w-5 h-5" /></button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl w-full max-w-[480px] overflow-hidden shadow-2xl flex flex-col">
+            <div className="p-4 border-b border-admin-border bg-admin-surface-2/60 flex justify-between items-center">
+              <h2 className="text-base font-bold text-admin-text font-outfit">Complete POS Payment</h2>
+              <button onClick={() => setShowPaymentModal(false)} className="p-1.5 text-admin-muted hover:text-admin-text rounded-xl hover:bg-admin-surface transition-colors">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <div className="p-6">
               <div className="text-center mb-6">
-                <p className="text-sm text-[#9ca3af] uppercase tracking-widest font-bold mb-1">Total Due</p>
-                <p className="text-4xl font-black text-[#8b0000]">${total.toFixed(2)}</p>
+                <p className="text-[11px] text-admin-muted uppercase tracking-widest font-bold mb-1 font-outfit">Total Due</p>
+                <p className="text-3xl font-black text-primary font-outfit">${total.toFixed(2)}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="grid grid-cols-2 gap-3 mb-4">
                 <button
                   onClick={() => { setSelectedPayment('card_terminal'); setTenderAmount(total.toFixed(2)); }}
-                  className={`p-4 rounded-xl border-2 flex flex-col items-center text-center justify-center gap-2 transition-all ${selectedPayment === 'card_terminal' ? 'border-[#8b0000] bg-[#fef2f2] text-[#8b0000]' : 'border-[#e5e7eb] text-[#9ca3af] hover:bg-[#f9fafb]'}`}
+                  className={`p-4 rounded-xl border-2 flex flex-col items-center text-center justify-center gap-2 transition-all font-outfit ${
+                    selectedPayment === 'card_terminal' 
+                      ? 'border-primary bg-primary/10 text-primary' 
+                      : 'border-admin-border text-admin-muted hover:bg-admin-surface-2 hover:text-admin-text'
+                  }`}
                 >
-                  <CreditCard className="w-8 h-8 mx-auto" />
-                  <span className="font-bold text-sm">Pay Now (Card)</span>
+                  <CreditCard className="w-7 h-7 mx-auto" />
+                  <span className="font-bold text-xs">Pay with Card Terminal</span>
                 </button>
                 <button
                   onClick={() => { setSelectedPayment('payment_link'); }}
-                  className={`p-4 rounded-xl border-2 flex flex-col items-center text-center justify-center gap-2 transition-all ${selectedPayment === 'payment_link' ? 'border-[#8b0000] bg-[#fef2f2] text-[#8b0000]' : 'border-[#e5e7eb] text-[#9ca3af] hover:bg-[#f9fafb]'}`}
+                  className={`p-4 rounded-xl border-2 flex flex-col items-center text-center justify-center gap-2 transition-all font-outfit ${
+                    selectedPayment === 'payment_link' 
+                      ? 'border-primary bg-primary/10 text-primary' 
+                      : 'border-admin-border text-admin-muted hover:bg-admin-surface-2 hover:text-admin-text'
+                  }`}
                 >
-                  <QrCode className="w-8 h-8 mx-auto" />
-                  <span className="font-bold text-sm">Send Link (QR/SMS)</span>
+                  <QrCode className="w-7 h-7 mx-auto" />
+                  <span className="font-bold text-xs">Send QR / SMS Link</span>
                 </button>
               </div>
-
-
             </div>
 
-            <div className="p-5 border-t border-[#e5e7eb] bg-[#f9fafb]">
-              <Button
-                className="w-full py-4 text-lg shadow-lg bg-[#111827] text-white hover:bg-black"
+            <div className="p-4 border-t border-admin-border bg-admin-surface-2/60 flex justify-end gap-2.5">
+              <button
+                className="px-4 py-2 text-xs font-bold text-admin-muted hover:text-admin-text hover:bg-admin-surface rounded-xl transition-colors font-outfit"
+                onClick={() => setShowPaymentModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-6 py-2 text-xs font-bold bg-gradient-to-r from-primary to-primary-hover text-white rounded-xl shadow-md font-outfit hover:shadow-lg transition-all"
                 onClick={() => {
                   if (selectedPayment === 'card_terminal') {
                     setShowPaymentModal(false);
@@ -1057,10 +1087,10 @@ function POSContent() {
                     handleProcessPayment();
                   }
                 }}
-                loading={processing}
+                disabled={processing}
               >
-                Confirm & Pay
-              </Button>
+                {processing ? 'Processing...' : 'Confirm & Charge'}
+              </button>
             </div>
           </div>
         </div>
@@ -1068,38 +1098,37 @@ function POSContent() {
 
       {/* PAYMENT LINK WAITING MODAL */}
       {mounted && showPaymentLinkModal && paymentLinkOrderId && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-[700px] overflow-hidden shadow-2xl flex flex-col md:flex-row">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl w-full max-w-[650px] overflow-hidden shadow-2xl flex flex-col md:flex-row">
             
-            {/* Left side: QR Code */}
-            <div className="bg-gray-50 flex flex-col items-center justify-center p-8 border-b md:border-b-0 md:border-r border-gray-200 w-full md:w-[45%]">
-              <div className="bg-white p-4 border-2 border-gray-100 rounded-xl shadow-sm mx-auto mb-4">
-                <QRCodeSVG value={`${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`} size={180} level="H" />
+            {/* Left side: QR Code - Keep white inner box so cameras can read barcode */}
+            <div className="bg-admin-surface-2 flex flex-col items-center justify-center p-6 border-b md:border-b-0 md:border-r border-admin-border w-full md:w-[45%]">
+              <div className="bg-white p-3.5 border-2 border-white rounded-2xl shadow-sm mx-auto mb-3">
+                <QRCodeSVG value={`${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`} size={170} level="H" />
               </div>
-              <div className="text-center font-bold text-[#ef4444] bg-[#fef2f2] rounded-lg py-2 px-6">
-                Time Remaining: {Math.floor(paymentLinkTimeLeft / 60).toString().padStart(2, '0')}:{(paymentLinkTimeLeft % 60).toString().padStart(2, '0')}
+              <div className="text-center font-bold text-rose-500 bg-rose-500/10 border border-rose-500/20 rounded-xl py-1.5 px-4 text-xs font-outfit">
+                Expires in: {Math.floor(paymentLinkTimeLeft / 60).toString().padStart(2, '0')}:{(paymentLinkTimeLeft % 60).toString().padStart(2, '0')}
               </div>
             </div>
 
             {/* Right side: Content & Actions */}
-            <div className="p-8 w-full md:w-[55%] flex flex-col justify-center text-left">
-              <h2 className="text-2xl font-black text-[#111827] mb-2">Waiting for Payment</h2>
-              <p className="text-[#6b7280] mb-6 text-sm">Have the customer scan the QR code or send them the link to pay securely.</p>
+            <div className="p-6 w-full md:w-[55%] flex flex-col justify-center text-left">
+              <h2 className="text-lg font-black text-admin-text mb-1.5 font-outfit">Awaiting Customer Payment</h2>
+              <p className="text-admin-muted mb-5 text-xs leading-relaxed">Present QR code to customer or send via WhatsApp / SMS link to pay securely.</p>
 
-              <div className="grid grid-cols-3 gap-2 mb-6">
+              <div className="grid grid-cols-3 gap-2 mb-4">
                 <button
-                  className="w-full py-2 bg-white border border-[#e5e7eb] rounded-lg font-bold text-[#374151] hover:bg-[#f9fafb] transition-colors text-[13px]"
+                  className="w-full py-2 bg-admin-surface border border-admin-border rounded-xl font-bold text-admin-text hover:bg-admin-surface-2 transition-colors text-xs font-outfit"
                   onClick={() => {
                     navigator.clipboard.writeText(`${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`);
-                    showToast('Link copied to clipboard!', 'success');
+                    showToast('Payment link copied to clipboard!', 'success');
                   }}
                 >
                   Copy Link
                 </button>
                 <button
-                  className={`w-full py-2 rounded-lg font-bold transition-colors text-[13px] ${(!savedCustomerDetails.customerPhone || savedCustomerDetails.customerPhone === '0000000000') ? 'opacity-50 cursor-not-allowed text-[#9ca3af] border border-[#e5e7eb]' : 'text-[#25D366] border border-[#25D366] hover:bg-[#25D366]/10'}`}
+                  className={`w-full py-2 rounded-xl font-bold transition-colors text-xs font-outfit ${(!savedCustomerDetails.customerPhone || savedCustomerDetails.customerPhone === '0000000000') ? 'opacity-50 cursor-not-allowed text-admin-muted border border-admin-border' : 'text-emerald-500 border border-emerald-500/30 hover:bg-emerald-500/10'}`}
                   disabled={!savedCustomerDetails.customerPhone || savedCustomerDetails.customerPhone === '0000000000'}
-                  title={(!savedCustomerDetails.customerPhone || savedCustomerDetails.customerPhone === '0000000000') ? 'Number provide nhi kiya gaya' : 'Send WhatsApp Message'}
                   onClick={() => {
                     if (savedCustomerDetails.customerPhone && savedCustomerDetails.customerPhone !== '0000000000') {
                       const payUrl = `${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`;
@@ -1115,16 +1144,16 @@ function POSContent() {
                   WhatsApp
                 </button>
                 <button
-                  className="w-full py-2 bg-white border border-[#3b82f6] text-[#3b82f6] rounded-lg font-bold hover:bg-[#eff6ff] transition-colors text-[13px]"
+                  className="w-full py-2 bg-blue-500/10 border border-blue-500/30 text-blue-500 rounded-xl font-bold hover:bg-blue-500/20 transition-colors text-xs font-outfit"
                   onClick={() => {
                     if (navigator.share) {
                       navigator.share({
-                        title: 'Payment Link',
+                        title: 'Order Payment Link',
                         url: `${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`
                       }).catch(console.error);
                     } else {
                       navigator.clipboard.writeText(`${window.location.origin}/api/orders/${paymentLinkOrderId}/pay`);
-                      showToast('Share not supported on this browser. Link copied instead!', 'info');
+                      showToast('Share not supported. Link copied instead!', 'info');
                     }
                   }}
                 >
@@ -1132,22 +1161,16 @@ function POSContent() {
                 </button>
               </div>
 
-              <div className="p-3 bg-[#f3f4f6] border border-[#e5e7eb] rounded-xl mb-6">
-                <p className="text-[12px] text-[#111827] font-medium leading-relaxed">
-                  Note: If you want to change the payment method or check status, go to the Live Orders page.
-                </p>
-              </div>
-
               <div className="flex flex-col gap-2 mt-auto">
                 <div className="flex gap-2">
                   <button
-                    className="flex-1 py-2.5 bg-[#111827] text-white font-bold rounded-lg hover:bg-black transition-colors text-sm shadow-sm"
+                    className="flex-1 py-2 bg-gradient-to-r from-primary to-primary-hover text-white font-bold rounded-xl text-xs shadow-sm font-outfit"
                     onClick={() => router.push('/merchant/live-orders')}
                   >
                     Go to Live Orders
                   </button>
                   <button
-                    className="flex-1 py-2.5 bg-white border border-[#e5e7eb] text-[#374151] font-bold rounded-lg hover:bg-[#f9fafb] transition-colors text-sm shadow-sm"
+                    className="flex-1 py-2 bg-admin-surface border border-admin-border text-admin-text font-bold rounded-xl hover:bg-admin-surface-2 transition-colors text-xs font-outfit"
                     onClick={() => {
                       setIsPolling(false);
                       setShowPaymentLinkModal(false);
@@ -1158,7 +1181,7 @@ function POSContent() {
                   </button>
                 </div>
                 <button
-                  className="w-full py-2 bg-transparent text-[#ef4444] font-bold rounded-lg hover:bg-[#fef2f2] transition-colors text-[13px] mt-1"
+                  className="w-full py-1.5 text-rose-500 font-bold rounded-xl hover:bg-rose-500/10 transition-colors text-xs font-outfit"
                   onClick={async () => {
                     try {
                       await orderAPI.reject(paymentLinkOrderId, 'Cancelled by merchant at POS');
@@ -1180,112 +1203,109 @@ function POSContent() {
 
       {/* TRANSACTION COMPLETE MODAL */}
       {mounted && showCompleteModal && completedOrder && createPortal(
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-[400px] overflow-hidden shadow-2xl flex flex-col items-center p-8 text-center">
-            <div className="w-20 h-20 bg-[#dcfce7] rounded-full flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-10 h-10 text-[#16a34a]" />
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-admin-surface border border-admin-border rounded-3xl w-full max-w-[380px] overflow-hidden shadow-2xl flex flex-col items-center p-6 text-center">
+            <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-full flex items-center justify-center mb-3">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500" />
             </div>
-            <h2 className="text-2xl font-black text-[#111827] mb-1">Payment Successful</h2>
-            <p className="text-[#9ca3af] font-medium mb-6">Order #{completedOrder.orderNumber || completedOrder._id?.slice(-6)}</p>
+            <h2 className="text-xl font-black text-admin-text mb-1 font-outfit">Payment Completed</h2>
+            <p className="text-admin-muted text-xs font-medium mb-4">Order #{completedOrder.orderNumber || completedOrder._id?.slice(-6)}</p>
 
-            <div className="w-full bg-[#f9fafb] rounded-xl p-4 mb-6 border border-[#e5e7eb]">
-              <div className="flex justify-between mb-2">
-                <span className="text-[#9ca3af] text-sm">Total Amount</span>
-                <span className="font-bold text-[#111827]">${completedOrder.total?.toFixed(2)}</span>
+            <div className="w-full bg-admin-surface-2 rounded-xl p-3.5 mb-5 border border-admin-border/60 text-xs">
+              <div className="flex justify-between mb-1.5">
+                <span className="text-admin-muted">Total Amount</span>
+                <span className="font-bold text-admin-text font-outfit">${completedOrder.total?.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#9ca3af] text-sm">Payment Method</span>
-                <span className="font-bold text-[#111827] capitalize">{selectedPayment.replace('_', ' ')}</span>
+                <span className="text-admin-muted">Payment Method</span>
+                <span className="font-bold text-admin-text capitalize font-outfit">{selectedPayment.replace('_', ' ')}</span>
               </div>
-
             </div>
 
-            <div className="w-full space-y-3">
-              <Button
-                className="w-full py-4 bg-[#111827] hover:bg-black text-white"
-                icon={Printer}
+            <div className="w-full space-y-2">
+              <button
+                className="w-full py-2.5 bg-gradient-to-r from-primary to-primary-hover text-white text-xs font-bold rounded-xl shadow-md font-outfit flex items-center justify-center gap-1.5"
                 onClick={() => {
                   window.open(`/api/orders/${completedOrder._id}/invoice`, '_blank');
                 }}
               >
-                Print Receipt
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full py-4 border-2 border-[#e5e7eb] text-[#6b7280] hover:bg-[#f9fafb]"
-                icon={RotateCcw}
+                <Printer className="w-4 h-4" /> Print Tax Invoice
+              </button>
+              <button
+                className="w-full py-2.5 bg-admin-surface border border-admin-border text-admin-text hover:bg-admin-surface-2 text-xs font-bold rounded-xl transition-colors font-outfit flex items-center justify-center gap-1.5"
                 onClick={() => {
                   setShowCompleteModal(false);
                   setCompletedOrder(null);
                   setTenderAmount('');
                 }}
               >
-                New Order
-              </Button>
+                <RotateCcw className="w-4 h-4" /> Start Next Order
+              </button>
             </div>
           </div>
         </div>
         , document.body)}
 
-
       {/* CUSTOMER & DELIVERY MODAL */}
       {mounted && showCustomerModal && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-[500px] overflow-hidden shadow-2xl flex flex-col">
-            <div className="p-5 border-b border-[#e5e7eb] bg-[#f3f4f6] flex justify-between items-center">
-              <h2 className="text-xl font-black text-[#111827]">Customer Details</h2>
-              <button onClick={() => setShowCustomerModal(false)} className="p-2 text-[#9ca3af] hover:text-[#111827] rounded-full hover:bg-[#f3f4f6]"><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl w-full max-w-[480px] overflow-hidden shadow-2xl flex flex-col">
+            <div className="p-4 border-b border-admin-border bg-admin-surface-2/60 flex justify-between items-center">
+              <h2 className="text-base font-bold text-admin-text font-outfit">Customer & Order Details</h2>
+              <button onClick={() => setShowCustomerModal(false)} className="p-1.5 text-admin-muted hover:text-admin-text rounded-xl hover:bg-admin-surface transition-colors">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-xs">
               <div>
-                <label className="block text-[13px] font-bold text-[#374151] mb-1">Full Name</label>
+                <label className="block font-bold text-admin-text mb-1 font-outfit">Full Name</label>
                 <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
-                    <User className="w-4 h-4 text-[#9ca3af]" />
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 pointer-events-none">
+                    <User className="w-4 h-4 text-admin-muted" />
                   </div>
                   <input
                     type="text" placeholder="John Doe"
                     value={customerName} onChange={e => setCustomerName(e.target.value)}
-                    className={`w-full pl-10 pr-3 py-2 text-[14px] bg-white border rounded-lg outline-none text-[#111827] placeholder-[#9ca3af] ${customerName && !isFullNameValid ? 'border-[#ef4444] focus:border-[#ef4444] ring-1 ring-[#ef4444]' : 'border-[#e5e7eb] focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000]'}`}
+                    className={`w-full pl-9 pr-3.5 py-2 bg-admin-surface border rounded-xl outline-none text-admin-text placeholder:text-admin-muted text-xs ${customerName && !isFullNameValid ? 'border-rose-500' : 'border-admin-border focus:border-primary'}`}
                   />
                 </div>
-                {customerName && !isFullNameValid && <p className="text-[11px] text-[#ef4444] mt-1">Please enter a valid name without special characters.</p>}
+                {customerName && !isFullNameValid && <p className="text-[11px] text-rose-500 mt-1">Please enter a valid customer name.</p>}
               </div>
 
               <div>
-                <label className="block text-[13px] font-bold text-[#374151] mb-1">Phone Number <span className="font-normal text-[#6b7280]">{orderType === 'delivery' ? '(Required for delivery)' : '(Required if no email)'}</span></label>
-                <div className={`relative bg-white border rounded-lg overflow-hidden focus-within:ring-1 ${customerPhone && !isPhoneValid ? 'border-[#ef4444] focus-within:border-[#ef4444] focus-within:ring-[#ef4444]' : 'border-[#e5e7eb] focus-within:border-[#8b0000] focus-within:ring-[#8b0000]'}`}>
+                <label className="block font-bold text-admin-text mb-1 font-outfit">Phone Number <span className="font-normal text-admin-muted">{orderType === 'delivery' ? '(Required for delivery)' : '(Required if no email)'}</span></label>
+                <div className={`relative bg-admin-surface border rounded-xl overflow-hidden ${customerPhone && !isPhoneValid ? 'border-rose-500' : 'border-admin-border focus-within:border-primary'}`}>
                   <PhoneInput
                     international
                     defaultCountry="US"
                     value={customerPhone}
                     onChange={setCustomerPhone}
-                    className="w-full !text-[14px] p-2 [&>input]:border-none [&>input]:outline-none [&>input]:w-full [&>input]:bg-transparent [&>input]:text-[#111827] flex items-center [&>.PhoneInputCountry]:mr-2"
+                    className="w-full text-xs p-2 [&>input]:border-none [&>input]:outline-none [&>input]:w-full [&>input]:bg-transparent [&>input]:text-admin-text flex items-center [&>.PhoneInputCountry]:mr-2"
                     placeholder="Enter phone number"
                   />
                 </div>
-                {customerPhone && !isPhoneValid && <p className="text-[11px] text-[#ef4444] mt-1">Please enter a valid phone number with country code.</p>}
+                {customerPhone && !isPhoneValid && <p className="text-[11px] text-rose-500 mt-1">Please enter a valid mobile number with country code.</p>}
               </div>
 
               <div>
-                <label className="block text-[13px] font-bold text-[#374151] mb-1">Email Address <span className="font-normal text-[#6b7280]">{orderType === 'delivery' ? '(Optional)' : '(Required if no phone number)'}</span></label>
+                <label className="block font-bold text-admin-text mb-1 font-outfit">Email Address <span className="font-normal text-admin-muted">{orderType === 'delivery' ? '(Optional)' : '(Required if no phone)'}</span></label>
                 <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
-                    <Mail className="w-4 h-4 text-[#9ca3af]" />
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 pointer-events-none">
+                    <Mail className="w-4 h-4 text-admin-muted" />
                   </div>
                   <input
-                    type="email" placeholder="john@example.com"
+                    type="email" placeholder="customer@example.com"
                     value={customerEmail} onChange={e => setCustomerEmail(e.target.value)}
-                    className={`w-full pl-10 pr-3 py-2 text-[14px] bg-white border rounded-lg outline-none text-[#111827] placeholder-[#9ca3af] ${customerEmail && !isEmailValid ? 'border-[#ef4444] focus:border-[#ef4444] ring-1 ring-[#ef4444]' : 'border-[#e5e7eb] focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000]'}`}
+                    className={`w-full pl-9 pr-3.5 py-2 bg-admin-surface border rounded-xl outline-none text-admin-text placeholder:text-admin-muted text-xs ${customerEmail && !isEmailValid ? 'border-rose-500' : 'border-admin-border focus:border-primary'}`}
                   />
                 </div>
-                {customerEmail && !isEmailValid && <p className="text-[11px] text-[#ef4444] mt-1">Please enter a valid email address.</p>}
+                {customerEmail && !isEmailValid && <p className="text-[11px] text-rose-500 mt-1">Please enter a valid email address.</p>}
               </div>
 
               {orderType === 'delivery' && (
-                <div className="pt-4 border-t border-[#e5e7eb] mt-4 space-y-4">
-                  <h3 className="font-bold text-[#111827] flex items-center gap-2"><MapPin className="w-4 h-4 text-[#8b0000]" /> Delivery Address</h3>
+                <div className="pt-3 border-t border-admin-border space-y-3">
+                  <h3 className="font-bold text-admin-text flex items-center gap-1.5 font-outfit"><MapPin className="w-4 h-4 text-primary" /> Delivery Destination</h3>
 
                   <div className="relative z-50">
                     <input
@@ -1293,20 +1313,20 @@ function POSContent() {
                       value={addressLine1}
                       onChange={handleAddressLine1Change}
                       placeholder="Start typing street address..."
-                      className="w-full px-3 py-2 text-[14px] bg-white border border-[#e5e7eb] rounded-lg focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000] outline-none text-[#111827] placeholder-[#9ca3af]"
+                      className="w-full px-3.5 py-2 bg-admin-surface border border-admin-border rounded-xl focus:border-primary outline-none text-admin-text placeholder:text-admin-muted text-xs"
                     />
                     {suggestionsLoading && (
                       <div className="absolute right-3 top-2.5">
-                        <Loader2 className="w-4 h-4 animate-spin text-[#9ca3af]" />
+                        <Loader2 className="w-4 h-4 animate-spin text-admin-muted" />
                       </div>
                     )}
                     {suggestions.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#e5e7eb] rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-admin-surface border border-admin-border rounded-xl shadow-xl max-h-48 overflow-y-auto">
                         {suggestions.map((s, i) => (
                           <div
                             key={i}
                             onClick={() => handleSelectSuggestion(s)}
-                            className="px-3 py-2 text-[13px] hover:bg-[#f3f4f6] cursor-pointer text-[#111827] border-b border-[#e5e7eb] last:border-0"
+                            className="px-3.5 py-2 hover:bg-admin-surface-2 cursor-pointer text-admin-text border-b border-admin-border last:border-0 text-xs"
                           >
                             {s.description || s.display_name}
                           </div>
@@ -1315,66 +1335,72 @@ function POSContent() {
                     )}
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex gap-2.5">
                     <input
                       type="text"
                       value={addressLine2}
                       onChange={(e) => setAddressLine2(e.target.value)}
-                      placeholder="Apt, Suite (Opt)"
-                      className="w-1/3 px-3 py-2 text-[14px] bg-white border border-[#e5e7eb] rounded-lg focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000] outline-none text-[#111827] placeholder-[#9ca3af]"
+                      placeholder="Apt / Suite (Opt)"
+                      className="w-1/3 px-3 py-2 bg-admin-surface border border-admin-border rounded-xl focus:border-primary outline-none text-admin-text placeholder:text-admin-muted text-xs"
                     />
                     <input
                       type="text"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       placeholder="City"
-                      className="w-2/3 px-3 py-2 text-[14px] bg-white border border-[#e5e7eb] rounded-lg focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000] outline-none text-[#111827] placeholder-[#9ca3af]"
+                      className="w-2/3 px-3 py-2 bg-admin-surface border border-admin-border rounded-xl focus:border-primary outline-none text-admin-text placeholder:text-admin-muted text-xs"
                     />
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex gap-2.5">
                     <input
                       type="text"
                       value={addressState}
                       onChange={(e) => setAddressState(e.target.value)}
                       placeholder="State"
-                      className="w-1/2 px-3 py-2 text-[14px] bg-white border border-[#e5e7eb] rounded-lg focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000] outline-none text-[#111827] placeholder-[#9ca3af]"
+                      className="w-1/2 px-3 py-2 bg-admin-surface border border-admin-border rounded-xl focus:border-primary outline-none text-admin-text placeholder:text-admin-muted text-xs"
                     />
                     <input
                       type="text"
                       value={zipCode}
                       onChange={(e) => setZipCode(e.target.value)}
                       placeholder="ZIP Code"
-                      className="w-1/2 px-3 py-2 text-[14px] bg-white border border-[#e5e7eb] rounded-lg focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000] outline-none text-[#111827] placeholder-[#9ca3af]"
+                      className="w-1/2 px-3 py-2 bg-admin-surface border border-admin-border rounded-xl focus:border-primary outline-none text-admin-text placeholder:text-admin-muted text-xs"
                     />
                   </div>
 
                   <textarea
                     value={deliveryInstructions}
                     onChange={(e) => setDeliveryInstructions(e.target.value)}
-                    placeholder="Delivery instructions (e.g. Leave at door)"
+                    placeholder="Delivery instructions (e.g. Ring buzzer 4B, leave at door)"
                     rows={2}
-                    className="w-full px-3 py-2 text-[14px] bg-white border border-[#e5e7eb] rounded-lg focus:border-[#8b0000] focus:ring-1 focus:ring-[#8b0000] outline-none text-[#111827] placeholder-[#9ca3af] resize-none"
+                    className="w-full px-3.5 py-2 bg-admin-surface border border-admin-border rounded-xl focus:border-primary outline-none text-admin-text placeholder:text-admin-muted resize-none text-xs leading-relaxed"
                   />
 
-                  <div className="bg-[#f9fafb] p-3 rounded-lg border border-[#e5e7eb] flex items-center justify-between text-sm">
-                    <span className="text-[#6b7280] font-bold">Delivery Fee</span>
+                  <div className="bg-admin-surface-2 p-3 rounded-xl border border-admin-border flex items-center justify-between text-xs">
+                    <span className="text-admin-muted font-bold font-outfit">Delivery Fee</span>
                     <span>
-                      {quoteLoading ? 'Calculating...' : quoteError ? <span className="text-[#ef4444] font-bold">{quoteError}</span> : (deliveryQuote ? <span className="text-[#16a34a] font-black">${deliveryQuote.fee.toFixed(2)}</span> : <span className="text-[#9ca3af]">Enter address</span>)}
+                      {quoteLoading ? 'Calculating...' : quoteError ? <span className="text-rose-500 font-bold">{quoteError}</span> : (deliveryQuote ? <span className="text-emerald-500 font-black font-outfit">${deliveryQuote.fee.toFixed(2)}</span> : <span className="text-admin-muted">Enter valid address</span>)}
                     </span>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="p-5 border-t border-[#e5e7eb] bg-[#f9fafb]">
-              <Button
-                className={`w-full py-3.5 text-[15px] shadow-sm ${!isCustomerInfoComplete() ? 'opacity-50 cursor-not-allowed bg-[#9ca3af]' : 'bg-[#111827] text-white hover:bg-black'}`}
+            <div className="p-4 border-t border-admin-border bg-admin-surface-2/60 flex justify-end gap-2.5">
+              <button
+                className="px-4 py-2 text-xs font-bold text-admin-muted hover:text-admin-text hover:bg-admin-surface rounded-xl transition-colors font-outfit"
+                onClick={() => setShowCustomerModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className={`px-5 py-2 text-xs font-bold rounded-xl shadow-sm transition-all font-outfit ${!isCustomerInfoComplete() ? 'opacity-50 cursor-not-allowed bg-admin-border text-admin-muted' : 'bg-gradient-to-r from-primary to-primary-hover text-white hover:shadow-md'}`}
                 onClick={handleSaveCustomerDetails}
                 disabled={!isCustomerInfoComplete()}
               >
                 Save Details
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -1382,34 +1408,34 @@ function POSContent() {
 
       {/* ITEM CUSTOMIZATION MODAL */}
       {mounted && itemToCustomize && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-[500px] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-4 border-b border-[#e5e7eb] bg-[#f9fafb]">
-              <h2 className="text-xl font-black text-[#111827]">Customize {itemToCustomize.name}</h2>
-              <button onClick={() => setItemToCustomize(null)} className="p-2 text-[#9ca3af] hover:text-[#111827] rounded-full hover:bg-[#f3f4f6]">
-                <LogOut className="w-5 h-5" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl w-full max-w-[480px] overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+            <div className="flex justify-between items-center p-4 border-b border-admin-border bg-admin-surface-2/60">
+              <h2 className="text-base font-bold text-admin-text font-outfit">Customize {itemToCustomize.name}</h2>
+              <button onClick={() => setItemToCustomize(null)} className="p-1.5 text-admin-muted hover:text-admin-text rounded-xl hover:bg-admin-surface transition-colors">
+                <X className="w-5 h-5" />
               </button>
             </div>
             
-            <div className="p-6 space-y-6 overflow-y-auto">
+            <div className="p-6 space-y-5 overflow-y-auto text-xs">
               {/* Size Variations */}
               {itemToCustomize.sizeVariations?.length > 0 && (
                 <div>
-                  <h3 className="text-[14px] font-bold text-[#111827] mb-3">Choose Size</h3>
+                  <h3 className="font-bold text-admin-text mb-2.5 font-outfit">Choose Serving Size</h3>
                   <div className="space-y-2">
                     {itemToCustomize.sizeVariations.map((size, idx) => (
-                      <label key={idx} className="flex items-center justify-between p-3 rounded-xl border border-[#e5e7eb] cursor-pointer hover:border-[#8b0000] transition-colors">
-                        <div className="flex items-center gap-3">
+                      <label key={idx} className="flex items-center justify-between p-3 rounded-xl border border-admin-border bg-admin-surface hover:border-primary transition-colors cursor-pointer">
+                        <div className="flex items-center gap-2.5">
                           <input 
                             type="radio" 
                             name="pos-size" 
                             checked={customSize?.name === size.name}
                             onChange={() => setCustomSize(size)}
-                            className="w-4 h-4 text-[#8b0000] focus:ring-[#8b0000]" 
+                            className="w-4 h-4 text-primary focus:ring-primary" 
                           />
-                          <span className="text-[14px] font-medium text-[#374151]">{size.name}</span>
+                          <span className="font-medium text-admin-text">{size.name}</span>
                         </div>
-                        <span className="text-[14px] font-bold text-[#111827]">${size.price.toFixed(2)}</span>
+                        <span className="font-bold text-admin-text font-outfit">${size.price.toFixed(2)}</span>
                       </label>
                     ))}
                   </div>
@@ -1419,22 +1445,22 @@ function POSContent() {
               {/* Add-ons */}
               {itemToCustomize.addOns?.length > 0 && (
                 <div>
-                  <h3 className="text-[14px] font-bold text-[#111827] mb-3">Add Extras</h3>
+                  <h3 className="font-bold text-admin-text mb-2.5 font-outfit">Add Extra Toppings & Sides</h3>
                   <div className="space-y-2">
                     {itemToCustomize.addOns.map((addon, idx) => {
                       const isChecked = customAddOns.some(a => a.name === addon.name);
                       return (
-                        <label key={idx} className="flex items-center justify-between p-3 rounded-xl border border-[#e5e7eb] cursor-pointer hover:border-[#8b0000] transition-colors">
-                          <div className="flex items-center gap-3">
+                        <label key={idx} className="flex items-center justify-between p-3 rounded-xl border border-admin-border bg-admin-surface hover:border-primary transition-colors cursor-pointer">
+                          <div className="flex items-center gap-2.5">
                             <input 
                               type="checkbox" 
                               checked={isChecked}
                               onChange={() => handleCustomAddOnChange(addon)}
-                              className="w-4 h-4 text-[#8b0000] focus:ring-[#8b0000] rounded" 
+                              className="w-4 h-4 text-primary focus:ring-primary rounded" 
                             />
-                            <span className="text-[14px] font-medium text-[#374151]">{addon.name}</span>
+                            <span className="font-medium text-admin-text">{addon.name}</span>
                           </div>
-                          <span className="text-[14px] font-bold text-[#111827]">+${addon.price.toFixed(2)}</span>
+                          <span className="font-bold text-admin-text font-outfit">+${addon.price.toFixed(2)}</span>
                         </label>
                       );
                     })}
@@ -1444,26 +1470,26 @@ function POSContent() {
 
               {/* Special Instructions */}
               <div>
-                <h3 className="text-[14px] font-bold text-[#111827] mb-3">Special Instructions</h3>
+                <h3 className="font-bold text-admin-text mb-1.5 font-outfit">Kitchen Preparation Notes</h3>
                 <textarea 
                   value={customInstructions}
                   onChange={(e) => setCustomInstructions(e.target.value)}
-                  placeholder="e.g. Extra spicy, no onions..."
-                  className="w-full p-3 rounded-xl border border-[#e5e7eb] bg-white text-[#111827] placeholder:text-[#9ca3af] text-[14px] focus:outline-none focus:border-[#8b0000] resize-none h-24"
+                  placeholder="e.g. Extra cardamom, less sweet, pack spoon..."
+                  className="w-full p-3 rounded-xl border border-admin-border bg-admin-surface text-admin-text placeholder:text-admin-muted text-xs focus:outline-none focus:border-primary resize-none h-20 leading-relaxed"
                 />
               </div>
             </div>
 
-            <div className="p-4 border-t border-[#e5e7eb] bg-[#f9fafb]">
-              <Button 
-                className="w-full py-4 bg-[#8b0000] text-white hover:bg-[#7a0b10] shadow-md font-bold text-[16px]"
+            <div className="p-4 border-t border-admin-border bg-admin-surface-2/60">
+              <button 
+                className="w-full py-3 bg-gradient-to-r from-primary to-primary-hover text-white rounded-xl shadow-md font-bold text-xs font-outfit hover:shadow-lg transition-all"
                 onClick={handleAddCustomizedItem}
               >
-                Add to Ticket - ${(
+                Add to Ticket — ${(
                   (customSize ? customSize.price : itemToCustomize.price) + 
                   customAddOns.reduce((sum, a) => sum + (a.price || 0), 0)
                 ).toFixed(2)}
-              </Button>
+              </button>
             </div>
           </div>
         </div>

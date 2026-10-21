@@ -6,6 +6,7 @@ import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
 import 'package:single_restaurant_mobile/providers/notification_provider.dart';
 import 'package:single_restaurant_mobile/screens/menu_screen.dart';
+import 'package:single_restaurant_mobile/screens/offers_screen.dart';
 import 'dart:convert';
 import 'package:single_restaurant_mobile/services/api_service.dart';
 import 'package:single_restaurant_mobile/theme/app_responsive.dart';
@@ -47,6 +48,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         context,
         MaterialPageRoute(
           builder: (context) => MenuScreen(initialCategoryId: categoryId),
+        ),
+      );
+    }
+  }
+
+  void _navigateToOffers() {
+    if (widget.onNavigateTab != null) {
+      widget.onNavigateTab!(2);
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OffersScreen(onBack: () => Navigator.pop(context)),
         ),
       );
     }
@@ -291,7 +305,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                       const SizedBox(height: 18),
                     ],
-                    HomePromoCardsCarousel(activeCoupon: _activeCoupon),
+                    HomePromoCardsCarousel(
+                      activeCoupon: _activeCoupon,
+                      onOffersTap: _navigateToOffers,
+                    ),
                     const SizedBox(height: 18),
                     const HomeDeliveryPartners(),
                     const SizedBox(height: 24),

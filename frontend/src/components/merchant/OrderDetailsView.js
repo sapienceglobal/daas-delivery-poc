@@ -326,30 +326,29 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   const getStatusBadge = (status) => {
     const s = (status || '').toLowerCase();
     const map = {
-      preparing:      ['#ea580c', '#ffedd5', 'Preparing'],
-      pending:        ['#dc2626', '#fef2f2', 'New'],
-      new:            ['#dc2626', '#fef2f2', 'New'],
-      out_for_delivery:['#16a34a','#dcfce7','Out for Delivery'],
-      accepted:       ['#2563eb', '#dbeafe', 'Accepted'],
-      ready:          ['#3b82f6', '#dbeafe', 'Ready'],
-      delivered:      ['#16a34a', '#dcfce7', 'Completed'],
-      picked_up:      ['#16a34a', '#dcfce7', 'Completed'],
-      completed:      ['#16a34a', '#dcfce7', 'Completed'],
-      cancelled:      ['#6b7280', '#f3f4f6', 'Cancelled'],
-      refunded:       ['#ef4444', '#fef2f2', 'Refunded'],
-      failed:         ['#991b1b', '#fee2e2', 'Failed'],
+      preparing:      ['#ea580c', 'rgba(234, 88, 12, 0.15)', 'Preparing'],
+      pending:        ['#dc2626', 'rgba(220, 38, 38, 0.15)', 'New'],
+      new:            ['#dc2626', 'rgba(220, 38, 38, 0.15)', 'New'],
+      out_for_delivery:['#16a34a','rgba(22, 163, 74, 0.15)','Out for Delivery'],
+      accepted:       ['#2563eb', 'rgba(37, 99, 235, 0.15)', 'Accepted'],
+      ready:          ['#3b82f6', 'rgba(59, 130, 246, 0.15)', 'Ready'],
+      delivered:      ['#16a34a', 'rgba(22, 163, 74, 0.15)', 'Completed'],
+      picked_up:      ['#16a34a', 'rgba(22, 163, 74, 0.15)', 'Completed'],
+      completed:      ['#16a34a', 'rgba(22, 163, 74, 0.15)', 'Completed'],
+      cancelled:      ['#94a3b8', 'rgba(148, 163, 184, 0.15)', 'Cancelled'],
+      refunded:       ['#ef4444', 'rgba(239, 68, 68, 0.15)', 'Refunded'],
+      failed:         ['#f87171', 'rgba(248, 113, 113, 0.15)', 'Failed'],
     };
-    const [color, bg, label] = map[s] || ['#6b7280', '#f3f4f6', status];
-    return <span style={{ color, background: bg }} className="font-bold text-xs px-2 py-1 rounded">{label}</span>;
+    const [color, bg, label] = map[s] || ['#94a3b8', 'rgba(148, 163, 184, 0.15)', status];
+    return <span style={{ color, background: bg }} className="font-bold text-xs px-2.5 py-1 rounded-lg border border-current/20 font-outfit">{label}</span>;
   };
 
   const getPaymentBadge = (status) => {
     const s = (status || '').toLowerCase();
-    if (s === 'paid')               return <span className="text-[#16a34a] font-bold text-xs bg-[#dcfce7] px-2 py-1 rounded">Paid</span>;
-    if (s === 'refunded')           return <span className="text-[#ef4444] font-bold text-xs bg-[#fef2f2] px-2 py-1 rounded">Refunded</span>;
-    if (s === 'partially_refunded') return <span className="text-[#d97706] font-bold text-xs bg-[#fffbeb] px-2 py-1 rounded">Partial Refund</span>;
-    if (s === 'failed')             return <span className="text-[#dc2626] font-bold text-xs bg-[#fee2e2] px-2 py-1 rounded">Failed</span>;
-    return <span className="text-[#ea580c] font-bold text-xs bg-[#ffedd5] px-2 py-1 rounded capitalize">{status || 'Pending'}</span>;
+    if (s === 'paid')               return <span className="text-emerald-500 font-bold text-xs bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg font-outfit">Paid</span>;
+    if (s === 'refunded')           return <span className="text-rose-500 font-bold text-xs bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-lg font-outfit">Refunded</span>;
+    if (s === 'failed')             return <span className="text-rose-500 font-bold text-xs bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-lg font-outfit">Failed</span>;
+    return <span className="text-admin-text-secondary font-bold text-xs bg-admin-card border border-admin-border px-2.5 py-1 rounded-lg capitalize font-outfit">{status || 'Pending'}</span>;
   };
 
   // ─── Timeline ─────────────────────────────────────────────────────────────
@@ -428,77 +427,77 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-gray-100 text-[#6b7280] transition-colors">
+            <button onClick={onBack} className="p-2 rounded-xl hover:bg-admin-card border border-admin-border text-admin-text-secondary hover:text-admin-text transition-all">
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <h1 className="text-[28px] font-black text-[#111827]">#{order.orderNumber || order._id?.toString().slice(-6) || 'N/A'}</h1>
+            <h1 className="text-2xl sm:text-3xl font-black text-admin-text font-outfit">#{order.orderNumber || order._id?.toString().slice(-6) || 'N/A'}</h1>
             {getStatusBadge(order.status)}
           </div>
-          <div className="flex items-center gap-4 text-xs font-bold text-[#6b7280] ml-10">
+          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-admin-text-secondary ml-11">
             <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {formatDate(order.createdAt, restaurant?.dateFormat, restaurant?.timezone)}</span>
             <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {formatTime(order.createdAt, restaurant?.timeFormat, restaurant?.timezone)}</span>
-            <span className="flex items-center gap-1.5 capitalize text-[#111827] bg-[#f3f4f6] px-2 py-0.5 rounded-full">{order.orderType?.replace(/_/g, ' ') || 'Delivery'}</span>
+            <span className="flex items-center gap-1.5 capitalize text-admin-text bg-admin-card border border-admin-border px-2.5 py-0.5 rounded-lg">{order.orderType?.replace(/_/g, ' ') || 'Delivery'}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button onClick={handlePrintKOT} className="flex items-center gap-1.5 text-[#374151] font-bold text-xs border border-[#e5e7eb] bg-white px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-            <Printer className="w-3.5 h-3.5 text-[#6b7280]" /> KOT
+          <button onClick={handlePrintKOT} className="flex items-center gap-1.5 text-admin-text font-bold text-xs border border-admin-border bg-admin-card px-3.5 py-2.5 rounded-xl hover:bg-admin-surface-hover transition-all shadow-sm">
+            <Printer className="w-3.5 h-3.5 text-admin-text-secondary" /> KOT
           </button>
-          <button onClick={handlePrintInvoice} className="flex items-center gap-1.5 text-[#374151] font-bold text-xs border border-[#e5e7eb] bg-white px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-            <FileText className="w-3.5 h-3.5 text-[#6b7280]" /> Invoice
+          <button onClick={handlePrintInvoice} className="flex items-center gap-1.5 text-admin-text font-bold text-xs border border-admin-border bg-admin-card px-3.5 py-2.5 rounded-xl hover:bg-admin-surface-hover transition-all shadow-sm">
+            <FileText className="w-3.5 h-3.5 text-admin-text-secondary" /> Invoice
           </button>
         </div>
       </div>
 
       {/* ── Auto-Refund / Failed Alerts ─────────────────────────────────────── */}
       {oStatus === 'failed' && !hasAutoRefund && (
-        <div className="bg-[#fef2f2] border border-[#fecaca] rounded-xl p-4 flex items-start gap-3 shadow-sm">
-          <div className="w-9 h-9 rounded-full bg-[#fee2e2] flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-5 h-5 text-[#dc2626]" />
+        <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+          <div className="w-9 h-9 rounded-xl bg-rose-500/20 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5 text-rose-500" />
           </div>
           <div>
-            <p className="text-sm font-bold text-[#991b1b]">Order Failed — Payment may need manual review</p>
-            <p className="text-xs text-[#dc2626] mt-1">Check the Order Journey below for details.</p>
+            <p className="text-sm font-bold text-rose-500">Order Failed — Payment may need manual review</p>
+            <p className="text-xs text-rose-400 mt-1">Check the Order Journey below for details.</p>
           </div>
         </div>
       )}
       
       {hasAutoRefund && (
-        <div className={`border rounded-xl p-4 flex items-start gap-3 shadow-sm ${
-          autoRefundFailed ? 'bg-[#fef2f2] border-[#fecaca]' : 
-          autoRefundSkipped ? 'bg-[#f8fafc] border-[#cbd5e1]' :
-          autoRefundSucceeded ? 'bg-[#fffbeb] border-[#fde68a]' : 'bg-[#eff6ff] border-[#bfdbfe]'
+        <div className={`border rounded-2xl p-4 flex items-start gap-3 shadow-sm ${
+          autoRefundFailed ? 'bg-rose-500/10 border-rose-500/20' : 
+          autoRefundSkipped ? 'bg-admin-card border-admin-border' :
+          autoRefundSucceeded ? 'bg-amber-500/10 border-amber-500/20' : 'bg-blue-500/10 border-blue-500/20'
         }`}>
-          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-            autoRefundFailed ? 'bg-[#fee2e2]' : 
-            autoRefundSkipped ? 'bg-[#e2e8f0]' :
-            autoRefundSucceeded ? 'bg-[#fef3c7]' : 'bg-[#dbeafe]'
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+            autoRefundFailed ? 'bg-rose-500/20 text-rose-500' : 
+            autoRefundSkipped ? 'bg-admin-surface text-admin-text-secondary' :
+            autoRefundSucceeded ? 'bg-amber-500/20 text-amber-500' : 'bg-blue-500/20 text-blue-500'
           }`}>
-            {autoRefundFailed ? <ShieldAlert className="w-5 h-5 text-[#dc2626]" /> : 
-             autoRefundSkipped ? <Settings className="w-5 h-5 text-[#475569]" /> :
-             autoRefundSucceeded ? <Zap className="w-5 h-5 text-[#d97706]" /> : <Info className="w-5 h-5 text-[#2563eb]" />}
+            {autoRefundFailed ? <ShieldAlert className="w-5 h-5" /> : 
+             autoRefundSkipped ? <Settings className="w-5 h-5" /> :
+             autoRefundSucceeded ? <Zap className="w-5 h-5" /> : <Info className="w-5 h-5" />}
           </div>
           <div>
             <p className={`text-sm font-bold ${
-              autoRefundFailed ? 'text-[#991b1b]' : 
-              autoRefundSkipped ? 'text-[#334155]' :
-              autoRefundSucceeded ? 'text-[#92400e]' : 'text-[#1e40af]'
+              autoRefundFailed ? 'text-rose-500' : 
+              autoRefundSkipped ? 'text-admin-text' :
+              autoRefundSucceeded ? 'text-amber-500' : 'text-blue-500'
             }`}>
               {autoRefundFailed ? '⚠️ Auto-Refund Failed — Manual action required' : 
                autoRefundSkipped ? 'Auto-Refund Disabled in Settings' :
                autoRefundSucceeded ? `⚡ Auto-Refund Processed — ${formatCurrency(order.refundAmount || order.total, currency)} was automatically returned to customer's card` : '🔄 Auto-Refund Initiated — Processing...'}
             </p>
             {order.refundReason && !autoRefundSkipped && (
-              <p className={`text-xs mt-1 ${autoRefundFailed ? 'text-[#dc2626]' : autoRefundSucceeded ? 'text-[#b45309]' : 'text-[#3b82f6]'}`}>
+              <p className={`text-xs mt-1 ${autoRefundFailed ? 'text-rose-400' : autoRefundSucceeded ? 'text-amber-400' : 'text-blue-400'}`}>
                 Reason: <span className="font-semibold">{order.refundReason.replace(/_/g, ' ')}</span>
               </p>
             )}
             {autoRefundFailed && (
-              <p className="text-xs text-[#dc2626] mt-1 font-medium">Contact Stripe dashboard or initiate a manual refund below.</p>
+              <p className="text-xs text-rose-400 mt-1 font-medium">Contact Stripe dashboard or initiate a manual refund below.</p>
             )}
             {autoRefundSkipped && (
-              <p className="text-xs text-[#475569] mt-1 font-medium">You have turned off automatic refunds. Please initiate a manual refund below if required.</p>
+              <p className="text-xs text-admin-text-secondary mt-1 font-medium">You have turned off automatic refunds. Please initiate a manual refund below if required.</p>
             )}
           </div>
         </div>
@@ -511,43 +510,43 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
         <div className="lg:col-span-2 flex flex-col gap-6">
           
           {/* Customer & Delivery Card */}
-          <div className="bg-white border border-[#e5e7eb] rounded-[16px] shadow-sm overflow-hidden flex flex-col md:flex-row">
-            <div className="p-5 border-b md:border-b-0 md:border-r border-[#f3f4f6] flex-1 bg-[#fcfaf5]">
-              <h3 className="text-[11px] font-black text-[#8b0000] uppercase tracking-wider mb-4">Customer Details</h3>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-[#ebdcc1] flex items-center justify-center text-[16px] font-black text-[#8b0000]">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-sm overflow-hidden flex flex-col md:flex-row">
+            <div className="p-6 border-b md:border-b-0 md:border-r border-admin-border flex-1 bg-admin-card/30">
+              <h3 className="text-[11px] font-black text-brand uppercase tracking-wider mb-4 font-outfit">Customer Details</h3>
+              <div className="flex items-center gap-3.5 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center text-[16px] font-black text-brand font-outfit">
                   {(order.customerName || 'G')[0].toUpperCase()}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-[16px] font-black text-[#111827]">{order.customerName || 'Guest Customer'}</p>
+                    <p className="text-[16px] font-black text-admin-text font-outfit">{order.customerName || 'Guest Customer'}</p>
                   </div>
-                  <p className="text-[13px] font-bold text-[#6b7280] mb-1">{order.customerPhone || 'No Phone Number'}</p>
+                  <p className="text-[13px] font-semibold text-admin-text-secondary mb-1">{order.customerPhone || 'No Phone Number'}</p>
                   
                   {/* Explicit Platform Indicator */}
                   <div className="flex items-center gap-1.5 mt-1.5">
-                    <span className="text-[10px] font-bold text-[#8b0000] uppercase tracking-wider">Source:</span>
-                    <span className="text-[12px] font-bold text-[#111827] flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-[#e5e7eb] shadow-sm">
+                    <span className="text-[10px] font-bold text-brand uppercase tracking-wider">Source:</span>
+                    <span className="text-[12px] font-bold text-admin-text flex items-center gap-1 bg-admin-card px-2.5 py-0.5 rounded-lg border border-admin-border shadow-sm">
                       {order.orderSource === 'app' ? (
-                        <><Smartphone className="w-3.5 h-3.5 text-green-600" /> Mobile App</>
+                        <><Smartphone className="w-3.5 h-3.5 text-emerald-500" /> Mobile App</>
                       ) : (
-                        <><Globe className="w-3.5 h-3.5 text-blue-600" /> Website</>
+                        <><Globe className="w-3.5 h-3.5 text-blue-500" /> Website</>
                       )}
                     </span>
                   </div>
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div title={!order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com' ? 'Email not provided' : ''} className={`flex items-center gap-2 ${(!order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com') ? 'opacity-50' : ''}`}>
-                  <Mail className="w-4 h-4 text-[#9ca3af]" /> 
-                  <span className="text-[13px] font-bold text-[#374151]">
+                  <Mail className="w-4 h-4 text-admin-text-secondary/70" /> 
+                  <span className="text-[13px] font-medium text-admin-text">
                     {order.customerEmail === 'admin@lassiloungeny.com' ? 'No Email' : (order.customerEmail || 'No Email')}
                   </span>
                 </div>
                 <div className="flex gap-2 mt-4">
                   <a href={order.customerPhone && order.customerPhone !== '0000000000' ? `tel:${order.customerPhone}` : '#'} 
                      title={(!order.customerPhone || order.customerPhone === '0000000000') ? 'Number not provided' : 'Call Customer'}
-                     className={`flex-1 bg-white border border-[#e5e7eb] py-2 rounded-lg text-center text-xs font-bold flex justify-center items-center gap-1.5 shadow-sm transition-colors ${(!order.customerPhone || order.customerPhone === '0000000000') ? 'opacity-50 cursor-not-allowed text-[#9ca3af]' : 'text-[#111827] hover:bg-gray-50'}`}>
+                     className={`flex-1 bg-admin-card border border-admin-border py-2.5 rounded-xl text-center text-xs font-bold flex justify-center items-center gap-1.5 shadow-sm transition-all ${(!order.customerPhone || order.customerPhone === '0000000000') ? 'opacity-50 cursor-not-allowed text-admin-text-secondary' : 'text-admin-text hover:bg-admin-surface-hover'}`}>
                     <Phone className="w-3.5 h-3.5" /> Call
                   </a>
                 </div>
@@ -557,32 +556,32 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                   (order.userId.name && order.userId.name !== order.customerName) ||
                   (order.userId.email && order.userId.email !== order.customerEmail)
                 ) && (
-                  <div className="mt-4 pt-3 border-t border-dashed border-[#e5e7eb]">
-                    <p className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider mb-1.5">Account Owner</p>
-                    <p className="text-[13px] font-bold text-[#111827]">{order.userId.name}</p>
-                    <p className="text-[12px] font-medium text-[#6b7280]">{order.userId.email}</p>
+                  <div className="mt-4 pt-3 border-t border-dashed border-admin-border">
+                    <p className="text-[10px] font-bold text-admin-text-secondary uppercase tracking-wider mb-1.5">Account Owner</p>
+                    <p className="text-[13px] font-bold text-admin-text">{order.userId.name}</p>
+                    <p className="text-[12px] font-medium text-admin-text-secondary">{order.userId.email}</p>
                     {order.userId.phone && order.userId.phone !== '0000000000' && (
-                      <p className="text-[12px] font-medium text-[#6b7280]">{order.userId.phone}</p>
+                      <p className="text-[12px] font-medium text-admin-text-secondary">{order.userId.phone}</p>
                     )}
                   </div>
                 )}
               </div>
             </div>
-            <div className="p-5 flex-1 flex flex-col justify-between">
+            <div className="p-6 flex-1 flex flex-col justify-between bg-admin-surface">
               <div>
-                <h3 className="text-[11px] font-black text-[#8b0000] uppercase tracking-wider mb-4">Fulfillment Details</h3>
+                <h3 className="text-[11px] font-black text-brand uppercase tracking-wider mb-4 font-outfit">Fulfillment Details</h3>
                 {order.orderType === 'dine_in' && order.tableNumber ? (
-                  <p className="text-sm font-bold text-[#111827] flex items-center gap-2"><MapPin className="w-4 h-4 text-[#6b7280]" /> Table {order.tableNumber}</p>
+                  <p className="text-sm font-bold text-admin-text flex items-center gap-2"><MapPin className="w-4 h-4 text-admin-text-secondary" /> Table {order.tableNumber}</p>
                 ) : (
-                  <p className="text-[13px] font-bold text-[#374151] flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-[#9ca3af] shrink-0 mt-0.5" />
-                    <span className="leading-tight">{order.address || 'Pickup (No Address Provided)'}</span>
+                  <p className="text-[13px] font-semibold text-admin-text flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-admin-text-secondary shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">{order.address || 'Pickup (No Address Provided)'}</span>
                   </p>
                 )}
                 {order.specialInstructions && (
-                  <div className="mt-4 bg-[#fffbeb] border border-[#fde68a] p-3 rounded-lg">
-                    <p className="text-[10px] font-bold text-[#b45309] uppercase tracking-wider mb-1">Customer Notes</p>
-                    <p className="text-xs text-[#92400e] font-medium leading-relaxed">{order.specialInstructions}</p>
+                  <div className="mt-4 bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-xl">
+                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mb-1">Customer Notes</p>
+                    <p className="text-xs text-amber-400 font-medium leading-relaxed">{order.specialInstructions}</p>
                   </div>
                 )}
               </div>
@@ -591,13 +590,13 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
 
           {/* Logistics & Tracking Card */}
           {order.orderType === 'delivery' && (
-            <div className="bg-white border border-[#e5e7eb] rounded-[16px] shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-[#f3f4f6] flex justify-between items-center bg-[#fcfaf5]">
-                <h3 className="text-[11px] font-black text-[#8b0000] uppercase tracking-wider flex items-center gap-2">
+            <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-admin-border flex justify-between items-center bg-admin-card/30">
+                <h3 className="text-[11px] font-black text-brand uppercase tracking-wider flex items-center gap-2 font-outfit">
                   <Truck className="w-4 h-4" /> Delivery & Tracking Details
                 </h3>
                 {(order.thirdPartyTrackingUrl || order.trackingUrl) && (
-                  <a href={order.thirdPartyTrackingUrl || order.trackingUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-white bg-[#8b0000] hover:bg-[#6b0000] px-3 py-1.5 rounded-lg transition-colors shadow-sm">
+                  <a href={order.thirdPartyTrackingUrl || order.trackingUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-white bg-brand hover:opacity-90 px-3.5 py-1.5 rounded-xl transition-all shadow-sm">
                     <ExternalLink className="w-3.5 h-3.5" /> Track Order
                   </a>
                 )}
@@ -607,27 +606,27 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 {/* Left Column: Timing */}
                 <div className="space-y-3.5">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-[#6b7280]">Placement Time</span>
-                    <span className="text-xs font-bold text-[#111827] text-right">{formatDate(order.createdAt, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-[#6b7280]">{formatTime(order.createdAt, restaurant?.timeFormat, restaurant?.timezone)}</span></span>
+                    <span className="text-xs font-semibold text-admin-text-secondary">Placement Time</span>
+                    <span className="text-xs font-bold text-admin-text text-right">{formatDate(order.createdAt, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-admin-text-secondary font-medium">{formatTime(order.createdAt, restaurant?.timeFormat, restaurant?.timezone)}</span></span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-[#6b7280]">Accepted Time</span>
-                    <span className="text-xs font-bold text-[#111827] text-right">
+                    <span className="text-xs font-semibold text-admin-text-secondary">Accepted Time</span>
+                    <span className="text-xs font-bold text-admin-text text-right">
                       {order.statusUpdates?.find(u => u.status === 'accepted')?.timestamp 
-                        ? <>{formatDate(order.statusUpdates.find(u => u.status === 'accepted').timestamp, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-[#6b7280]">{formatTime(order.statusUpdates.find(u => u.status === 'accepted').timestamp, restaurant?.timeFormat, restaurant?.timezone)}</span></> 
+                        ? <>{formatDate(order.statusUpdates.find(u => u.status === 'accepted').timestamp, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-admin-text-secondary font-medium">{formatTime(order.statusUpdates.find(u => u.status === 'accepted').timestamp, restaurant?.timeFormat, restaurant?.timezone)}</span></> 
                         : 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-[#6b7280]">Pickup Time</span>
-                    <span className="text-xs font-bold text-[#111827] text-right">
-                      {order.pickupTime ? <>{formatDate(order.pickupTime, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-[#6b7280]">{formatTime(order.pickupTime, restaurant?.timeFormat, restaurant?.timezone)}</span></> : 'N/A'}
+                    <span className="text-xs font-semibold text-admin-text-secondary">Pickup Time</span>
+                    <span className="text-xs font-bold text-admin-text text-right">
+                      {order.pickupTime ? <>{formatDate(order.pickupTime, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-admin-text-secondary font-medium">{formatTime(order.pickupTime, restaurant?.timeFormat, restaurant?.timezone)}</span></> : 'N/A'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-[#6b7280]">Delivery Time</span>
-                    <span className="text-xs font-bold text-[#111827] text-right">
-                      {order.deliveryTime ? <>{formatDate(order.deliveryTime, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-[#6b7280]">{formatTime(order.deliveryTime, restaurant?.timeFormat, restaurant?.timezone)}</span></> : 'N/A'}
+                    <span className="text-xs font-semibold text-admin-text-secondary">Delivery Time</span>
+                    <span className="text-xs font-bold text-admin-text text-right">
+                      {order.deliveryTime ? <>{formatDate(order.deliveryTime, restaurant?.dateFormat, restaurant?.timezone)}<br/><span className="text-admin-text-secondary font-medium">{formatTime(order.deliveryTime, restaurant?.timeFormat, restaurant?.timezone)}</span></> : 'N/A'}
                     </span>
                   </div>
                 </div>
@@ -635,30 +634,30 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 {/* Right Column: Driver Details */}
                 <div className="space-y-3.5">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-[#6b7280]">Delivery Provider</span>
-                    <span className="text-[13px] font-black text-[#111827] capitalize">{order.deliveryProvider === 'shipday' ? 'In-House' : order.deliveryProvider || 'N/A'}</span>
+                    <span className="text-xs font-semibold text-admin-text-secondary">Delivery Provider</span>
+                    <span className="text-[13px] font-black text-admin-text capitalize font-outfit">{order.deliveryProvider === 'shipday' ? 'In-House' : order.deliveryProvider || 'N/A'}</span>
                   </div>
                   {order.deliveryId && (
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-[#6b7280]">Shipday Order ID</span>
-                      <span className="text-xs font-bold text-[#111827]">{order.deliveryId}</span>
+                      <span className="text-xs font-semibold text-admin-text-secondary">Shipday Order ID</span>
+                      <span className="text-xs font-bold text-admin-text font-mono">{order.deliveryId}</span>
                     </div>
                   )}
                   {order.thirdPartyDeliveryName && (
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-[#6b7280]">3rd Party Partner</span>
-                      <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md border border-orange-200">{order.thirdPartyDeliveryName}</span>
+                      <span className="text-xs font-semibold text-admin-text-secondary">3rd Party Partner</span>
+                      <span className="text-xs font-bold text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded-lg border border-amber-500/20">{order.thirdPartyDeliveryName}</span>
                     </div>
                   )}
                   {order.dispatchStatus && order.dispatchStatus !== 'not_applicable' && (
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-[#6b7280]">Rider Dispatch</span>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${
-                        order.dispatchStatus === 'scheduled' ? 'text-amber-800 bg-amber-50 border-amber-200' :
-                        order.dispatchStatus === 'dispatching' ? 'text-blue-800 bg-blue-50 border-blue-200' :
-                        order.dispatchStatus === 'dispatched' ? 'text-emerald-800 bg-emerald-50 border-emerald-200' :
-                        order.dispatchStatus === 'failed' ? 'text-rose-800 bg-rose-50 border-rose-200' :
-                        'text-gray-700 bg-gray-50 border-gray-200'
+                      <span className="text-xs font-semibold text-admin-text-secondary">Rider Dispatch</span>
+                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-lg border ${
+                        order.dispatchStatus === 'scheduled' ? 'text-amber-500 bg-amber-500/10 border-amber-500/20' :
+                        order.dispatchStatus === 'dispatching' ? 'text-blue-500 bg-blue-500/10 border-blue-500/20' :
+                        order.dispatchStatus === 'dispatched' ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' :
+                        order.dispatchStatus === 'failed' ? 'text-rose-500 bg-rose-500/10 border-rose-500/20' :
+                        'text-admin-text bg-admin-card border-admin-border'
                       }`}>
                         {order.dispatchStatus === 'scheduled' ? `Scheduled${order.dispatchAt ? ` (${new Date(order.dispatchAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : ''}` :
                          order.dispatchStatus === 'dispatching' ? 'Requesting rider...' :
@@ -668,8 +667,8 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                       </span>
                     </div>
                   )}
-                  <div className="flex justify-between items-center mt-2 pt-3 border-t border-dashed border-[#e5e7eb]">
-                    <span className="text-xs font-bold text-[#6b7280]">Assigned Rider</span>
+                  <div className="flex justify-between items-center mt-2 pt-3 border-t border-dashed border-admin-border">
+                    <span className="text-xs font-semibold text-admin-text-secondary">Assigned Rider</span>
                     <div className="flex items-center gap-2">
                       {order.courierImageUrl ? (
                         <img 
@@ -680,25 +679,25 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                             e.target.onerror = null;
                             e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(order.courierName || 'Driver') + '&background=e5e7eb&color=374151';
                           }}
-                          className="w-6 h-6 rounded-full object-cover border border-[#e5e7eb] cursor-pointer hover:opacity-80 transition-opacity" 
+                          className="w-6 h-6 rounded-full object-cover border border-admin-border cursor-pointer hover:opacity-80 transition-opacity" 
                         />
                       ) : order.courierName ? (
-                        <span className="text-[10px] text-[#9ca3af] italic">No photo</span>
+                        <span className="text-[10px] text-admin-text-secondary italic">No photo</span>
                       ) : null}
-                      <span className="text-[13px] font-black text-[#111827]">{order.courierName || 'Pending'}</span>
+                      <span className="text-[13px] font-black text-admin-text font-outfit">{order.courierName || 'Pending'}</span>
                     </div>
                   </div>
                   {order.courierName ? (
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-[#6b7280]">Vehicle</span>
+                      <span className="text-xs font-semibold text-admin-text-secondary">Vehicle</span>
                       {order.courierVehicle || order.courierVehiclePlate ? (
-                        <span className="text-xs font-bold text-[#111827]">
+                        <span className="text-xs font-bold text-admin-text">
                           {order.courierVehiclePlate 
                             ? `${order.courierVehicle || 'Vehicle'} | Plate: ${order.courierVehiclePlate}` 
                             : order.courierVehicle}
                         </span>
                       ) : (
-                        <span className="text-[11px] text-[#9ca3af] italic">Not provided by carrier</span>
+                        <span className="text-[11px] text-admin-text-secondary italic">Not provided by carrier</span>
                       )}
                     </div>
                   ) : null}
@@ -706,46 +705,46 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                     <>
                       {order.courierPhoneForCustomer && (
                         <div className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-[#6b7280]">Rider Phone (Customer)</span>
+                          <span className="text-xs font-semibold text-admin-text-secondary">Rider Phone (Customer)</span>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-[#111827]">{order.courierPhoneForCustomer}</span>
-                            <a href={`tel:${order.courierPhoneForCustomer}`} className="w-7 h-7 rounded-full bg-[#f3f4f6] flex items-center justify-center text-[#374151] hover:bg-[#e5e7eb] border border-[#e5e7eb] transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
+                            <span className="text-xs font-bold text-admin-text">{order.courierPhoneForCustomer}</span>
+                            <a href={`tel:${order.courierPhoneForCustomer}`} className="w-7 h-7 rounded-full bg-admin-card flex items-center justify-center text-admin-text hover:bg-admin-surface-hover border border-admin-border transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
                           </div>
                         </div>
                       )}
                       {order.courierPhoneForRestaurant && (
                         <div className="flex justify-between items-center mt-1">
-                          <span className="text-xs font-bold text-[#6b7280]">Rider Phone (Restaurant)</span>
+                          <span className="text-xs font-semibold text-admin-text-secondary">Rider Phone (Restaurant)</span>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-[#111827]">{order.courierPhoneForRestaurant}</span>
-                            <a href={`tel:${order.courierPhoneForRestaurant}`} className="w-7 h-7 rounded-full bg-[#f3f4f6] flex items-center justify-center text-[#374151] hover:bg-[#e5e7eb] border border-[#e5e7eb] transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
+                            <span className="text-xs font-bold text-admin-text">{order.courierPhoneForRestaurant}</span>
+                            <a href={`tel:${order.courierPhoneForRestaurant}`} className="w-7 h-7 rounded-full bg-admin-card flex items-center justify-center text-admin-text hover:bg-admin-surface-hover border border-admin-border transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
                           </div>
                         </div>
                       )}
                     </>
                   ) : (
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-[#6b7280]">Rider Phone</span>
+                      <span className="text-xs font-semibold text-admin-text-secondary">Rider Phone</span>
                       {order.courierPhone ? (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-[#111827]">{order.courierPhone}</span>
-                          <a href={`tel:${order.courierPhone}`} className="w-7 h-7 rounded-full bg-[#f3f4f6] flex items-center justify-center text-[#374151] hover:bg-[#e5e7eb] border border-[#e5e7eb] transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
+                          <span className="text-xs font-bold text-admin-text">{order.courierPhone}</span>
+                          <a href={`tel:${order.courierPhone}`} className="w-7 h-7 rounded-full bg-admin-card flex items-center justify-center text-admin-text hover:bg-admin-surface-hover border border-admin-border transition-colors shadow-sm"><Phone className="w-3 h-3" /></a>
                         </div>
                       ) : (
-                        <span className="text-xs font-bold text-[#111827]">N/A</span>
+                        <span className="text-xs font-bold text-admin-text-secondary">N/A</span>
                       )}
                     </div>
                   )}
                 </div>
 
                 {order.rating && (
-                  <div className="col-span-1 md:col-span-2 mt-1 pt-4 border-t border-[#e5e7eb] flex items-center gap-4">
-                    <span className="text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">Customer Feedback</span>
+                  <div className="col-span-1 md:col-span-2 mt-1 pt-4 border-t border-admin-border flex items-center gap-4">
+                    <span className="text-[10px] font-bold text-admin-text-secondary uppercase tracking-wider font-outfit">Customer Feedback</span>
                     <div className="flex items-center gap-1">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`w-4 h-4 ${i < Math.floor(order.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`} />
+                        <Star key={i} className={`w-4 h-4 ${i < Math.floor(order.rating) ? 'text-amber-400 fill-amber-400' : 'text-admin-border'}`} />
                       ))}
-                      <span className="text-xs font-bold text-[#111827] ml-1">{order.rating.toFixed(1)}</span>
+                      <span className="text-xs font-bold text-admin-text ml-1">{order.rating.toFixed(1)}</span>
                     </div>
                   </div>
                 )}
@@ -754,48 +753,48 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
           )}
 
           {/* Order Items */}
-          <div className="bg-white border border-[#e5e7eb] rounded-[16px] shadow-sm flex flex-col overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#f3f4f6] flex justify-between items-center bg-[#f9fafb]">
-              <h3 className="text-[13px] font-black text-[#111827]">Order Items <span className="text-[#6b7280] font-normal">({totalItems})</span></h3>
+          <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-sm flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-admin-border flex justify-between items-center bg-admin-card/30">
+              <h3 className="text-[13px] font-black text-admin-text font-outfit">Order Items <span className="text-admin-text-secondary font-normal">({totalItems})</span></h3>
             </div>
-            <div className="overflow-x-auto flex-1">
+            <div className="overflow-x-auto flex-1 custom-scrollbar">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-[#f3f4f6]">
-                    <th className="px-5 py-3 text-[10px] font-bold text-[#6b7280] uppercase tracking-wider">Item</th>
-                    <th className="px-5 py-3 text-[10px] font-bold text-[#6b7280] uppercase tracking-wider text-right">Price</th>
-                    <th className="px-5 py-3 text-[10px] font-bold text-[#6b7280] uppercase tracking-wider text-center">Qty</th>
-                    <th className="px-5 py-3 text-[10px] font-bold text-[#6b7280] uppercase tracking-wider text-right">Total</th>
+                  <tr className="border-b border-admin-border bg-admin-card/10">
+                    <th className="px-6 py-3 text-[10px] font-bold text-admin-text-secondary uppercase tracking-wider font-outfit">Item</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-admin-text-secondary uppercase tracking-wider text-right font-outfit">Price</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-admin-text-secondary uppercase tracking-wider text-center font-outfit">Qty</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-admin-text-secondary uppercase tracking-wider text-right font-outfit">Total</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#f3f4f6]">
+                <tbody className="divide-y divide-admin-border">
                   {(order.items || []).map((item, idx) => (
-                    <tr key={idx} className="group hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-4">
+                    <tr key={idx} className="group hover:bg-admin-card/40 transition-colors">
+                      <td className="px-6 py-4">
                         <div className="flex items-start gap-3">
                           {item.image ? (
-                            <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover border border-[#e5e7eb] shadow-sm" />
+                            <img src={item.image} alt={item.name} className="w-10 h-10 rounded-xl object-cover border border-admin-border shadow-sm" />
                           ) : (
-                            <div className="w-10 h-10 rounded-lg bg-[#f3f4f6] flex items-center justify-center text-xs font-black text-[#9ca3af] shrink-0 border border-[#e5e7eb]">
+                            <div className="w-10 h-10 rounded-xl bg-admin-card flex items-center justify-center text-xs font-black text-admin-text-secondary shrink-0 border border-admin-border font-outfit">
                               {item.name?.substring(0, 2).toUpperCase()}
                             </div>
                           )}
                           <div>
-                            <p className="text-[14px] font-bold text-[#111827]">{item.name}</p>
+                            <p className="text-[14px] font-bold text-admin-text font-outfit">{item.name}</p>
                             {(item.selectedSize || (item.addOns && item.addOns.length > 0)) && (
-                              <p className="text-[12px] text-[#6b7280] mt-1 leading-tight max-w-[250px]">
+                              <p className="text-[12px] text-admin-text-secondary mt-1 leading-tight max-w-[250px]">
                                 {[item.selectedSize?.name, ...(item.addOns || []).map(a => a.name)].filter(Boolean).join(', ')}
                               </p>
                             )}
                             {item.specialInstructions && (
-                              <p className="text-[11px] text-[#d97706] mt-1 italic block">"{item.specialInstructions}"</p>
+                              <p className="text-[11px] text-amber-500 mt-1 italic block">"{item.specialInstructions}"</p>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-[13px] font-bold text-[#374151] text-right">{formatCurrency((item.lineTotal || (item.price * item.quantity)) / item.quantity, currency)}</td>
-                      <td className="px-5 py-4 text-[14px] font-black text-[#111827] text-center">{item.quantity}</td>
-                      <td className="px-5 py-4 text-[14px] font-black text-[#111827] text-right">{formatCurrency(item.lineTotal || (item.price * item.quantity), currency)}</td>
+                      <td className="px-6 py-4 text-[13px] font-semibold text-admin-text-secondary text-right">{formatCurrency((item.lineTotal || (item.price * item.quantity)) / item.quantity, currency)}</td>
+                      <td className="px-6 py-4 text-[14px] font-black text-admin-text text-center font-outfit">{item.quantity}</td>
+                      <td className="px-6 py-4 text-[14px] font-black text-admin-text text-right font-outfit">{formatCurrency(item.lineTotal || (item.price * item.quantity), currency)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -803,55 +802,55 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
             </div>
             
             {/* Financial Summary */}
-            <div className="bg-[#fcfaf5] p-5 border-t border-[#e5e7eb] flex justify-end">
+            <div className="bg-admin-card/30 p-6 border-t border-admin-border flex justify-end">
               <div className="w-full sm:w-[320px] space-y-2">
                 <div className="flex justify-between items-center text-[13px]">
-                  <span className="font-bold text-[#6b7280]">Subtotal</span>
-                  <span className="font-bold text-[#111827]">{formatCurrency(order.subtotal, currency)}</span>
+                  <span className="font-semibold text-admin-text-secondary">Subtotal</span>
+                  <span className="font-bold text-admin-text">{formatCurrency(order.subtotal, currency)}</span>
                 </div>
                 {(order.tax || 0) > 0 && (
                   <div className="flex justify-between items-center text-[13px]">
-                    <span className="font-bold text-[#6b7280]">{restaurant?.taxType || 'Tax'}</span>
-                    <span className="font-bold text-[#111827]">{formatCurrency(order.tax, currency)}</span>
+                    <span className="font-semibold text-admin-text-secondary">{restaurant?.taxType || 'Tax'}</span>
+                    <span className="font-bold text-admin-text">{formatCurrency(order.tax, currency)}</span>
                   </div>
                 )}
                 {(order.deliveryFee || 0) > 0 && (
                   <div className="flex justify-between items-center text-[13px]">
-                    <span className="font-bold text-[#6b7280]">Delivery Fee</span>
-                    <span className="font-bold text-[#111827]">{formatCurrency(order.deliveryFee, currency)}</span>
+                    <span className="font-semibold text-admin-text-secondary">Delivery Fee</span>
+                    <span className="font-bold text-admin-text">{formatCurrency(order.deliveryFee, currency)}</span>
                   </div>
                 )}
                 {(order.tip || 0) > 0 && (
                   <div className="flex justify-between items-center text-[13px]">
-                    <span className="font-bold text-[#6b7280]">Tip</span>
-                    <span className="font-bold text-[#111827]">{formatCurrency(order.tip, currency)}</span>
+                    <span className="font-semibold text-admin-text-secondary">Tip</span>
+                    <span className="font-bold text-admin-text">{formatCurrency(order.tip, currency)}</span>
                   </div>
                 )}
                 {(order.discount || 0) > 0 && (
                   <div className="flex justify-between items-center text-[13px]">
-                    <span className="font-bold text-[#16a34a]">Discount</span>
-                    <span className="font-bold text-[#16a34a]">-{formatCurrency(order.discount, currency)}</span>
+                    <span className="font-semibold text-emerald-500">Discount</span>
+                    <span className="font-bold text-emerald-500">-{formatCurrency(order.discount, currency)}</span>
                   </div>
                 )}
                 {(order.refundAmount || 0) > 0 && (
                   <div className="flex justify-between items-center text-[13px]">
-                    <span className="font-bold text-[#dc2626]">Refunded</span>
-                    <span className="font-bold text-[#dc2626]">{formatCurrency(order.refundAmount, currency)}</span>
+                    <span className="font-semibold text-rose-500">Refunded</span>
+                    <span className="font-bold text-rose-500">{formatCurrency(order.refundAmount, currency)}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center text-[16px] pt-3 mt-3 border-t border-[#e5e7eb]">
-                  <span className="font-black text-[#111827]">Total</span>
-                  <span className="font-black text-[#8b0000]">{formatCurrency(order.total, currency)}</span>
+                <div className="flex justify-between items-center text-[17px] pt-3.5 mt-3 border-t border-admin-border font-outfit">
+                  <span className="font-black text-admin-text">Total</span>
+                  <span className="font-black text-brand">{formatCurrency(order.total, currency)}</span>
                 </div>
                 
                 {/* Payment Badge Footer */}
-                <div className="flex justify-between items-center pt-3 mt-3 border-t border-dashed border-[#e5e7eb]">
-                  <span className="text-[11px] font-bold text-[#6b7280] uppercase">Payment Status</span>
+                <div className="flex justify-between items-center pt-3 mt-3 border-t border-dashed border-admin-border">
+                  <span className="text-[11px] font-bold text-admin-text-secondary uppercase font-outfit">Payment Status</span>
                   {getPaymentBadge(order.paymentStatus)}
                 </div>
                 <div className="flex justify-between items-center mt-1">
-                  <span className="text-[11px] font-bold text-[#6b7280] uppercase">Method</span>
-                  <span className="text-[11px] font-bold text-[#374151] uppercase">{order.paymentMethod?.replace(/_/g, ' ') || 'Cash'}</span>
+                  <span className="text-[11px] font-bold text-admin-text-secondary uppercase font-outfit">Method</span>
+                  <span className="text-[11px] font-bold text-admin-text uppercase">{order.paymentMethod?.replace(/_/g, ' ') || 'Cash'}</span>
                 </div>
               </div>
             </div>
@@ -881,14 +880,14 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
           )}
 
           {/* Action Center */}
-          <div className="bg-white border border-[#e5e7eb] rounded-[16px] p-5 shadow-sm">
-            <h3 className="text-[11px] font-black text-[#8b0000] uppercase tracking-wider mb-4">Quick Actions</h3>
+          <div className="bg-admin-surface border border-admin-border rounded-2xl p-6 shadow-sm">
+            <h3 className="text-[11px] font-black text-brand uppercase tracking-wider mb-4 font-outfit">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-3">
               {order.paymentStatus !== 'paid' && !['cancelled', 'rejected', 'expired'].includes(order.status) && (
                 <button onClick={handleShowQR} disabled={isGeneratingLink}
-                  className="col-span-2 border border-[#8b0000] bg-[#fff0f0] rounded-lg py-2.5 flex items-center justify-center gap-2 hover:bg-[#ffe4e4] transition-colors font-bold text-[13px] text-[#8b0000] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                  className="col-span-2 border border-brand/30 bg-brand/10 rounded-xl py-3 flex items-center justify-center gap-2 hover:bg-brand/20 transition-all font-bold text-[13px] text-brand shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-outfit">
                   {isGeneratingLink ? (
-                    <div className="w-4 h-4 border-2 border-[#8b0000] border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <QrCode className="w-4 h-4" />
                   )}
@@ -897,20 +896,20 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
               )}
 
               <button onClick={handleRemake} disabled={isRemakingOrder}
-                className="col-span-2 border border-[#e5e7eb] rounded-lg py-2.5 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors font-bold text-[13px] text-[#111827] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                className="col-span-2 border border-admin-border bg-admin-card rounded-xl py-3 flex items-center justify-center gap-2 hover:bg-admin-surface-hover transition-all font-bold text-[13px] text-admin-text shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-outfit">
                 {isRemakingOrder ? (
-                  <div className="w-4 h-4 border-2 border-[#16a34a] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <RefreshCcw className="w-4 h-4 text-[#16a34a]" />
+                  <RefreshCcw className="w-4 h-4 text-emerald-500" />
                 )}
                 {isRemakingOrder ? 'Creating…' : 'Remake Order ($0)'}
               </button>
 
               <button onClick={handleSendInvoice} disabled={isSendingInvoice || !order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com'}
                 title={(!order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com') ? 'Email not provided' : 'Email Invoice'}
-                className={`border rounded-lg py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${(!order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com') && !isSendingInvoice ? 'border-[#e5e7eb] bg-[#f9fafb] text-[#9ca3af]' : 'border-[#e5e7eb] hover:bg-gray-50 text-[#111827]'}`}>
+                className={`border rounded-xl py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${(!order.customerEmail || order.customerEmail === 'admin@lassiloungeny.com') && !isSendingInvoice ? 'border-admin-border bg-admin-card/50 text-admin-text-secondary/50' : 'border-admin-border bg-admin-card hover:bg-admin-surface-hover text-admin-text'}`}>
                 {isSendingInvoice ? (
-                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-admin-text-secondary border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <Send className="w-4 h-4" />
                 )}
@@ -929,7 +928,7 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 }}
                 disabled={!order.customerPhone || order.customerPhone === '0000000000'}
                 title={(!order.customerPhone || order.customerPhone === '0000000000') ? 'Number not provided' : 'Send Invoice to WhatsApp'}
-                className={`border rounded-lg py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${(!order.customerPhone || order.customerPhone === '0000000000') ? 'border-[#e5e7eb] bg-[#f9fafb] text-[#9ca3af]' : 'border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10'}`}>
+                className={`border rounded-xl py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${(!order.customerPhone || order.customerPhone === '0000000000') ? 'border-admin-border bg-admin-card/50 text-admin-text-secondary/50' : 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20'}`}>
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
                 </svg>
@@ -937,9 +936,9 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
               </button>
 
               <button onClick={handleRefund} disabled={isRefunding || !canRefund}
-                className={`border rounded-lg py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${!canRefund && !isRefunding ? 'border-[#e5e7eb] bg-[#f9fafb] text-[#9ca3af]' : 'border-[#e5e7eb] hover:bg-gray-50 text-[#111827]'}`}>
+                className={`border rounded-xl py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${!canRefund && !isRefunding ? 'border-admin-border bg-admin-card/50 text-admin-text-secondary/50' : 'border-admin-border bg-admin-card hover:bg-admin-surface-hover text-admin-text'}`}>
                 {isRefunding ? (
-                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-admin-text-secondary border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <FileClock className="w-4 h-4" />
                 )}
@@ -947,9 +946,9 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
               </button>
 
               <button onClick={handleCancel} disabled={isCancelling || !canCancel}
-                className={`col-span-2 border rounded-lg py-2.5 flex items-center justify-center gap-2 font-bold text-[13px] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${!canCancel && !isCancelling ? 'border-[#e5e7eb] bg-[#f9fafb] text-[#9ca3af]' : 'border-[#fecaca] bg-[#fef2f2] text-[#dc2626] hover:bg-[#fee2e2]'}`}>
+                className={`col-span-2 border rounded-xl py-3 flex items-center justify-center gap-2 font-bold text-[13px] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${!canCancel && !isCancelling ? 'border-admin-border bg-admin-card/50 text-admin-text-secondary/50' : 'border-rose-500/30 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20'}`}>
                 {isCancelling ? (
-                  <div className="w-4 h-4 border-2 border-[#dc2626] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <XCircle className="w-4 h-4" />
                 )}
@@ -959,16 +958,16 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
           </div>
 
           {/* Unified Order Journey Feed */}
-          <div className="bg-white border border-[#e5e7eb] rounded-[16px] shadow-sm flex-1 flex flex-col overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#f3f4f6] bg-[#fcfaf5]">
-              <h3 className="text-[11px] font-black text-[#8b0000] uppercase tracking-wider flex items-center gap-2">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-sm flex-1 flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-admin-border bg-admin-card/30">
+              <h3 className="text-[11px] font-black text-brand uppercase tracking-wider flex items-center gap-2 font-outfit">
                 <Activity className="w-4 h-4" /> Order Journey
               </h3>
             </div>
-            <div className="p-5 flex-1 custom-scrollbar overflow-y-auto max-h-[600px]">
+            <div className="p-6 flex-1 custom-scrollbar overflow-y-auto max-h-[600px]">
               <div className="relative pl-3">
                 {/* Vertical Pipeline Line */}
-                <div className="absolute left-[19px] top-4 bottom-4 w-px bg-[#e5e7eb] -z-10" />
+                <div className="absolute left-[19px] top-4 bottom-4 w-px bg-admin-border -z-10" />
                 
                 {(() => {
                   // merge statusUpdates and paymentAudit events into a single timeline
@@ -1041,15 +1040,15 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                     const isPreparing = ['preparing', 'ready'].includes(ev.key);
                     const isSuccess = ['delivered', 'completed', 'picked_up'].includes(ev.key);
                     
-                    let dotClass = "w-[14px] h-[14px] rounded-full border-2 border-[#d1d5db] bg-white ring-4 ring-white";
+                    let dotClass = "w-[14px] h-[14px] rounded-full border-2 border-admin-border bg-admin-surface ring-4 ring-admin-surface";
                     if (!isFuture) {
                       if (ev.type === 'payment') {
                         // payment dots use their config bg
-                        dotClass = `w-6 h-6 -ml-[5px] rounded-full flex items-center justify-center ring-4 ring-white shadow-sm`;
+                        dotClass = `w-6 h-6 -ml-[5px] rounded-full flex items-center justify-center ring-4 ring-admin-surface shadow-sm`;
                       } else {
                         // status dots
-                        dotClass = `w-[14px] h-[14px] rounded-full ring-4 ring-white shadow-sm ${
-                          isCancel ? 'bg-[#dc2626]' : isPreparing ? 'bg-[#ea580c]' : isSuccess ? 'bg-[#16a34a]' : 'bg-[#2563eb]'
+                        dotClass = `w-[14px] h-[14px] rounded-full ring-4 ring-admin-surface shadow-sm ${
+                          isCancel ? 'bg-rose-500' : isPreparing ? 'bg-amber-500' : isSuccess ? 'bg-emerald-500' : 'bg-blue-500'
                         }`;
                       }
                     }
@@ -1067,25 +1066,25 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                         </div>
                         <div className="flex-1 -mt-0.5">
                           <div className="flex justify-between items-start">
-                            <p className={`text-[13px] font-bold capitalize ${isFuture ? 'text-[#9ca3af]' : ev.type==='payment' ? '' : 'text-[#111827]'}`}
+                            <p className={`text-[13px] font-bold capitalize font-outfit ${isFuture ? 'text-admin-text-secondary/60' : ev.type==='payment' ? '' : 'text-admin-text'}`}
                                style={ev.type === 'payment' ? { color: ev.config.color } : {}}>
                               {ev.label}
                             </p>
                             {ev.time && (
-                              <span className="text-[10px] font-bold text-[#6b7280] ml-2 shrink-0 whitespace-nowrap bg-[#f3f4f6] px-1.5 py-0.5 rounded">
+                              <span className="text-[10px] font-bold text-admin-text-secondary ml-2 shrink-0 whitespace-nowrap bg-admin-card border border-admin-border px-2 py-0.5 rounded-lg">
                                 {formatTime(ev.time, restaurant?.timeFormat, restaurant?.timezone)}
                               </span>
                             )}
                           </div>
                           
                           {ev.desc && (
-                            <p className={`text-[11px] mt-0.5 leading-snug ${isFuture ? 'text-[#9ca3af]' : 'text-[#6b7280]'}`}>
+                            <p className={`text-[11px] mt-0.5 leading-snug ${isFuture ? 'text-admin-text-secondary/50' : 'text-admin-text-secondary'}`}>
                               {ev.desc}
                             </p>
                           )}
                           
                           {ev.amount != null && ev.type === 'payment' && (
-                            <p className="text-[11px] font-black text-[#111827] mt-1 bg-[#f3f4f6] inline-block px-2 py-0.5 rounded">
+                            <p className="text-[11px] font-black text-admin-text mt-1 bg-admin-card border border-admin-border inline-block px-2.5 py-0.5 rounded-lg font-outfit">
                               {formatCurrency(ev.amount, currency)}
                             </p>
                           )}
@@ -1099,14 +1098,14 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
             </div>
             
             {/* Internal Note Input placeholder */}
-            <div className="p-4 border-t border-[#f3f4f6] bg-[#f9fafb]">
-               <div className="text-[10px] font-bold text-[#6b7280] uppercase mb-2">Internal Note</div>
+            <div className="p-4 border-t border-admin-border bg-admin-card/20">
+               <div className="text-[10px] font-bold text-admin-text-secondary uppercase mb-2 font-outfit">Internal Note</div>
                {order.adminNotes?.length > 0 ? (
-                 <div className="bg-[#fffbeb] border border-[#fde68a] rounded p-2 text-xs text-[#b45309] font-medium leading-tight">
+                 <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-xs text-amber-400 font-medium leading-relaxed">
                    {order.adminNotes[order.adminNotes.length - 1].text}
                  </div>
                ) : (
-                 <p className="text-[11px] text-[#9ca3af] italic">No internal notes added.</p>
+                 <p className="text-[11px] text-admin-text-secondary/60 italic">No internal notes added.</p>
                )}
             </div>
           </div>
@@ -1134,7 +1133,7 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 e.target.onerror = null;
                 e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(order.courierName || 'Driver') + '&background=e5e7eb&color=374151&size=256';
               }}
-              className="w-full h-auto rounded-xl shadow-2xl object-contain max-h-[80vh]" 
+              className="w-full h-auto rounded-2xl shadow-2xl object-contain max-h-[80vh] border border-admin-border" 
             />
           </div>
         </div>,
@@ -1149,39 +1148,39 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
       {/* QR Code Modal for Payment Link Orders */}
       {showQRModal && mounted && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 text-center">
-              <h2 className="text-xl font-black text-[#111827] mb-2">Payment Required</h2>
-              <p className="text-[13px] font-bold text-[#6b7280] mb-6">Scan QR code to complete payment for Order #{order.orderNumber || order._id.toString().slice(-6)}</p>
+              <h2 className="text-xl font-black text-admin-text mb-2 font-outfit">Payment Required</h2>
+              <p className="text-[13px] font-medium text-admin-text-secondary mb-6">Scan QR code to complete payment for Order #{order.orderNumber || order._id?.toString().slice(-6) || 'N/A'}</p>
               
-              <div className="bg-[#f9fafb] p-6 rounded-xl border border-[#e5e7eb] flex items-center justify-center mb-6">
+              <div className="bg-white p-5 rounded-2xl border border-admin-border flex items-center justify-center mb-6 shadow-inner">
                 {paymentLinkUrl ? (
                   <QRCodeSVG 
                     value={paymentLinkUrl}
                     size={200}
-                    bgColor={"#f9fafb"}
-                    fgColor={"#111827"}
+                    bgColor={"#ffffff"}
+                    fgColor={"#0f172a"}
                     level={"Q"}
                     includeMargin={false}
                   />
                 ) : (
                   <div className="w-[200px] h-[200px] flex items-center justify-center">
-                    <div className="w-8 h-8 border-4 border-[#e5e7eb] border-t-[#8b0000] rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-4 border-admin-border border-t-brand rounded-full animate-spin" />
                   </div>
                 )}
               </div>
 
-              <div className="bg-[#f9fafb] rounded-lg p-3 flex items-center justify-between border border-[#e5e7eb] mb-4">
-                <p className="text-[12px] font-mono text-[#6b7280] font-bold truncate mr-3 flex-1 text-left">
+              <div className="bg-admin-card rounded-xl p-3 flex items-center justify-between border border-admin-border mb-4">
+                <p className="text-[12px] font-mono text-admin-text-secondary font-medium truncate mr-3 flex-1 text-left">
                   {paymentLinkUrl || 'Generating...'}
                 </p>
                 <button
                   onClick={copyToClipboard}
                   disabled={!paymentLinkUrl}
-                  className="shrink-0 p-2 bg-white rounded shadow-sm border border-[#e5e7eb] hover:bg-[#f3f4f6] transition-colors text-[#374151] disabled:opacity-50"
+                  className="shrink-0 p-2 bg-admin-surface rounded-lg shadow-sm border border-admin-border hover:bg-admin-surface-hover transition-colors text-admin-text disabled:opacity-50"
                   title="Copy link"
                 >
-                  {copiedLink ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  {copiedLink ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
 
@@ -1190,7 +1189,7 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                   onClick={() => {
                     window.open(`https://wa.me/?text=${encodeURIComponent(`Please pay for your order here: ${paymentLinkUrl}`)}`, '_blank');
                   }}
-                  className="w-full py-3 mb-2 rounded-xl border border-[#25D366] text-[#25D366] font-bold text-[14px] hover:bg-[#25D366]/10 transition-colors shadow-sm"
+                  className="w-full py-3 mb-2 rounded-xl border border-[#25D366]/40 text-[#25D366] bg-[#25D366]/10 hover:bg-[#25D366]/20 font-bold text-[14px] transition-all shadow-sm font-outfit"
                 >
                   Share via WhatsApp
                 </button>
@@ -1200,17 +1199,17 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 <button
                   onClick={handleSendPaymentLinkEmail}
                   disabled={isSendingLink}
-                  className="w-full py-3 mb-2 rounded-xl border border-[#d1d5db] text-[#374151] font-bold text-[14px] hover:bg-[#f3f4f6] transition-colors shadow-sm disabled:opacity-50"
+                  className="w-full py-3 mb-2 rounded-xl border border-admin-border text-admin-text bg-admin-card hover:bg-admin-surface-hover font-bold text-[14px] transition-all shadow-sm disabled:opacity-50 font-outfit"
                 >
                   {isSendingLink ? 'Sending...' : 'Email QR Code & Link'}
                 </button>
               )}
             </div>
             
-            <div className="p-4 border-t border-[#e5e7eb] bg-[#f9fafb]">
+            <div className="p-4 border-t border-admin-border bg-admin-card/30">
               <button
                 onClick={() => setShowQRModal(false)}
-                className="w-full py-3 bg-white border border-[#e5e7eb] rounded-xl text-[14px] font-bold text-[#111827] hover:bg-[#f3f4f6] transition-colors shadow-sm"
+                className="w-full py-2.5 bg-admin-card border border-admin-border rounded-xl text-[14px] font-bold text-admin-text hover:bg-admin-surface-hover transition-all shadow-sm font-outfit"
               >
                 Close
               </button>
@@ -1223,31 +1222,31 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
       {/* Remake Options Modal */}
       {showRemakeModal && mounted && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 text-center">
-              <h2 className="text-xl font-black text-[#111827] mb-2">Remake Order</h2>
-              <p className="text-[13px] font-bold text-[#6b7280] mb-6">Do you want to remake this order for free or charge the customer the full amount?</p>
+              <h2 className="text-xl font-black text-admin-text mb-2 font-outfit">Remake Order</h2>
+              <p className="text-[13px] font-medium text-admin-text-secondary mb-6">Do you want to remake this order for free or charge the customer the full amount?</p>
               
               <div className="flex flex-col gap-3">
                 <button
                   onClick={() => executeRemake(false)}
-                  className="w-full py-3 bg-[#16a34a] text-white rounded-xl text-[14px] font-bold hover:bg-[#15803d] transition-colors shadow-sm flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[14px] font-bold transition-all shadow-sm flex items-center justify-center gap-2 font-outfit"
                 >
                   Free Remake ($0)
                 </button>
                 <button
                   onClick={() => executeRemake(true)}
-                  className="w-full py-3 bg-white border-2 border-[#8b0000] text-[#8b0000] rounded-xl text-[14px] font-bold hover:bg-[#fff0f0] transition-colors shadow-sm flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-admin-card border-2 border-brand text-brand hover:bg-brand/10 rounded-xl text-[14px] font-bold transition-all shadow-sm flex items-center justify-center gap-2 font-outfit"
                 >
                   Charge Customer ({formatCurrency(order.total, currency)})
                 </button>
               </div>
             </div>
             
-            <div className="p-4 border-t border-[#e5e7eb] bg-[#f9fafb]">
+            <div className="p-4 border-t border-admin-border bg-admin-card/30">
               <button
                 onClick={() => setShowRemakeModal(false)}
-                className="w-full py-3 bg-white border border-[#e5e7eb] rounded-xl text-[14px] font-bold text-[#111827] hover:bg-[#f3f4f6] transition-colors shadow-sm"
+                className="w-full py-2.5 bg-admin-card border border-admin-border rounded-xl text-[14px] font-bold text-admin-text hover:bg-admin-surface-hover transition-all shadow-sm font-outfit"
               >
                 Cancel
               </button>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, CheckCircle, Search, RefreshCw, AlertCircle, Clock, Trash2, CheckCircle2 } from 'lucide-react';
+import { Mail, CheckCircle, Search, RefreshCw, AlertCircle, Clock, Trash2, CheckCircle2, MessageSquare, Send } from 'lucide-react';
 import { showToast } from '@/components/ui';
 import StatCard from './StatCard';
+import PageHeaderGradient from './common/PageHeaderGradient';
 
 export default function MessagesView() {
   const [messages, setMessages] = useState([]);
@@ -72,84 +73,98 @@ export default function MessagesView() {
   );
 
   const getStatusBadge = (status) => {
-    if (status === 'new') return <span className="bg-[#fff7ed] text-[#ea580c] font-bold text-xs px-2 py-1 rounded">New</span>;
-    if (status === 'replied') return <span className="bg-[#ecfdf5] text-[#10B981] font-bold text-xs px-2 py-1 rounded flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Replied</span>;
-    if (status === 'read') return <span className="bg-[#f3f4f6] text-[#4b5563] font-bold text-xs px-2 py-1 rounded">Read</span>;
-    return <span className="bg-gray-100 text-gray-600 font-bold text-xs px-2 py-1 rounded">{status}</span>;
+    if (status === 'new') return (
+      <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 font-bold text-[11px] px-2.5 py-0.5 rounded-lg font-outfit uppercase">
+        New
+      </span>
+    );
+    if (status === 'replied') return (
+      <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold text-[11px] px-2.5 py-0.5 rounded-lg flex items-center gap-1 font-outfit uppercase">
+        <CheckCircle2 className="w-3 h-3" /> Replied
+      </span>
+    );
+    if (status === 'read') return (
+      <span className="bg-admin-surface-2 text-admin-muted border border-admin-border font-bold text-[11px] px-2.5 py-0.5 rounded-lg font-outfit uppercase">
+        Read
+      </span>
+    );
+    return (
+      <span className="bg-admin-surface-2 text-admin-muted border border-admin-border font-bold text-[11px] px-2.5 py-0.5 rounded-lg font-outfit uppercase">
+        {status}
+      </span>
+    );
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#F8FAFC] relative text-[#1f2937]">
+    <div className="space-y-6 pb-12">
       {/* Top Header Row */}
-      <div className="flex items-center justify-between mb-6 shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold text-[#111827]">Customer Messages</h1>
-          <p className="text-sm text-[#6b7280] mt-1">Manage support tickets and customer inquiries.</p>
-        </div>
-        <div className="flex gap-3">
+      <PageHeaderGradient
+        title="Customer Messages"
+        subtitle="Manage customer feedback, direct inquiries, and help tickets."
+        actions={
           <button 
             onClick={fetchMessages}
-            className="bg-white border border-[#e5e7eb] rounded-lg px-4 py-2 text-sm text-[#374151] font-bold flex items-center gap-2 hover:bg-[#f9fafb]"
+            className="flex items-center gap-2 bg-admin-surface border border-admin-border text-admin-text px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-admin-surface-2 transition-colors shadow-sm font-outfit"
           >
-            <RefreshCw className="w-4 h-4" /> Refresh
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh Inbox
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 shrink-0">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
           title="Total Messages" 
           value={messages.length.toLocaleString()} 
           icon={Mail} 
-          iconColor="text-[#3b82f6]" 
-          iconBg="bg-[#eff6ff]" 
+          iconColor="text-blue-500" 
+          iconBg="bg-blue-500/10 dark:bg-blue-500/20" 
         />
         <StatCard 
-          title="New Messages" 
+          title="New Inquiries" 
           value={messages.filter(m => m.status === 'new').length.toLocaleString()} 
           icon={AlertCircle} 
-          iconColor="text-[#ea580c]" 
-          iconBg="bg-[#fff7ed]" 
+          iconColor="text-amber-500" 
+          iconBg="bg-amber-500/10 dark:bg-amber-500/20" 
         />
         <StatCard 
           title="Replied" 
           value={messages.filter(m => m.status === 'replied').length.toLocaleString()} 
           icon={CheckCircle} 
-          iconColor="text-[#10B981]" 
-          iconBg="bg-[#ecfdf5]" 
+          iconColor="text-emerald-500" 
+          iconBg="bg-emerald-500/10 dark:bg-emerald-500/20" 
         />
         <StatCard 
-          title="Read" 
+          title="Archived / Read" 
           value={messages.filter(m => m.status === 'read').length.toLocaleString()} 
           icon={Mail} 
-          iconColor="text-[#6b7280]" 
-          iconBg="bg-[#f3f4f6]" 
+          iconColor="text-admin-muted" 
+          iconBg="bg-admin-surface-2" 
         />
       </div>
 
       {/* Main Content Area */}
-      <div className="bg-white rounded-xl shadow-sm border border-[#e5e7eb] flex flex-col flex-1 min-h-0">
+      <div className="bg-admin-surface rounded-2xl shadow-sm border border-admin-border flex flex-col overflow-hidden">
         {/* Filter Header */}
-        <div className="p-4 border-b border-[#e5e7eb] flex flex-col sm:flex-row gap-4 justify-between items-center bg-[#f9fafb] rounded-t-xl shrink-0">
+        <div className="p-4 border-b border-admin-border flex flex-col sm:flex-row gap-4 justify-between items-center bg-admin-surface-2/60">
           <div className="relative flex-1 max-w-md w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-admin-muted pointer-events-none" />
             <input
               type="text"
               placeholder="Search messages by name, email or subject..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full !pl-10 pr-4 py-2 bg-white border border-[#e5e7eb] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20 focus:border-[#8B0000] text-sm text-[#1f2937]"
+              className="w-full pl-10 pr-4 py-2 bg-admin-surface border border-admin-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-xs text-admin-text transition-all placeholder:text-admin-muted"
             />
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-white border border-[#e5e7eb] rounded-lg text-sm text-[#1f2937] focus:outline-none focus:ring-2 focus:ring-[#8B0000]/20 font-medium min-w-[150px]"
+              className="px-3.5 py-2 bg-admin-surface border border-admin-border rounded-xl text-xs text-admin-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium min-w-[150px]"
             >
-              <option value="all">All Status</option>
-              <option value="new">New</option>
+              <option value="all">All Statuses</option>
+              <option value="new">New Inquiries</option>
               <option value="read">Read</option>
               <option value="replied">Replied</option>
             </select>
@@ -157,43 +172,48 @@ export default function MessagesView() {
         </div>
 
         {/* List Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="overflow-y-auto">
           {loading ? (
-            <div className="p-12 flex flex-col items-center justify-center text-[#6b7280]">
-              <RefreshCw className="w-8 h-8 animate-spin mb-4 text-[#d1d5db]" />
-              <p>Loading messages...</p>
+            <div className="p-16 flex flex-col items-center justify-center text-admin-muted">
+              <RefreshCw className="w-8 h-8 animate-spin mb-3 text-primary" />
+              <p className="text-xs font-semibold">Loading messages...</p>
             </div>
           ) : filteredMessages.length === 0 ? (
             <div className="p-16 flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 bg-[#f3f4f6] rounded-full flex items-center justify-center mb-4">
-                <Mail className="w-8 h-8 text-[#9ca3af]" />
+              <div className="w-16 h-16 bg-admin-surface-2 rounded-2xl flex items-center justify-center mb-3">
+                <Mail className="w-8 h-8 text-admin-muted" />
               </div>
-              <h3 className="text-lg font-bold text-[#111827]">No messages found</h3>
-              <p className="text-[#6b7280] max-w-sm mt-1">We couldn't find any messages matching your current filters.</p>
+              <h3 className="text-base font-bold text-admin-text font-outfit">No messages found</h3>
+              <p className="text-admin-muted text-xs max-w-sm mt-1">We couldn't find any inquiries matching your current search or status filter.</p>
             </div>
           ) : (
-            <div className="divide-y divide-[#e5e7eb]">
+            <div className="divide-y divide-admin-border dark:divide-white/[0.08]">
               {filteredMessages.map((msg) => (
-                <div key={msg._id} className={`p-6 transition-all duration-200 hover:bg-[#f9fafb] ${msg.status === 'new' ? 'bg-[#fff7ed]/30 border-l-4 border-[#ea580c]' : 'border-l-4 border-transparent'}`}>
+                <div 
+                  key={msg._id} 
+                  className={`p-6 transition-all duration-200 hover:bg-admin-surface-2/50 ${
+                    msg.status === 'new' ? 'bg-amber-500/[0.03] border-l-4 border-amber-500' : 'border-l-4 border-transparent'
+                  }`}
+                >
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-full bg-[#8B0000]/10 flex items-center justify-center text-[#8B0000] font-bold shrink-0">
-                          {msg.name.charAt(0).toUpperCase()}
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black shrink-0 font-outfit">
+                          {msg.name?.charAt(0)?.toUpperCase() || 'U'}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-bold text-[#111827] truncate flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-admin-text truncate flex items-center gap-2 font-outfit">
                             {msg.name} 
                             {getStatusBadge(msg.status)}
                           </h3>
-                          <p className="text-xs text-[#6b7280] truncate">{msg.email}</p>
+                          <p className="text-xs text-admin-muted truncate">{msg.email}</p>
                         </div>
                       </div>
                       <div className="ml-13 mt-3">
-                        <h4 className="text-base font-bold text-[#111827] mb-2">{msg.subject}</h4>
-                        <p className="text-sm text-[#4b5563] whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                        <h4 className="text-sm font-bold text-admin-text mb-1.5 font-outfit">{msg.subject}</h4>
+                        <p className="text-xs text-admin-text whitespace-pre-wrap leading-relaxed opacity-90">{msg.message}</p>
                         
-                        <div className="flex items-center gap-2 mt-4 text-xs font-medium text-[#9ca3af]">
+                        <div className="flex items-center gap-1.5 mt-3 text-[11px] font-medium text-admin-muted">
                           <Clock className="w-3.5 h-3.5" />
                           {new Date(msg.createdAt).toLocaleString('en-US', { 
                             month: 'short', day: 'numeric', year: 'numeric', 
@@ -206,15 +226,15 @@ export default function MessagesView() {
                     <div className="flex flex-row sm:flex-col gap-2 shrink-0 w-full sm:w-auto ml-13 sm:ml-0 mt-4 sm:mt-0">
                       <button
                         onClick={() => handleReply(msg)}
-                        className="flex-1 sm:flex-none px-4 py-2.5 bg-[#111827] text-white text-sm font-bold rounded-lg hover:bg-black transition-colors flex items-center justify-center gap-2 shadow-sm"
+                        className="flex-1 sm:flex-none px-4 py-2 bg-gradient-to-r from-primary to-primary-hover text-white text-xs font-bold rounded-xl hover:shadow-md transition-all flex items-center justify-center gap-1.5 shadow-sm font-outfit"
                       >
-                        <Mail className="w-4 h-4" /> Reply
+                        <Send className="w-3.5 h-3.5" /> Reply
                       </button>
                       
                       {msg.status === 'new' && (
                         <button
                           onClick={() => markAsStatus(msg._id, 'read')}
-                          className="flex-1 sm:flex-none px-4 py-2.5 bg-white border border-[#e5e7eb] text-[#374151] text-sm font-bold rounded-lg hover:bg-[#f9fafb] transition-colors shadow-sm"
+                          className="flex-1 sm:flex-none px-4 py-2 bg-admin-surface border border-admin-border text-admin-text text-xs font-bold rounded-xl hover:bg-admin-surface-2 transition-colors shadow-sm font-outfit"
                         >
                           Mark as Read
                         </button>

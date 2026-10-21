@@ -399,95 +399,99 @@ export default function CustomersCRMView({
   const topTrend = calculateTrend(topNow, topPrev);
 
   return (
-    <div className="flex flex-col h-full bg-[#F8FAFC] relative">
-      <div className="flex items-center justify-between mb-6 shrink-0 pt-2 px-2">
+    <div className="flex flex-col h-full bg-transparent text-admin-text relative space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 pt-2 px-1">
         <div>
-          <h1 className="text-2xl font-bold text-[#111827]">Customers & CRM</h1>
-          <p className="text-sm text-[#6b7280] mt-1">
-            Manage customer relationships, loyalty and communication.
+          <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-admin-text tracking-tight">
+            Customers & CRM
+          </h1>
+          <p className="text-xs sm:text-sm text-admin-text-secondary mt-1">
+            Manage customer relationships, loyalty tiers, order frequency, and retention campaigns.
           </p>
         </div>
-        <div className="flex gap-3">
-          <button onClick={exportToCSV} className="bg-white border border-[#e5e7eb] rounded-lg px-4 py-2 text-sm text-[#374151] font-bold flex items-center gap-2 hover:bg-[#f9fafb] shadow-sm transition-all">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            type="button"
+            onClick={exportToCSV}
+            className="bg-admin-surface border border-admin-border rounded-xl px-4 py-2 text-xs sm:text-sm text-admin-text font-semibold flex items-center gap-2 hover:bg-admin-surface-light shadow-2xs transition-all cursor-pointer"
+          >
             <Download className="w-4 h-4" /> Export
           </button>
-          <button className="bg-white border border-[#e5e7eb] rounded-lg px-4 py-2 text-sm text-[#374151] font-bold flex items-center gap-2 hover:bg-[#f9fafb] shadow-sm transition-all">
-            <Upload className="w-4 h-4" /> Import
-          </button>
           <button
+            type="button"
             onClick={() => onAdd?.()}
-            className="bg-[#8B0000] text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 hover:bg-red-900 transition-colors shadow-sm"
+            className="bg-brand text-white rounded-xl px-4 py-2 text-xs sm:text-sm font-bold flex items-center gap-2 hover:brightness-110 transition-all shadow-sm cursor-pointer"
           >
             <UserPlus className="w-4 h-4" /> Add Customer
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6 shrink-0 px-2">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4 shrink-0 px-1">
         <StatCard
-          title="Total Customers"
+          label="Total Customers"
           value={totalCustomersNow.toLocaleString()}
           icon={Users}
-          iconColor="text-[#ea580c]"
-          iconBg="bg-[#fff7ed]"
-          trend={totalCustomersTrend}
+          color="bg-amber-500/15 text-amber-500"
+          trend={totalCustomersTrend.value}
+          up={totalCustomersTrend.direction === 'up'}
         />
         <StatCard
-          title="New Customers"
+          label="New Customers"
           value={newCustomersNow.toLocaleString()}
           icon={UserPlus}
-          iconColor="text-[#10B981]"
-          iconBg="bg-[#ecfdf5]"
-          trend={newCustomersTrend}
+          color="bg-emerald-500/15 text-emerald-500"
+          trend={newCustomersTrend.value}
+          up={newCustomersTrend.direction === 'up'}
         />
         <StatCard
-          title="Loyalty Members"
+          label="Loyalty Members"
           value={loyaltyNow.toLocaleString()}
           icon={Crown}
-          iconColor="text-[#a855f7]"
-          iconBg="bg-[#faf5ff]"
-          trend={loyaltyTrend}
+          color="bg-purple-500/15 text-purple-500"
+          trend={loyaltyTrend.value}
+          up={loyaltyTrend.direction === 'up'}
         />
         <StatCard
-          title="Repeat Customers"
+          label="Repeat Customers"
           value={repeatNow.toLocaleString()}
           icon={Gift}
-          iconColor="text-[#3b82f6]"
-          iconBg="bg-[#eff6ff]"
-          trend={repeatTrend}
+          color="bg-blue-500/15 text-blue-500"
+          trend={repeatTrend.value}
+          up={repeatTrend.direction === 'up'}
         />
         <StatCard
-          title="Top Customers"
+          label="Top VIP Spenders"
           value={topNow.toLocaleString()}
           icon={Star}
-          iconColor="text-[#ef4444]"
-          iconBg="bg-[#fef2f2]"
-          trend={topTrend}
+          color="bg-rose-500/15 text-rose-500"
+          trend={topTrend.value}
+          up={topTrend.direction === 'up'}
         />
       </div>
 
-      <div className="flex flex-col xl:flex-row flex-1 gap-6 pb-2 px-2 max-h-[750px] ">
-        <div className="flex-1 bg-white rounded-[20px] shadow-sm border border-[#e5e7eb] flex flex-col relative min-w-0 group">
+      <div className="flex flex-col xl:flex-row flex-1 gap-6 pb-2 px-1 max-h-[750px]">
+        <div className="flex-1 bg-admin-card rounded-2xl shadow-sm border border-admin-border flex flex-col relative min-w-0 group">
           
           {/* STICKY TOP SECTION */}
-          <div className="sticky top-[72px] z-40 bg-white rounded-t-[20px] flex flex-col shadow-sm">
-            <div className="p-4 border-b border-[#f3f4f6] flex flex-wrap gap-4 items-center justify-between shrink-0">
+          <div className="sticky top-[70px] z-40 bg-admin-surface/95 backdrop-blur-md rounded-t-2xl flex flex-col shadow-sm border-b border-admin-border">
+            <div className="p-4 flex flex-wrap gap-3.5 items-center justify-between shrink-0">
               <div className="relative flex-1 min-w-[200px] max-w-sm">
-                <Search className="w-4 h-4 text-[#9ca3af] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Search className="w-4 h-4 text-admin-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search by name, phone or email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full !pl-10 py-2 rounded-lg border border-[#e5e7eb] text-sm text-[#111827] bg-[#f9fafb] outline-none focus:border-[#8b0000] transition-colors"
+                  className="w-full pl-10 pr-3 py-2 rounded-xl border border-admin-border text-xs sm:text-sm text-admin-text bg-admin-surface outline-none focus:border-brand transition-colors placeholder:text-admin-text-muted"
                 />
               </div>
 
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <select
                 value={groupFilter}
                 onChange={(e) => setGroupFilter(e.target.value)}
-                className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-medium outline-none cursor-pointer hover:bg-white transition-colors"
+                className="bg-admin-surface border border-admin-border rounded-xl px-3 py-2 text-xs font-semibold text-admin-text outline-none cursor-pointer hover:border-brand/40 transition-colors"
               >
                 <option>All Groups</option>
                 <option>Family</option>
@@ -499,7 +503,7 @@ export default function CustomersCRMView({
               <select
                 value={tierFilter}
                 onChange={(e) => setTierFilter(e.target.value)}
-                className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-medium outline-none cursor-pointer hover:bg-white transition-colors"
+                className="bg-admin-surface border border-admin-border rounded-xl px-3 py-2 text-xs font-semibold text-admin-text outline-none cursor-pointer hover:border-brand/40 transition-colors"
               >
                 <option>All Loyalty Tiers</option>
                 <option>Bronze</option>
@@ -511,24 +515,24 @@ export default function CustomersCRMView({
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-medium outline-none cursor-pointer hover:bg-white transition-colors"
+                className="bg-admin-surface border border-admin-border rounded-xl px-3 py-2 text-xs font-semibold text-admin-text outline-none cursor-pointer hover:border-brand/40 transition-colors"
               >
                 <option>All Status</option>
                 <option>Active</option>
                 <option>Inactive</option>
               </select>
 
-              <div className="flex items-center gap-1.5 bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-2.5 py-2 text-sm text-[#374151] font-medium hover:bg-white transition-colors">
-                <ArrowUpDown className="w-4 h-4 text-[#8B0000] shrink-0" />
+              <div className="flex items-center gap-1.5 bg-admin-surface border border-admin-border rounded-xl px-2.5 py-2 text-xs text-admin-text font-semibold hover:border-brand/40 transition-colors">
+                <ArrowUpDown className="w-3.5 h-3.5 text-brand shrink-0" />
                 <select
                   value={sortBy}
                   onChange={(e) => {
                     setSortBy(e.target.value);
                     setSortConfig({ key: null, direction: 'desc' });
                   }}
-                  className="bg-transparent text-sm text-[#111827] font-semibold outline-none cursor-pointer pr-1"
+                  className="bg-transparent text-xs text-admin-text font-semibold outline-none cursor-pointer pr-1"
                 >
-                  <option value="newest">Sort: Newest First (Default)</option>
+                  <option value="newest">Sort: Newest First</option>
                   <option value="oldest">Sort: Oldest First</option>
                   <option value="most_orders">Sort: Most Orders</option>
                   <option value="highest_spent">Sort: Highest Spender</option>
@@ -538,6 +542,7 @@ export default function CustomersCRMView({
               </div>
 
               <button
+                type="button"
                 onClick={() => {
                   setSearchQuery("");
                   setGroupFilter("All Groups");
@@ -546,20 +551,20 @@ export default function CustomersCRMView({
                   setSortBy("newest");
                   setSortConfig({ key: null, direction: 'desc' });
                 }}
-                className="bg-white border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm text-[#374151] font-bold flex items-center gap-2 hover:bg-[#f9fafb] transition-colors"
+                className="bg-admin-surface border border-admin-border rounded-xl px-3 py-2 text-xs text-admin-text-secondary font-semibold flex items-center gap-1.5 hover:text-admin-text hover:bg-admin-surface-light transition-colors cursor-pointer"
               >
-                <XCircle className="w-4 h-4" /> Reset
+                <XCircle className="w-3.5 h-3.5" /> Reset
               </button>
             </div>
           </div>
 
-          {/* Table Header (Synced horizontal scroll) */}
-          <div className="border-b border-[#e5e7eb] overflow-hidden" ref={tableHeaderRef}>
+          {/* Table Header */}
+          <div className="overflow-hidden" ref={tableHeaderRef}>
               <table className="w-full text-left border-collapse min-w-[1280px] table-fixed">
                 <TableColGroup />
-                <thead className="bg-[#f9fafb]">
-                  <tr className="text-xs font-bold text-[#6b7280] uppercase tracking-wider">
-                    <th className="px-6 py-4 text-center">
+                <thead className="bg-admin-surface-light text-admin-text-secondary border-b border-admin-border">
+                  <tr className="text-xs font-bold uppercase tracking-wider">
+                    <th className="px-6 py-3.5 text-center">
                       <input
                         type="checkbox"
                         onChange={handleSelectAll}
@@ -567,19 +572,18 @@ export default function CustomersCRMView({
                           selectedIds.length === displayedCustomers.length &&
                           displayedCustomers.length > 0
                         }
-                        className="w-4 h-4 cursor-pointer rounded !bg-white border-gray-300 text-[#8B0000] focus:ring-[#8B0000] accent-[#8B0000]"
-                        style={{ backgroundColor: "white" }}
+                        className="w-4 h-4 cursor-pointer rounded border-admin-border text-brand focus:ring-brand accent-brand"
                       />
                     </th>
                     <SortHeader label="Customer" sortKey="name" />
-                    <th className="px-6 py-4">Contact</th>
-                    <th className="px-6 py-4">Group</th>
+                    <th className="px-6 py-3.5">Contact</th>
+                    <th className="px-6 py-3.5">Group</th>
                     <SortHeader label="Loyalty Tier" sortKey="loyaltyTier" align="center" />
                     <SortHeader label="Total Orders" sortKey="totalOrders" align="center" />
                     <SortHeader label="Total Spent" sortKey="totalSpent" align="right" />
                     <SortHeader label="Last Order" sortKey="lastOrderDate" />
                     <SortHeader label="Status" sortKey="status" align="center" />
-                    <th className="px-6 py-4 text-center">Actions</th>
+                    <th className="px-6 py-3.5 text-center">Actions</th>
                   </tr>
                 </thead>
               </table>
@@ -591,7 +595,7 @@ export default function CustomersCRMView({
             {canScrollLeft && (
               <button
                 onClick={() => scrollByAmount(-300)}
-                className="pointer-events-auto w-9 h-9 bg-white shadow-md border border-[#e5e7eb] rounded-full flex items-center justify-center text-[#374151] hover:text-[#8B0000] hover:bg-gray-50 transition-all absolute left-2 -translate-y-1/2"
+                className="pointer-events-auto w-9 h-9 bg-admin-surface shadow-md border border-admin-border rounded-full flex items-center justify-center text-admin-text hover:text-brand hover:bg-admin-surface-light transition-all absolute left-2 -translate-y-1/2 cursor-pointer"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -599,7 +603,7 @@ export default function CustomersCRMView({
             {canScrollRight && (
               <button
                 onClick={() => scrollByAmount(300)}
-                className="pointer-events-auto w-9 h-9 bg-white shadow-md border border-[#e5e7eb] rounded-full flex items-center justify-center text-[#374151] hover:text-[#8B0000] hover:bg-gray-50 transition-all absolute right-2 -translate-y-1/2"
+                className="pointer-events-auto w-9 h-9 bg-admin-surface shadow-md border border-admin-border rounded-full flex items-center justify-center text-admin-text hover:text-brand hover:bg-admin-surface-light transition-all absolute right-2 -translate-y-1/2 cursor-pointer"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -613,45 +617,44 @@ export default function CustomersCRMView({
           >
             <table className="w-full text-left border-collapse min-w-[1280px] table-fixed">
               <TableColGroup />
-              <tbody className="divide-y divide-[#f9fafb]">
+              <tbody className="divide-y divide-admin-border">
                 {isLoading ? (
                   [...Array(5)].map((_, idx) => (
-                    <tr key={`skeleton-${idx}`} className="animate-pulse bg-white border-b border-[#f3f4f6]">
-                      <td className="px-6 py-4 text-center"><div className="w-4 h-4 bg-gray-200 rounded"></div></td>
+                    <tr key={`skeleton-${idx}`} className="animate-pulse bg-admin-surface border-b border-admin-border">
+                      <td className="px-6 py-4 text-center"><div className="w-4 h-4 bg-admin-surface-light rounded"></div></td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gray-200"></div>
+                          <div className="w-8 h-8 rounded-full bg-admin-surface-light"></div>
                           <div className="space-y-2">
-                            <div className="w-24 h-3 bg-gray-200 rounded"></div>
-                            <div className="w-16 h-2 bg-gray-200 rounded"></div>
+                            <div className="w-24 h-3 bg-admin-surface-light rounded"></div>
+                            <div className="w-16 h-2 bg-admin-surface-light rounded"></div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 space-y-2">
-                        <div className="w-24 h-3 bg-gray-200 rounded"></div>
-                        <div className="w-32 h-2 bg-gray-200 rounded"></div>
+                        <div className="w-24 h-3 bg-admin-surface-light rounded"></div>
+                        <div className="w-32 h-2 bg-admin-surface-light rounded"></div>
                       </td>
-                      <td className="px-6 py-4"><div className="w-16 h-4 bg-gray-200 rounded"></div></td>
-                      <td className="px-6 py-4 text-center"><div className="w-16 h-5 bg-gray-200 rounded mx-auto"></div></td>
-                      <td className="px-6 py-4 text-center"><div className="w-8 h-4 bg-gray-200 rounded mx-auto"></div></td>
-                      <td className="px-6 py-4 text-right"><div className="w-12 h-4 bg-gray-200 rounded ml-auto"></div></td>
-                      <td className="px-6 py-4"><div className="w-20 h-4 bg-gray-200 rounded"></div></td>
-                      <td className="px-6 py-4 text-center"><div className="w-16 h-5 bg-gray-200 rounded mx-auto"></div></td>
-                      <td className="px-6 py-4"><div className="w-6 h-6 bg-gray-200 rounded mx-auto"></div></td>
+                      <td className="px-6 py-4"><div className="w-16 h-4 bg-admin-surface-light rounded"></div></td>
+                      <td className="px-6 py-4 text-center"><div className="w-16 h-5 bg-admin-surface-light rounded mx-auto"></div></td>
+                      <td className="px-6 py-4 text-center"><div className="w-8 h-4 bg-admin-surface-light rounded mx-auto"></div></td>
+                      <td className="px-6 py-4 text-right"><div className="w-12 h-4 bg-admin-surface-light rounded ml-auto"></div></td>
+                      <td className="px-6 py-4"><div className="w-20 h-4 bg-admin-surface-light rounded"></div></td>
+                      <td className="px-6 py-4 text-center"><div className="w-16 h-5 bg-admin-surface-light rounded mx-auto"></div></td>
+                      <td className="px-6 py-4"><div className="w-6 h-6 bg-admin-surface-light rounded mx-auto"></div></td>
                     </tr>
                   ))
                 ) : displayedCustomers.map((c) => (
                   <tr
                     key={c._id}
-                    className={`transition-colors group ${selectedIds.includes(c._id) ? "bg-[#8B0000]/5" : "hover:bg-[#f9fafb]"}`}
+                    className={`transition-colors group ${selectedIds.includes(c._id) ? "bg-brand/10" : "hover:bg-admin-surface-light/40"}`}
                   >
                     <td className="px-6 py-4 text-center">
                       <input
                         type="checkbox"
                         onChange={(e) => handleSelectOne(e, c._id)}
                         checked={selectedIds.includes(c._id)}
-                        className="w-4 h-4 cursor-pointer rounded !bg-white border-gray-300 text-[#8B0000] focus:ring-[#8B0000] accent-[#8B0000]"
-                        style={{ backgroundColor: "white" }}
+                        className="w-4 h-4 cursor-pointer rounded border-admin-border text-brand focus:ring-brand accent-brand"
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -659,28 +662,28 @@ export default function CustomersCRMView({
                         className="flex items-center gap-3 cursor-pointer group/name"
                         onClick={() => setSelectedProfileCustomer(c)}
                       >
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#8B0000] to-[#5a0000] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm group-hover/name:opacity-90">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand to-rose-700 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm group-hover/name:scale-105 transition-transform">
                           {c.name?.charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-bold text-[#111827] group-hover/name:text-[#8B0000] transition-colors">
+                            <p className="text-sm font-bold text-admin-text group-hover/name:text-brand transition-colors">
                               {c.name}
                             </p>
                           </div>
                           <div className="flex flex-col gap-1 mt-0.5">
-                            <p className="text-xs text-[#6b7280]">
+                            <p className="text-xs text-admin-text-secondary">
                               ID: {c.customerId}
                             </p>
                             {(c.loginPlatforms?.includes('web') || c.loginPlatforms?.includes('app')) && (
                               <div className="flex items-center gap-1 mt-1">
                                 {c.loginPlatforms.includes('web') && (
-                                  <span className="text-[10px] font-bold text-[#1e40af] bg-[#eff6ff] border border-[#bfdbfe] px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                                  <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-2xs">
                                     <Globe className="w-3 h-3" /> Web
                                   </span>
                                 )}
                                 {c.loginPlatforms.includes('app') && (
-                                  <span className="text-[10px] font-bold text-[#166534] bg-[#f0fdf4] border border-[#bbf7d0] px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
+                                  <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-2xs">
                                     <Smartphone className="w-3 h-3" /> App
                                   </span>
                                 )}
@@ -691,17 +694,17 @@ export default function CustomersCRMView({
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-xs text-[#374151] flex items-center gap-1.5">
-                        <Phone className="w-3 h-3 text-[#9ca3af]" />{" "}
+                      <p className="text-xs text-admin-text flex items-center gap-1.5">
+                        <Phone className="w-3 h-3 text-admin-text-muted" />{" "}
                         {c.phone || "-"}
                       </p>
-                      <p className="text-xs text-[#6b7280] flex items-center gap-1.5 mt-0.5">
-                        <Mail className="w-3 h-3 text-[#9ca3af]" />{" "}
+                      <p className="text-xs text-admin-text-secondary flex items-center gap-1.5 mt-0.5">
+                        <Mail className="w-3 h-3 text-admin-text-muted" />{" "}
                         {c.email || "-"}
                       </p>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-xs font-bold text-[#374151]">
+                      <span className="text-xs font-bold text-admin-text">
                         {c.group || "Others"}
                       </span>
                     </td>
@@ -709,17 +712,17 @@ export default function CustomersCRMView({
                       {getTierBadge(c.loyaltyTier)}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="text-sm font-bold text-[#111827]">
+                      <span className="text-sm font-bold text-admin-text">
                         {c.totalOrders || 0}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <span className="text-sm font-bold text-[#111827]">
+                      <span className="text-sm font-bold text-admin-text">
                         ${(c.totalSpent || 0).toFixed(2)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-xs text-[#374151] font-medium">
+                      <span className="text-xs text-admin-text-secondary font-medium">
                         {c.lastOrderDate
                           ? new Date(c.lastOrderDate).toLocaleDateString(
                               "en-US",
@@ -730,11 +733,11 @@ export default function CustomersCRMView({
                               },
                             )
                           : c.createdAt ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#8B0000] bg-[#fdf2f2] px-2 py-0.5 rounded-full border border-[#fecaca]">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand bg-brand/10 px-2 py-0.5 rounded-full border border-brand/20">
                                 Joined {new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                               </span>
                             ) : (
-                              <span className="text-gray-400">No orders yet</span>
+                              <span className="text-admin-text-muted">No orders yet</span>
                             )}
                       </span>
                     </td>
@@ -745,7 +748,7 @@ export default function CustomersCRMView({
                       <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => setSelectedProfileCustomer(c)}
-                          className="p-1.5 text-[#9ca3af] hover:text-[#374151] hover:bg-white rounded border border-transparent hover:border-[#e5e7eb]"
+                          className="p-1.5 text-admin-text-secondary hover:text-admin-text hover:bg-admin-surface rounded border border-transparent hover:border-admin-border cursor-pointer transition-colors"
                           title="View Profile"
                         >
                           <Eye className="w-4 h-4" />
@@ -763,12 +766,12 @@ export default function CustomersCRMView({
                 {!isLoading && displayedCustomers.length === 0 && (
                   <tr>
                     <td colSpan="10" className="p-12 text-center">
-                      <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-[#e5e7eb] rounded-xl bg-[#f9fafb] max-w-sm mx-auto">
-                        <Users className="w-10 h-10 text-[#d1d5db] mb-3" />
-                        <p className="text-sm font-bold text-[#9ca3af]">
+                      <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-admin-border rounded-xl bg-admin-surface-light/30 max-w-sm mx-auto">
+                        <Users className="w-10 h-10 text-admin-text-muted mb-3" />
+                        <p className="text-sm font-bold text-admin-text">
                           No customers found
                         </p>
-                        <p className="text-xs text-[#9ca3af] mt-1">
+                        <p className="text-xs text-admin-text-secondary mt-1">
                           Try adjusting your filters or search criteria.
                         </p>
                       </div>
@@ -779,14 +782,14 @@ export default function CustomersCRMView({
             </table>
           </div>
 
-          <div className="p-4 border-t border-[#f3f4f6] flex items-center justify-between bg-white shrink-0 rounded-b-[20px]">
-            <span className="text-xs font-semibold text-[#6b7280]">
+          <div className="p-4 border-t border-admin-border flex items-center justify-between bg-admin-surface shrink-0 rounded-b-2xl">
+            <span className="text-xs font-semibold text-admin-text-secondary">
               Showing{" "}
-              <strong className="text-[#374151]">
+              <strong className="text-admin-text">
                 {displayedCustomers.length}
               </strong>{" "}
               of{" "}
-              <strong className="text-[#374151]">
+              <strong className="text-admin-text">
                 {filteredCustomers.length}
               </strong>{" "}
               customers
@@ -796,11 +799,11 @@ export default function CustomersCRMView({
               <button
                 onClick={handleLoadMore}
                 disabled={isLoadingMore}
-                className="flex items-center justify-center gap-2 w-[160px] h-[36px] bg-white border border-[#e5e7eb] text-[#374151] rounded-lg text-[13px] font-bold hover:bg-[#f9fafb] hover:text-[#8B0000] hover:border-[#8B0000] transition-all shadow-sm"
+                className="flex items-center justify-center gap-2 w-[160px] h-[36px] bg-admin-surface border border-admin-border text-admin-text rounded-xl text-xs sm:text-[13px] font-bold hover:bg-admin-surface-light hover:border-brand/40 transition-all shadow-2xs cursor-pointer"
               >
                 {isLoadingMore ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+                    <Loader2 className="w-4 h-4 animate-spin text-brand" /> Loading...
                   </>
                 ) : (
                   "Load More"
@@ -812,8 +815,8 @@ export default function CustomersCRMView({
 
         {/* Right Sidebar (Analytics snippet) */}
         <div className="w-full xl:w-[320px] shrink-0 overflow-y-auto custom-scrollbar space-y-6 pb-6">
-          <div className="bg-white rounded-xl shadow-sm border border-[#e5e7eb] p-5">
-            <h3 className="text-sm font-bold text-[#111827] mb-4">
+          <div className="bg-admin-card rounded-2xl shadow-sm border border-admin-border p-5">
+            <h3 className="font-heading text-sm font-bold text-admin-text mb-4">
               Top Customers
             </h3>
             <div className="space-y-4">
@@ -823,28 +826,28 @@ export default function CustomersCRMView({
                 .map((c, i) => (
                   <div
                     key={c._id || i}
-                    className="flex justify-between items-center border-b border-[#f3f4f6] pb-3 last:border-0 last:pb-0"
+                    className="flex justify-between items-center border-b border-admin-border pb-3 last:border-0 last:pb-0"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-[#6b7280]">
+                      <div className="w-5 h-5 rounded-full bg-admin-surface-light flex items-center justify-center text-xs font-bold text-admin-text-secondary">
                         {i + 1}
                       </div>
-                      <div className="w-8 h-8 rounded-full bg-[#f3f4f6] text-[#4b5563] flex items-center justify-center font-bold text-xs shadow-sm">
+                      <div className="w-8 h-8 rounded-full bg-admin-surface-light text-admin-text flex items-center justify-center font-bold text-xs shadow-2xs">
                         {c.name?.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-[#111827] flex items-center gap-1">
+                        <p className="text-xs font-bold text-admin-text flex items-center gap-1">
                           {c.name}{" "}
                           {i < 3 && (
-                            <Crown className="w-3 h-3 text-[#f59e0b]" />
+                            <Crown className="w-3 h-3 text-amber-500" />
                           )}
                         </p>
-                        <p className="text-xs text-[#6b7280]">
+                        <p className="text-xs text-admin-text-secondary">
                           {c.totalOrders || 0} Orders
                         </p>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-[#111827]">
+                    <span className="text-xs font-bold text-admin-text font-heading">
                       ${(c.totalSpent || 0).toFixed(2)}
                     </span>
                   </div>
@@ -856,38 +859,38 @@ export default function CustomersCRMView({
 
       {/* Floating Bulk Action Bar */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-[calc(50%-160px)] -translate-x-1/2 bg-[#111827] text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-5 z-50">
-          <span className="text-sm font-bold whitespace-nowrap bg-white/10 px-2 py-1 rounded">
+        <div className="fixed bottom-6 left-[calc(50%-160px)] -translate-x-1/2 bg-slate-900/95 dark:bg-[#0f172a]/95 backdrop-blur-md text-white border border-slate-700/60 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-5 z-50">
+          <span className="text-xs font-bold whitespace-nowrap bg-white/10 px-2.5 py-1 rounded-lg">
             {selectedIds.length} Selected
           </span>
           <div className="flex items-center gap-2 border-l border-white/20 pl-4">
             <button
               onClick={() => triggerBulkAction("promo")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-[#374151] transition-colors text-xs font-bold text-gray-300 hover:text-white"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors text-xs font-bold text-slate-200 hover:text-white cursor-pointer"
             >
-              <Tag className="w-3.5 h-3.5" /> Send Promo
+              <Tag className="w-3.5 h-3.5 text-amber-400" /> Send Promo
             </button>
             <button
               onClick={() => triggerBulkAction("group")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-[#374151] transition-colors text-xs font-bold text-gray-300 hover:text-white"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors text-xs font-bold text-slate-200 hover:text-white cursor-pointer"
             >
-              <UsersRound className="w-3.5 h-3.5" /> Group
+              <UsersRound className="w-3.5 h-3.5 text-blue-400" /> Group
             </button>
             <button
               onClick={() => triggerBulkAction("status")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-[#374151] transition-colors text-xs font-bold text-gray-300 hover:text-white"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors text-xs font-bold text-slate-200 hover:text-white cursor-pointer"
             >
-              <Power className="w-3.5 h-3.5" /> Status
+              <Power className="w-3.5 h-3.5 text-emerald-400" /> Status
             </button>
             <button
               onClick={() => triggerBulkAction("delete")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-red-900/50 text-red-400 hover:text-red-300 transition-colors text-xs font-bold"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-colors text-xs font-bold cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" /> Delete
             </button>
             <button
               onClick={clearSelection}
-              className="ml-1 p-1 rounded hover:bg-[#374151] text-gray-400 hover:text-white transition-colors"
+              className="ml-1 p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
               <XCircle className="w-4 h-4" />
             </button>
@@ -980,20 +983,20 @@ function RowMenuDropdown({ onAction, onEdit }) {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`p-1.5 rounded border transition-colors ${isOpen ? "bg-white text-[#374151] border-[#e5e7eb]" : "text-[#9ca3af] hover:text-[#374151] hover:bg-white border-transparent hover:border-[#e5e7eb]"}`}
+        className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${isOpen ? "bg-admin-surface text-admin-text border-admin-border" : "text-admin-text-secondary hover:text-admin-text hover:bg-admin-surface border-transparent hover:border-admin-border"}`}
       >
         <MoreVertical className="w-4 h-4" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-[#e5e7eb] py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute right-0 top-full mt-1 w-48 bg-admin-surface rounded-xl shadow-xl border border-admin-border py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
           {onEdit && (
             <button
               onClick={() => {
                 setIsOpen(false);
                 onEdit();
               }}
-              className="w-full text-left px-4 py-2 text-sm text-[#374151] font-medium hover:bg-[#f9fafb] hover:text-[#111827]"
+              className="w-full text-left px-4 py-2 text-xs sm:text-sm text-admin-text font-medium hover:bg-admin-surface-light cursor-pointer transition-colors"
             >
               Edit Customer
             </button>
@@ -1003,7 +1006,7 @@ function RowMenuDropdown({ onAction, onEdit }) {
               setIsOpen(false);
               onAction("promo");
             }}
-            className="w-full text-left px-4 py-2 text-sm text-[#374151] font-medium hover:bg-[#f9fafb] hover:text-[#111827]"
+            className="w-full text-left px-4 py-2 text-xs sm:text-sm text-admin-text font-medium hover:bg-admin-surface-light cursor-pointer transition-colors"
           >
             Send Promo
           </button>
@@ -1012,17 +1015,17 @@ function RowMenuDropdown({ onAction, onEdit }) {
               setIsOpen(false);
               onAction("group");
             }}
-            className="w-full text-left px-4 py-2 text-sm text-[#374151] font-medium hover:bg-[#f9fafb] hover:text-[#111827]"
+            className="w-full text-left px-4 py-2 text-xs sm:text-sm text-admin-text font-medium hover:bg-admin-surface-light cursor-pointer transition-colors"
           >
             Assign Group
           </button>
-          <div className="h-px bg-[#e5e7eb] my-1"></div>
+          <div className="h-px bg-admin-border my-1"></div>
           <button
             onClick={() => {
               setIsOpen(false);
               onAction("status");
             }}
-            className="w-full text-left px-4 py-2 text-sm text-[#374151] font-medium hover:bg-[#f9fafb] hover:text-[#111827]"
+            className="w-full text-left px-4 py-2 text-xs sm:text-sm text-admin-text font-medium hover:bg-admin-surface-light cursor-pointer transition-colors"
           >
             Change Status
           </button>
@@ -1031,7 +1034,7 @@ function RowMenuDropdown({ onAction, onEdit }) {
               setIsOpen(false);
               onAction("delete");
             }}
-            className="w-full text-left px-4 py-2 text-sm text-[#dc2626] font-bold hover:bg-[#fef2f2]"
+            className="w-full text-left px-4 py-2 text-xs sm:text-sm text-rose-500 font-bold hover:bg-rose-500/10 cursor-pointer transition-colors"
           >
             Delete Customer
           </button>
@@ -1066,27 +1069,27 @@ function PromoModal({ roomId, targetIds, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
-        <div className="p-5 border-b border-[#e5e7eb] flex justify-between items-center bg-[#F8FAFC]">
-          <h2 className="text-lg font-bold text-[#111827] flex items-center gap-2">
-            <Gift className="w-5 h-5 text-[#8B0000]" /> Send Promotion
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
+        <div className="p-5 border-b border-admin-border flex justify-between items-center bg-admin-surface-light">
+          <h2 className="text-base sm:text-lg font-heading font-bold text-admin-text flex items-center gap-2">
+            <Gift className="w-5 h-5 text-brand" /> Send Promotion
           </h2>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full"
+            className="p-1 text-admin-text-secondary hover:text-admin-text hover:bg-admin-surface rounded-full transition-colors cursor-pointer"
           >
             <XCircle className="w-5 h-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <p className="text-sm font-medium text-[#6b7280] mb-2">
+          <p className="text-xs sm:text-sm font-medium text-admin-text-secondary mb-2">
             Sending to {targetIds.length} customer(s). They will receive an App
             Notification and a Unique Coupon Code.
           </p>
 
           <div>
-            <label className="block text-xs font-bold text-[#374151] mb-1">
+            <label className="block text-xs font-bold text-admin-text mb-1">
               Offer Title
             </label>
             <input
@@ -1095,13 +1098,13 @@ function PromoModal({ roomId, targetIds, onClose, onSuccess }) {
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="e.g. Special VIP Discount"
-              className="w-full border border-[#d1d5db] rounded-lg px-3 py-2 text-sm text-[#111827] bg-white outline-none focus:border-[#8B0000] focus:ring-1 focus:ring-[#8B0000]"
+              className="w-full border border-admin-border rounded-xl px-3 py-2 text-xs sm:text-sm text-admin-text bg-admin-surface outline-none focus:border-brand transition-colors"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-[#374151] mb-1">
+              <label className="block text-xs font-bold text-admin-text mb-1">
                 Discount Type
               </label>
               <select
@@ -1109,14 +1112,14 @@ function PromoModal({ roomId, targetIds, onClose, onSuccess }) {
                 onChange={(e) =>
                   setForm({ ...form, discountType: e.target.value })
                 }
-                className="w-full border border-[#d1d5db] rounded-lg px-3 py-2 text-sm text-[#111827] bg-white outline-none focus:border-[#8B0000]"
+                className="w-full border border-admin-border rounded-xl px-3 py-2 text-xs sm:text-sm text-admin-text bg-admin-surface outline-none focus:border-brand cursor-pointer"
               >
                 <option value="percentage">Percentage (%)</option>
                 <option value="fixed">Fixed Amount ($)</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-[#374151] mb-1">
+              <label className="block text-xs font-bold text-admin-text mb-1">
                 Value
               </label>
               <input
@@ -1127,13 +1130,13 @@ function PromoModal({ roomId, targetIds, onClose, onSuccess }) {
                 onChange={(e) =>
                   setForm({ ...form, discountValue: e.target.value })
                 }
-                className="w-full border border-[#d1d5db] rounded-lg px-3 py-2 text-sm text-[#111827] bg-white outline-none focus:border-[#8B0000] focus:ring-1 focus:ring-[#8B0000]"
+                className="w-full border border-admin-border rounded-xl px-3 py-2 text-xs sm:text-sm text-admin-text bg-admin-surface outline-none focus:border-brand transition-colors"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#374151] mb-1">
+            <label className="block text-xs font-bold text-admin-text mb-1">
               Message Body
             </label>
             <textarea
@@ -1142,7 +1145,7 @@ function PromoModal({ roomId, targetIds, onClose, onSuccess }) {
               value={form.message}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
               placeholder="Write a nice message..."
-              className="w-full border border-[#d1d5db] rounded-lg px-3 py-2 text-sm text-[#111827] bg-white outline-none focus:border-[#8B0000] focus:ring-1 focus:ring-[#8B0000] custom-scrollbar"
+              className="w-full border border-admin-border rounded-xl px-3 py-2 text-xs sm:text-sm text-admin-text bg-admin-surface outline-none focus:border-brand custom-scrollbar transition-colors"
             ></textarea>
           </div>
 
@@ -1150,14 +1153,14 @@ function PromoModal({ roomId, targetIds, onClose, onSuccess }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-100 text-[#111827] font-bold rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex-1 px-4 py-2.5 bg-admin-surface-light border border-admin-border text-admin-text font-bold rounded-xl hover:bg-admin-surface transition-colors cursor-pointer text-xs sm:text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-[#8B0000] text-white font-bold rounded-lg hover:bg-red-900 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+              className="flex-1 px-4 py-2.5 bg-brand text-white font-bold rounded-xl hover:brightness-110 disabled:opacity-50 flex items-center justify-center gap-2 transition-all cursor-pointer text-xs sm:text-sm shadow-sm"
             >
               {loading ? "Sending..." : "Send Now"}
             </button>
@@ -1190,25 +1193,25 @@ function GroupModal({ roomId, targetIds, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
-        <div className="p-5 border-b border-[#e5e7eb] flex justify-between items-center bg-[#F8FAFC]">
-          <h2 className="text-lg font-bold text-[#111827]">Assign Group</h2>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
+        <div className="p-5 border-b border-admin-border flex justify-between items-center bg-admin-surface-light">
+          <h2 className="text-base sm:text-lg font-heading font-bold text-admin-text">Assign Group</h2>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-700"
+            className="p-1 text-admin-text-secondary hover:text-admin-text rounded-full transition-colors cursor-pointer"
           >
             <XCircle className="w-5 h-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <p className="text-sm font-medium text-[#6b7280]">
+          <p className="text-xs sm:text-sm font-medium text-admin-text-secondary">
             Select a group for {targetIds.length} customer(s).
           </p>
           <select
             value={group}
             onChange={(e) => setGroup(e.target.value)}
-            className="w-full border border-[#d1d5db] rounded-lg px-3 py-2 text-sm text-[#111827] outline-none focus:border-[#8B0000] bg-white cursor-pointer"
+            className="w-full border border-admin-border rounded-xl px-3 py-2 text-xs sm:text-sm text-admin-text outline-none focus:border-brand bg-admin-surface cursor-pointer"
           >
             <option value="App User">App User</option>
             <option value="Guest">Guest</option>
@@ -1221,14 +1224,14 @@ function GroupModal({ roomId, targetIds, onClose, onSuccess }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-100 text-[#111827] font-bold rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex-1 px-4 py-2.5 bg-admin-surface-light border border-admin-border text-admin-text font-bold rounded-xl hover:bg-admin-surface transition-colors cursor-pointer text-xs sm:text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-[#111827] text-white font-bold rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors"
+              className="flex-1 px-4 py-2.5 bg-brand text-white font-bold rounded-xl hover:brightness-110 disabled:opacity-50 transition-all cursor-pointer text-xs sm:text-sm shadow-sm"
             >
               Save
             </button>
@@ -1261,25 +1264,25 @@ function StatusModal({ roomId, targetIds, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
-        <div className="p-5 border-b border-[#e5e7eb] flex justify-between items-center bg-[#F8FAFC]">
-          <h2 className="text-lg font-bold text-[#111827]">Change Status</h2>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
+        <div className="p-5 border-b border-admin-border flex justify-between items-center bg-admin-surface-light">
+          <h2 className="text-base sm:text-lg font-heading font-bold text-admin-text">Change Status</h2>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-700"
+            className="p-1 text-admin-text-secondary hover:text-admin-text rounded-full transition-colors cursor-pointer"
           >
             <XCircle className="w-5 h-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <p className="text-sm font-medium text-[#6b7280]">
+          <p className="text-xs sm:text-sm font-medium text-admin-text-secondary">
             Update status for {targetIds.length} customer(s).
           </p>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="w-full border border-[#d1d5db] rounded-lg px-3 py-2 text-sm text-[#111827] outline-none focus:border-[#8B0000] bg-white cursor-pointer"
+            className="w-full border border-admin-border rounded-xl px-3 py-2 text-xs sm:text-sm text-admin-text outline-none focus:border-brand bg-admin-surface cursor-pointer"
           >
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
@@ -1288,14 +1291,14 @@ function StatusModal({ roomId, targetIds, onClose, onSuccess }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-100 text-[#111827] font-bold rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex-1 px-4 py-2.5 bg-admin-surface-light border border-admin-border text-admin-text font-bold rounded-xl hover:bg-admin-surface transition-colors cursor-pointer text-xs sm:text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-[#111827] text-white font-bold rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors"
+              className="flex-1 px-4 py-2.5 bg-brand text-white font-bold rounded-xl hover:brightness-110 disabled:opacity-50 transition-all cursor-pointer text-xs sm:text-sm shadow-sm"
             >
               Save
             </button>
@@ -1323,30 +1326,30 @@ function DeleteModal({ roomId, targetIds, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
         <div className="p-6 text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Trash2 className="w-8 h-8 text-red-600" />
+          <div className="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-500/20">
+            <Trash2 className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold text-[#111827] mb-2">
+          <h2 className="text-xl font-heading font-bold text-admin-text mb-2">
             Delete Customers?
           </h2>
-          <p className="text-sm font-medium text-[#6b7280] mb-6">
+          <p className="text-xs sm:text-sm font-medium text-admin-text-secondary mb-6">
             Are you sure you want to delete {targetIds.length} customer(s)? This
             will archive their profiles.
           </p>
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-100 text-[#111827] font-bold rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex-1 px-4 py-2.5 bg-admin-surface-light border border-admin-border text-admin-text font-bold rounded-xl hover:bg-admin-surface transition-colors cursor-pointer text-xs sm:text-sm"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+              className="flex-1 px-4 py-2.5 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 disabled:opacity-50 transition-all cursor-pointer text-xs sm:text-sm shadow-sm"
             >
               {loading ? "Deleting..." : "Yes, Delete"}
             </button>
