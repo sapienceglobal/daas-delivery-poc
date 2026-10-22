@@ -171,7 +171,7 @@ export default function TablesPage() {
   const availableCount = tables.filter(t => t.status === 'available').length;
 
   return (
-    <div className="space-y-6 pb-12 max-w-7xl mx-auto">
+    <div className="space-y-6 pb-12">
       {/* Header section */}
       <PageHeaderGradient
         badgeIcon={LayoutGrid}

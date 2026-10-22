@@ -261,7 +261,7 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
   if (!mounted) return null;
 
   return (
-    <div className="space-y-6 sm:space-y-8 pb-20">
+    <div className="space-y-6 pb-12">
       
       {/* ── HEADER ROW ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

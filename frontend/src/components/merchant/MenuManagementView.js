@@ -166,7 +166,7 @@ export default function MenuManagementView({
       </div>
 
       {/* 🚀 ENHANCED CATEGORY TABS WITH SCROLL BUTTONS 🚀 */}
-      <div className="relative shrink-0 group sticky top-[70px] z-[40] bg-admin-bg/95 backdrop-blur-md pt-2 pb-2 -mt-2 border-b border-admin-border/50">
+      <div className="relative shrink-0 group sticky top-0 z-[40] bg-admin-bg/95 backdrop-blur-md py-2 border-b border-admin-border/50">
         
         {/* Scrollable Container */}
         <div 

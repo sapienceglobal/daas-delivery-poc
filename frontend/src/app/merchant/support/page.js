@@ -81,7 +81,7 @@ export default function HelpSupportPage() {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto pb-24 space-y-8">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <PageHeaderGradient
         badgeIcon={Headphones}

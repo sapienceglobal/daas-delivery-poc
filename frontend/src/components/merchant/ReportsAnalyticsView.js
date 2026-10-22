@@ -164,7 +164,7 @@ export default function ReportsAnalyticsView({
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 pb-10">
+    <div className="space-y-6 pb-10">
       
       {/* ── HEADER ROW WITH CONTROLS ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -261,10 +261,10 @@ export default function ReportsAnalyticsView({
       </div>
 
       {/* ── ROW 2: REVENUE LINE CHART, CHANNEL DONUT & HEATMAP ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         
         {/* Revenue Overview */}
-        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 sm:p-6 shadow-xs lg:col-span-1 flex flex-col">
+        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 shadow-xs lg:col-span-1 flex flex-col">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-sm font-bold text-admin-text">Revenue Overview</h3>
           </div>
@@ -297,7 +297,7 @@ export default function ReportsAnalyticsView({
         </div>
 
         {/* Sales by Channel */}
-        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 sm:p-6 shadow-xs flex flex-col">
+        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 shadow-xs flex flex-col">
           <h3 className="text-sm font-bold text-admin-text mb-6">Sales by Channel</h3>
           <div className="flex-1 flex flex-col items-center justify-center relative min-h-[200px]">
             <ResponsiveContainer width="100%" height={200}>
@@ -337,7 +337,7 @@ export default function ReportsAnalyticsView({
         </div>
 
         {/* Orders by Time of Day Heatmap */}
-        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 sm:p-6 shadow-xs flex flex-col">
+        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 shadow-xs flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-admin-text">Orders by Time of Day</h3>
           </div>
@@ -390,10 +390,10 @@ export default function ReportsAnalyticsView({
       </div>
 
       {/* ── ROW 3: DISHES, PAYMENTS, REVENUE COMPARISON & INSIGHTS ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
         
         {/* Top Selling Dishes */}
-        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 sm:p-6 shadow-xs lg:col-span-1 flex flex-col">
+        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 shadow-xs lg:col-span-1 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-admin-text">Top Selling Dishes</h3>
           </div>
@@ -432,7 +432,7 @@ export default function ReportsAnalyticsView({
         </div>
 
         {/* Payment Method Breakdown */}
-        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 sm:p-6 shadow-xs flex flex-col">
+        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 shadow-xs flex flex-col">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-sm font-bold text-admin-text">Payment Method Breakdown</h3>
           </div>
@@ -472,7 +472,7 @@ export default function ReportsAnalyticsView({
         </div>
 
         {/* Weekly Revenue Comparison */}
-        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 sm:p-6 shadow-xs lg:col-span-1 flex flex-col">
+        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 shadow-xs lg:col-span-1 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-admin-text">Weekly Revenue Comparison</h3>
           </div>
@@ -497,7 +497,7 @@ export default function ReportsAnalyticsView({
         </div>
 
         {/* Key Insights */}
-        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 sm:p-6 shadow-xs lg:col-span-1 flex flex-col">
+        <div className="bg-admin-card rounded-2xl border border-admin-border p-5 shadow-xs lg:col-span-1 flex flex-col">
           <h3 className="text-sm font-bold text-admin-text mb-4">Key Insights</h3>
           <div className="space-y-4 flex-1">
             <div className="flex items-start gap-3">

@@ -53,7 +53,7 @@ export default function MerchantCRMPage() {
   if (globalLoading || loading) return <PageLoader text="Loading Customers..." />;
 
   return (
-    <div className="h-full bg-[#f8fafc]">
+    <>
       <CustomersCRMView 
         customers={customers} 
         onSaveCustomer={handleSaveCustomer}
@@ -68,6 +68,6 @@ export default function MerchantCRMPage() {
         onSave={handleSaveCustomer}
         restaurantId={roomId}
       />
-    </div>
+    </>
   );
 }

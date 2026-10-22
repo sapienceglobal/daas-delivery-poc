@@ -176,7 +176,7 @@ export default function DashboardView({
     .slice(0, 3);
 
   return (
-    <div className="space-y-6 sm:space-y-8 pb-10">
+    <div className="space-y-6 pb-10">
       
       {/* ── HEADER ROW WITH TIMEFRAME SELECTOR ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

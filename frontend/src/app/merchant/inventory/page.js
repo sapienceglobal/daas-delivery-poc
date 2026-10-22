@@ -134,7 +134,7 @@ export default function InventoryDashboard() {
   const lowStockCount = items.filter(i => i.isLowStock).length;
 
   return (
-    <div className="space-y-6 pb-12 max-w-7xl mx-auto">
+    <div className="space-y-6 pb-12">
       {/* Header section */}
       <PageHeaderGradient
         badgeIcon={Boxes}

@@ -11,7 +11,7 @@ export default function MerchantAuditPage() {
   if (!restaurant) return null;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6 pb-12">
       <SystemAuditView />
     </div>
   );

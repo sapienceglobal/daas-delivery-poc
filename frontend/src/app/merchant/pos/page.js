@@ -726,7 +726,7 @@ function POSContent() {
   if (loading) return <PageLoader text="Loading POS Terminal..." />;
 
   return (
-    <div className="h-[calc(100vh-80px)] overflow-hidden flex flex-col md:flex-row gap-5 p-4 text-admin-text">
+    <div className="h-[calc(100vh-120px)] overflow-hidden flex flex-col md:flex-row gap-5 text-admin-text">
 
       {/* Left: Menu Items */}
       <div className="flex-1 flex flex-col gap-4 overflow-hidden">

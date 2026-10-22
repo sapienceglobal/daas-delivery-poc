@@ -388,8 +388,8 @@ export default function SettingsView({ restaurant, onRefresh }) {
         </div>
 
         {/* Right Content */}
-        <div className="flex-1 overflow-y-auto bg-transparent p-4 md:p-6 custom-scrollbar">
-          <div className="max-w-5xl mx-auto space-y-6 pb-12">
+        <div className="flex-1 overflow-y-auto bg-transparent custom-scrollbar">
+          <div className="space-y-6 pb-12">
 
             {/* General Settings */}
             <div className={`bg-admin-card rounded-2xl border border-admin-border shadow-sm overflow-hidden text-admin-text ${activeTab !== 'general' && activeTab !== 'all' ? 'hidden' : ''}`}>

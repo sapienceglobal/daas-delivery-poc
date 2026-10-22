@@ -470,11 +470,11 @@ export default function CustomersCRMView({
         />
       </div>
 
-      <div className="flex flex-col xl:flex-row flex-1 gap-6 pb-2 px-1 max-h-[750px]">
+      <div className="flex flex-col xl:flex-row flex-1 gap-6 pb-2 px-1">
         <div className="flex-1 bg-admin-card rounded-2xl shadow-sm border border-admin-border flex flex-col relative min-w-0 group">
           
           {/* STICKY TOP SECTION */}
-          <div className="sticky top-[70px] z-40 bg-admin-surface/95 backdrop-blur-md rounded-t-2xl flex flex-col shadow-sm border-b border-admin-border">
+          <div className="sticky top-0 z-40 bg-admin-surface/95 backdrop-blur-md rounded-t-2xl flex flex-col shadow-sm border-b border-admin-border">
             <div className="p-4 flex flex-wrap gap-3.5 items-center justify-between shrink-0">
               <div className="relative flex-1 min-w-[200px] max-w-sm">
                 <Search className="w-4 h-4 text-admin-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />

@@ -418,7 +418,7 @@ export default function CateringEnquiriesView({ inquiries = [], isLoading = fals
           <div className="bg-admin-card rounded-2xl shadow-sm border border-admin-border flex flex-col flex-1 min-w-0 relative group">
             
             {/* STICKY TOP SECTION */}
-            <div className="sticky top-[70px] z-40 bg-admin-surface/95 backdrop-blur-md rounded-t-2xl flex flex-col shadow-sm border-b border-admin-border">
+            <div className="sticky top-0 z-40 bg-admin-surface/95 backdrop-blur-md rounded-t-2xl flex flex-col shadow-sm border-b border-admin-border">
               <div className="p-4 flex flex-wrap gap-3.5 items-center justify-between">
                 <div className="relative flex-1 min-w-[200px] max-w-sm">
                   <Search className="w-4 h-4 text-admin-text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />

@@ -184,7 +184,7 @@ export default function MarketingView({ restaurantId }) {
   };
 
   return (
-    <div className="space-y-8 max-w-[1400px] mx-auto pb-12">
+    <div className="space-y-6 pb-12">
       {/* Page Header */}
       <PageHeaderGradient
         title="Push Notification Campaigns"
