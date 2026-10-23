@@ -184,6 +184,7 @@ export default function MenuManagementView({
               icon={Plus}
               width={76}
               isSelected={false}
+              labelClassName="text-admin-text group-hover/capsule:text-brand"
               onClick={() => onAddCategory && onAddCategory()}
             />
           </div>
@@ -196,6 +197,7 @@ export default function MenuManagementView({
               width={76}
               isSelected={activeCategory === 'all'}
               itemCount={allItems.length}
+              labelClassName={activeCategory === 'all' ? 'text-brand' : 'text-admin-text group-hover/capsule:text-brand'}
               onClick={() => setActiveCategory('all')}
             />
           </div>
@@ -221,6 +223,7 @@ export default function MenuManagementView({
                 width={76}
                 isSelected={activeCategory === cat._id}
                 itemCount={cat.items?.length || 0}
+                labelClassName={activeCategory === cat._id ? 'text-brand' : 'text-admin-text group-hover/capsule:text-brand'}
                 onClick={() => setActiveCategory(cat._id)}
               />
               

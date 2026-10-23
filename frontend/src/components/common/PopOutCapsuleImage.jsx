@@ -25,6 +25,7 @@ export default function PopOutCapsuleImage({
   showLabel = true,
   className = '',
   itemCount,
+  labelClassName = '',
 }) {
   const displayLabel = label || (typeof category === 'object' ? category.name : category) || '';
   const finalImageUrl = imageUrl || getCategory3DImage(category);
@@ -131,9 +132,11 @@ export default function PopOutCapsuleImage({
         <div className="mt-2.5 flex flex-col items-center w-full px-0.5">
           <span
             className={`text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-center line-clamp-2 leading-tight transition-colors duration-200 font-sans ${
-              isSelected
-                ? 'text-[#7a0b10] dark:text-brand-light'
-                : 'text-[#1a1a1a] dark:text-admin-text group-hover/capsule:text-[#7a0b10] dark:group-hover/capsule:text-brand-light'
+              labelClassName
+                ? labelClassName
+                : isSelected
+                ? 'text-[#7a0b10]'
+                : 'text-[#1a1a1a] group-hover/capsule:text-[#7a0b10]'
             }`}
           >
             {displayLabel}
@@ -141,7 +144,7 @@ export default function PopOutCapsuleImage({
 
           {/* Active Underline Pill (Matching Flutter App) */}
           {isSelected && (
-            <span className="w-4 h-[2.5px] bg-[#7a0b10] dark:bg-brand-light rounded-full mt-1.5 animate-in fade-in zoom-in-75 duration-200" />
+            <span className="w-4 h-[2.5px] bg-[#7a0b10] rounded-full mt-1.5 animate-in fade-in zoom-in-75 duration-200" />
           )}
         </div>
       )}

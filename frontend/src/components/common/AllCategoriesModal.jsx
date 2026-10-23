@@ -59,6 +59,9 @@ export default function AllCategoriesModal({
         className="bg-[#fcfaf5] border border-[#ebdcc1] rounded-t-[2rem] sm:rounded-3xl w-full max-w-3xl max-h-[85vh] sm:max-h-[88vh] overflow-hidden flex flex-col shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-250 text-[#1a1a1a]"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Mobile Native Bottom Sheet Pull Handle */}
+        <div className="w-12 h-1 bg-[#d7c8b4] rounded-full mx-auto mt-2.5 mb-0.5 sm:hidden shrink-0" />
+
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#ebdcc1]/80 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20">
           <div className="flex items-center gap-2.5">
