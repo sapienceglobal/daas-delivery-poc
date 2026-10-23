@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Star, Heart, Minus, Plus, Flame, Leaf, SearchX, LayoutGrid, List, ChevronDown, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { getItemUrl, resolveImageUrl } from '@/lib/slugUtils';
+import { getCategory3DImage } from '@/lib/category3DHelper';
 
 const getDishImage = (itemName) => {
   const name = itemName.toLowerCase();
@@ -111,11 +112,22 @@ export default function DishGrid({
       {/* ─── 1. HEADER CONTROLS ─── */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end justify-between bg-transparent pb-4 border-b border-[#e5e7eb]/80">
         <div className="flex flex-col flex-1 min-w-0 w-full pr-4">
-          <div className="flex items-center gap-2 min-w-0 w-full">
-            <div className="shrink-0 text-[#e8a020] mt-1.5 flex items-center justify-center">
-              <svg width="22" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
-            </div>
-            <h2 className="text-[28px] md:text-[32px] font-serif font-black text-[#1a1a1a] leading-none truncate w-full">
+          <div className="flex items-center gap-2.5 min-w-0 w-full">
+            {!searchQuery.trim() && (
+              <div 
+                className="relative w-9 h-10 rounded-full shrink-0 flex items-center justify-center shadow-2xs border border-[#ebdcc1]/70"
+                style={{
+                  background: 'radial-gradient(circle at center, #FDEFD5 0%, #ffffff 100%)',
+                }}
+              >
+                <img
+                  src={getCategory3DImage(currentCategory?.name || 'all')}
+                  alt={currentCategory?.name || 'Category'}
+                  className="w-8 h-8 object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.14)] -mt-1"
+                />
+              </div>
+            )}
+            <h2 className="text-[26px] md:text-[32px] font-serif font-black text-[#1a1a1a] leading-none truncate w-full">
               {searchQuery.trim()
                 ? `Search Results for "${searchQuery.length > 25 ? searchQuery.substring(0, 25) + '...' : searchQuery}"`
                 : (currentCategory?.name && currentCategory.name !== 'All Items' ? currentCategory.name : (currentCategory?.name || 'All Items'))}

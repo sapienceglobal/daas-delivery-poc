@@ -44,7 +44,7 @@ export default function ReferTab({ user }) {
   const refereeDiscount = program.refereeDiscountValue ?? 25;
   const referrerReward = program.referrerRewardValue ?? 25;
   const refereeMinOrder = program.refereeMinOrder ?? 30;
-  const maxRewards = program.maxRewardsPerReferrer ?? 20;
+  const maxRewards = program.maxRewardsPerReferrer !== undefined ? Number(program.maxRewardsPerReferrer) : 20;
 
   const remainingInvites = maxRewards > 0 ? Math.max(0, maxRewards - stats.rewarded) : null;
   const progressPercent = maxRewards > 0 ? Math.min(100, Math.round((stats.rewarded / maxRewards) * 100)) : 0;

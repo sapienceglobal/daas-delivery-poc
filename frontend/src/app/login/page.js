@@ -101,9 +101,12 @@ function LoginPageContent() {
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
       if (user.role === 'customer') {
-        // use window.location.href instead of router.push to bypass Next.js router cache
-        // which aggressively caches middleware redirects, causing infinite loops.
         const dest = redirectPath || '/';
+        window.location.href = dest;
+      } else if (user.role === 'merchant' || user.role === 'admin') {
+        const dest = redirectPath && (redirectPath.startsWith('/merchant') || redirectPath.startsWith('/admin'))
+          ? redirectPath
+          : (user.role === 'admin' ? '/admin' : '/merchant');
         window.location.href = dest;
       }
     }

@@ -12,8 +12,24 @@ export default function CustomerProfileModal({ customer, restaurantId, onClose, 
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsMounted(true), 10);
-    return () => clearTimeout(timer);
+    setIsMounted(true);
+  }, []);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   useEffect(() => {
@@ -27,7 +43,8 @@ export default function CustomerProfileModal({ customer, restaurantId, onClose, 
       setLoading(true);
       setError(null);
       const res = await crmAPI.getCustomerProfile(restaurantId, customer._id);
-      setProfileData(res.data);
+      const payload = res?.data?.stats ? res.data : (res?.data?.data || res?.data || res);
+      setProfileData(payload);
     } catch (err) {
       setError(err.message || 'Failed to load profile data');
     } finally {
@@ -35,14 +52,7 @@ export default function CustomerProfileModal({ customer, restaurantId, onClose, 
     }
   };
 
-  if (!customer) return null;
-
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      onClose();
-    }, 300);
-  };
+  if (!customer || !isMounted || typeof document === 'undefined') return null;
 
   return createPortal(
     <div 
@@ -136,14 +146,16 @@ export default function CustomerProfileModal({ customer, restaurantId, onClose, 
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
 // ── TAB COMPONENTS ──────────────────────────────────────────────────────────
 
 function OverviewTab({ data, customer, onTriggerPromo }) {
-  const { stats, promos } = data;
+  const stats = data?.stats || {};
+  const promos = data?.promos || [];
   
   return (
     <div className="space-y-6">
@@ -209,23 +221,23 @@ function OverviewTab({ data, customer, onTriggerPromo }) {
           <div className="flex justify-between items-center pb-3 border-b border-admin-border">
             <span className="text-admin-text-secondary font-medium">Customer Group</span>
             <span className="text-admin-text font-bold bg-admin-surface-light border border-admin-border px-2.5 py-1 rounded-lg">
-              {customer.group || 'General'}
+              {customer?.group || 'General'}
             </span>
           </div>
           <div className="flex justify-between items-center pb-3 border-b border-admin-border">
             <span className="text-admin-text-secondary font-medium">Platforms Used</span>
             <div className="flex items-center gap-1.5">
-              {customer.loginPlatforms?.includes('web') && (
+              {customer?.loginPlatforms?.includes('web') && (
                 <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                   <Globe className="w-3 h-3" /> Web
                 </span>
               )}
-              {customer.loginPlatforms?.includes('app') && (
+              {customer?.loginPlatforms?.includes('app') && (
                 <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                   <Smartphone className="w-3 h-3" /> Mobile App
                 </span>
               )}
-              {!customer.loginPlatforms?.length && (
+              {!customer?.loginPlatforms?.length && (
                 <span className="text-[10px] text-admin-text-muted bg-admin-surface-light px-2 py-0.5 rounded-md">Direct</span>
               )}
             </div>
@@ -233,12 +245,12 @@ function OverviewTab({ data, customer, onTriggerPromo }) {
           <div className="flex justify-between items-center pb-3 border-b border-admin-border">
             <span className="text-admin-text-secondary font-medium">Total Savings (Coupons)</span>
             <span className="text-emerald-500 font-bold font-mono text-sm">
-              ${(stats.totalSavings || 0).toFixed(2)}
+              ${Number(stats.totalSavings || 0).toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-admin-text-secondary font-medium">Account Status</span>
-            {customer.status === 'Active' ? (
+            {customer?.status === 'Active' ? (
               <span className="text-emerald-500 font-bold text-xs bg-emerald-500/15 border border-emerald-500/25 px-2.5 py-1 rounded-lg">Active</span>
             ) : (
               <span className="text-rose-500 font-bold text-xs bg-rose-500/15 border border-rose-500/25 px-2.5 py-1 rounded-lg">Inactive</span>
@@ -289,7 +301,7 @@ function OverviewTab({ data, customer, onTriggerPromo }) {
                       )}
                     </div>
                     <div className="text-[11px] text-admin-text-muted mt-1 font-medium">
-                      {promo.type === 'percentage' ? `${promo.value}% OFF` : `$${promo.value} OFF`} • {new Date(promo.createdAt).toLocaleDateString()}
+                      {promo.type === 'percentage' ? `${promo.value}% OFF` : `$${promo.value} OFF`} • {promo.createdAt ? new Date(promo.createdAt).toLocaleDateString() : 'Recent'}
                     </div>
                   </div>
                   <div className="text-right text-[11px] font-bold text-admin-text-secondary">
@@ -306,7 +318,7 @@ function OverviewTab({ data, customer, onTriggerPromo }) {
 }
 
 function OrdersTab({ data }) {
-  const { orders } = data;
+  const orders = data?.orders || [];
 
   if (!orders || orders.length === 0) {
     return (
@@ -323,11 +335,11 @@ function OrdersTab({ data }) {
   return (
     <div className="space-y-3.5">
       {orders.map((order) => (
-        <div key={order._id} className="bg-admin-card p-4 sm:p-5 rounded-2xl border border-admin-border shadow-sm hover:border-brand/40 transition-colors relative overflow-hidden group">
+        <div key={order._id || Math.random()} className="bg-admin-card p-4 sm:p-5 rounded-2xl border border-admin-border shadow-sm hover:border-brand/40 transition-colors relative overflow-hidden group">
           <div className="flex justify-between items-start mb-3">
             <div>
               <h4 className="text-admin-text font-bold text-sm flex items-center gap-2">
-                Order #{order.orderNumber || order._id.slice(-6).toUpperCase()}
+                Order #{order.orderNumber || (order._id ? String(order._id).slice(-6).toUpperCase() : 'N/A')}
                 <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${
                   order.status === 'delivered' || order.status === 'completed' ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25' : 
                   order.status === 'cancelled' ? 'bg-rose-500/15 text-rose-500 border border-rose-500/25' :
@@ -337,7 +349,7 @@ function OrdersTab({ data }) {
                 </span>
               </h4>
               <div className="flex items-center gap-3 text-xs font-medium text-admin-text-muted mt-1.5">
-                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(order.createdAt).toLocaleString()}</span>
+                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'Recent'}</span>
                 <span className="capitalize">{order.orderType || 'Delivery'}</span>
               </div>
             </div>
@@ -354,9 +366,9 @@ function OrdersTab({ data }) {
                 <div key={idx} className="flex justify-between items-center text-xs border-b border-admin-border last:border-0 pb-1.5 last:pb-0">
                   <div className="flex items-center gap-2 truncate">
                     <span className="font-mono text-[10px] font-bold text-brand bg-brand/10 px-1.5 py-0.5 rounded">{item.quantity}x</span>
-                    <span className="text-admin-text font-medium truncate">{typeof item.name === 'object' ? item.name.name : item.name}</span>
+                    <span className="text-admin-text font-medium truncate">{typeof item.name === 'object' ? item.name?.name : item.name}</span>
                   </div>
-                  <span className="font-mono font-bold text-admin-text shrink-0">${Number(item.lineTotal || 0).toFixed(2)}</span>
+                  <span className="font-mono font-bold text-admin-text shrink-0">${Number(item.lineTotal || (item.price * item.quantity) || 0).toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -368,7 +380,7 @@ function OrdersTab({ data }) {
 }
 
 function LoyaltyTab({ data }) {
-  const { loyalty } = data;
+  const loyalty = data?.loyalty || {};
   
   return (
     <div className="space-y-6">
@@ -408,7 +420,7 @@ function LoyaltyTab({ data }) {
                 <div>
                   <div className="text-admin-text font-bold text-xs">{tx.description}</div>
                   <div className="text-[10px] text-admin-text-muted flex items-center gap-1.5 mt-0.5">
-                    <Calendar className="w-3 h-3" /> {new Date(tx.createdAt).toLocaleDateString()}
+                    <Calendar className="w-3 h-3" /> {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : 'Recent'}
                   </div>
                 </div>
                 <div className={`text-xs font-mono font-extrabold px-2.5 py-1 rounded-lg ${
@@ -421,7 +433,6 @@ function LoyaltyTab({ data }) {
           </div>
         )}
       </div>
-    </div>,
-    document.body
+    </div>
   );
 }

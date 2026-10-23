@@ -29,6 +29,29 @@ const PageSeoSchema = new mongoose.Schema({
     type: String,
     trim: true,
   }],
+  headerScripts: {
+    type: String,
+    default: '',
+  },
+  footerScripts: {
+    type: String,
+    default: '',
+  },
+  gtmId: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+  googleAdsId: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+  metaPixelId: {
+    type: String,
+    trim: true,
+    default: '',
+  },
 }, { timestamps: true });
 
 const PageSeo = mongoose.model('PageSeo', PageSeoSchema);

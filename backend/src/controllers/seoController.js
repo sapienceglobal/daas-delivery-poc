@@ -67,3 +67,50 @@ export const updatePageSeo = asyncHandler(async (req, response) => {
     message: `SEO settings updated for "${cleanPath}" and live revalidation triggered.`,
   });
 });
+
+/**
+ * GET /api/seo/global
+ * Public endpoint to fetch global header/footer tracking scripts and IDs.
+ */
+export const getGlobalSeo = asyncHandler(async (req, response) => {
+  const globalSeo = await PageSeo.findOne({ path: '__global__' }).lean();
+  res.success(response, {
+    data: globalSeo || {
+      gtmId: 'GTM-WWK7W55Q',
+      googleAdsId: 'AW-16715555638',
+      metaPixelId: '',
+      headerScripts: '',
+      footerScripts: '',
+    },
+  });
+});
+
+/**
+ * PUT /api/seo/global
+ * Protected endpoint for Admin / Merchant to update global tracking scripts & IDs.
+ */
+export const updateGlobalSeo = asyncHandler(async (req, response) => {
+  const { gtmId, googleAdsId, metaPixelId, headerScripts, footerScripts } = req.body;
+
+  const updated = await PageSeo.findOneAndUpdate(
+    { path: '__global__' },
+    {
+      path: '__global__',
+      gtmId: typeof gtmId === 'string' ? gtmId.trim() : '',
+      googleAdsId: typeof googleAdsId === 'string' ? googleAdsId.trim() : '',
+      metaPixelId: typeof metaPixelId === 'string' ? metaPixelId.trim() : '',
+      headerScripts: typeof headerScripts === 'string' ? headerScripts : '',
+      footerScripts: typeof footerScripts === 'string' ? footerScripts : '',
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+
+  // Trigger on-demand revalidation for all static pages across the site
+  triggerFrontendRevalidation(['/', '/menu', '/about-us', '/contact-us', '/catering', '/sitemap.xml']);
+
+  res.success(response, {
+    data: updated,
+    message: 'Global tracking scripts & tags updated successfully across entire website!',
+  });
+});
+

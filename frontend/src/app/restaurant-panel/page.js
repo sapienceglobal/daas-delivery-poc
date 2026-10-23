@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -160,8 +160,18 @@ function ForgotPasswordModal({ isOpen, onClose, defaultEmail = '' }) {
 export default function AdminLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, logout, verify2FA } = useAuth();
+  const { login, logout, verify2FA, user, isAuthenticated, loading: authLoading } = useAuth();
   const { brand } = useBrand();
+
+  // Seamless auto-login: if already authenticated as merchant or admin, immediately go to dashboard
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && user) {
+      if (user.role === 'admin' || user.role === 'merchant') {
+        const redirectUrl = searchParams.get('redirect') || (user.role === 'admin' ? '/admin' : '/merchant');
+        router.replace(redirectUrl);
+      }
+    }
+  }, [authLoading, isAuthenticated, user, router, searchParams]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

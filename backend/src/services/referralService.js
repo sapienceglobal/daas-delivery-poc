@@ -81,7 +81,9 @@ export const buildPublicProgram = (restaurant) => {
     refereeMinOrder: s.refereeMinOrder,
     referrerRewardValue: s.referrerRewardValue,
     couponValidityDays: s.couponValidityDays,
-    applyWindowDays: s.applyWindowDays
+    applyWindowDays: s.applyWindowDays,
+    maxRewardsPerReferrer: s.maxRewardsPerReferrer !== undefined ? Number(s.maxRewardsPerReferrer) : 20,
+    requireReferrerOrder: s.requireReferrerOrder ?? false
   };
 };
 

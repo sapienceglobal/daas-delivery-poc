@@ -74,7 +74,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
   num get _refereeMinOrder =>
       _referralData?['program']?['refereeMinOrder'] ?? 30;
   int get _maxRewards =>
-      _referralData?['program']?['maxRewardsPerReferrer'] ?? 20;
+      (_referralData?['program']?['maxRewardsPerReferrer'] as num?)?.toInt() ?? 20;
   num get _pointsEarned =>
       _referralData?['stats']?['pointsEarned'] ?? 0;
   int get _friendsRewarded =>

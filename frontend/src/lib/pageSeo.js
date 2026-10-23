@@ -118,3 +118,46 @@ export async function getPageMetadata(path) {
     },
   };
 }
+
+/**
+ * Fetch global tracking scripts and IDs (Google Tag Manager, Google Ads, Meta Pixel, custom <head> / <body> scripts)
+ * Cached with React cache() for zero layout latency.
+ */
+export const fetchGlobalScripts = cache(async () => {
+  const fallback = {
+    gtmId: 'GTM-WWK7W55Q',
+    googleAdsId: 'AW-16715555638',
+    metaPixelId: '',
+    headerScripts: '',
+    footerScripts: '',
+  };
+
+  try {
+    const res = await fetch(`${apiUrl}/api/seo/global`, {
+      cache: 'no-store',
+      headers: {
+        'x-app-secret': appSecret,
+        'x-tenant-id': 'lassi-lounge',
+        'x-platform': 'web',
+      },
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json.data) {
+        return {
+          gtmId: json.data.gtmId !== undefined ? json.data.gtmId : fallback.gtmId,
+          googleAdsId: json.data.googleAdsId !== undefined ? json.data.googleAdsId : fallback.googleAdsId,
+          metaPixelId: json.data.metaPixelId || '',
+          headerScripts: json.data.headerScripts || '',
+          footerScripts: json.data.footerScripts || '',
+        };
+      }
+    }
+  } catch (err) {
+    // Non-blocking fallback
+  }
+
+  return fallback;
+});
+

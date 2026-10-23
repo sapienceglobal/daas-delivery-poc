@@ -4,6 +4,8 @@ import Script from 'next/script';
 import { Providers } from '@/components/shared/Providers';
 import SiteChrome from '@/components/shared/SiteChrome';
 import ScrollToTop from '@/components/shared/ScrollToTop';
+import CustomScriptsInjector from '@/components/shared/CustomScriptsInjector';
+import { fetchGlobalScripts } from '@/lib/pageSeo';
 import { cleanUrl } from '@/lib/slugUtils';
 
 const isLassiLounge = process.env.NEXT_PUBLIC_SINGLE_RESTAURANT_MODE === 'true';
@@ -89,38 +91,64 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
   const brand = isLassiLounge ? 'lassi-lounge' : null;
+  const globalScripts = await fetchGlobalScripts();
 
   return (
     <html lang="en" data-brand={brand} suppressHydrationWarning>
       <head>
-        {/* Google tag (gtag.js) */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=AW-16715555638"
-          strategy="afterInteractive"
-        />
-        <Script id="google-gtag" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
+        {/* Dynamic Google tag (gtag.js) */}
+        {globalScripts.googleAdsId && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${globalScripts.googleAdsId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-gtag" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
 
-            gtag('config', 'AW-16715555638');
-          `}
-        </Script>
+                gtag('config', '${globalScripts.googleAdsId}');
+              `}
+            </Script>
+          </>
+        )}
 
-        {/* Google Tag Manager */}
-        <Script id="google-tag-manager" strategy="afterInteractive">
-          {`
-            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-            })(window,document,'script','dataLayer','GTM-WWK7W55Q');
-          `}
-        </Script>
+        {/* Dynamic Google Tag Manager */}
+        {globalScripts.gtmId && (
+          <Script id="google-tag-manager" strategy="afterInteractive">
+            {`
+              (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+              new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+              j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+              'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+              })(window,document,'script','dataLayer','${globalScripts.gtmId}');
+            `}
+          </Script>
+        )}
         {/* End Google Tag Manager */}
+
+        {/* Dynamic Meta Pixel */}
+        {globalScripts.metaPixelId && (
+          <Script id="meta-pixel" strategy="afterInteractive">
+            {`
+              !function(f,b,e,v,n,t,s)
+              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+              n.queue=[];t=b.createElement(e);t.async=!0;
+              t.src=v;s=b.getElementsByTagName(e)[0];
+              s.parentNode.insertBefore(t,s)}(window, document,'script',
+              'https://connect.facebook.net/en_US/fbevents.js');
+              fbq('init', '${globalScripts.metaPixelId}');
+              fbq('track', 'PageView');
+            `}
+          </Script>
+        )}
+
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Dancing+Script:wght@400..700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet" />
@@ -165,15 +193,33 @@ export default function RootLayout({ children }) {
       <body className="grid-bg min-h-screen bg-brand-bg text-brand-text antialiased selection:bg-brand-cyan selection:text-brand-bg"
         style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }} suppressHydrationWarning>
         {/* Google Tag Manager (noscript) */}
-        <noscript>
-          <iframe
-            src="https://www.googletagmanager.com/ns.html?id=GTM-WWK7W55Q"
-            height="0"
-            width="0"
-            style={{ display: 'none', visibility: 'hidden' }}
-          />
-        </noscript>
-        {/* End Google Tag Manager (noscript) */}
+        {globalScripts.gtmId && (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${globalScripts.gtmId}`}
+              height="0"
+              width="0"
+              style={{ display: 'none', visibility: 'hidden' }}
+            />
+          </noscript>
+        )}
+        {/* Meta Pixel (noscript) */}
+        {globalScripts.metaPixelId && (
+          <noscript>
+            <img
+              height="1"
+              width="1"
+              style={{ display: 'none' }}
+              src={`https://www.facebook.com/tr?id=${globalScripts.metaPixelId}&ev=PageView&noscript=1`}
+              alt=""
+            />
+          </noscript>
+        )}
+        {/* Dynamic Injected Custom Header & Footer Scripts */}
+        <CustomScriptsInjector
+          headerScripts={globalScripts.headerScripts}
+          footerScripts={globalScripts.footerScripts}
+        />
         <Providers>
           <ScrollToTop />
           {/* Decorative background glow elements */}

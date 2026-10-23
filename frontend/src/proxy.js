@@ -43,23 +43,30 @@ export async function proxy(request) {
   // ── Role from cryptographically verified JWT — NOT from user_role cookie ───
   const role = await getVerifiedRole(token);
 
-  // ── 1. Root path routing ───────────────────────────────────────────────────
-  if (pathname === '/') {
-    if (token && role) {
-      if (role === 'admin') return NextResponse.redirect(new URL('/admin', request.url));
-      if (role === 'merchant') return NextResponse.redirect(new URL('/merchant', request.url));
-    }
-  }
-
-  // ── 2. Single Restaurant Mode routing ────────────────────────────────────
+  // ── 1. Single Restaurant Mode routing ────────────────────────────────────
   if (SINGLE_MODE) {
     if (pathname.startsWith('/restaurant') && pathname !== '/restaurant-panel' && !pathname.includes('lassi-lounge') && !pathname.includes('/item/')) {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
 
-  // ── 3. Redirect already-logged-in admin/merchant away from /login ─────────
-  // customers stay on /login so the page's useEffect can handle ?redirect= param.
+  // ── 2. Restaurant Partner Portal (/restaurant-panel) ──────────────────────
+  // If merchant or admin is already logged in, automatically send them to their dashboard
+  if (pathname === '/restaurant-panel' && token && role) {
+    if (role === 'admin') {
+      const redirectTo = request.nextUrl.searchParams.get('redirect');
+      const dest = (redirectTo && redirectTo.startsWith('/admin')) ? redirectTo : '/admin';
+      return NextResponse.redirect(new URL(dest, request.url));
+    }
+    if (role === 'merchant') {
+      const redirectTo = request.nextUrl.searchParams.get('redirect');
+      const dest = (redirectTo && redirectTo.startsWith('/merchant')) ? redirectTo : '/merchant';
+      return NextResponse.redirect(new URL(dest, request.url));
+    }
+  }
+
+  // ── 3. Customer Login (/login) ────────────────────────────────────────────
+  // Redirect already-logged-in merchant/admin to their dashboard so they don't get stuck
   if (pathname === '/login' && token && role) {
     if (role === 'admin') {
       const redirectTo = request.nextUrl.searchParams.get('redirect');
@@ -71,39 +78,33 @@ export async function proxy(request) {
       const dest = (redirectTo && redirectTo.startsWith('/merchant')) ? redirectTo : '/merchant';
       return NextResponse.redirect(new URL(dest, request.url));
     }
-    // customers: let the login page handle ?redirect= via its own useEffect
-  }
-
-  if (pathname === '/restaurant-panel' && token && role) {
-    if (role === 'admin') {
-      return NextResponse.redirect(new URL('/admin', request.url));
-    }
-    if (role === 'merchant') {
-      return NextResponse.redirect(new URL('/merchant', request.url));
-    }
+    // customers: handled by login page useEffect with ?redirect=
   }
 
   // ── 4. Protect /admin routes ──────────────────────────────────────────────
   if (pathname.startsWith('/admin')) {
     if (!token || role !== 'admin') {
-      return NextResponse.redirect(new URL('/', request.url));
+      const loginUrl = new URL('/restaurant-panel', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
     }
   }
 
   // ── 5. Protect /merchant routes ───────────────────────────────────────────
   if (pathname.startsWith('/merchant')) {
     if (!token || (role !== 'merchant' && role !== 'admin')) {
-      return NextResponse.redirect(new URL('/', request.url));
+      const loginUrl = new URL('/restaurant-panel', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
     }
   }
 
   // ── 6. Protect sensitive customer sub-routes ──────────────────────────────
   // Note: /checkout supports guest checkout and does not require pre-login.
-  // /profile requires an authenticated customer session.
-  // /orders (order history list) requires an authenticated customer session.
-  // /orders/:id allows guests when trackingToken (?token=...) is present.
+  // /profile requires an authenticated session.
+  // /orders requires an authenticated session (or tracking token for /orders/:id).
   if (pathname.startsWith('/profile')) {
-    if (!token || !role) {
+    if (!token) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
@@ -111,7 +112,7 @@ export async function proxy(request) {
   }
 
   if (pathname === '/orders' || pathname === '/orders/') {
-    if (!token || !role) {
+    if (!token) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
@@ -127,36 +128,20 @@ export async function proxy(request) {
     }
   }
 
-  // ── 7. Prevent merchant/admin from accessing customer-only routes ─────────
-  if (
-    (pathname === '/' || pathname.startsWith('/checkout') || pathname.startsWith('/orders') || pathname.startsWith('/profile') || pathname.startsWith('/restaurant') || pathname.startsWith('/offers') || pathname.startsWith('/loyalty'))
-    && token && role
-  ) {
-    if (role === 'merchant') {
-      return NextResponse.redirect(new URL('/merchant', request.url));
-    }
-    if (role === 'admin') {
-      return NextResponse.redirect(new URL('/admin', request.url));
-    }
-  }
+  // NOTE: Root ('/') and all public storefront pages (/menu, /about-us, /order-online, etc.)
+  // are never blocked, allowing merchants/admins to seamlessly browse the customer website!
 
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    '/',
     '/login',
     '/restaurant-panel',
     '/admin/:path*',
     '/merchant/:path*',
-    '/checkout/:path*',
     '/orders/:path*',
     '/profile/:path*',
     '/restaurant/:path*',
-    '/loyalty/:path*',
-    '/offers/:path*',
-    '/about-us/:path*',
-    '/contact-us/:path*'
   ],
 };

@@ -2,7 +2,7 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { User, ShoppingCart } from 'lucide-react';
+import { User, ShoppingCart, Store, Shield } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { navLinks } from './config';
@@ -83,15 +83,29 @@ function HeaderContent() {
             <div className="hidden sm:block w-16 h-4 bg-white/10 rounded"></div>
           </div>
         ) : isAuthenticated && user ? (
-          <a href="/profile?tab=dashboard" aria-label="Profile" className="flex items-center gap-2 text-text hover:text-accent-500 transition-colors">
-            <div 
-              className="rounded-full bg-primary-600 text-white flex items-center justify-center text-[12px] font-bold uppercase shadow-sm shrink-0"
-              style={{ width: '32px', height: '32px', minWidth: '32px', minHeight: '32px' }}
-            >
-              {user.name ? user.name.charAt(0) : <User size={14} />}
-            </div>
-            <span className="hidden sm:inline-block text-[12px] font-bold tracking-wider">{user.name?.split(' ')[0] || 'Profile'}</span>
-          </a>
+          <>
+            {(user.role === 'merchant' || user.role === 'admin') && (
+              <Link
+                href={user.role === 'admin' ? '/admin' : '/merchant'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-600/15 border border-primary-600/30 text-primary-500 hover:bg-primary-600/25 transition-all text-[11px] font-bold uppercase tracking-wider shadow-2xs"
+                title={user.role === 'admin' ? 'Switch to Admin Panel' : 'Switch to Merchant Dashboard'}
+              >
+                {user.role === 'admin' ? <Shield size={13} /> : <Store size={13} />}
+                <span className="hidden sm:inline-block">
+                  {user.role === 'admin' ? 'Admin' : 'Dashboard'}
+                </span>
+              </Link>
+            )}
+            <a href="/profile?tab=dashboard" aria-label="Profile" className="flex items-center gap-2 text-text hover:text-accent-500 transition-colors">
+              <div 
+                className="rounded-full bg-primary-600 text-white flex items-center justify-center text-[12px] font-bold uppercase shadow-sm shrink-0"
+                style={{ width: '32px', height: '32px', minWidth: '32px', minHeight: '32px' }}
+              >
+                {user.name ? user.name.charAt(0) : <User size={14} />}
+              </div>
+              <span className="hidden sm:inline-block text-[12px] font-bold tracking-wider">{user.name?.split(' ')[0] || 'Profile'}</span>
+            </a>
+          </>
         ) : (
           <a href="/login" className="flex items-center gap-1.5 text-text hover:text-accent-500 text-[11px] font-bold uppercase tracking-wider transition-colors">
             <User size={18} />

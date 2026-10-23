@@ -19,6 +19,7 @@ import {
   crmAPI, notificationAPI, authAPI
 } from '@/lib/api';
 import { showToast } from '@/components/ui';
+import BranchLocationModal from './BranchLocationModal';
 
 const NAV_ACTIONS = [
   { id: 'dashboard', label: 'Dashboard', hint: 'Overview, sales, quick stats', href: '/merchant', icon: Store, keywords: 'home overview today revenue' },
@@ -71,6 +72,7 @@ export default function DashboardHeader({ user, onToggleSidebar }) {
   const [deleteReason, setDeleteReason] = useState('closing_business');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
 
   const headerRef = useRef(null);
   const searchRef = useRef(null);
@@ -662,14 +664,15 @@ export default function DashboardHeader({ user, onToggleSidebar }) {
         )}
 
         {/* ── RESTAURANT BRANCH PILL BADGE (Matching Salon Management) ── */}
-        <Link
-          href="/merchant/settings"
-          className="hidden lg:flex items-center gap-2 text-xs font-semibold text-admin-text-secondary px-3.5 py-1.5 bg-admin-surface-light rounded-full border border-admin-border hover:border-brand hover:text-admin-text transition-colors duration-150 cursor-pointer shadow-2xs truncate max-w-[200px]"
-          title={restaurant?.name || 'Restaurant Workspace'}
+        <button
+          type="button"
+          onClick={() => setLocationModalOpen(true)}
+          className="hidden sm:flex items-center gap-2 text-xs font-semibold text-admin-text-secondary px-3.5 py-1.5 bg-admin-surface-light rounded-full border border-admin-border hover:border-brand hover:text-admin-text transition-colors duration-150 cursor-pointer shadow-2xs truncate max-w-[200px]"
+          title="94-08 118th St, South Richmond Hill, NY 11419, United States"
         >
           <MapPin className="w-3.5 h-3.5 text-brand shrink-0" />
           <span className="truncate">{restaurant?.name || 'Lassi Lounge'}</span>
-        </Link>
+        </button>
 
         {/* ── USER PROFILE AVATAR & DROPDOWN ── */}
         <div className="relative border-l border-admin-border pl-2 sm:pl-3">
@@ -827,6 +830,18 @@ export default function DashboardHeader({ user, onToggleSidebar }) {
             </form>
           </div>
         </div>
+      )}
+
+      {/* ── RESTAURANT LOCATION MODAL (Google Maps & Branch Details) ── */}
+      {locationModalOpen && (
+        <BranchLocationModal
+          isOpen={locationModalOpen}
+          onClose={() => setLocationModalOpen(false)}
+          restaurant={restaurant}
+          restaurantName={restaurant?.name || 'Lassi Lounge'}
+          address={restaurant?.address || "94-08 118th St, South Richmond Hill, NY 11419, United States"}
+          phone={restaurant?.phone || '+1 347-233-3733'}
+        />
       )}
     </header>
   );

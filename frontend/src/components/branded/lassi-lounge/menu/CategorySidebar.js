@@ -1,23 +1,16 @@
+'use client';
+
 import React, { useRef, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Gift, Utensils, Coffee, Pizza, Salad, Flame, CakeSlice } from 'lucide-react';
+import { Gift, UtensilsCrossed, LayoutGrid, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 import { showToast } from '@/components/ui';
-
-// get category icon
-const getCategoryIcon = (categoryName) => {
-  const name = categoryName.toLowerCase();
-  if (name.includes('appetizer')) return Utensils;
-  if (name.includes('chaat') || name.includes('salad')) return Salad;
-  if (name.includes('tandoori') || name.includes('spicy')) return Flame;
-  if (name.includes('bread') || name.includes('naan')) return Pizza;
-  if (name.includes('dessert') || name.includes('sweet')) return CakeSlice;
-  if (name.includes('beverage') || name.includes('drink')) return Coffee;
-  return Utensils; // Default icon
-};
+import PopOutCapsuleImage from '@/components/common/PopOutCapsuleImage';
+import AllCategoriesModal from '@/components/common/AllCategoriesModal';
+import { getCategory3DImage } from '@/lib/category3DHelper';
 
 export default function CategorySidebar({
-  categories,
+  categories = [],
   activeCategory,
   setActiveCategory,
   setSearchQuery,
@@ -29,6 +22,7 @@ export default function CategorySidebar({
   const router = useRouter();
   const navRef = useRef(null);
   const [activeCoupon, setActiveCoupon] = useState(null);
+  const [isAllModalOpen, setIsAllModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchCoupon = async () => {
@@ -62,61 +56,183 @@ export default function CategorySidebar({
     (activeCoupon.endDate && new Date(activeCoupon.endDate).getTime() < Date.now())
   );
 
-  return (
-    <div className="space-y-6 ll-reveal">
+  const totalAllItemsCount = categories.reduce((acc, c) => acc + (c.items?.length || 0), 0);
 
-      {/* ─── 1. CATEGORIES LIST ─── */}
-      <div className="bg-[#ffffff] rounded-lg lg:border lg:border-[#e5e7eb] lg:shadow-sm overflow-hidden">
-        <div className="hidden lg:block bg-[#7a0b10] text-[#ffffff] px-5 py-3 font-bold uppercase tracking-wider text-[11px]">
-          CATEGORIES
+  return (
+    <div className="space-y-4 lg:space-y-6 ll-reveal">
+
+      {/* ─── 1. MOBILE / TABLET 3D CATEGORIES STRIP (Visible below lg) ─── */}
+      <div className="lg:hidden bg-[#fcfaf5] rounded-2xl py-3 px-2 border border-[#ebdcc1]/80 shadow-xs">
+        <div className="flex items-center justify-between px-3 pb-2.5">
+          <span className="text-[11px] font-black uppercase tracking-wider text-[#7a0b10] flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[#e8a020]" />
+            <span>Categories</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsAllModalOpen(true)}
+            className="flex items-center gap-1 text-[11px] font-bold text-[#7a0b10] hover:text-[#58080c] px-3 py-1 rounded-full bg-[#ebdcc1]/40 hover:bg-[#ebdcc1] transition-all cursor-pointer shadow-2xs"
+          >
+            <LayoutGrid className="w-3 h-3" />
+            <span>View All ({categories.length})</span>
+          </button>
         </div>
-        <nav ref={navRef} className="flex flex-row overflow-x-auto no-scrollbar lg:flex-col lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto lg:scrollbar-thin snap-x snap-mandatory px-4 lg:px-0 gap-2 lg:gap-0 pb-2 lg:pb-0">
+
+        <nav
+          ref={navRef}
+          className="flex flex-row overflow-x-auto no-scrollbar gap-2 sm:gap-3 px-2 pb-1 pt-1 snap-x snap-mandatory"
+        >
+          {/* All Items Capsule */}
+          <div className="shrink-0 snap-start">
+            <PopOutCapsuleImage
+              label="All Items"
+              imageUrl={getCategory3DImage('all')}
+              width={66}
+              isSelected={!searchQuery.trim() && activeCategory === 'all'}
+              itemCount={totalAllItemsCount}
+              onClick={() => {
+                setActiveCategory('all');
+                if (setSearchQuery) setSearchQuery('');
+              }}
+            />
+          </div>
+
+          {/* Dynamic 3D Categories */}
+          {categories.map((cat) => {
+            const isActive = !searchQuery.trim() && activeCategory === cat._id;
+            return (
+              <div
+                key={cat._id}
+                data-category-id={cat._id}
+                className="shrink-0 snap-start"
+              >
+                <PopOutCapsuleImage
+                  category={cat}
+                  width={66}
+                  isSelected={isActive}
+                  itemCount={cat.items?.length}
+                  onClick={() => {
+                    setActiveCategory(cat._id);
+                    if (setSearchQuery) setSearchQuery('');
+                  }}
+                />
+              </div>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* ─── 2. DESKTOP 3D CATEGORIES SIDEBAR (Visible on lg and above) ─── */}
+      <div className="hidden lg:block bg-white rounded-2xl border border-[#ebdcc1] shadow-sm overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#7a0b10] to-[#8d1117] text-white px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <UtensilsCrossed className="w-4 h-4 text-[#e8a020]" />
+            <span className="font-black uppercase tracking-wider text-[11px] font-sans">
+              CATEGORIES
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsAllModalOpen(true)}
+            className="flex items-center gap-1.5 text-[11px] font-bold bg-white/15 hover:bg-white/25 px-2.5 py-1 rounded-full transition-colors cursor-pointer"
+            title="View Grid"
+          >
+            <LayoutGrid className="w-3 h-3" />
+            <span>Grid</span>
+          </button>
+        </div>
+
+        {/* Categories List */}
+        <nav className="flex flex-col max-h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar">
+          {/* All Items Row */}
           <button
             key="all"
             data-category-id="all"
-            onClick={(e) => {
-              e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            onClick={() => {
               setActiveCategory('all');
-              setSearchQuery('');
+              if (setSearchQuery) setSearchQuery('');
             }}
-            className={`shrink-0 snap-start flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 text-[13px] font-bold border lg:border-0 lg:border-b border-[#e5e7eb] lg:border-[#f3f4f6] rounded-full lg:rounded-none lg:w-full lg:justify-between last:border-0 ll-interactive ll-focus-ring whitespace-nowrap
-              ${(!searchQuery.trim() && activeCategory === 'all')
-                ? 'bg-[#e8a020] text-[#1a1a1a] border-[#e8a020]'
-                : 'bg-[#ffffff] text-[#1a1a1a] hover:bg-[#f9fafb] hover:text-[#cd131b]'
-              }`}
+            className={`group flex items-center justify-between px-3.5 py-2.5 text-[13px] font-bold border-b border-[#f3f4f6] transition-all ll-interactive ll-focus-ring cursor-pointer ${
+              !searchQuery.trim() && activeCategory === 'all'
+                ? 'bg-gradient-to-r from-[#7a0b10] to-[#961218] text-white shadow-sm'
+                : 'bg-white text-[#1a1a1a] hover:bg-[#fcfaf5] hover:text-[#7a0b10]'
+            }`}
           >
-            <div className="flex items-center gap-2 lg:gap-3">
-              <Utensils className={`w-4 h-4 stroke-[2px] ${(!searchQuery.trim() && activeCategory === 'all') ? 'text-[#1a1a1a]' : 'text-[#7a0b10]'}`} />
-              <span>All Items</span>
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className={`relative w-8 h-9 rounded-full shrink-0 flex items-center justify-center transition-transform group-hover:scale-110 ${
+                  !searchQuery.trim() && activeCategory === 'all' ? 'shadow-inner' : 'shadow-2xs'
+                }`}
+                style={{
+                  background:
+                    !searchQuery.trim() && activeCategory === 'all'
+                      ? 'radial-gradient(circle at center, #ffdcb5 0%, #fff 100%)'
+                      : 'radial-gradient(circle at center, #FDEFD5 0%, #fff 100%)',
+                }}
+              >
+                <img
+                  src={getCategory3DImage('all')}
+                  alt="All Items"
+                  className="w-7 h-7 object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.18)] -mt-1 group-hover:-translate-y-0.5 transition-transform"
+                />
+              </div>
+              <span className="truncate">All Items</span>
             </div>
+            <span
+              className={`text-[10px] rounded-full px-2 py-0.5 font-black transition-colors ${
+                !searchQuery.trim() && activeCategory === 'all'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-[#f3f4f6] text-[#6b7280]'
+              }`}
+            >
+              {totalAllItemsCount}
+            </span>
           </button>
+
+          {/* Dynamic Category Rows */}
           {categories.map((cat) => {
             const isActive = !searchQuery.trim() && activeCategory === cat._id;
-            const Icon = getCategoryIcon(cat.name);
-
             return (
               <button
                 key={cat._id}
                 data-category-id={cat._id}
-                onClick={(e) => {
-                  e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                onClick={() => {
                   setActiveCategory(cat._id);
-                  setSearchQuery('');
+                  if (setSearchQuery) setSearchQuery('');
                 }}
-                className={`shrink-0 snap-start flex items-center gap-2 px-4 py-2 lg:px-5 lg:py-3 text-[13px] font-bold border lg:border-0 lg:border-b border-[#e5e7eb] lg:border-[#f3f4f6] rounded-full lg:rounded-none lg:w-full lg:justify-between last:border-0 ll-interactive ll-focus-ring whitespace-nowrap
-                  ${isActive
-                    ? 'bg-[#e8a020] text-[#1a1a1a] border-[#e8a020]'
-                    : 'bg-[#ffffff] text-[#1a1a1a] hover:bg-[#f9fafb] hover:text-[#cd131b]'
-                  }`}
+                className={`group flex items-center justify-between px-3.5 py-2.5 text-[13px] font-bold border-b border-[#f3f4f6] transition-all ll-interactive ll-focus-ring cursor-pointer last:border-b-0 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-[#7a0b10] to-[#961218] text-white shadow-sm'
+                    : 'bg-white text-[#1a1a1a] hover:bg-[#fcfaf5] hover:text-[#7a0b10]'
+                }`}
               >
-                <div className="flex items-center gap-2 lg:gap-3">
-                  {/* icon color based on active state */}
-                  <Icon className={`w-4 h-4 stroke-[2px] ${isActive ? 'text-[#1a1a1a]' : 'text-[#7a0b10]'}`} />
-                  <span>{cat.name}</span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`relative w-8 h-9 rounded-full shrink-0 flex items-center justify-center transition-transform group-hover:scale-110 ${
+                      isActive ? 'shadow-inner' : 'shadow-2xs'
+                    }`}
+                    style={{
+                      background: isActive
+                        ? 'radial-gradient(circle at center, #ffdcb5 0%, #fff 100%)'
+                        : 'radial-gradient(circle at center, #FDEFD5 0%, #fff 100%)',
+                    }}
+                  >
+                    <img
+                      src={getCategory3DImage(cat.name)}
+                      alt={cat.name}
+                      className="w-7 h-7 object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.18)] -mt-1 group-hover:-translate-y-0.5 transition-transform"
+                    />
+                  </div>
+                  <span className="truncate">{cat.name}</span>
                 </div>
-
-                {/* count badge */}
-                <span className={`hidden lg:inline-block text-[10px] rounded-full px-2 py-0.5 font-bold ${isActive ? 'bg-black/15 text-[#1a1a1a]' : 'bg-[#f3f4f6] text-[#6b7280]'}`}>
+                <span
+                  className={`text-[10px] rounded-full px-2 py-0.5 font-black transition-colors ${
+                    isActive
+                      ? 'bg-white/20 text-white'
+                      : 'bg-[#f3f4f6] text-[#6b7280] group-hover:bg-[#7a0b10]/10 group-hover:text-[#7a0b10]'
+                  }`}
+                >
                   {cat.items?.length || 0}
                 </span>
               </button>
@@ -125,10 +241,9 @@ export default function CategorySidebar({
         </nav>
       </div>
 
-      {/* ─── 2. PROMO OFFER CARD (Desktop Only) ─── */}
+      {/* ─── 3. PROMO OFFER CARD (Desktop Only) ─── */}
       {activeCoupon && (
-        <div className="hidden lg:block relative rounded-xl p-6 text-center text-[#ffffff] overflow-hidden shadow-lg border border-[#222222] mt-6">
-
+        <div className="hidden lg:block relative rounded-2xl p-6 text-center text-[#ffffff] overflow-hidden shadow-lg border border-[#222222] mt-6">
           {/* background image and dark overlay */}
           <div
             className="absolute inset-0 opacity-30 bg-cover bg-center mix-blend-luminosity"
@@ -170,13 +285,26 @@ export default function CategorySidebar({
                   showToast('Coupon applied! Checkout to see discount.', 'success');
                 }
               }}
-              className={`${isExpired ? 'bg-red-600 cursor-not-allowed text-white' : 'bg-[#e8a020] hover:bg-[#d68f13] text-[#1a1a1a]'} text-[11px] uppercase tracking-wide font-black w-full rounded-md py-2.5 shadow-[0_4px_15px_rgba(232,160,32,0.2)] ll-interactive ll-focus-ring`}
+              className={`${isExpired ? 'bg-red-600 cursor-not-allowed text-white' : 'bg-[#e8a020] hover:bg-[#d68f13] text-[#1a1a1a]'} text-[11px] uppercase tracking-wide font-black w-full rounded-xl py-2.5 shadow-[0_4px_15px_rgba(232,160,32,0.2)] ll-interactive ll-focus-ring cursor-pointer`}
             >
               {isExpired ? 'EXPIRED' : (isViewOnly ? 'ORDER NOW' : (couponApplied ? 'APPLIED!' : 'APPLY'))}
             </button>
           </div>
         </div>
       )}
+
+      {/* ─── 4. ALL CATEGORIES 3D MODAL (Matches Flutter All Categories Bottom Sheet) ─── */}
+      <AllCategoriesModal
+        isOpen={isAllModalOpen}
+        onClose={() => setIsAllModalOpen(false)}
+        categories={categories}
+        selectedCategoryId={activeCategory}
+        title="All Categories"
+        onSelectCategory={(cat) => {
+          setActiveCategory(cat._id);
+          if (setSearchQuery) setSearchQuery('');
+        }}
+      />
     </div>
   );
 }

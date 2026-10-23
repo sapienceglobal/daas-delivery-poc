@@ -440,4 +440,6 @@ export const seoAPI = {
   getPage: (path) => api.get(`/api/seo/page?path=${encodeURIComponent(path)}`),
   getAllPages: () => api.get('/api/seo/pages'),
   updatePage: (data) => api.put('/api/seo/page', data),
+  getGlobal: () => api.get('/api/seo/global'),
+  updateGlobal: (data) => api.put('/api/seo/global', data),
 };

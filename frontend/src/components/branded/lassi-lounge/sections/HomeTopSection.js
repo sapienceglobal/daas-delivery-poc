@@ -3,12 +3,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Bike, Utensils, ChevronRight, ChevronLeft, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Bike, Utensils, ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, LayoutGrid } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { menuCategoryContent, deliveryPartnersContent, heroContent } from '../config';
 import { restaurantAPI } from '@/lib/api';
 import { useBrand } from '@/context/BrandContext';
 import { useCms } from '@/context/CmsContext';
+import PopOutCapsuleImage from '@/components/common/PopOutCapsuleImage';
+import AllCategoriesModal from '@/components/common/AllCategoriesModal';
+import { getCategory3DImage } from '@/lib/category3DHelper';
 
 export default function HomeTopSection() {
   const router = useRouter();
@@ -16,6 +19,8 @@ export default function HomeTopSection() {
   const categoriesScrollRef = useRef(null);
   const { brand } = useBrand();
   const { cmsData, loadingCms } = useCms();
+
+  const [isAllCategoriesOpen, setIsAllCategoriesOpen] = useState(false);
 
   // real DB categories — fetched using brand._id from BrandContext
   const [dbCategories, setDbCategories] = useState([]);
@@ -32,19 +37,22 @@ export default function HomeTopSection() {
       .catch(() => {}); // silently fall back to config categories
   }, [brand?._id]);
 
-  // build display categories: prefer DB, fall back to config
+  // build display categories: prefer DB, fall back to config, always decorated with 3D cutout assets
   const { categories: configCategories, viewFullMenuCta } = menuCategoryContent;
   const displayCategories = dbCategories.length > 0
     ? dbCategories.map(cat => ({
         id: cat._id,
+        _id: cat._id,
         label: cat.name,
-        // use the category image from DB if set, else use the first item's image, else fallback
-        icon: cat.image
-          || (cat.items && cat.items[0]?.image)
-          || configCategories.find(c => c.label.toLowerCase().includes(cat.name.toLowerCase().split(' ')[0]))?.icon
-          || configCategories[0]?.icon
+        name: cat.name,
+        items: cat.items,
+        icon: getCategory3DImage(cat.name)
       }))
-    : configCategories;
+    : configCategories.map(cat => ({
+        ...cat,
+        name: cat.label,
+        icon: getCategory3DImage(cat.label)
+      }));
 
   const isPausedRef = useRef(false);
   const pauseTimeoutRef = useRef(null);
@@ -232,56 +240,64 @@ export default function HomeTopSection() {
         {/* ─── EXPLORE OUR MENU CONTAINER CARD ─── */}
         <div className="w-full max-w-7xl mx-auto px-4 md:px-8 -mt-20 relative z-40 ll-explore-mobile-gap">
 
-          <div className="bg-[#fcfaf5] rounded-[2rem] shadow-[0_10px_30px_rgba(0,0,0,0.1)] py-5 md:py-6 px-6 md:px-10 w-full border border-[#ebdcc1]/50">
+          <div className="bg-[#fcfaf5] rounded-[2rem] shadow-[0_10px_30px_rgba(0,0,0,0.1)] py-5 md:py-6 px-4 sm:px-6 md:px-10 w-full border border-[#ebdcc1]/50">
 
-            <div className="flex items-center justify-center gap-3 mb-5">
-              <div className="flex items-center text-[#e8a020]">
-                <div className="h-[1.5px] w-10 bg-[#e8a020]"></div>
-                <ArrowRight size={14} strokeWidth={2.5} className="ml-1" />
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4 md:mb-5 px-1">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center text-[#e8a020]">
+                  <div className="h-[1.5px] w-8 md:w-10 bg-[#e8a020]"></div>
+                  <ArrowRight size={14} strokeWidth={2.5} className="ml-1" />
+                </div>
+                <h2 className="font-serif font-black text-lg md:text-2xl text-[#0e0d0c] uppercase tracking-wider text-center">
+                  EXPLORE OUR MENU
+                </h2>
+                <div className="flex items-center text-[#e8a020]">
+                  <ArrowLeft size={14} strokeWidth={2.5} className="mr-1" />
+                  <div className="h-[1.5px] w-8 md:w-10 bg-[#e8a020]"></div>
+                </div>
               </div>
-              <h2 className="font-serif font-bold text-lg md:text-xl text-[#0e0d0c] uppercase tracking-wider text-center">
-                EXPLORE OUR MENU
-              </h2>
-              <div className="flex items-center text-[#e8a020]">
-                <ArrowLeft size={14} strokeWidth={2.5} className="mr-1" />
-                <div className="h-[1.5px] w-10 bg-[#e8a020]"></div>
-              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAllCategoriesOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#f3ece6] hover:bg-[#ebdcc1] border border-[#ebdcc1] text-[#7a0b10] hover:text-[#58080c] text-xs font-bold transition-all shadow-2xs hover:scale-105 cursor-pointer"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>All Categories ({displayCategories.length})</span>
+              </button>
             </div>
 
             <div className="flex flex-col xl:flex-row items-center justify-between gap-4 xl:gap-6">
 
               <div className="relative w-full flex items-center min-w-0">
-                <div ref={categoriesScrollRef} className="flex flex-nowrap overflow-x-auto no-scrollbar pb-4 md:pb-0 justify-start gap-6 md:gap-8 flex-1 w-full px-2 md:px-8 ll-cat-scroll-fade">
+                <div ref={categoriesScrollRef} className="flex flex-nowrap overflow-x-auto no-scrollbar pb-3 md:pb-1 pt-2 justify-start gap-3 sm:gap-5 md:gap-7 flex-1 w-full px-2 md:px-8 ll-cat-scroll-fade">
                   {displayCategories.map((category) => (
-                    <div key={category.id} onClick={() => router.push(`${viewFullMenuCta.href}?categoryName=${encodeURIComponent(category.label)}`)} className="group flex flex-col items-center gap-2 cursor-pointer shrink-0">
-                      <div className="relative w-[85px] h-[85px] md:w-[100px] md:h-[100px] rounded-full p-[2px] border border-[#e8a020] bg-transparent transition-transform duration-300 group-hover:-translate-y-1">
-                        <div className="w-full h-full rounded-full border-[3px] border-[#fcfaf5] bg-white overflow-hidden shadow-sm">
-                          <img
-                            src={category.icon}
-                            alt={category.label}
-                            className="w-full h-full object-cover rounded-full"
-                          />
-                        </div>
-                      </div>
-                      <span className="text-[10px] md:text-[11px] font-bold tracking-widest text-[#0e0d0c] uppercase font-sans text-center whitespace-nowrap">
-                        {category.label}
-                      </span>
-                    </div>
+                    <PopOutCapsuleImage
+                      key={category.id}
+                      category={category}
+                      label={category.label}
+                      imageUrl={category.icon}
+                      width={80}
+                      className="shrink-0"
+                      onClick={() => router.push(`${viewFullMenuCta.href}?categoryName=${encodeURIComponent(category.label)}`)}
+                    />
                   ))}
                 </div>
 
                 {/* Left Arrow (Desktop Only) */}
                 <button 
-                  className="hidden md:flex absolute -left-5 z-50 bg-white/95 shadow-[0_4px_16px_rgba(0,0,0,0.15)] border border-[#e5e7eb] rounded-full w-11 h-11 items-center justify-center text-[#0e0d0c] hover:text-[#e8a020] hover:scale-105 transition-all ml-1"
+                  className="hidden md:flex absolute -left-5 z-50 bg-white/95 shadow-[0_4px_16px_rgba(0,0,0,0.15)] border border-[#e5e7eb] rounded-full w-11 h-11 items-center justify-center text-[#0e0d0c] hover:text-[#e8a020] hover:scale-105 transition-all ml-1 cursor-pointer"
                   onClick={() => scrollCategories('left')}
+                  aria-label="Scroll left"
                 >
                   <ChevronLeft size={24} strokeWidth={2.5} />
                 </button>
 
                 {/* Right Arrow (Desktop Only) */}
                 <button 
-                  className="hidden md:flex absolute -right-5 z-50 bg-white/95 shadow-[0_4px_16px_rgba(0,0,0,0.15)] border border-[#e5e7eb] rounded-full w-11 h-11 items-center justify-center text-[#0e0d0c] hover:text-[#e8a020] hover:scale-105 transition-all mr-1"
+                  className="hidden md:flex absolute -right-5 z-50 bg-white/95 shadow-[0_4px_16px_rgba(0,0,0,0.15)] border border-[#e5e7eb] rounded-full w-11 h-11 items-center justify-center text-[#0e0d0c] hover:text-[#e8a020] hover:scale-105 transition-all mr-1 cursor-pointer"
                   onClick={() => scrollCategories('right')}
+                  aria-label="Scroll right"
                 >
                   <ChevronRight size={24} strokeWidth={2.5} />
                 </button>
@@ -290,6 +306,17 @@ export default function HomeTopSection() {
 
           </div>
         </div>
+
+        {/* ─── ALL CATEGORIES 3D MODAL (Matches Flutter All Categories Bottom Sheet) ─── */}
+        <AllCategoriesModal
+          isOpen={isAllCategoriesOpen}
+          onClose={() => setIsAllCategoriesOpen(false)}
+          categories={displayCategories}
+          title="All Menu Categories"
+          onSelectCategory={(cat) => {
+            router.push(`${viewFullMenuCta.href}?categoryName=${encodeURIComponent(cat.label || cat.name)}`);
+          }}
+        />
 
         {/* ─── DELIVERY PARTNERS BANNER CARD ─── */}
         <div className="w-full max-w-7xl mx-auto px-4 md:px-8 mt-6 relative z-30">

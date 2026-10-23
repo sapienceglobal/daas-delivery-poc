@@ -2,7 +2,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Save, Globe, Search, Loader2 } from 'lucide-react';
+import {
+  X,
+  Save,
+  Globe,
+  Search,
+  Loader2,
+  Code2,
+  Tag,
+  CheckCircle2,
+  Layers,
+  Sparkles,
+  AlertTriangle,
+  PlusCircle,
+  HelpCircle,
+} from 'lucide-react';
 import { seoAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 
@@ -16,12 +30,25 @@ const STATIC_PAGE_OPTIONS = [
 
 export default function StaticPagesSeoModal({ isOpen, onClose }) {
   const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState('pages'); // 'pages' | 'global'
+
+  // Tab 1: Page SEO State
   const [selectedPath, setSelectedPath] = useState('/');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     ogImage: '',
   });
+
+  // Tab 2: Global Header & Footer Scripts & IDs State
+  const [globalData, setGlobalData] = useState({
+    gtmId: '',
+    googleAdsId: '',
+    metaPixelId: '',
+    headerScripts: '',
+    footerScripts: '',
+  });
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -39,9 +66,9 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Load SEO data for selected path
+  // Load SEO data for selected static page
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || activeTab !== 'pages') return;
 
     async function loadPageSeo() {
       setIsLoading(true);
@@ -64,9 +91,36 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
     }
 
     loadPageSeo();
-  }, [selectedPath, isOpen]);
+  }, [selectedPath, isOpen, activeTab]);
 
-  const handleSave = async () => {
+  // Load Global Scripts data when switching to 'global' tab
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'global') return;
+
+    async function loadGlobalSeo() {
+      setIsLoading(true);
+      try {
+        const res = await seoAPI.getGlobal();
+        if (res?.data) {
+          setGlobalData({
+            gtmId: res.data.gtmId || '',
+            googleAdsId: res.data.googleAdsId || '',
+            metaPixelId: res.data.metaPixelId || '',
+            headerScripts: res.data.headerScripts || '',
+            footerScripts: res.data.footerScripts || '',
+          });
+        }
+      } catch {
+        // Fallback default
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadGlobalSeo();
+  }, [isOpen, activeTab]);
+
+  const handleSavePage = async () => {
     try {
       setIsSaving(true);
       await seoAPI.updatePage({
@@ -84,6 +138,61 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
     }
   };
 
+  const handleSaveGlobal = async () => {
+    try {
+      setIsSaving(true);
+      await seoAPI.updateGlobal({
+        gtmId: globalData.gtmId.trim(),
+        googleAdsId: globalData.googleAdsId.trim(),
+        metaPixelId: globalData.metaPixelId.trim(),
+        headerScripts: globalData.headerScripts.trim(),
+        footerScripts: globalData.footerScripts.trim(),
+      });
+      showToast('Global scripts & tracking IDs saved & applied live!', 'success');
+      onClose();
+    } catch (err) {
+      showToast(err.message || 'Failed to update global scripts', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Format analysis helper for script text
+  const analyzeScriptFormat = (code) => {
+    const trimmed = (code || '').trim();
+    if (!trimmed) return { type: 'empty' };
+    const hasHtmlTags = /<[a-z!][\s\S]*>/i.test(trimmed);
+    if (!hasHtmlTags) {
+      return {
+        type: 'plain-text',
+        message: 'Plain text detected. Scripts must be wrapped in <script>...</script> tags to run properly.',
+      };
+    }
+    return { type: 'valid' };
+  };
+
+  const headerAnalysis = analyzeScriptFormat(globalData.headerScripts);
+  const footerAnalysis = analyzeScriptFormat(globalData.footerScripts);
+
+  // Helper to wrap current text in <script> tags
+  const handleWrapInScript = (field) => {
+    const current = (globalData[field] || '').trim();
+    if (!current) return;
+    setGlobalData((prev) => ({
+      ...prev,
+      [field]: `<script>\n${current}\n</script>`,
+    }));
+  };
+
+  // Presets appenders
+  const appendSnippet = (field, snippet) => {
+    setGlobalData((prev) => {
+      const current = (prev[field] || '').trim();
+      const next = current ? `${current}\n\n${snippet}` : snippet;
+      return { ...prev, [field]: next };
+    });
+  };
+
   if (!isOpen || !mounted) return null;
 
   return createPortal(
@@ -94,18 +203,26 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
       }}
     >
       <div
-        className="relative w-full max-w-2xl bg-admin-surface rounded-2xl shadow-2xl border border-admin-border overflow-hidden flex flex-col max-h-[90vh] text-admin-text animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-3xl bg-admin-surface rounded-2xl shadow-2xl border border-admin-border overflow-hidden flex flex-col max-h-[92vh] text-admin-text animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-admin-border bg-admin-card/40">
+        <div className="flex items-center justify-between p-5 border-b border-admin-border bg-admin-card/40">
           <div className="flex items-center gap-3.5">
-            <div className="bg-blue-500/10 p-2.5 rounded-xl text-blue-400 border border-blue-500/20">
-              <Globe className="w-5 h-5" />
+            <div className="bg-brand/10 p-2.5 rounded-xl text-brand border border-brand/20">
+              {activeTab === 'pages' ? (
+                <Globe className="w-5 h-5 text-blue-400" />
+              ) : (
+                <Code2 className="w-5 h-5 text-emerald-400" />
+              )}
             </div>
             <div>
-              <h2 className="text-xl font-black text-admin-text font-outfit tracking-tight">Static Pages SEO Editor</h2>
-              <p className="text-xs text-admin-text-secondary font-medium mt-0.5">Edit titles, descriptions & Google search appearance</p>
+              <h2 className="text-xl font-black text-admin-text font-outfit tracking-tight">
+                SEO & Script Manager
+              </h2>
+              <p className="text-xs text-admin-text-secondary font-medium mt-0.5">
+                Manage search meta tags, Google Tag Manager, Google Ads, Meta Pixel & Head/Footer scripts
+              </p>
             </div>
           </div>
           <button
@@ -118,33 +235,66 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
           </button>
         </div>
 
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-2 px-6 pt-4 border-b border-admin-border bg-admin-card/20">
+          <button
+            type="button"
+            onClick={() => setActiveTab('pages')}
+            className={`flex items-center gap-2 pb-3 px-3 text-xs font-bold uppercase tracking-wider font-outfit border-b-2 transition-all ${
+              activeTab === 'pages'
+                ? 'border-brand text-brand'
+                : 'border-transparent text-admin-text-secondary hover:text-admin-text'
+            }`}
+          >
+            <Globe className="w-4 h-4" />
+            <span>Static Page SEO</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('global')}
+            className={`flex items-center gap-2 pb-3 px-3 text-xs font-bold uppercase tracking-wider font-outfit border-b-2 transition-all ${
+              activeTab === 'global'
+                ? 'border-emerald-500 text-emerald-400'
+                : 'border-transparent text-admin-text-secondary hover:text-admin-text'
+            }`}
+          >
+            <Code2 className="w-4 h-4" />
+            <span>Global Scripts (&lt;head&gt; & &lt;body&gt;)</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-bold lowercase">
+              live
+            </span>
+          </button>
+        </div>
+
         {/* Body */}
         <div className="p-6 overflow-y-auto space-y-6 bg-admin-surface custom-scrollbar text-admin-text">
-          {/* Page Selector */}
-          <div>
-            <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-2 font-outfit">
-              Select Page To Edit
-            </label>
-            <select
-              value={selectedPath}
-              onChange={(e) => setSelectedPath(e.target.value)}
-              className="w-full rounded-xl bg-admin-card border border-admin-border text-sm font-semibold text-admin-text px-4 py-3 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand transition-all cursor-pointer"
-            >
-              {STATIC_PAGE_OPTIONS.map((opt) => (
-                <option key={opt.path} value={opt.path} className="bg-admin-surface text-admin-text py-2">
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {isLoading ? (
-            <div className="py-12 flex flex-col items-center justify-center gap-2 text-admin-text-secondary">
-              <Loader2 className="w-6 h-6 animate-spin text-brand" />
-              <p className="text-sm font-medium text-admin-text-secondary">Loading page SEO settings...</p>
+            <div className="py-16 flex flex-col items-center justify-center gap-3 text-admin-text-secondary">
+              <Loader2 className="w-7 h-7 animate-spin text-brand" />
+              <p className="text-sm font-medium text-admin-text-secondary">
+                Loading {activeTab === 'pages' ? 'page SEO settings' : 'global tracking scripts'}...
+              </p>
             </div>
-          ) : (
+          ) : activeTab === 'pages' ? (
             <>
+              {/* Page Selector */}
+              <div>
+                <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-2 font-outfit">
+                  Select Page To Edit
+                </label>
+                <select
+                  value={selectedPath}
+                  onChange={(e) => setSelectedPath(e.target.value)}
+                  className="w-full rounded-xl bg-admin-card border border-admin-border text-sm font-semibold text-admin-text px-4 py-3 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand transition-all cursor-pointer"
+                >
+                  {STATIC_PAGE_OPTIONS.map((opt) => (
+                    <option key={opt.path} value={opt.path} className="bg-admin-surface text-admin-text py-2">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Meta Title */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
@@ -256,6 +406,261 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                 </p>
               </div>
             </>
+          ) : (
+            <>
+              {/* Tab 2: Global Header & Footer Scripts & Tracking IDs */}
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-admin-text-secondary leading-relaxed">
+                  <p className="font-bold text-emerald-400 mb-0.5 font-outfit uppercase tracking-wider">
+                    Site-Wide &lt;head&gt; & &lt;body&gt; Script Injection
+                  </p>
+                  Any ID or script added here applies automatically to the entire website. Safe multi-layer sandbox ensures external or syntax script errors never crash the customer website.
+                </div>
+              </div>
+
+              {/* Quick Tracking IDs Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-xs font-bold text-admin-text uppercase tracking-wider font-outfit border-b border-admin-border pb-2">
+                  <Tag className="w-4 h-4 text-brand" />
+                  <span>Official Marketing & Analytics IDs (No Code Needed)</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Google Tag Manager Container ID */}
+                  <div>
+                    <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-1.5 font-outfit">
+                      GTM Container ID
+                    </label>
+                    <input
+                      value={globalData.gtmId}
+                      onChange={(e) => setGlobalData({ ...globalData, gtmId: e.target.value })}
+                      placeholder="e.g. GTM-WWK7W55Q"
+                      className="w-full rounded-xl bg-admin-card border border-admin-border text-sm font-medium text-admin-text px-4 py-2.5 placeholder:text-admin-text-secondary/50 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand transition-all"
+                    />
+                    <p className="text-[10px] text-admin-text-secondary mt-1">
+                      Google Tag Manager container ID
+                    </p>
+                  </div>
+
+                  {/* Google Ads / GA4 Measurement ID */}
+                  <div>
+                    <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-1.5 font-outfit">
+                      Google Ads / GA4 ID
+                    </label>
+                    <input
+                      value={globalData.googleAdsId}
+                      onChange={(e) => setGlobalData({ ...globalData, googleAdsId: e.target.value })}
+                      placeholder="e.g. AW-16715555638"
+                      className="w-full rounded-xl bg-admin-card border border-admin-border text-sm font-medium text-admin-text px-4 py-2.5 placeholder:text-admin-text-secondary/50 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand transition-all"
+                    />
+                    <p className="text-[10px] text-admin-text-secondary mt-1">
+                      AW-XXXXX or G-XXXXX (gtag.js)
+                    </p>
+                  </div>
+
+                  {/* Meta Pixel ID */}
+                  <div>
+                    <label className="block text-xs font-bold text-admin-text-secondary uppercase tracking-wider mb-1.5 font-outfit">
+                      Meta Pixel ID
+                    </label>
+                    <input
+                      value={globalData.metaPixelId}
+                      onChange={(e) => setGlobalData({ ...globalData, metaPixelId: e.target.value })}
+                      placeholder="e.g. 123456789012345"
+                      className="w-full rounded-xl bg-admin-card border border-admin-border text-sm font-medium text-admin-text px-4 py-2.5 placeholder:text-admin-text-secondary/50 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand transition-all"
+                    />
+                    <p className="text-[10px] text-admin-text-secondary mt-1">
+                      Facebook / Instagram Pixel ID
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom Header Scripts */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-xs font-bold text-admin-text uppercase tracking-wider font-outfit">
+                    <Code2 className="w-4 h-4 text-blue-400" />
+                    <span>Header Scripts (&lt;head&gt;...&lt;/head&gt;)</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {headerAnalysis.type === 'valid' && (
+                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <CheckCircle2 className="w-3 h-3" /> HTML / Script Tag
+                      </span>
+                    )}
+                    {headerAnalysis.type === 'plain-text' && (
+                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                        <AlertTriangle className="w-3 h-3" /> Plain Text Detected
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Preset Snippet Buttons */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[10px] text-admin-text-secondary font-bold uppercase tracking-wider mr-1">
+                    Presets:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      appendSnippet(
+                        'headerScripts',
+                        `<meta name="google-site-verification" content="PASTE_YOUR_VERIFICATION_CODE_HERE" />`
+                      )
+                    }
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-admin-card border border-admin-border hover:bg-admin-card/80 text-admin-text flex items-center gap-1 transition-all"
+                  >
+                    <PlusCircle className="w-3 h-3 text-blue-400" /> + Google Verification
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      appendSnippet(
+                        'headerScripts',
+                        `<script type="text/javascript">\n  (function(c,l,a,r,i,t,y){\n    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};\n    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;\n    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);\n  })(window, document, "clarity", "script", "CLARITY_PROJECT_ID");\n</script>`
+                      )
+                    }
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-admin-card border border-admin-border hover:bg-admin-card/80 text-admin-text flex items-center gap-1 transition-all"
+                  >
+                    <PlusCircle className="w-3 h-3 text-cyan-400" /> + Microsoft Clarity
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      appendSnippet(
+                        'headerScripts',
+                        `<style>\n  /* Add custom CSS rules here */\n</style>`
+                      )
+                    }
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-admin-card border border-admin-border hover:bg-admin-card/80 text-admin-text flex items-center gap-1 transition-all"
+                  >
+                    <PlusCircle className="w-3 h-3 text-purple-400" /> + Custom CSS
+                  </button>
+                  {headerAnalysis.type === 'plain-text' && (
+                    <button
+                      type="button"
+                      onClick={() => handleWrapInScript('headerScripts')}
+                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all ml-auto"
+                    >
+                      Wrap in &lt;script&gt;
+                    </button>
+                  )}
+                </div>
+
+                <textarea
+                  rows={4}
+                  value={globalData.headerScripts}
+                  onChange={(e) => setGlobalData({ ...globalData, headerScripts: e.target.value })}
+                  placeholder={`<!-- Paste custom head tags or scripts here -->\n<meta name="google-site-verification" content="your_verification_code" />\n<script async src="https://cdn.example.com/analytics.js"></script>`}
+                  className="w-full rounded-xl bg-admin-card border border-admin-border text-xs font-mono text-admin-text px-4 py-3 placeholder:text-admin-text-secondary/40 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand transition-all resize-y custom-scrollbar"
+                />
+
+                {headerAnalysis.type === 'plain-text' && (
+                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between">
+                    <span>{headerAnalysis.message}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleWrapInScript('headerScripts')}
+                      className="font-bold underline ml-2 hover:opacity-80"
+                    >
+                      Wrap Now
+                    </button>
+                  </div>
+                )}
+                <p className="text-[11px] text-admin-text-secondary">
+                  Injected into the &lt;head&gt; of all pages. Ideal for Google verification meta tags, Microsoft Clarity, Hotjar, or custom fonts.
+                </p>
+              </div>
+
+              {/* Custom Footer Scripts */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-xs font-bold text-admin-text uppercase tracking-wider font-outfit">
+                    <Layers className="w-4 h-4 text-emerald-400" />
+                    <span>Footer Scripts (Before &lt;/body&gt;)</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {footerAnalysis.type === 'valid' && (
+                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <CheckCircle2 className="w-3 h-3" /> HTML / Script Tag
+                      </span>
+                    )}
+                    {footerAnalysis.type === 'plain-text' && (
+                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                        <AlertTriangle className="w-3 h-3" /> Plain Text Detected
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Preset Snippet Buttons for Footer */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[10px] text-admin-text-secondary font-bold uppercase tracking-wider mr-1">
+                    Presets:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      appendSnippet(
+                        'footerScripts',
+                        `<!-- Tawk.to Live Chat Script -->\n<script type="text/javascript">\n  var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();\n  (function(){\n    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];\n    s1.async=true;\n    s1.src='https://embed.tawk.to/YOUR_PROPERTY_ID/DEFAULT';\n    s1.charset='UTF-8';\n    s1.setAttribute('crossorigin','*');\n    s0.parentNode.insertBefore(s1,s0);\n  })();\n</script>`
+                      )
+                    }
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-admin-card border border-admin-border hover:bg-admin-card/80 text-admin-text flex items-center gap-1 transition-all"
+                  >
+                    <PlusCircle className="w-3 h-3 text-emerald-400" /> + Tawk.to Live Chat
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      appendSnippet(
+                        'footerScripts',
+                        `<!-- Custom Floating Action Button Script -->\n<script>\n  console.log("Footer widget loaded successfully.");\n</script>`
+                      )
+                    }
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-admin-card border border-admin-border hover:bg-admin-card/80 text-admin-text flex items-center gap-1 transition-all"
+                  >
+                    <PlusCircle className="w-3 h-3 text-teal-400" /> + Custom Widget Script
+                  </button>
+                  {footerAnalysis.type === 'plain-text' && (
+                    <button
+                      type="button"
+                      onClick={() => handleWrapInScript('footerScripts')}
+                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all ml-auto"
+                    >
+                      Wrap in &lt;script&gt;
+                    </button>
+                  )}
+                </div>
+
+                <textarea
+                  rows={4}
+                  value={globalData.footerScripts}
+                  onChange={(e) => setGlobalData({ ...globalData, footerScripts: e.target.value })}
+                  placeholder={`<!-- Paste live chat or footer scripts here -->\n<script src="https://embed.tawk.to/your_chat_id/default" charset="UTF-8" crossorigin="*"></script>`}
+                  className="w-full rounded-xl bg-admin-card border border-admin-border text-xs font-mono text-admin-text px-4 py-3 placeholder:text-admin-text-secondary/40 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand/30 focus:border-brand transition-all resize-y custom-scrollbar"
+                />
+
+                {footerAnalysis.type === 'plain-text' && (
+                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between">
+                    <span>{footerAnalysis.message}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleWrapInScript('footerScripts')}
+                      className="font-bold underline ml-2 hover:opacity-80"
+                    >
+                      Wrap Now
+                    </button>
+                  </div>
+                )}
+                <p className="text-[11px] text-admin-text-secondary">
+                  Injected before the closing &lt;/body&gt; tag on all pages. Ideal for live chat widgets (Tawk.to, WhatsApp, Crisp) or floating widgets.
+                </p>
+              </div>
+            </>
           )}
         </div>
 
@@ -271,11 +676,11 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
           <button
             type="button"
             disabled={isSaving || isLoading}
-            onClick={handleSave}
+            onClick={activeTab === 'pages' ? handleSavePage : handleSaveGlobal}
             className="px-6 py-2.5 rounded-xl bg-brand hover:opacity-90 text-white text-sm font-bold flex items-center gap-2 shadow-md shadow-brand/20 transition-all disabled:opacity-50 font-outfit"
           >
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save & Revalidate Live
+            {activeTab === 'pages' ? 'Save Page SEO & Revalidate' : 'Save & Apply Global Scripts'}
           </button>
         </div>
       </div>
