@@ -16,6 +16,10 @@ export default function YouMayAlsoLike({
   const router = useRouter();
   const { items, updateQuantity, removeItem } = useCart(); // Cart methods nikale
 
+  const scrollContainerRef = useRef(null);
+  const isPausedRef = useRef(false);
+  const pauseTimeoutRef = useRef(null);
+
   const handleCardClick = (rec) => {
     router.push(getItemUrl(rec, restaurantId));
   };
@@ -23,10 +27,6 @@ export default function YouMayAlsoLike({
   const recommendations = menuItems
     .filter((item) => item._id !== currentItemId)
     .slice(0, 8); // Show up to 8 recommendations so the slider is useful
-
-  if (recommendations.length === 0) {
-    return null;
-  }
 
   const primaryBg = isSingleRestaurant
     ? 'bg-[#7a0b10] hover:bg-[#5e080c]'
@@ -43,11 +43,6 @@ export default function YouMayAlsoLike({
     if (name.includes('lassi')) return '/images/branded/lassi-lounge/dishes/mango-lassi.jpg';
     return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
   };
-
-  const scrollContainerRef = useRef(null);
-
-  const isPausedRef = useRef(false);
-  const pauseTimeoutRef = useRef(null);
 
   const pauseAutoScroll = () => {
     isPausedRef.current = true;
@@ -73,7 +68,7 @@ export default function YouMayAlsoLike({
 
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container) return;
+    if (!container || recommendations.length === 0) return;
 
     let animationFrameId;
 
@@ -93,6 +88,7 @@ export default function YouMayAlsoLike({
     const scrollLoop = () => {
       if (!isPausedRef.current && container) {
         const maxScroll = container.scrollWidth - container.clientWidth;
+        if (maxScroll <= 0) return;
         if (container.scrollLeft >= maxScroll - 1) {
           container.scrollTo({ left: 0, behavior: 'auto' });
         } else {
@@ -111,7 +107,11 @@ export default function YouMayAlsoLike({
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchend', handleTouchEnd);
     };
-  }, []);
+  }, [recommendations.length]);
+
+  if (recommendations.length === 0) {
+    return null;
+  }
 
   return (
     <div className="space-y-6 select-none pt-4">

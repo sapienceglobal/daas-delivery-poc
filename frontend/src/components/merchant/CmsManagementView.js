@@ -254,8 +254,8 @@ export default function CmsManagementView() {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 relative">
-          <div className="max-w-5xl mx-auto bg-admin-surface rounded-2xl shadow-sm border border-admin-border p-8 min-h-[600px]">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 lg:p-5 relative">
+          <div className="w-full max-w-5xl bg-admin-surface rounded-2xl shadow-sm border border-admin-border p-6 sm:p-7 lg:p-8 min-h-[600px]">
             
             {/* HERO BANNERS */}
             {activeTab === 'hero' && (

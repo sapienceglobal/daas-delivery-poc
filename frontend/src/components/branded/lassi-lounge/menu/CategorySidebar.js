@@ -20,7 +20,8 @@ export default function CategorySidebar({
   isViewOnly = false
 }) {
   const router = useRouter();
-  const navRef = useRef(null);
+  const mobileNavRef = useRef(null);
+  const desktopNavRef = useRef(null);
   const [activeCoupon, setActiveCoupon] = useState(null);
   const [isAllModalOpen, setIsAllModalOpen] = useState(false);
 
@@ -42,13 +43,44 @@ export default function CategorySidebar({
     fetchCoupon();
   }, []);
 
-  useEffect(() => {
-    if (navRef.current && activeCategory && !searchQuery.trim()) {
-      const activeBtn = navRef.current.querySelector(`[data-category-id="${activeCategory}"]`);
+  const scrollToActiveCategory = (targetId) => {
+    const idToScroll = targetId || activeCategory;
+    if (!idToScroll || searchQuery.trim()) return;
+
+    // 1. Desktop Sidebar Scroll
+    if (desktopNavRef.current) {
+      const activeBtn = desktopNavRef.current.querySelector(`[data-category-id="${idToScroll}"]`);
       if (activeBtn) {
-        activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        const container = desktopNavRef.current;
+        const containerTop = container.scrollTop;
+        const containerRect = container.getBoundingClientRect();
+        const btnRect = activeBtn.getBoundingClientRect();
+
+        const offset = (btnRect.top - containerRect.top) + containerTop - (containerRect.height / 2) + (btnRect.height / 2);
+        container.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
       }
     }
+
+    // 2. Mobile Strip Scroll
+    if (mobileNavRef.current) {
+      const activeBtn = mobileNavRef.current.querySelector(`[data-category-id="${idToScroll}"]`);
+      if (activeBtn) {
+        const container = mobileNavRef.current;
+        const containerLeft = container.scrollLeft;
+        const containerRect = container.getBoundingClientRect();
+        const btnRect = activeBtn.getBoundingClientRect();
+
+        const offset = (btnRect.left - containerRect.left) + containerLeft - (containerRect.width / 2) + (btnRect.width / 2);
+        container.scrollTo({ left: Math.max(0, offset), behavior: 'smooth' });
+      }
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollToActiveCategory();
+    }, 60);
+    return () => clearTimeout(timer);
   }, [activeCategory, searchQuery]);
 
   const isExpired = activeCoupon && (
@@ -79,15 +111,15 @@ export default function CategorySidebar({
         </div>
 
         <nav
-          ref={navRef}
-          className="flex flex-row overflow-x-auto no-scrollbar gap-2 sm:gap-3 px-2 pb-1 pt-1 snap-x snap-mandatory"
+          ref={mobileNavRef}
+          className="flex flex-row overflow-x-auto no-scrollbar gap-2 sm:gap-3 px-2 pb-1 pt-1 snap-x snap-mandatory scroll-smooth"
         >
           {/* All Items Capsule */}
-          <div className="shrink-0 snap-start">
+          <div data-category-id="all" className="shrink-0 snap-start">
             <PopOutCapsuleImage
               label="All Items"
-              imageUrl={getCategory3DImage('all')}
-              width={66}
+              icon={UtensilsCrossed}
+              width={72}
               isSelected={!searchQuery.trim() && activeCategory === 'all'}
               itemCount={totalAllItemsCount}
               onClick={() => {
@@ -108,7 +140,7 @@ export default function CategorySidebar({
               >
                 <PopOutCapsuleImage
                   category={cat}
-                  width={66}
+                  width={72}
                   isSelected={isActive}
                   itemCount={cat.items?.length}
                   onClick={() => {
@@ -139,12 +171,12 @@ export default function CategorySidebar({
             title="View Grid"
           >
             <LayoutGrid className="w-3 h-3" />
-            <span>Grid</span>
+            <span>All</span>
           </button>
         </div>
 
-        {/* Categories List */}
-        <nav className="flex flex-col max-h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar">
+        {/* Categories List (no-scrollbar removes OS scrollbar gutter/white vertical strip) */}
+        <nav ref={desktopNavRef} className="flex flex-col max-h-[calc(100vh-180px)] overflow-y-auto no-scrollbar scroll-smooth">
           {/* All Items Row */}
           <button
             key="all"
@@ -153,34 +185,42 @@ export default function CategorySidebar({
               setActiveCategory('all');
               if (setSearchQuery) setSearchQuery('');
             }}
-            className={`group flex items-center justify-between px-3.5 py-2.5 text-[13px] font-bold border-b border-[#f3f4f6] transition-all ll-interactive ll-focus-ring cursor-pointer ${
+            className={`w-full group relative flex items-center justify-between px-3.5 py-3 text-[13.5px] font-bold border-b transition-all ll-interactive ll-focus-ring cursor-pointer ${
               !searchQuery.trim() && activeCategory === 'all'
-                ? 'bg-gradient-to-r from-[#7a0b10] to-[#961218] text-white shadow-sm'
-                : 'bg-white text-[#1a1a1a] hover:bg-[#fcfaf5] hover:text-[#7a0b10]'
+                ? 'bg-gradient-to-r from-[#7a0b10] to-[#961218] text-white shadow-sm border-[#7a0b10]'
+                : 'bg-white text-[#1a1a1a] hover:bg-[#fcfaf5] hover:text-[#7a0b10] border-[#f3f4f6]'
             }`}
           >
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
               <div
-                className={`relative w-8 h-9 rounded-full shrink-0 flex items-center justify-center transition-transform group-hover:scale-110 ${
-                  !searchQuery.trim() && activeCategory === 'all' ? 'shadow-inner' : 'shadow-2xs'
+                className={`relative w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center transition-all duration-300 group-hover:scale-108 ${
+                  !searchQuery.trim() && activeCategory === 'all'
+                    ? 'shadow-md ring-2 ring-white/30'
+                    : 'shadow-2xs group-hover:shadow-md'
                 }`}
                 style={{
                   background:
                     !searchQuery.trim() && activeCategory === 'all'
-                      ? 'radial-gradient(circle at center, #ffdcb5 0%, #fff 100%)'
-                      : 'radial-gradient(circle at center, #FDEFD5 0%, #fff 100%)',
+                      ? 'radial-gradient(circle at center, #ffdcb5 0%, #ffffff 100%)'
+                      : 'radial-gradient(circle at center, #fef4e4 0%, #ffffff 100%)',
+                  border:
+                    !searchQuery.trim() && activeCategory === 'all'
+                      ? '1.5px solid rgba(255,255,255,0.4)'
+                      : '1px solid #ebdcc1',
                 }}
               >
-                <img
-                  src={getCategory3DImage('all')}
-                  alt="All Items"
-                  className="w-7 h-7 object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.18)] -mt-1 group-hover:-translate-y-0.5 transition-transform"
+                <UtensilsCrossed
+                  className="w-6 h-6 text-[#7a0b10] drop-shadow-xs group-hover:scale-110 transition-transform duration-300"
                 />
               </div>
-              <span className="truncate">All Items</span>
+              <span className={`text-[13.5px] font-extrabold tracking-tight truncate leading-tight transition-colors ${
+                !searchQuery.trim() && activeCategory === 'all' ? 'text-white' : 'text-[#1a1a1a] group-hover:text-[#7a0b10]'
+              }`}>
+                All Items
+              </span>
             </div>
             <span
-              className={`text-[10px] rounded-full px-2 py-0.5 font-black transition-colors ${
+              className={`text-[11px] rounded-full px-2.5 py-0.5 font-black shrink-0 transition-all ${
                 !searchQuery.trim() && activeCategory === 'all'
                   ? 'bg-white/20 text-white'
                   : 'bg-[#f3f4f6] text-[#6b7280]'
@@ -201,33 +241,46 @@ export default function CategorySidebar({
                   setActiveCategory(cat._id);
                   if (setSearchQuery) setSearchQuery('');
                 }}
-                className={`group flex items-center justify-between px-3.5 py-2.5 text-[13px] font-bold border-b border-[#f3f4f6] transition-all ll-interactive ll-focus-ring cursor-pointer last:border-b-0 ${
+                className={`w-full group relative flex items-center justify-between px-3.5 py-3 text-[13.5px] font-bold border-b transition-all ll-interactive ll-focus-ring cursor-pointer last:border-b-0 ${
                   isActive
-                    ? 'bg-gradient-to-r from-[#7a0b10] to-[#961218] text-white shadow-sm'
-                    : 'bg-white text-[#1a1a1a] hover:bg-[#fcfaf5] hover:text-[#7a0b10]'
+                    ? 'bg-gradient-to-r from-[#7a0b10] to-[#961218] text-white shadow-sm border-[#7a0b10]'
+                    : 'bg-white text-[#1a1a1a] hover:bg-[#fcfaf5] hover:text-[#7a0b10] border-[#f3f4f6]'
                 }`}
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
                   <div
-                    className={`relative w-8 h-9 rounded-full shrink-0 flex items-center justify-center transition-transform group-hover:scale-110 ${
-                      isActive ? 'shadow-inner' : 'shadow-2xs'
+                    className={`relative w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center transition-all duration-300 group-hover:scale-108 ${
+                      isActive ? 'shadow-md ring-2 ring-white/30' : 'shadow-2xs group-hover:shadow-md'
                     }`}
                     style={{
                       background: isActive
-                        ? 'radial-gradient(circle at center, #ffdcb5 0%, #fff 100%)'
-                        : 'radial-gradient(circle at center, #FDEFD5 0%, #fff 100%)',
+                        ? 'radial-gradient(circle at center, #ffdcb5 0%, #ffffff 100%)'
+                        : 'radial-gradient(circle at center, #fef4e4 0%, #ffffff 100%)',
+                      border: isActive ? '1.5px solid rgba(255,255,255,0.4)' : '1px solid #ebdcc1',
                     }}
                   >
+                    {/* Contact Shadow beneath 3D dish */}
+                    <div
+                      className="absolute bottom-1 w-7 h-1.5 rounded-full pointer-events-none"
+                      style={{
+                        background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 70%)',
+                        filter: 'blur(1px)',
+                      }}
+                    />
                     <img
                       src={getCategory3DImage(cat.name)}
                       alt={cat.name}
-                      className="w-7 h-7 object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.18)] -mt-1 group-hover:-translate-y-0.5 transition-transform"
+                      className="w-11 h-11 object-contain filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.22)] -mt-1 group-hover:-translate-y-1 group-hover:scale-110 transition-all duration-300"
                     />
                   </div>
-                  <span className="truncate">{cat.name}</span>
+                  <span className={`text-[13.5px] font-extrabold tracking-tight truncate leading-tight transition-colors ${
+                    isActive ? 'text-white' : 'text-[#1a1a1a] group-hover:text-[#7a0b10]'
+                  }`}>
+                    {cat.name}
+                  </span>
                 </div>
                 <span
-                  className={`text-[10px] rounded-full px-2 py-0.5 font-black transition-colors ${
+                  className={`text-[11px] rounded-full px-2.5 py-0.5 font-black shrink-0 transition-all ${
                     isActive
                       ? 'bg-white/20 text-white'
                       : 'bg-[#f3f4f6] text-[#6b7280] group-hover:bg-[#7a0b10]/10 group-hover:text-[#7a0b10]'
@@ -301,8 +354,12 @@ export default function CategorySidebar({
         selectedCategoryId={activeCategory}
         title="All Categories"
         onSelectCategory={(cat) => {
-          setActiveCategory(cat._id);
+          const selectedId = cat._id || cat.id || 'all';
+          setActiveCategory(selectedId);
           if (setSearchQuery) setSearchQuery('');
+          setTimeout(() => {
+            scrollToActiveCategory(selectedId);
+          }, 80);
         }}
       />
     </div>

@@ -5,7 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 class LoginSocialRow extends StatelessWidget {
   final VoidCallback onGoogleTap;
   final VoidCallback onAppleTap;
-  final VoidCallback onFacebookTap;
+  final VoidCallback? onFacebookTap;
   final bool isGoogleLoading;
   final bool isAppleLoading;
   final bool isFacebookLoading;
@@ -16,7 +16,7 @@ class LoginSocialRow extends StatelessWidget {
     super.key,
     required this.onGoogleTap,
     required this.onAppleTap,
-    required this.onFacebookTap,
+    this.onFacebookTap,
     this.isGoogleLoading = false,
     this.isAppleLoading = false,
     this.isFacebookLoading = false,
@@ -57,15 +57,16 @@ class LoginSocialRow extends StatelessWidget {
               isLoading: isAppleLoading,
             ),
           ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _SocialTile(
-            icon: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 22),
-            provider: 'Facebook',
-            onTap: onFacebookTap,
-            isLoading: isFacebookLoading,
-          ),
-        ),
+        // Facebook sign-in temporarily commented out:
+        // const SizedBox(width: 10),
+        // Expanded(
+        //   child: _SocialTile(
+        //     icon: const Icon(Icons.facebook, color: Color(0xFF1877F2), size: 22),
+        //     provider: 'Facebook',
+        //     onTap: onFacebookTap ?? () {},
+        //     isLoading: isFacebookLoading,
+        //   ),
+        // ),
       ],
     );
   }
@@ -106,7 +107,7 @@ class _SocialTile extends StatelessWidget {
           onTap: isLoading ? null : onTap,
           borderRadius: BorderRadius.circular(10),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 11.0),
             child: isLoading
                 ? const Center(
                     child: SizedBox(
@@ -122,16 +123,15 @@ class _SocialTile extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       icon,
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 8),
                       Flexible(
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            'Continue\nwith $provider',
+                            'Continue with $provider',
                             style: const TextStyle(
-                              fontSize: 10,
-                              height: 1.15,
+                              fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF374151),
                             ),

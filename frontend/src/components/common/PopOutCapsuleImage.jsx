@@ -18,6 +18,7 @@ export default function PopOutCapsuleImage({
   category,
   label,
   imageUrl,
+  icon: IconComponent,
   width = 80,
   isSelected = false,
   onClick,
@@ -72,19 +73,21 @@ export default function PopOutCapsuleImage({
           }}
         />
 
-        {/* 2. Contact Shadow directly below the dish */}
-        <div
-          className="absolute pointer-events-none rounded-full transition-opacity duration-300 group-hover:opacity-80"
-          style={{
-            width: `${shadowWidth}px`,
-            height: '7px',
-            bottom: `${Math.round(ovalHeight * 0.10)}px`,
-            background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0) 75%)',
-            filter: 'blur(2.5px)',
-          }}
-        />
+        {/* 2. Contact Shadow directly below the dish (only for food dishes) */}
+        {!IconComponent && (
+          <div
+            className="absolute pointer-events-none rounded-full transition-opacity duration-300 group-hover:opacity-80"
+            style={{
+              width: `${shadowWidth}px`,
+              height: '7px',
+              bottom: `${Math.round(ovalHeight * 0.10)}px`,
+              background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0) 75%)',
+              filter: 'blur(2.5px)',
+            }}
+          />
+        )}
 
-        {/* 3. Floating 3D Cutout Food Image (Pops out from the top) */}
+        {/* 3. Floating 3D Cutout Food Image OR Clean Branded Icon */}
         <div
           className="absolute z-10 pointer-events-none flex items-center justify-center transition-all duration-300 ease-out group-hover:scale-115 group-hover:-translate-y-1.5"
           style={{
@@ -93,12 +96,20 @@ export default function PopOutCapsuleImage({
             top: `${dishTopOffset}px`,
           }}
         >
-          <img
-            src={finalImageUrl}
-            alt={displayLabel}
-            loading="lazy"
-            className="w-full h-full object-contain filter drop-shadow-[0_6px_10px_rgba(0,0,0,0.14)] group-hover:drop-shadow-[0_10px_16px_rgba(122,11,16,0.22)] transition-all duration-300"
-          />
+          {IconComponent ? (
+            <IconComponent
+              className={`w-8 h-8 sm:w-9 sm:h-9 transition-colors duration-300 drop-shadow-sm ${
+                isSelected ? 'text-[#7a0b10]' : 'text-[#7a0b10]/85 group-hover:text-[#7a0b10]'
+              }`}
+            />
+          ) : (
+            <img
+              src={finalImageUrl}
+              alt={displayLabel}
+              loading="lazy"
+              className="w-full h-full object-contain filter drop-shadow-[0_6px_10px_rgba(0,0,0,0.14)] group-hover:drop-shadow-[0_10px_16px_rgba(122,11,16,0.22)] transition-all duration-300"
+            />
+          )}
         </div>
 
         {/* Optional Item Count Badge (Top-Right of Capsule) */}

@@ -194,7 +194,7 @@ function OrderOnlineContent() {
       <div className="mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Left Sidebar */}
-          <div className="w-full lg:w-[240px] shrink-0">
+          <div className="w-full lg:w-[265px] shrink-0">
             <div className="lg:sticky lg:top-[72px]">
               <CategorySidebar
                 categories={categories}

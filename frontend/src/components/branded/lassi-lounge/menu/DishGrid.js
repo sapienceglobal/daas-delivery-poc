@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Star, Heart, Minus, Plus, Flame, Leaf, SearchX, LayoutGrid, List, ChevronDown, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Star, Heart, Minus, Plus, Flame, Leaf, SearchX, LayoutGrid, List, ChevronDown, ChevronLeft, ChevronRight, Loader2, UtensilsCrossed } from 'lucide-react';
 import { getItemUrl, resolveImageUrl } from '@/lib/slugUtils';
 import { getCategory3DImage } from '@/lib/category3DHelper';
 
@@ -112,34 +112,55 @@ export default function DishGrid({
       {/* ─── 1. HEADER CONTROLS ─── */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end justify-between bg-transparent pb-4 border-b border-[#e5e7eb]/80">
         <div className="flex flex-col flex-1 min-w-0 w-full pr-4">
-          <div className="flex items-center gap-2.5 min-w-0 w-full">
-            {!searchQuery.trim() && (
-              <div 
-                className="relative w-9 h-10 rounded-full shrink-0 flex items-center justify-center shadow-2xs border border-[#ebdcc1]/70"
-                style={{
-                  background: 'radial-gradient(circle at center, #FDEFD5 0%, #ffffff 100%)',
-                }}
-              >
-                <img
-                  src={getCategory3DImage(currentCategory?.name || 'all')}
-                  alt={currentCategory?.name || 'Category'}
-                  className="w-8 h-8 object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.14)] -mt-1"
-                />
+          <div className="flex items-center gap-3.5 min-w-0 w-full">
+            {!searchQuery.trim() && (() => {
+              const isAll = !currentCategory?.name || currentCategory?.name === 'All Items' || currentCategory?._id === 'all';
+              return (
+                <div 
+                  className="relative w-14 h-14 md:w-16 md:h-16 rounded-2xl shrink-0 flex items-center justify-center shadow-md border border-[#ebdcc1] transition-transform duration-300 hover:scale-105"
+                  style={{
+                    background: 'radial-gradient(circle at center, #ffdcb5 0%, #ffffff 100%)',
+                  }}
+                >
+                  {isAll ? (
+                    <UtensilsCrossed
+                      className="w-7 h-7 md:w-8 md:h-8 text-[#7a0b10] drop-shadow-xs transition-transform duration-300 hover:rotate-6"
+                    />
+                  ) : (
+                    <>
+                      {/* Contact Shadow beneath 3D dish */}
+                      <div
+                        className="absolute bottom-1.5 w-9 md:w-11 h-2 rounded-full pointer-events-none"
+                        style={{
+                          background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 70%)',
+                          filter: 'blur(1.5px)',
+                        }}
+                      />
+                      <img
+                        src={getCategory3DImage(currentCategory?.name)}
+                        alt={currentCategory?.name || 'Category'}
+                        className="w-12 h-12 md:w-14 md:h-14 object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.22)] -mt-1.5 transition-transform duration-300 hover:-translate-y-1 hover:scale-110"
+                      />
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[26px] md:text-[34px] font-serif font-black text-[#1a1a1a] leading-tight truncate">
+                {searchQuery.trim()
+                  ? `Search Results for "${searchQuery.length > 25 ? searchQuery.substring(0, 25) + '...' : searchQuery}"`
+                  : (currentCategory?.name && currentCategory.name !== 'All Items' ? currentCategory.name : (currentCategory?.name || 'All Items'))}
+              </h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className="text-[#e8a020] flex items-center">
+                  <svg width="20" height="6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="12" x2="15" y2="12" /><circle cx="20" cy="12" r="2" fill="currentColor" /></svg>
+                </div>
+                <span className="text-[12px] text-[#6b7280] font-medium leading-none">
+                  {sortedItems.length} Items Total
+                </span>
               </div>
-            )}
-            <h2 className="text-[26px] md:text-[32px] font-serif font-black text-[#1a1a1a] leading-none truncate w-full">
-              {searchQuery.trim()
-                ? `Search Results for "${searchQuery.length > 25 ? searchQuery.substring(0, 25) + '...' : searchQuery}"`
-                : (currentCategory?.name && currentCategory.name !== 'All Items' ? currentCategory.name : (currentCategory?.name || 'All Items'))}
-            </h2>
-          </div>
-          <div className="flex items-center gap-2 ml-1.5 mt-1.5">
-            <div className="text-[#e8a020] flex items-center">
-              <svg width="20" height="6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="12" x2="15" y2="12" /><circle cx="20" cy="12" r="2" fill="currentColor" /></svg>
             </div>
-            <span className="text-[12px] text-[#6b7280] font-medium leading-none">
-              {sortedItems.length} Items Total
-            </span>
           </div>
         </div>
 

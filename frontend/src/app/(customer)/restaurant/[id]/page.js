@@ -350,7 +350,7 @@ export default function RestaurantPage() {
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
 
             {/* === LEFT SIDEBAR: CATEGORIES === */}
-            <div className="w-full lg:w-[240px] shrink-0">
+            <div className="w-full lg:w-[265px] shrink-0">
               <div className="lg:sticky lg:top-[72px]">
                 <CategorySidebar
                   categories={categories}
@@ -557,7 +557,7 @@ export default function RestaurantPage() {
         <div className="mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8 py-8">
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
             {/* Category Sidebar */}
-            <div className="w-full lg:w-[240px] shrink-0">
+            <div className="w-full lg:w-[265px] shrink-0">
               <CategorySidebar
                 categories={categories}
                 activeCategory={activeCategory}
