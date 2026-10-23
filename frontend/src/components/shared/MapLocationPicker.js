@@ -249,7 +249,7 @@ export default function MapLocationPicker({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url={
               process.env.NEXT_PUBLIC_CARTO_API_KEY
-                ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${process.env.NEXT_PUBLIC_CARTO_API_KEY}`
+                ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${process.env.NEXT_PUBLIC_CARTO_API_KEY}`
                 : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             }
           />
