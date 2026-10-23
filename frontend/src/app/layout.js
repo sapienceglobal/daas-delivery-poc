@@ -219,6 +219,7 @@ export default async function RootLayout({ children }) {
         <CustomScriptsInjector
           headerScripts={globalScripts.headerScripts}
           footerScripts={globalScripts.footerScripts}
+          keepWhatsAppWithCustomChat={globalScripts.keepWhatsAppWithCustomChat}
         />
         <Providers>
           <ScrollToTop />

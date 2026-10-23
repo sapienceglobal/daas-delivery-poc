@@ -47,6 +47,7 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
     metaPixelId: '',
     headerScripts: '',
     footerScripts: '',
+    keepWhatsAppWithCustomChat: false,
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -108,6 +109,7 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
             metaPixelId: res.data.metaPixelId || '',
             headerScripts: res.data.headerScripts || '',
             footerScripts: res.data.footerScripts || '',
+            keepWhatsAppWithCustomChat: Boolean(res.data.keepWhatsAppWithCustomChat),
           });
         }
       } catch {
@@ -147,6 +149,7 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
         metaPixelId: globalData.metaPixelId.trim(),
         headerScripts: globalData.headerScripts.trim(),
         footerScripts: globalData.footerScripts.trim(),
+        keepWhatsAppWithCustomChat: Boolean(globalData.keepWhatsAppWithCustomChat),
       });
       showToast('Global scripts & tracking IDs saved & applied live!', 'success');
       onClose();
@@ -486,13 +489,13 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                   </label>
                   <div className="flex items-center gap-2">
                     {headerAnalysis.type === 'valid' && (
-                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        <CheckCircle2 className="w-3 h-3" /> HTML / Script Tag
+                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> HTML / Script Tag
                       </span>
                     )}
                     {headerAnalysis.type === 'plain-text' && (
-                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">
-                        <AlertTriangle className="w-3 h-3" /> Plain Text Detected
+                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:bg-amber-500/15 dark:text-amber-400 border border-rose-500/25 dark:border-amber-500/25">
+                        <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-amber-400" /> Plain Text Detected
                       </span>
                     )}
                   </div>
@@ -543,7 +546,7 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                     <button
                       type="button"
                       onClick={() => handleWrapInScript('headerScripts')}
-                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all ml-auto"
+                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-700 border border-rose-500/30 hover:bg-rose-500/25 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 dark:hover:bg-amber-500/30 transition-all ml-auto cursor-pointer"
                     >
                       Wrap in &lt;script&gt;
                     </button>
@@ -559,12 +562,15 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                 />
 
                 {headerAnalysis.type === 'plain-text' && (
-                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between">
-                    <span>{headerAnalysis.message}</span>
+                  <div className="p-2.5 rounded-lg bg-rose-500/10 dark:bg-amber-500/10 border border-rose-500/25 dark:border-amber-500/20 text-rose-700 dark:text-amber-300 text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-amber-400 shrink-0" />
+                      <span>{headerAnalysis.message}</span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => handleWrapInScript('headerScripts')}
-                      className="font-bold underline ml-2 hover:opacity-80"
+                      className="font-bold underline ml-2 text-rose-800 hover:text-rose-950 dark:text-amber-200 dark:hover:text-amber-100 shrink-0 cursor-pointer"
                     >
                       Wrap Now
                     </button>
@@ -584,13 +590,13 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                   </label>
                   <div className="flex items-center gap-2">
                     {footerAnalysis.type === 'valid' && (
-                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        <CheckCircle2 className="w-3 h-3" /> HTML / Script Tag
+                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> HTML / Script Tag
                       </span>
                     )}
                     {footerAnalysis.type === 'plain-text' && (
-                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">
-                        <AlertTriangle className="w-3 h-3" /> Plain Text Detected
+                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:bg-amber-500/15 dark:text-amber-400 border border-rose-500/25 dark:border-amber-500/25">
+                        <AlertTriangle className="w-3 h-3 text-rose-600 dark:text-amber-400" /> Plain Text Detected
                       </span>
                     )}
                   </div>
@@ -629,7 +635,7 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                     <button
                       type="button"
                       onClick={() => handleWrapInScript('footerScripts')}
-                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all ml-auto"
+                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-700 border border-rose-500/30 hover:bg-rose-500/25 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 dark:hover:bg-amber-500/30 transition-all ml-auto cursor-pointer"
                     >
                       Wrap in &lt;script&gt;
                     </button>
@@ -645,12 +651,15 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                 />
 
                 {footerAnalysis.type === 'plain-text' && (
-                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between">
-                    <span>{footerAnalysis.message}</span>
+                  <div className="p-2.5 rounded-lg bg-rose-500/10 dark:bg-amber-500/10 border border-rose-500/25 dark:border-amber-500/20 text-rose-700 dark:text-amber-300 text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-amber-400 shrink-0" />
+                      <span>{footerAnalysis.message}</span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => handleWrapInScript('footerScripts')}
-                      className="font-bold underline ml-2 hover:opacity-80"
+                      className="font-bold underline ml-2 text-rose-800 hover:text-rose-950 dark:text-amber-200 dark:hover:text-amber-100 shrink-0 cursor-pointer"
                     >
                       Wrap Now
                     </button>
@@ -659,6 +668,50 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                 <p className="text-[11px] text-admin-text-secondary">
                   Injected before the closing &lt;/body&gt; tag on all pages. Ideal for live chat widgets (Tawk.to, WhatsApp, Crisp) or floating widgets.
                 </p>
+
+                {/* WhatsApp Widget Conflict Management Toggle */}
+                <div className="p-3.5 rounded-xl bg-admin-card border border-admin-border flex items-center justify-between gap-4 mt-2">
+                  <div className="flex-1 pr-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-admin-text font-outfit">
+                        Keep WhatsApp button alongside Live Chat
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        globalData.keepWhatsAppWithCustomChat
+                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25'
+                          : 'bg-slate-500/15 text-slate-400 border border-slate-500/25'
+                      }`}>
+                        {globalData.keepWhatsAppWithCustomChat ? 'Both Visible (Stacked)' : 'Auto-Hide (Recommended)'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-admin-text-secondary mt-1 leading-snug">
+                      {globalData.keepWhatsAppWithCustomChat
+                        ? 'WhatsApp button will automatically shift upwards above the live chat bubble so both work cleanly without overlapping.'
+                        : 'WhatsApp button will automatically hide when a third-party chat script (like Tawk.to) is active to keep the bottom-right corner clean.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setGlobalData({
+                        ...globalData,
+                        keepWhatsAppWithCustomChat: !globalData.keepWhatsAppWithCustomChat,
+                      })
+                    }
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      globalData.keepWhatsAppWithCustomChat ? 'bg-emerald-500' : 'bg-slate-700'
+                    }`}
+                    role="switch"
+                    aria-checked={globalData.keepWhatsAppWithCustomChat}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                        globalData.keepWhatsAppWithCustomChat ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
             </>
           )}

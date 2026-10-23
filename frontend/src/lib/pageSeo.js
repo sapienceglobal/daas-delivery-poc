@@ -130,6 +130,7 @@ export const fetchGlobalScripts = cache(async () => {
     metaPixelId: '',
     headerScripts: '',
     footerScripts: '',
+    keepWhatsAppWithCustomChat: false,
   };
 
   try {
@@ -151,6 +152,7 @@ export const fetchGlobalScripts = cache(async () => {
           metaPixelId: json.data.metaPixelId || '',
           headerScripts: json.data.headerScripts || '',
           footerScripts: json.data.footerScripts || '',
+          keepWhatsAppWithCustomChat: Boolean(json.data.keepWhatsAppWithCustomChat),
         };
       }
     }

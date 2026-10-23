@@ -11,10 +11,30 @@ import { useEffect, useRef } from 'react';
  *    (like "ReferenceError: hi is not defined") never crash the Next.js app or show error screens.
  * 3. External scripts (<script src="...">) have fallback onerror listeners for ad-blockers / network drop.
  */
-export default function CustomScriptsInjector({ headerScripts = '', footerScripts = '' }) {
+export default function CustomScriptsInjector({
+  headerScripts = '',
+  footerScripts = '',
+  keepWhatsAppWithCustomChat = false,
+}) {
   const injectedRef = useRef({ header: null, footer: null });
 
   useEffect(() => {
+    // Detect popular third-party live chat widgets in injected scripts
+    const combined = `${headerScripts} ${footerScripts}`;
+    const isLiveChat = /(tawk\.to|embed\.tawk|crisp\.chat|intercom|livechat|zendesk|tidio|freshchat|chat-widget)/i.test(combined);
+
+    if (typeof window !== 'undefined') {
+      window.__HAS_CUSTOM_CHAT_WIDGET__ = isLiveChat;
+      window.__KEEP_WHATSAPP__ = Boolean(keepWhatsAppWithCustomChat);
+      window.dispatchEvent(
+        new CustomEvent('daas-chat-widget-changed', {
+          detail: {
+            hasCustomChat: isLiveChat,
+            keepWhatsApp: Boolean(keepWhatsAppWithCustomChat),
+          },
+        })
+      );
+    }
     const inject = (content, target, key) => {
       if (!content || typeof content !== 'string') return;
       const trimmed = content.trim();
@@ -97,7 +117,7 @@ export default function CustomScriptsInjector({ headerScripts = '', footerScript
       inject(footerScripts, document.body, 'body');
       injectedRef.current.footer = footerScripts;
     }
-  }, [headerScripts, footerScripts]);
+  }, [headerScripts, footerScripts, keepWhatsAppWithCustomChat]);
 
   return null;
 }

@@ -49,14 +49,14 @@ export default function PopOutCapsuleImage({
           onClick();
         }
       }}
-      className={`group flex flex-col items-center select-none outline-none ${
+      className={`group/capsule flex flex-col items-center select-none outline-none pt-1 pb-0.5 ${
         onClick ? 'cursor-pointer' : ''
       } ${className}`}
       style={{ width: `${Math.max(width + 10, 84)}px` }}
     >
       {/* ─── 3D POP-OUT CAPSULE CONTAINER ─── */}
       <div
-        className="relative flex items-center justify-center transition-transform duration-300 ease-out group-hover:-translate-y-1"
+        className="relative flex items-center justify-center transition-transform duration-300 ease-out group-hover/capsule:-translate-y-1"
         style={{ width: `${width}px`, height: `${ovalHeight}px` }}
       >
         {/* 1. Vertical Oval Backdrop with Radial Gradient & Border Glow */}
@@ -64,7 +64,7 @@ export default function PopOutCapsuleImage({
           className={`absolute inset-0 rounded-[9999px] transition-all duration-300 ${
             isSelected
               ? 'ring-2 ring-[#7a0b10] border-2 border-[#7a0b10] shadow-[0_8px_22px_rgba(122,11,16,0.24)] scale-[1.02]'
-              : 'border border-[#ebdcc1]/70 shadow-[0_4px_16px_rgba(0,0,0,0.06)] group-hover:border-[#e8a020] group-hover:shadow-[0_8px_20px_rgba(232,160,32,0.16)]'
+              : 'border border-[#ebdcc1]/70 shadow-[0_4px_16px_rgba(0,0,0,0.06)] group-hover/capsule:border-[#e8a020] group-hover/capsule:shadow-[0_8px_20px_rgba(232,160,32,0.16)]'
           }`}
           style={{
             background: isSelected
@@ -76,7 +76,7 @@ export default function PopOutCapsuleImage({
         {/* 2. Contact Shadow directly below the dish (only for food dishes) */}
         {!IconComponent && (
           <div
-            className="absolute pointer-events-none rounded-full transition-opacity duration-300 group-hover:opacity-80"
+            className="absolute pointer-events-none rounded-full transition-opacity duration-300 group-hover/capsule:opacity-80"
             style={{
               width: `${shadowWidth}px`,
               height: '7px',
@@ -89,7 +89,7 @@ export default function PopOutCapsuleImage({
 
         {/* 3. Floating 3D Cutout Food Image OR Clean Branded Icon */}
         <div
-          className="absolute z-10 pointer-events-none flex items-center justify-center transition-all duration-300 ease-out group-hover:scale-115 group-hover:-translate-y-1.5"
+          className="absolute z-10 pointer-events-none flex items-center justify-center transition-all duration-300 ease-out group-hover/capsule:scale-115 group-hover/capsule:-translate-y-1.5"
           style={{
             width: `${dishSize}px`,
             height: `${dishSize}px`,
@@ -99,7 +99,7 @@ export default function PopOutCapsuleImage({
           {IconComponent ? (
             <IconComponent
               className={`w-8 h-8 sm:w-9 sm:h-9 transition-colors duration-300 drop-shadow-sm ${
-                isSelected ? 'text-[#7a0b10]' : 'text-[#7a0b10]/85 group-hover:text-[#7a0b10]'
+                isSelected ? 'text-[#7a0b10]' : 'text-[#7a0b10]/85 group-hover/capsule:text-[#7a0b10]'
               }`}
             />
           ) : (
@@ -107,7 +107,7 @@ export default function PopOutCapsuleImage({
               src={finalImageUrl}
               alt={displayLabel}
               loading="lazy"
-              className="w-full h-full object-contain filter drop-shadow-[0_6px_10px_rgba(0,0,0,0.14)] group-hover:drop-shadow-[0_10px_16px_rgba(122,11,16,0.22)] transition-all duration-300"
+              className="w-full h-full object-contain filter drop-shadow-[0_6px_10px_rgba(0,0,0,0.14)] group-hover/capsule:drop-shadow-[0_10px_16px_rgba(122,11,16,0.22)] transition-all duration-300"
             />
           )}
         </div>
@@ -118,7 +118,7 @@ export default function PopOutCapsuleImage({
             className={`absolute -top-1 -right-1 z-20 text-[9px] font-black px-1.5 py-0.5 rounded-full border shadow-sm transition-colors ${
               isSelected
                 ? 'bg-[#7a0b10] text-white border-white'
-                : 'bg-white/95 text-[#6b7280] border-[#ebdcc1] group-hover:text-[#7a0b10] group-hover:border-[#7a0b10]/40'
+                : 'bg-white/95 text-[#6b7280] border-[#ebdcc1] group-hover/capsule:text-[#7a0b10] group-hover/capsule:border-[#7a0b10]/40'
             }`}
           >
             {itemCount}
@@ -132,8 +132,8 @@ export default function PopOutCapsuleImage({
           <span
             className={`text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-center line-clamp-2 leading-tight transition-colors duration-200 font-sans ${
               isSelected
-                ? 'text-[#7a0b10]'
-                : 'text-[#1a1a1a] group-hover:text-[#7a0b10]'
+                ? 'text-[#7a0b10] dark:text-brand-light'
+                : 'text-[#1a1a1a] dark:text-admin-text group-hover/capsule:text-[#7a0b10] dark:group-hover/capsule:text-brand-light'
             }`}
           >
             {displayLabel}
@@ -141,7 +141,7 @@ export default function PopOutCapsuleImage({
 
           {/* Active Underline Pill (Matching Flutter App) */}
           {isSelected && (
-            <span className="w-4 h-[2.5px] bg-[#7a0b10] rounded-full mt-1.5 animate-in fade-in zoom-in-75 duration-200" />
+            <span className="w-4 h-[2.5px] bg-[#7a0b10] dark:bg-brand-light rounded-full mt-1.5 animate-in fade-in zoom-in-75 duration-200" />
           )}
         </div>
       )}

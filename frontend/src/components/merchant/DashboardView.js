@@ -119,60 +119,85 @@ export default function DashboardView({
     .slice(0, 5);
 
   // Chart data
-  const rawSales = analyticsData?.trends?.salesOverTime || [];
-  const salesData = rawSales.map(item => ({
-    name: timeframe === 1 || timeframe === 'yesterday'
-      ? `${item._id}:00`
-      : timeframe === 7 || timeframe === 30 || timeframe === 'custom'
-      ? new Date(item._id).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      : item._id,
-    revenue: item.totalSales || 0,
-    orders: item.totalOrders || 0
-  }));
+  const rawSales = analyticsData?.dailyStats || analyticsData?.trends?.salesOverTime || [];
+  const salesData = rawSales.map(item => {
+    const rawDate = item.date || item._id;
+    let label = String(rawDate || '');
+    if ((timeframe === 1 || timeframe === 'yesterday') && typeof item._id === 'number') {
+      label = `${item._id}:00`;
+    } else if (rawDate && typeof rawDate === 'string' && rawDate.includes('-')) {
+      try {
+        const d = new Date(rawDate.includes('T') ? rawDate : `${rawDate}T00:00:00`);
+        if (!isNaN(d.getTime())) {
+          label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+      } catch (e) {
+        label = rawDate;
+      }
+    }
+    return {
+      name: label,
+      revenue: item.revenue ?? item.totalSales ?? 0,
+      orders: item.orders ?? item.totalOrders ?? 0
+    };
+  });
 
-  const rawChannels = analyticsData?.breakdowns?.ordersByChannel || [];
+  const rawChannels = (analyticsData?.salesByChannel || analyticsData?.breakdowns?.ordersByChannel || [])
+    .filter(item => (item.count || item.value || 0) > 0);
   const channelData = rawChannels.map(item => {
     let color = '#3b82f6';
-    if (item._id === 'delivery') color = '#22c55e';
-    if (item._id === 'pickup') color = '#f59e0b';
-    if (item._id === 'dine_in') color = '#a855f7';
+    const channel = (item._id || '').toLowerCase();
+    if (channel === 'delivery') color = '#22c55e';
+    if (channel === 'pickup') color = '#f59e0b';
+    if (channel === 'dine_in') color = '#a855f7';
     return {
       name: (item._id || 'direct').toUpperCase().replace('_', ' '),
-      value: item.count || 0,
+      value: item.count || item.value || 0,
       color: color
     };
   });
 
+  const rawHeatmap = analyticsData?.timeOfDayHeatmap || [];
   const rawPeak = analyticsData?.breakdowns?.peakHours || [];
-  const hasPeakData = rawPeak.some(item => item.totalOrders > 0);
+  const hourlyMap = new Map();
+  rawHeatmap.forEach(item => {
+    const h = item._id?.hour ?? item._id;
+    if (typeof h === 'number') {
+      hourlyMap.set(h, (hourlyMap.get(h) || 0) + (item.orders || 0));
+    }
+  });
+  const hasPeakData = rawHeatmap.some(item => (item.orders || 0) > 0) || rawPeak.some(item => (item.totalOrders || item.orders || 0) > 0);
   const peakHoursData = Array.from({ length: 24 }).map((_, hour) => {
     const existing = rawPeak.find(item => item._id === hour);
+    const ordersCount = hourlyMap.has(hour) 
+      ? hourlyMap.get(hour) 
+      : (existing ? (existing.totalOrders || existing.orders || 0) : 0);
     return {
       name: `${hour === 0 ? 12 : hour > 12 ? hour - 12 : hour}${hour >= 12 ? 'p' : 'a'}`,
-      orders: existing ? existing.totalOrders : 0
+      orders: ordersCount || 0
     };
   });
 
-  const rawTopItems = analyticsData?.breakdowns?.topSellingItems || [];
+  const rawTopItems = analyticsData?.topItems || analyticsData?.breakdowns?.topSellingItems || [];
   const topItems = rawTopItems.slice(0, 5).map((item, idx) => {
     const menuItem = (menu || []).flatMap(c => c.items || []).find(i => (i.name || '').toLowerCase() === (item._id || '').toLowerCase());
     return {
       rank: idx + 1,
       name: item._id,
-      orders: item.quantitySold,
-      revenue: item.revenueGenerated,
+      orders: item.quantitySold ?? item.orders ?? 0,
+      revenue: item.revenueGenerated ?? item.revenue ?? 0,
       img: menuItem?.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80'
     };
   });
 
-  const upcomingReservations = filteredReservations
-    .filter(r => getTzSimulatedDate(r.date) >= getTzSimulatedDate(new Date()).setHours(0,0,0,0))
-    .sort((a,b) => new Date(a.date) - new Date(b.date))
+  const upcomingReservations = (reservations || [])
+    .filter(r => getTzSimulatedDate(r.date || r.createdAt) >= getTzSimulatedDate(new Date()).setHours(0,0,0,0))
+    .sort((a,b) => new Date(a.date || a.createdAt) - new Date(b.date || b.createdAt))
     .slice(0, 4);
 
-  const upcomingCatering = filteredCatering
-    .filter(c => getTzSimulatedDate(c.eventDate || c.date || Date.now()) >= getTzSimulatedDate(new Date()).setHours(0,0,0,0))
-    .sort((a,b) => new Date(a.eventDate || a.date || Date.now()) - new Date(b.eventDate || b.date || Date.now()))
+  const upcomingCatering = (cateringInquiries || [])
+    .filter(c => getTzSimulatedDate(c.eventDate || c.date || c.createdAt || Date.now()) >= getTzSimulatedDate(new Date()).setHours(0,0,0,0))
+    .sort((a,b) => new Date(a.eventDate || a.date || a.createdAt || Date.now()) - new Date(b.eventDate || b.date || b.createdAt || Date.now()))
     .slice(0, 3);
 
   return (

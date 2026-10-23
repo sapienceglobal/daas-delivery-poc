@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Search, Download, Plus, Edit3, Trash2, Flame, Leaf, Hexagon,
-  CheckCircle2, XCircle, Info, ChevronDown, Loader2, ChevronLeft, ChevronRight
+  CheckCircle2, XCircle, Info, ChevronDown, Loader2, ChevronLeft, ChevronRight,
+  UtensilsCrossed
 } from 'lucide-react';
 import { ConfirmModal } from '@/components/ui';
+import { getCategory3DImage } from '@/lib/category3DHelper';
+import PopOutCapsuleImage from '@/components/common/PopOutCapsuleImage';
 
 export default function MenuManagementView({ 
   menu = [], 
@@ -166,73 +169,82 @@ export default function MenuManagementView({
       </div>
 
       {/* 🚀 ENHANCED CATEGORY TABS WITH SCROLL BUTTONS 🚀 */}
-      <div className="relative shrink-0 group sticky top-0 z-[40] bg-admin-bg/95 backdrop-blur-md py-2 border-b border-admin-border/50">
+      <div className="relative shrink-0 sticky top-0 z-[40] bg-admin-bg/95 backdrop-blur-md py-2 border-b border-admin-border/50">
         
         {/* Scrollable Container */}
         <div 
           ref={scrollContainerRef}
           onScroll={checkForScrollPosition}
-          className="flex overflow-x-auto gap-3.5 pb-2 hide-scrollbar scroll-smooth px-1"
+          className="flex overflow-x-auto gap-4 sm:gap-5 pb-3 pt-2 hide-scrollbar scroll-smooth px-2 items-start"
         >
-          <button 
-            onClick={() => setActiveCategory('all')}
-            className={`flex flex-col items-center justify-center min-w-[120px] py-3.5 px-3 rounded-2xl border transition-all duration-200 shrink-0 cursor-pointer ${activeCategory === 'all' ? 'border-brand/40 bg-brand/10 text-brand shadow-sm font-bold' : 'border-admin-border bg-admin-card text-admin-text-secondary hover:border-brand/30 hover:bg-admin-surface-light hover:text-admin-text shadow-2xs'}`}
-          >
-            <Hexagon className={`w-5 h-5 mb-1.5 ${activeCategory === 'all' ? 'text-brand' : 'text-admin-text-muted'}`} />
-            <span className="text-xs font-bold font-heading">All Items</span>
-            <span className="text-[11px] mt-0.5 font-semibold opacity-70">{allItems.length}</span>
-          </button>
+          {/* 1. New Category Capsule (Starting position before All Items) */}
+          <div className="shrink-0">
+            <PopOutCapsuleImage
+              label="New Category"
+              icon={Plus}
+              width={76}
+              isSelected={false}
+              onClick={() => onAddCategory && onAddCategory()}
+            />
+          </div>
+
+          {/* 2. All Items Capsule */}
+          <div className="shrink-0">
+            <PopOutCapsuleImage
+              label="All Items"
+              icon={UtensilsCrossed}
+              width={76}
+              isSelected={activeCategory === 'all'}
+              itemCount={allItems.length}
+              onClick={() => setActiveCategory('all')}
+            />
+          </div>
           
+          {/* 3. Dynamic Categories */}
           {menu.map(cat => (
             <div
               key={cat._id}
-              className="relative shrink-0 group/cat rounded-2xl transition-all"
-              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('ring-2', 'ring-brand', 'ring-offset-2'); }}
-              onDragLeave={(e) => { e.currentTarget.classList.remove('ring-2', 'ring-brand', 'ring-offset-2'); }}
+              className="relative shrink-0 group/cat"
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('scale-105'); }}
+              onDragLeave={(e) => { e.currentTarget.classList.remove('scale-105'); }}
               onDrop={(e) => {
                 e.preventDefault();
-                e.currentTarget.classList.remove('ring-2', 'ring-brand', 'ring-offset-2');
+                e.currentTarget.classList.remove('scale-105');
                 const itemId = e.dataTransfer.getData('text/plain');
                 if (itemId && onMoveItem) {
                   onMoveItem(itemId, cat._id);
                 }
               }}
             >
-              <button 
+              <PopOutCapsuleImage
+                category={cat}
+                width={76}
+                isSelected={activeCategory === cat._id}
+                itemCount={cat.items?.length || 0}
                 onClick={() => setActiveCategory(cat._id)}
-                className={`flex flex-col items-center justify-center w-full min-w-[120px] py-3.5 px-3 rounded-2xl border transition-all duration-200 cursor-pointer ${activeCategory === cat._id ? 'border-brand/40 bg-brand/10 text-brand shadow-sm font-bold' : 'border-admin-border bg-admin-card text-admin-text-secondary hover:border-brand/30 hover:bg-admin-surface-light hover:text-admin-text shadow-2xs'}`}
-              >
-                <Hexagon className={`w-5 h-5 mb-1.5 ${activeCategory === cat._id ? 'text-brand' : 'text-admin-text-muted'}`} />
-                <span className="text-xs font-bold font-heading line-clamp-1">{cat.name}</span>
-                <span className="text-[11px] mt-0.5 font-semibold opacity-70">{cat.items?.length || 0}</span>
-              </button>
+              />
               
-              <div className="absolute top-2 right-2 opacity-0 group-hover/cat:opacity-100 transition-opacity flex gap-1">
+              {/* Category Quick Actions (Edit / Delete) */}
+              <div className="absolute top-0 right-1 opacity-0 group-hover/cat:opacity-100 transition-opacity flex gap-1 z-30">
                 <button 
+                  type="button"
                   onClick={(e) => { e.stopPropagation(); onEditCategory && onEditCategory(cat); }}
-                  className="p-1 bg-admin-surface rounded-lg shadow-2xs border border-admin-border text-admin-text-secondary hover:text-brand transition-colors cursor-pointer"
+                  className="p-1.5 bg-white dark:bg-admin-surface rounded-full shadow-md border border-admin-border text-admin-text-secondary hover:text-brand transition-colors cursor-pointer"
                   title="Edit Category"
                 >
-                  <Edit3 className="w-3.5 h-3.5" />
+                  <Edit3 className="w-3 h-3" />
                 </button>
                 <button 
+                  type="button"
                   onClick={(e) => { e.stopPropagation(); onDeleteCategory && onDeleteCategory(cat._id); }}
-                  className="p-1 bg-admin-surface rounded-lg shadow-2xs border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                  className="p-1.5 bg-white dark:bg-admin-surface rounded-full shadow-md border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
                   title="Delete Category"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-3 h-3" />
                 </button>
               </div>
             </div>
           ))}
-
-          <button 
-            onClick={() => onAddCategory && onAddCategory()}
-            className="flex flex-col items-center justify-center min-w-[120px] py-3.5 px-3 rounded-2xl border border-dashed border-admin-border bg-admin-card/50 text-admin-text-secondary hover:text-brand hover:border-brand/40 hover:bg-brand/5 transition-all duration-200 shrink-0 cursor-pointer"
-          >
-            <Plus className="w-5 h-5 mb-1.5 text-admin-text-muted" />
-            <span className="text-xs font-bold font-heading">New Category</span>
-          </button>
         </div>
 
         {/* Left Gradient & Button */}

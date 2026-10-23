@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Save, Sparkles, Image as ImageIcon, Tag, Activity, Upload, Loader2, Globe, Search } from 'lucide-react';
+import { X, Save, Sparkles, Image as ImageIcon, Tag, Activity, Upload, Loader2, Globe, Search, Leaf } from 'lucide-react';
 import { menuAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 import { getItemSlug } from '@/lib/slugUtils';
@@ -24,7 +24,8 @@ export default function MenuManagementModal({
   const [itemForm, setItemForm] = useState({
     name: '', categoryId: '', description: '', price: '', preparationTime: '15',
     image: '', images: [], tags: '', sizeVariationsText: '', addOnsText: '',
-    isVeg: false, isVegan: false, isSpicy: false, isGlutenFree: false,
+    foodType: item?.isVeg === true ? 'veg' : (item?._id ? 'nonveg' : ''),
+    isVegan: false, isSpicy: false, isGlutenFree: false,
     isBestseller: false, isAvailable: true,
     seoTitle: '', seoDescription: '', seoKeywordsText: ''
   });
@@ -44,7 +45,7 @@ export default function MenuManagementModal({
         price: item.price?.toString() || '',
         preparationTime: item.preparationTime?.toString() || '15',
         sizeVariationsText: item.sizeVariations?.map(s => `${s.name}:${s.price}`).join('\n') || '',
-        addOnsText: item.addOns?.map(a => `${a.name}:${a.price}`).join('\n') || '',
+        foodType: item.isVeg === true ? 'veg' : (item._id ? 'nonveg' : ''),
         seoTitle: item.seoTitle || '',
         seoDescription: item.seoDescription || '',
         seoKeywordsText: Array.isArray(item.seoKeywords) ? item.seoKeywords.join(', ') : (item.seoKeywords || '')
@@ -58,10 +59,13 @@ export default function MenuManagementModal({
       if (!itemForm.name?.trim()) newErrors.name = 'Item name is required';
       if (!itemForm.categoryId) newErrors.categoryId = 'Category is required';
       if (!itemForm.price || Number(itemForm.price) <= 0) newErrors.price = 'Valid price is required';
+      if (!itemForm.foodType || (itemForm.foodType !== 'veg' && itemForm.foodType !== 'nonveg')) {
+        newErrors.foodType = 'Please select whether this item is Veg or Non-Veg';
+      }
 
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
-        // showToast('Please fix the errors in the form', 'error'); // Fallback is optional, inline errors show it
+        showToast(newErrors.foodType || 'Please fill in all required fields', 'error');
         return;
       }
       setErrors({});
@@ -69,6 +73,8 @@ export default function MenuManagementModal({
       
       const payload = {
         ...itemForm,
+        isVeg: itemForm.foodType === 'veg',
+        isVegan: itemForm.foodType === 'veg' ? Boolean(itemForm.isVegan) : false,
         image: itemForm.image || itemForm.images?.[0] || null,
         images: itemForm.images || [],
         restaurantId: restaurantId, // Ensure restaurantId is included
@@ -489,18 +495,82 @@ export default function MenuManagementModal({
             {/* Right Column - Modifiers & Properties */}
             <div className="lg:col-span-5 space-y-8">
               
-              {/* Properties Grid */}
+              {/* Section: Food Type (MANDATORY *) */}
+              <div className={`bg-admin-card p-6 rounded-2xl shadow-sm border transition-all ${
+                errors.foodType ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-admin-border'
+              } space-y-4`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-brand/10 p-1.5 rounded-lg text-brand">
+                      <Leaf className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-base font-bold font-heading text-admin-text">
+                      Dietary Classification <span className="text-rose-500">*</span>
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full">
+                    Required
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {/* VEG OPTION */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setItemForm(f => ({ ...f, foodType: 'veg' }));
+                      if (errors.foodType) setErrors(e => ({ ...e, foodType: null }));
+                    }}
+                    className={`flex flex-col items-center justify-center gap-2 p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+                      itemForm.foodType === 'veg'
+                        ? 'bg-emerald-500/15 border-emerald-500 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-emerald-500/30'
+                        : 'bg-admin-surface border-admin-border text-admin-text-secondary hover:text-admin-text hover:border-emerald-500/40'
+                    }`}
+                  >
+                    <div className="w-6 h-6 rounded-full border-2 border-emerald-500 flex items-center justify-center p-0.5">
+                      <div className={`w-3 h-3 rounded-full ${itemForm.foodType === 'veg' ? 'bg-emerald-500' : 'bg-transparent'}`} />
+                    </div>
+                    <span className="text-xs font-black tracking-wide">VEGETARIAN (VEG)</span>
+                  </button>
+
+                  {/* NON-VEG OPTION */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setItemForm(f => ({ ...f, foodType: 'nonveg', isVegan: false }));
+                      if (errors.foodType) setErrors(e => ({ ...e, foodType: null }));
+                    }}
+                    className={`flex flex-col items-center justify-center gap-2 p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
+                      itemForm.foodType === 'nonveg'
+                        ? 'bg-rose-500/15 border-rose-500 text-rose-600 dark:text-rose-400 shadow-sm ring-1 ring-rose-500/30'
+                        : 'bg-admin-surface border-admin-border text-admin-text-secondary hover:text-admin-text hover:border-rose-500/40'
+                    }`}
+                  >
+                    <div className="w-6 h-6 rounded-full border-2 border-rose-500 flex items-center justify-center p-0.5">
+                      <div className={`w-3 h-3 rounded-full ${itemForm.foodType === 'nonveg' ? 'bg-rose-500' : 'bg-transparent'}`} />
+                    </div>
+                    <span className="text-xs font-black tracking-wide">NON-VEGETARIAN</span>
+                  </button>
+                </div>
+
+                {errors.foodType && (
+                  <p className="text-rose-500 text-xs font-bold flex items-center gap-1.5 animate-in fade-in">
+                    ⚠️ {errors.foodType}
+                  </p>
+                )}
+              </div>
+
+              {/* Section: Additional Attributes */}
               <div className="bg-admin-card p-6 rounded-2xl shadow-sm border border-admin-border space-y-5">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="bg-brand/10 p-1.5 rounded-lg text-brand">
                     <Activity className="w-4 h-4" />
                   </div>
-                  <h3 className="text-base sm:text-lg font-bold font-heading text-admin-text">Properties</h3>
+                  <h3 className="text-base sm:text-lg font-bold font-heading text-admin-text">Additional Attributes</h3>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    ['isVeg', 'Vegetarian', 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'],
                     ['isVegan', 'Vegan', 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/30'],
                     ['isSpicy', 'Spicy', 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'],
                     ['isGlutenFree', 'Gluten Free', 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'],

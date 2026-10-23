@@ -112,7 +112,7 @@ export default function CategorySidebar({
 
         <nav
           ref={mobileNavRef}
-          className="flex flex-row overflow-x-auto no-scrollbar gap-2 sm:gap-3 px-2 pb-1 pt-1 snap-x snap-mandatory scroll-smooth"
+          className="flex flex-row overflow-x-auto no-scrollbar gap-2 sm:gap-3 px-2 pt-3 pb-2.5 snap-x snap-mandatory scroll-smooth"
         >
           {/* All Items Capsule */}
           <div data-category-id="all" className="shrink-0 snap-start">

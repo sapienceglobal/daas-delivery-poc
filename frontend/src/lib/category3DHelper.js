@@ -24,6 +24,22 @@ export const CATEGORY_3D_ASSETS = {
   all: `${BASE_PATH}/special_thali_3d.png`,
 };
 
+export const CATEGORY_3D_PRESET_OPTIONS = [
+  { id: 'thali', label: 'Special Thali', image: CATEGORY_3D_ASSETS.thali },
+  { id: 'momos', label: 'Momos & Dimsums', image: CATEGORY_3D_ASSETS.momos },
+  { id: 'amritsar', label: 'Amritsari Special', image: CATEGORY_3D_ASSETS.amritsar },
+  { id: 'riceCombo', label: 'Rice Bowl & Combo', image: CATEGORY_3D_ASSETS.riceCombo },
+  { id: 'parathas', label: 'Stuffed Parathas', image: CATEGORY_3D_ASSETS.parathas },
+  { id: 'nonVegAppetizer', label: 'Non-Veg Starters', image: CATEGORY_3D_ASSETS.nonVegAppetizer },
+  { id: 'riceDishes', label: 'Biryani & Rice', image: CATEGORY_3D_ASSETS.riceDishes },
+  { id: 'snacks', label: 'Snacks & Chaat', image: CATEGORY_3D_ASSETS.snacks },
+  { id: 'nonVegMain', label: 'Non-Veg Main Course', image: CATEGORY_3D_ASSETS.nonVegMain },
+  { id: 'vegMain', label: 'Veg Main Course', image: CATEGORY_3D_ASSETS.vegMain },
+  { id: 'desserts', label: 'Desserts & Sweets', image: CATEGORY_3D_ASSETS.desserts },
+  { id: 'beverages', label: 'Beverages & Lassi', image: CATEGORY_3D_ASSETS.beverages },
+  { id: 'breads', label: 'Breads & Naan', image: CATEGORY_3D_ASSETS.breads },
+];
+
 /**
  * Returns the exact 3D transparent cutout asset URL for any category.
  * Accepts either a string category name or category object ({ name, label, image, _id }).
@@ -35,15 +51,17 @@ export function getCategory3DImage(category) {
   if (!category) return CATEGORY_3D_ASSETS.vegMain;
 
   let name = '';
-  let customImage = '';
 
   if (typeof category === 'string') {
+    if (category.startsWith('http') || category.startsWith('/images/')) {
+      return category;
+    }
     name = category.toLowerCase().trim();
   } else if (typeof category === 'object') {
-    name = (category.name || category.label || category.title || '').toLowerCase().trim();
-    if (category.image && typeof category.image === 'string' && category.image.startsWith('http')) {
-      customImage = category.image;
+    if (category.image && typeof category.image === 'string' && (category.image.startsWith('http') || category.image.startsWith('/images/'))) {
+      return category.image;
     }
+    name = (category.name || category.label || category.title || '').toLowerCase().trim();
   }
 
   if (name === 'all' || name === 'all items' || name === 'explore all') {
@@ -148,9 +166,6 @@ export function getCategory3DImage(category) {
   if (name.includes('bread') || name.includes('naan') || name.includes('roti') || name.includes('kulcha')) {
     return CATEGORY_3D_ASSETS.breads;
   }
-
-  // Fallback to custom image if valid
-  if (customImage) return customImage;
 
   // 13. Default Veg Main Course
   return CATEGORY_3D_ASSETS.vegMain;

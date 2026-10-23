@@ -131,12 +131,19 @@ export const getCategoriesByRestaurant = asyncHandler(async (req, response) => {
 
 export const createCategory = asyncHandler(async (req, response) => {
   const { Category, Restaurant } = getModels(req);
-  const { restaurantId, name, description, image, sortOrder } = req.body;
+  const { restaurantId, name, description, image, sortOrder, isActive } = req.body;
   if (!restaurantId || !name) throw new AppError('restaurantId and name are required', 400);
 
   await ensureOwner(restaurantId, req.user, Restaurant);
 
-  const category = await Category.create({ restaurantId, name, description, image, sortOrder });
+  const category = await Category.create({ 
+    restaurantId, 
+    name, 
+    description, 
+    image, 
+    sortOrder,
+    isActive: isActive !== undefined ? Boolean(isActive) : true
+  });
   invalidateRestaurant(restaurantId);
   res.created(response, { data: category });
 });

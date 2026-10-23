@@ -37,6 +37,10 @@ const PageSeoSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  keepWhatsAppWithCustomChat: {
+    type: Boolean,
+    default: false,
+  },
   gtmId: {
     type: String,
     trim: true,

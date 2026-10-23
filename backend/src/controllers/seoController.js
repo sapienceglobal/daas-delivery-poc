@@ -81,6 +81,7 @@ export const getGlobalSeo = asyncHandler(async (req, response) => {
       metaPixelId: '',
       headerScripts: '',
       footerScripts: '',
+      keepWhatsAppWithCustomChat: false,
     },
   });
 });
@@ -90,7 +91,7 @@ export const getGlobalSeo = asyncHandler(async (req, response) => {
  * Protected endpoint for Admin / Merchant to update global tracking scripts & IDs.
  */
 export const updateGlobalSeo = asyncHandler(async (req, response) => {
-  const { gtmId, googleAdsId, metaPixelId, headerScripts, footerScripts } = req.body;
+  const { gtmId, googleAdsId, metaPixelId, headerScripts, footerScripts, keepWhatsAppWithCustomChat } = req.body;
 
   const updated = await PageSeo.findOneAndUpdate(
     { path: '__global__' },
@@ -101,6 +102,7 @@ export const updateGlobalSeo = asyncHandler(async (req, response) => {
       metaPixelId: typeof metaPixelId === 'string' ? metaPixelId.trim() : '',
       headerScripts: typeof headerScripts === 'string' ? headerScripts : '',
       footerScripts: typeof footerScripts === 'string' ? footerScripts : '',
+      keepWhatsAppWithCustomChat: Boolean(keepWhatsAppWithCustomChat),
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );

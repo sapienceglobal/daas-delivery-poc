@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useBrand } from '@/context/BrandContext';
 import { useCart } from '@/context/CartContext';
 import { X } from 'lucide-react';
@@ -10,6 +10,41 @@ export default function WhatsAppWidget() {
   const { brand } = useBrand();
   const { isCartOpen } = useCart();
 
+  const [chatSettings, setChatSettings] = useState({
+    hasCustomChat: false,
+    keepWhatsApp: false,
+  });
+
+  useEffect(() => {
+    const checkLiveChatState = () => {
+      if (typeof window === 'undefined') return;
+
+      const detected =
+        Boolean(window.__HAS_CUSTOM_CHAT_WIDGET__) ||
+        Boolean(window.Tawk_API) ||
+        Boolean(window.$crisp) ||
+        Boolean(document.getElementById('tawk-bubble-container')) ||
+        Boolean(document.querySelector('iframe[title*="chat" i], iframe[src*="tawk.to" i]'));
+
+      const keep = Boolean(window.__KEEP_WHATSAPP__);
+
+      setChatSettings({
+        hasCustomChat: detected,
+        keepWhatsApp: keep,
+      });
+    };
+
+    checkLiveChatState();
+
+    window.addEventListener('daas-chat-widget-changed', checkLiveChatState);
+    const interval = setInterval(checkLiveChatState, 1500);
+
+    return () => {
+      window.removeEventListener('daas-chat-widget-changed', checkLiveChatState);
+      clearInterval(interval);
+    };
+  }, []);
+
   const rawPhone = brand?.notificationSettings?.whatsappNumber || brand?.phone || '+1 (347) 755-1370';
   const waNumber = rawPhone.replace(/\D/g, '');
 
@@ -18,8 +53,18 @@ export default function WhatsAppWidget() {
     window.open(url, '_blank');
   };
 
+  // 1. Auto-Hide: If custom live chat (e.g. Tawk.to) is detected and admin did NOT enable keepWhatsApp, hide WhatsApp
+  if (chatSettings.hasCustomChat && !chatSettings.keepWhatsApp) {
+    return null;
+  }
+
+  // 2. Auto-Shift: If custom live chat is active AND admin enabled keepWhatsApp, float gracefully above the chat bubble
+  const bottomPosition = (chatSettings.hasCustomChat && chatSettings.keepWhatsApp)
+    ? 'bottom-[155px] md:bottom-[95px]'
+    : 'bottom-[90px] md:bottom-6';
+
   return (
-    <div className={`fixed bottom-[90px] md:bottom-6 z-[90] flex flex-col items-end font-sans transition-all duration-500 ease-in-out
+    <div className={`fixed ${bottomPosition} z-[90] flex flex-col items-end font-sans transition-all duration-500 ease-in-out
       ${isCartOpen ? 'md:right-[424px] right-6 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto' : 'right-6 opacity-100 pointer-events-auto'}
     `}>
       

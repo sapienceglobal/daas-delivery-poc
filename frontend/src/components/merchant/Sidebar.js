@@ -26,7 +26,7 @@ const SIDEBAR_STRUCTURE = [
       { id: 'kds', label: 'Kitchen Display', icon: Store, href: '/merchant/kds' },
       { id: 'reservations', label: 'Reservations', icon: CalendarCheck, badge: 5, badgeColor: 'orange', href: '/merchant/reservations' },
       { id: 'catering', label: 'Catering Enquiries', icon: Calendar, badge: 3, badgeColor: 'orange', href: '/merchant/catering' },
-      { id: 'menu', label: 'Menu & Inventory', icon: Grid, href: '/merchant/menu' },
+      { id: 'menu', label: 'Menu & Category', icon: Grid, href: '/merchant/menu' },
     ]
   },
   {

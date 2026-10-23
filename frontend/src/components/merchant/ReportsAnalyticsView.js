@@ -400,27 +400,27 @@ export default function ReportsAnalyticsView({
           <div className="flex-1 overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-admin-border">
+                <tr className="border-b border-white/[0.06] dark:border-white/[0.06]">
                   <th className="pb-3 text-xs font-bold text-admin-text-muted uppercase tracking-wider w-8">#</th>
                   <th className="pb-3 text-xs font-bold text-admin-text-muted uppercase tracking-wider">Dish</th>
                   <th className="pb-3 text-xs font-bold text-admin-text-muted uppercase tracking-wider text-right">Orders</th>
                   <th className="pb-3 text-xs font-bold text-admin-text-muted uppercase tracking-wider text-right">Revenue</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-white/[0.04] dark:divide-white/[0.04]">
                 {(topItems || []).slice(0, 5).map((item, idx) => (
-                  <tr key={idx} className="border-b border-admin-border/50 last:border-0 hover:bg-admin-surface-light/50 transition-colors">
+                  <tr key={idx} className="hover:bg-admin-surface-light/40 transition-colors group">
                     <td className="py-3 text-xs font-bold text-admin-text-muted">{idx + 1}</td>
                     <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded bg-admin-surface border border-admin-border/50 flex items-center justify-center shrink-0 overflow-hidden">
-                          <ChefHat className="w-3 h-3 text-admin-text-muted" />
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-brand/10 text-brand flex items-center justify-center shrink-0">
+                          <ChefHat className="w-3.5 h-3.5" />
                         </div>
-                        <span className="text-xs font-bold text-admin-text truncate max-w-[100px]">{item._id}</span>
+                        <span className="text-xs font-bold text-admin-text truncate max-w-[130px]">{item._id}</span>
                       </div>
                     </td>
-                    <td className="py-3 text-xs font-semibold text-admin-text-secondary text-right">{item.quantitySold}</td>
-                    <td className="py-3 text-xs font-bold text-admin-text text-right">{renderCurrency(item.revenueGenerated)}</td>
+                    <td className="py-3 text-xs font-semibold text-admin-text-secondary text-right font-mono">{item.quantitySold}</td>
+                    <td className="py-3 text-xs font-bold text-admin-text text-right font-mono">{renderCurrency(item.revenueGenerated)}</td>
                   </tr>
                 ))}
                 {(!topItems || topItems.length === 0) && (
