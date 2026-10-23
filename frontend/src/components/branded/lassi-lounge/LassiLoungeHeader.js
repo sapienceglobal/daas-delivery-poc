@@ -87,11 +87,13 @@ function HeaderContent() {
             {(user.role === 'merchant' || user.role === 'admin') && (
               <Link
                 href={user.role === 'admin' ? '/admin' : '/merchant'}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-600/15 border border-primary-600/30 text-primary-500 hover:bg-primary-600/25 transition-all text-[11px] font-bold uppercase tracking-wider shadow-2xs"
+                className="group relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#f59e0b] via-[#ea580c] to-[#c61f26] text-white hover:from-[#fbbf24] hover:via-[#f97316] hover:to-[#dc2626] transition-all duration-300 text-[11px] font-black uppercase tracking-wider shadow-[0_2px_12px_rgba(245,158,11,0.35)] hover:shadow-[0_4px_18px_rgba(234,88,12,0.55)] hover:scale-[1.03] active:scale-[0.98] border border-amber-300/40 shrink-0"
                 title={user.role === 'admin' ? 'Switch to Admin Panel' : 'Switch to Merchant Dashboard'}
               >
-                {user.role === 'admin' ? <Shield size={13} /> : <Store size={13} />}
-                <span className="hidden sm:inline-block">
+                <span className="p-0.5 rounded-full bg-black/20 flex items-center justify-center text-white group-hover:rotate-6 transition-transform">
+                  {user.role === 'admin' ? <Shield size={12} className="text-white" /> : <Store size={12} className="text-white" />}
+                </span>
+                <span className="inline-block font-extrabold tracking-wide drop-shadow-xs">
                   {user.role === 'admin' ? 'Admin' : 'Dashboard'}
                 </span>
               </Link>
