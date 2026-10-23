@@ -201,13 +201,9 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
   return createPortal(
     <div
       className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
     >
       <div
         className="relative w-full max-w-3xl bg-admin-surface rounded-2xl shadow-2xl border border-admin-border overflow-hidden flex flex-col max-h-[92vh] text-admin-text animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-admin-border bg-admin-card/40">
