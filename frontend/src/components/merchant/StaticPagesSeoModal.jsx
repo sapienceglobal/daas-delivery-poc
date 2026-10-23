@@ -586,7 +586,7 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 text-xs font-bold text-admin-text uppercase tracking-wider font-outfit">
                     <Layers className="w-4 h-4 text-emerald-400" />
-                    <span>Footer Scripts (Before &lt;/body&gt;)</span>
+                    <span>Footer Scripts (&lt;body&gt;...&lt;/body&gt;)</span>
                   </label>
                   <div className="flex items-center gap-2">
                     {footerAnalysis.type === 'valid' && (
@@ -666,7 +666,7 @@ export default function StaticPagesSeoModal({ isOpen, onClose }) {
                   </div>
                 )}
                 <p className="text-[11px] text-admin-text-secondary">
-                  Injected before the closing &lt;/body&gt; tag on all pages. Ideal for live chat widgets (Tawk.to, WhatsApp, Crisp) or floating widgets.
+                  Injected at the bottom of &lt;body&gt;...&lt;/body&gt; (before closing tag) on all pages. Ideal for live chat widgets (Tawk.to, WhatsApp, Crisp) or floating widgets.
                 </p>
 
                 {/* WhatsApp Widget Conflict Management Toggle */}
