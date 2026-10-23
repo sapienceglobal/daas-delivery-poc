@@ -206,7 +206,7 @@ export default function DishGrid({
       </div>
 
       {/* ─── 2. ITEMS GRID / LIST ─── */}
-      <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 ll-stagger" : "flex flex-col gap-4 ll-stagger"}>
+      <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-5 ll-stagger" : "flex flex-col gap-3.5 sm:gap-4 ll-stagger"}>
         {displayedItems.map((item, index) => {
           const isFavorite = user?.favoriteItems?.some(f => (f._id || f) === item._id);
           const isAvailable = item.isAvailable !== false;
@@ -235,115 +235,239 @@ export default function DishGrid({
           };
 
           return (
-            <div
-              key={item._id}
-              style={{ animationFillMode: 'both', animationDelay: `${(index % ITEMS_PER_LOAD) * 40}ms` }}
-              className={`animate-in fade-in slide-in-from-bottom-8 duration-500 ease-out bg-[#fcfaf5] rounded-xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_34px_rgba(122,11,16,0.12)] flex overflow-hidden relative group ll-interactive cursor-pointer ${!isAvailable ? 'opacity-50 pointer-events-none' : ''} ${viewMode === 'grid' ? 'flex-col' : 'flex-col sm:flex-row sm:min-h-[210px] h-auto'}`}
-              onClick={() => {
-                router.push(getItemUrl(item, restaurantId));
-              }}
-            >
-              {/* Image header */}
-              <div className={`relative bg-[#f3f4f6] overflow-hidden shrink-0 ${viewMode === 'grid' ? 'h-[200px] w-full' : 'h-[180px] sm:h-auto w-full sm:w-[240px]'}`}>
-                <img
-                  src={resolveImageUrl(item.image) || getDishImage(item.name)}
-                  alt={item.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                  onError={(e) => {
-                    // Fallback to local/unsplash images if Cloudinary fails (e.g. 401 unauthorized)
-                    const fallback = getDishImage(item.name);
-                    if (e.target.src !== fallback) {
-                      e.target.src = fallback;
-                    }
-                  }}
-                />
-
-                {/* Heart Button */}
-                {isAuthenticated && isAvailable && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(item._id);
+            <React.Fragment key={item._id}>
+              {/* MOBILE CARD (Matches Customer APK menu_item_card.dart) */}
+              <div
+                style={{ animationFillMode: 'both', animationDelay: `${(index % ITEMS_PER_LOAD) * 40}ms` }}
+                className={`sm:hidden animate-in fade-in slide-in-from-bottom-3 duration-300 ease-out bg-white rounded-xl border border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.03)] flex overflow-hidden relative cursor-pointer select-none ${!isAvailable ? 'opacity-50 pointer-events-none' : ''}`}
+                onClick={() => {
+                  router.push(getItemUrl(item, restaurantId));
+                }}
+              >
+                {/* Proportional Image Left */}
+                <div className="w-[104px] min-w-[104px] h-[104px] relative bg-gray-100 shrink-0 overflow-hidden">
+                  <img
+                    src={resolveImageUrl(item.image) || getDishImage(item.name)}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const fallback = getDishImage(item.name);
+                      if (e.target.src !== fallback) {
+                        e.target.src = fallback;
+                      }
                     }}
-                    className="absolute top-3 right-3 p-1.5 bg-[#000000]/40 backdrop-blur-sm rounded-full border border-[#ffffff]/80 hover:bg-[#000000]/60 shadow-sm ll-interactive ll-focus-ring"
-                    aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                  >
-                    <Heart className={`h-4 w-4 ${isFavorite ? 'fill-[#cd131b] text-[#cd131b] border-none' : 'text-[#ffffff]'}`} strokeWidth={isFavorite ? 0 : 2} />
-                  </button>
-                )}
-              </div>
+                  />
 
-              {/* Card Content */}
-              <div className={`p-4 flex-grow flex flex-col justify-between ${viewMode === 'list' ? 'sm:py-5 sm:px-6' : ''}`}>
-                <div>
-                  <h3 className="text-[17px] font-bold text-[#1a1a1a] tracking-tight line-clamp-1 font-serif">
-                    {item.name}
-                  </h3>
-
-
-                  <p className="text-[12px] text-[#4b5563] leading-relaxed line-clamp-2 mt-2.5">
-                    {item.description || 'Crispy rolls stuffed with fresh vegetables & served hot.'}
-                  </p>
-
-                  {/* Veg & Spice Indicators */}
-                  <div className="flex items-center gap-4 mt-3">
-                    <span className="text-[11px] font-bold text-[#4b5563] flex items-center gap-2">
-                      <span className={`h-3.5 w-3.5 rounded-full flex items-center justify-center ${item.isVeg ? 'bg-[#16a34a]' : 'bg-[#cd131b]'}`}>
-                        <Leaf className="h-3 w-3 text-[#ffffff]" strokeWidth={3} />
-                      </span>
-                      {item.isVeg ? 'Veg' : 'Non Veg'}
-                    </span>
-                    <span className="text-[11px] font-bold text-[#4b5563] flex items-center gap-1">
-                      {item.isSpicy ? <Flame className="h-3.5 w-3.5 text-[#e8a020]" strokeWidth={2.5} /> : <Leaf className="h-3.5 w-3.5 text-[#16a34a]" strokeWidth={2.5} />}
-                      {item.isSpicy ? 'Medium' : 'Mild'}
-                    </span>
-                  </div>
+                  {/* Heart Button on Image */}
+                  {isAuthenticated && isAvailable && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(item._id);
+                      }}
+                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-xs cursor-pointer"
+                      aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <Heart
+                        className={`w-3.5 h-3.5 ${isFavorite ? 'fill-[#7a0b10] text-[#7a0b10]' : 'text-gray-400'}`}
+                        strokeWidth={isFavorite ? 0 : 2}
+                      />
+                    </button>
+                  )}
                 </div>
 
-                {/* Bottom Section: Price & Actions */}
-                <div className="mt-5 flex items-center justify-between w-full pt-1">
-                  <div className="text-[18px] font-black text-[#1a1a1a] leading-none">
-                    ${item.price?.toFixed(2) || '9.99'}
+                {/* Content Right */}
+                <div className="flex-1 p-2.5 flex flex-row gap-2 justify-between items-start min-w-0">
+                  {/* Center details: Veg dot + title, description, spice level */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch">
+                    <div>
+                      <div className="flex items-start">
+                        {/* Veg/Non-Veg Indicator */}
+                        <div className={`mt-0.5 mr-1.5 p-[2px] rounded-[4px] border-[1.5px] shrink-0 flex items-center justify-center ${item.isVeg ? 'border-green-600' : 'border-red-600'}`}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${item.isVeg ? 'bg-green-600' : 'bg-red-600'}`} />
+                        </div>
+
+                        <h3 className="font-bold text-[14.5px] text-[#1a1a1a] truncate leading-snug flex-1">
+                          {item.name}
+                        </h3>
+                      </div>
+
+                      <p className="text-[11.5px] text-gray-500 line-clamp-2 leading-tight mt-1">
+                        {item.description || 'Crispy rolls stuffed with fresh vegetables & served hot.'}
+                      </p>
+                    </div>
+
+                    {/* Spice Levels */}
+                    <div className="flex items-center gap-1 mt-1.5 text-[11px] text-gray-500">
+                      <div className="flex items-center gap-0.5">
+                        {[0, 1, 2].map((idx) => {
+                          const isActive = item.isSpicy ? idx < 2 : idx < 1;
+                          return (
+                            <Flame
+                              key={idx}
+                              className={`w-3 h-3 ${isActive ? 'text-[#7a0b10] fill-[#7a0b10]' : 'text-gray-300'}`}
+                            />
+                          );
+                        })}
+                      </div>
+                      <span>({item.isSpicy ? 'Medium' : 'Mild'})</span>
+                    </div>
                   </div>
 
-                  <div className="flex flex-col items-center select-none">
-                    {cartQty > 0 ? (
-                      <div className="flex items-center border border-[#7a0b10]/20 rounded-lg h-[38px] bg-[#ffffff] shadow-sm shrink-0 w-[110px] overflow-hidden">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleCartDecrement(item); }}
-                          className="w-10 text-[#7a0b10] hover:bg-[#7a0b10]/5 h-full flex items-center justify-center transition-colors font-bold ll-focus-ring"
-                          aria-label={`Remove ${item.name}`}
-                        >
-                          <Minus className="h-[13px] w-[13px]" strokeWidth={3} />
-                        </button>
-                        <span className="flex-1 text-[13px] font-black text-[#7a0b10] text-center">
-                          {cartQty}
-                        </span>
+                  {/* Right column: Price top, Add button bottom */}
+                  <div className="shrink-0 flex flex-col items-end justify-between self-stretch pl-1">
+                    <span className="text-[#7a0b10] font-bold text-[15px] leading-tight">
+                      ${item.price?.toFixed(2) || '9.99'}
+                    </span>
+
+                    <div className="flex flex-col items-end mt-2">
+                      {cartQty > 0 ? (
+                        <div className="h-8 bg-[#7a0b10] text-white rounded-[6px] flex items-center overflow-hidden shadow-none">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleCartDecrement(item); }}
+                            className="w-7 h-full flex items-center justify-center hover:bg-black/15 transition-colors cursor-pointer"
+                            aria-label={`Remove ${item.name}`}
+                          >
+                            <Minus className="w-3.5 h-3.5 stroke-[3]" />
+                          </button>
+                          <span className="px-1 text-[13px] font-bold text-center min-w-[20px]">
+                            {cartQty}
+                          </span>
+                          <button
+                            onClick={handlePrimaryAction}
+                            className="w-7 h-full flex items-center justify-center hover:bg-black/15 transition-colors cursor-pointer"
+                            aria-label={`Add one more ${item.name}`}
+                          >
+                            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                          </button>
+                        </div>
+                      ) : (
                         <button
                           onClick={handlePrimaryAction}
-                          className="w-10 text-[#7a0b10] hover:bg-[#7a0b10]/5 h-full flex items-center justify-center transition-colors font-bold ll-focus-ring"
-                          aria-label={`Add one more ${item.name}`}
+                          className="h-8 px-3.5 bg-[#7a0b10] hover:bg-[#5e080c] text-white text-[12px] font-bold rounded-[6px] flex items-center justify-center uppercase tracking-wider shadow-none transition-colors cursor-pointer"
                         >
-                          <Plus className="h-[13px] w-[13px]" strokeWidth={3} />
+                          ADD
                         </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={handlePrimaryAction}
-                        className="bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff] text-[12px] font-black h-[38px] px-6 rounded-lg shadow-sm flex items-center justify-center gap-1.5 uppercase tracking-wider min-w-[110px] transition-colors ll-interactive ll-focus-ring"
-                      >
-                        ADD <Plus className="h-[14px] w-[14px]" strokeWidth={3} />
-                      </button>
-                    )}
-                    {hasCustomizations && (
-                      <span className="text-[9px] text-[#6b7280] font-medium tracking-wide uppercase mt-1.5 block">
-                        Customisable
-                      </span>
-                    )}
+                      )}
+                      {hasCustomizations && (
+                        <span className="text-[9px] text-gray-500 font-medium tracking-tight mt-0.5">
+                          customisable
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+
+              {/* DESKTOP CARD (Preserved 100% untouched for sm: and above) */}
+              <div
+                style={{ animationFillMode: 'both', animationDelay: `${(index % ITEMS_PER_LOAD) * 40}ms` }}
+                className={`hidden sm:flex animate-in fade-in slide-in-from-bottom-8 duration-500 ease-out bg-[#fcfaf5] rounded-xl border border-[#f3f4f6] shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_34px_rgba(122,11,16,0.12)] overflow-hidden relative group ll-interactive cursor-pointer ${!isAvailable ? 'opacity-50 pointer-events-none' : ''} ${viewMode === 'grid' ? 'flex-col' : 'flex-col sm:flex-row sm:min-h-[210px] h-auto'}`}
+                onClick={() => {
+                  router.push(getItemUrl(item, restaurantId));
+                }}
+              >
+                {/* Image header */}
+                <div className={`relative bg-[#f3f4f6] overflow-hidden shrink-0 ${viewMode === 'grid' ? 'h-[200px] w-full' : 'h-[180px] sm:h-auto w-full sm:w-[240px]'}`}>
+                  <img
+                    src={resolveImageUrl(item.image) || getDishImage(item.name)}
+                    alt={item.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    onError={(e) => {
+                      // Fallback to local/unsplash images if Cloudinary fails (e.g. 401 unauthorized)
+                      const fallback = getDishImage(item.name);
+                      if (e.target.src !== fallback) {
+                        e.target.src = fallback;
+                      }
+                    }}
+                  />
+
+                  {/* Heart Button */}
+                  {isAuthenticated && isAvailable && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(item._id);
+                      }}
+                      className="absolute top-3 right-3 p-1.5 bg-[#000000]/40 backdrop-blur-sm rounded-full border border-[#ffffff]/80 hover:bg-[#000000]/60 shadow-sm ll-interactive ll-focus-ring"
+                      aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <Heart className={`h-4 w-4 ${isFavorite ? 'fill-[#cd131b] text-[#cd131b] border-none' : 'text-[#ffffff]'}`} strokeWidth={isFavorite ? 0 : 2} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Card Content */}
+                <div className={`p-4 flex-grow flex flex-col justify-between ${viewMode === 'list' ? 'sm:py-5 sm:px-6' : ''}`}>
+                  <div>
+                    <h3 className="text-[17px] font-bold text-[#1a1a1a] tracking-tight line-clamp-1 font-serif">
+                      {item.name}
+                    </h3>
+
+                    <p className="text-[12px] text-[#4b5563] leading-relaxed line-clamp-2 mt-2.5">
+                      {item.description || 'Crispy rolls stuffed with fresh vegetables & served hot.'}
+                    </p>
+
+                    {/* Veg & Spice Indicators */}
+                    <div className="flex items-center gap-4 mt-3">
+                      <span className="text-[11px] font-bold text-[#4b5563] flex items-center gap-2">
+                        <span className={`h-3.5 w-3.5 rounded-full flex items-center justify-center ${item.isVeg ? 'bg-[#16a34a]' : 'bg-[#cd131b]'}`}>
+                          <Leaf className="h-3 w-3 text-[#ffffff]" strokeWidth={3} />
+                        </span>
+                        {item.isVeg ? 'Veg' : 'Non Veg'}
+                      </span>
+                      <span className="text-[11px] font-bold text-[#4b5563] flex items-center gap-1">
+                        {item.isSpicy ? <Flame className="h-3.5 w-3.5 text-[#e8a020]" strokeWidth={2.5} /> : <Leaf className="h-3.5 w-3.5 text-[#16a34a]" strokeWidth={2.5} />}
+                        {item.isSpicy ? 'Medium' : 'Mild'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bottom Section: Price & Actions */}
+                  <div className="mt-5 flex items-center justify-between w-full pt-1">
+                    <div className="text-[18px] font-black text-[#1a1a1a] leading-none">
+                      ${item.price?.toFixed(2) || '9.99'}
+                    </div>
+
+                    <div className="flex flex-col items-center select-none">
+                      {cartQty > 0 ? (
+                        <div className="flex items-center border border-[#7a0b10]/20 rounded-lg h-[38px] bg-[#ffffff] shadow-sm shrink-0 w-[110px] overflow-hidden">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleCartDecrement(item); }}
+                            className="w-10 text-[#7a0b10] hover:bg-[#7a0b10]/5 h-full flex items-center justify-center transition-colors font-bold ll-focus-ring"
+                            aria-label={`Remove ${item.name}`}
+                          >
+                            <Minus className="h-[13px] w-[13px]" strokeWidth={3} />
+                          </button>
+                          <span className="flex-1 text-[13px] font-black text-[#7a0b10] text-center">
+                            {cartQty}
+                          </span>
+                          <button
+                            onClick={handlePrimaryAction}
+                            className="w-10 text-[#7a0b10] hover:bg-[#7a0b10]/5 h-full flex items-center justify-center transition-colors font-bold ll-focus-ring"
+                            aria-label={`Add one more ${item.name}`}
+                          >
+                            <Plus className="h-[13px] w-[13px]" strokeWidth={3} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handlePrimaryAction}
+                          className="bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff] text-[12px] font-black h-[38px] px-6 rounded-lg shadow-sm flex items-center justify-center gap-1.5 uppercase tracking-wider min-w-[110px] transition-colors ll-interactive ll-focus-ring"
+                        >
+                          ADD <Plus className="h-[14px] w-[14px]" strokeWidth={3} />
+                        </button>
+                      )}
+                      {hasCustomizations && (
+                        <span className="text-[9px] text-[#6b7280] font-medium tracking-wide uppercase mt-1.5 block">
+                          Customisable
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </React.Fragment>
           );
         })}
       </div>
