@@ -135,9 +135,14 @@ export const authAPI = {
 export const restaurantAPI = {
   getAll: (params = '') => api.get(`/api/restaurants${params ? '?' + params : ''}`),
   getById: (id) => api.get(`/api/restaurants/${id}`),
-  getMyRestaurant: () => api.get('/api/restaurants/merchant/my'),
-  getEta: (id, address) => api.get(`/api/restaurants/${id}/eta${address ? `?address=${encodeURIComponent(address)}` : ''}`),
-  getNearby: (lat, lng, maxDistance) => api.get(`/api/restaurants/nearby?lat=${lat}&lng=${lng}&maxDistance=${maxDistance || 15}`),
+  getEta: (id, address, lat, lng) => {
+    const params = new URLSearchParams();
+    if (address) params.append('address', address);
+    if (lat !== undefined && lat !== null) params.append('lat', lat);
+    if (lng !== undefined && lng !== null) params.append('lng', lng);
+    const q = params.toString();
+    return api.get(`/api/restaurants/${id}/eta${q ? `?${q}` : ''}`);
+  },
   search: (q) => api.get(`/api/restaurants/search?q=${encodeURIComponent(q)}`),
   getCuisines: () => api.get('/api/restaurants/cuisines'),
   create: (data) => api.post('/api/restaurants', data),

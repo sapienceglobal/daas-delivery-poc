@@ -17,13 +17,21 @@ export default function OrderOnlineHero() {
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState(null);
+  const [selectedCoordinates, setSelectedCoordinates] = useState(null);
 
   // get default address from user or local state
-  const defaultAddress = user?.savedAddresses?.find(a => a.isDefault)?.address || 
-                         user?.savedAddresses?.[0]?.address || 
-                         null;
+  const defaultSaved = user?.savedAddresses?.find(a => a.isDefault) || user?.savedAddresses?.[0];
+  const defaultAddress = defaultSaved?.address || null;
+  const defaultCoords = (defaultSaved?.latitude && defaultSaved?.longitude) ? {
+    lat: defaultSaved.latitude,
+    lng: defaultSaved.longitude
+  } : (defaultSaved?.lat && defaultSaved?.lng) ? {
+    lat: defaultSaved.lat,
+    lng: defaultSaved.lng
+  } : null;
                          
   const effectiveAddress = selectedAddress || defaultAddress;
+  const effectiveCoords = selectedCoordinates || defaultCoords;
 
   const heroImage = cmsData?.heroBanners?.orderOnline || '/images/branded/lassi-lounge/hero-spread.jpg';
 
@@ -31,7 +39,7 @@ export default function OrderOnlineHero() {
     const fetchEta = async () => {
       setLoadingEta(true);
       try {
-        const res = await restaurantAPI.getEta('lassi-lounge', effectiveAddress);
+        const res = await restaurantAPI.getEta('lassi-lounge', effectiveAddress, effectiveCoords?.lat, effectiveCoords?.lng);
         if (res.success) {
           setEta({
             pickup: res.data.prepTime,
@@ -47,10 +55,16 @@ export default function OrderOnlineHero() {
     };
 
     fetchEta();
-  }, [effectiveAddress]);
+  }, [effectiveAddress, effectiveCoords?.lat, effectiveCoords?.lng]);
 
   const handleAddressSelect = async (addressObj) => {
-    setSelectedAddress(addressObj.address);
+    if (!addressObj) return;
+    setSelectedAddress(addressObj.address || '');
+    if (addressObj.lat && addressObj.lng) {
+      setSelectedCoordinates({ lat: addressObj.lat, lng: addressObj.lng });
+    } else {
+      setSelectedCoordinates(null);
+    }
     setIsAddressModalOpen(false);
   };
 
@@ -98,12 +112,10 @@ export default function OrderOnlineHero() {
               
               {/* Delivery Box */}
               <div 
-                onClick={() => {
-                  if (!effectiveAddress) setIsAddressModalOpen(true);
-                }}
+                onClick={() => setIsAddressModalOpen(true)}
                 className={`relative flex items-center gap-3 px-4 sm:px-5 py-3.5 rounded-xl border transition-all duration-200 cursor-pointer select-none ${
                   eta.isOutOfRange 
-                    ? 'bg-[#374151] border-[#374151] text-white shadow-sm' 
+                    ? 'bg-[#374151] border-[#374151] text-white shadow-sm hover:bg-[#434d5b]' 
                     : 'bg-[#4a0b0d] border-[#4a0b0d] text-white shadow-md hover:bg-[#5e0c0f]'
                 }`}
               >
@@ -151,14 +163,22 @@ export default function OrderOnlineHero() {
             {/* Address Prompt (Rendered BELOW the grid, completely outside the boxes) */}
             <div className="min-h-[24px] mt-2.5 flex items-center">
               {effectiveAddress && eta.isOutOfRange ? (
-                <p className="text-[11px] text-red-600 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping inline-block" />
-                  Address is too far for delivery.
-                </p>
+                <div className="flex items-center gap-2 max-w-full flex-wrap">
+                  <p className="text-[11px] text-red-600 font-bold uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping inline-block" />
+                    Out of range — Too far for delivery
+                  </p>
+                  <button 
+                    onClick={() => setIsAddressModalOpen(true)}
+                    className="text-[11px] text-[#4a0b0d] hover:text-[#c67a3f] font-bold uppercase tracking-wider underline cursor-pointer shrink-0"
+                  >
+                    Change
+                  </button>
+                </div>
               ) : !effectiveAddress ? (
                 <button 
                   onClick={() => setIsAddressModalOpen(true)}
-                  className="text-[11px] text-[#4a0b0d] hover:text-[#c67a3f] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors group"
+                  className="text-[11px] text-[#4a0b0d] hover:text-[#c67a3f] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors group cursor-pointer"
                 >
                   <MapPin className="w-3.5 h-3.5 text-[#c67a3f] group-hover:scale-110 transition-transform" /> 
                   <span>ENTER ADDRESS FOR ETA</span>
@@ -166,7 +186,7 @@ export default function OrderOnlineHero() {
               ) : (
                 <button 
                   onClick={() => setIsAddressModalOpen(true)}
-                  className="text-[11px] text-[#6b7280] hover:text-[#4a0b0d] font-medium flex items-center gap-1 transition-colors truncate max-w-full"
+                  className="text-[11px] text-[#6b7280] hover:text-[#4a0b0d] font-medium flex items-center gap-1 transition-colors truncate max-w-full cursor-pointer"
                 >
                   <MapPin className="w-3 h-3 text-[#c67a3f] shrink-0" />
                   <span className="truncate">Delivering to: <strong className="text-[#1a1a1a] font-semibold">{effectiveAddress}</strong></span>

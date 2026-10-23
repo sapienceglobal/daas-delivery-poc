@@ -246,8 +246,12 @@ export default function MapLocationPicker({
           ref={mapRef}
         >
           <TileLayer
-            attribution='&copy; OpenStreetMap'
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url={
+              process.env.NEXT_PUBLIC_CARTO_API_KEY
+                ? `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?api_key=${process.env.NEXT_PUBLIC_CARTO_API_KEY}`
+                : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            }
           />
           <MapCenterWatcher onMapSettle={handleMapSettle} />
         </MapContainer>

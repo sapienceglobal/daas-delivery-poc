@@ -210,7 +210,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.sapienceglobal.daas.poc',
                     ),
                   ],
