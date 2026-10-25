@@ -186,6 +186,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('is_voluntary_logout', 'true');
+      } catch (_) {}
+    }
     try {
       await authAPI.logout();
     } catch {

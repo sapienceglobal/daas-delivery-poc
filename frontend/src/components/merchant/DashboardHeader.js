@@ -389,10 +389,13 @@ export default function DashboardHeader({ user, onToggleSidebar }) {
 
   const handleLogout = async () => {
     try {
+      if (typeof window !== 'undefined') {
+        try { sessionStorage.setItem('is_voluntary_logout', 'true'); } catch (_) {}
+      }
       await logout();
-      window.location.href = '/restaurant-panel';
+      window.location.href = '/restaurant-panel?logout=true';
     } catch (err) {
-      window.location.href = '/restaurant-panel';
+      window.location.href = '/restaurant-panel?logout=true';
     }
   };
 

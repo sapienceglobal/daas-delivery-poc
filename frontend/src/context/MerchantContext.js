@@ -30,7 +30,13 @@ export function MerchantProvider({ children }) {
   useEffect(() => {
     if (authLoading) return;
     if (!backendVerified || !isAuthenticated) { 
-      window.location.href = '/restaurant-panel?expired=true'; 
+      const isVoluntary = typeof window !== 'undefined' && sessionStorage.getItem('is_voluntary_logout') === 'true';
+      if (isVoluntary) {
+        try { sessionStorage.removeItem('is_voluntary_logout'); } catch (_) {}
+        window.location.href = '/restaurant-panel?logout=true';
+      } else {
+        window.location.href = '/restaurant-panel?expired=true';
+      }
       return; 
     }
     if (!isMerchant && !isAdmin) { 

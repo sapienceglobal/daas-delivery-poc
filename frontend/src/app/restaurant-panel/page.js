@@ -180,11 +180,16 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isForgotOpen, setIsForgotOpen] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get('expired') === 'true') {
+    if (searchParams.get('logout') === 'true') {
+      setSuccessMessage('You have been logged out successfully.');
+      setFormError('');
+    } else if (searchParams.get('expired') === 'true') {
       setFormError('Your session has expired. Please sign in again with your updated credentials.');
+      setSuccessMessage('');
     }
   }, [searchParams]);
 
@@ -216,6 +221,7 @@ export default function AdminLoginPage() {
 
     setLoading(true);
     setFormError('');
+    setSuccessMessage('');
     try {
       const result = await login(email, password, rememberMe);
       const userRole = result?.role || result?.user?.role;
@@ -385,6 +391,13 @@ export default function AdminLoginPage() {
             </div>
 
             <div className="bg-white rounded-3xl shadow-[0_12px_40px_rgb(0,0,0,0.06)] px-8 pt-8 pb-5 sm:px-10 sm:pt-10 sm:pb-6 border border-[#f9fafb] relative overflow-hidden">
+
+              {successMessage && (
+                <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 mb-6">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600" />
+                  <p className="text-[13px] font-semibold leading-snug text-emerald-700">{successMessage}</p>
+                </div>
+              )}
 
               {formError && (
                 <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-6">
