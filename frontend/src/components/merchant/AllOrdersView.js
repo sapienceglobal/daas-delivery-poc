@@ -187,26 +187,41 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
     }
 
     const headers = ['Order ID', 'Customer Name', 'Customer Phone', 'Type', 'Status', 'Total ($)', 'Payment Method', 'Payment Status', 'Created At'];
+    
+    const escapeCSV = (value) => {
+      if (value === null || value === undefined) return '""';
+      const str = String(value).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
     const rows = listToExport.map(o => [
-      `"${o.orderNumber || o._id?.toString()}"`,
-      `"${o.customerName || 'Guest'}"`,
-      `"${o.customerPhone || 'N/A'}"`,
-      `"${o.orderType || o.type || 'delivery'}"`,
-      `"${o.status || 'pending'}"`,
-      (o.total || 0).toFixed(2),
-      `"${o.paymentMethod || 'cash'}"`,
-      `"${o.paymentStatus || 'pending'}"`,
-      `"${new Date(o.createdAt).toLocaleString()}"`
+      o.orderNumber || o._id?.toString() || '',
+      o.customerName || 'Guest',
+      o.customerPhone || 'N/A',
+      o.orderType || o.type || 'delivery',
+      o.status || 'pending',
+      Number(o.total || 0).toFixed(2),
+      o.paymentMethod || 'cash',
+      o.paymentStatus || 'pending',
+      o.createdAt ? new Date(o.createdAt).toLocaleString() : ''
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = [
+      headers.map(escapeCSV).join(','),
+      ...rows.map(row => row.map(escapeCSV).join(','))
+    ].join('\r\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `orders_export_${new Date().toISOString().slice(0,10)}.csv`);
+    link.href = url;
+    link.setAttribute('download', `orders_export_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast(`Successfully exported ${listToExport.length} order${listToExport.length === 1 ? '' : 's'}`, 'success');
   };
 
   const handleBulkRefund = async () => {

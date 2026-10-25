@@ -260,30 +260,65 @@ export default function CustomersCRMView({
   const clearSelection = () => setSelectedIds([]);
 
   const exportToCSV = () => {
-    const headers = ["Customer Name", "Customer ID", "Phone", "Email", "Group", "Loyalty Tier", "Total Orders", "Total Spent", "Last Order Date", "Status"];
-    const rows = sortedCustomers.map(c => [
-      c.name || "",
+    const listToExport = selectedIds.length > 0
+      ? sortedCustomers.filter(c => selectedIds.includes(c._id))
+      : sortedCustomers;
+
+    if (!listToExport || listToExport.length === 0) {
+      showToast("No customer records to export.", "error");
+      return;
+    }
+
+    const headers = [
+      "Customer Name",
+      "Customer ID",
+      "Phone",
+      "Email",
+      "Lifecycle Segment",
+      "Group",
+      "Loyalty Tier",
+      "Total Orders",
+      "Total Spent ($)",
+      "Last Order Date",
+      "Status"
+    ];
+
+    const escapeCSV = (value) => {
+      if (value === null || value === undefined) return '""';
+      const str = String(value).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = listToExport.map((c) => [
+      c.name || "Guest",
       c.customerId || "",
       c.phone || "",
       c.email || "",
+      c.segment || "Regular",
       c.group || "Others",
-      c.loyaltyTier || "None",
+      c.loyaltyTier || "Bronze",
       c.totalOrders || 0,
-      (c.totalSpent || 0).toFixed(2),
-      c.lastOrderDate ? new Date(c.lastOrderDate).toLocaleDateString() : "",
-      c.status || "Inactive"
+      Number(c.totalSpent || 0).toFixed(2),
+      c.lastOrderDate ? new Date(c.lastOrderDate).toISOString().split("T")[0] : "",
+      c.status || "Active"
     ]);
-    
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + [headers.join(","), ...rows.map(e => e.map(val => `"${val}"`).join(","))].join("\n");
-      
-    const encodedUri = encodeURI(csvContent);
+
+    const csvContent = [
+      headers.map(escapeCSV).join(","),
+      ...rows.map((row) => row.map(escapeCSV).join(","))
+    ].join("\r\n");
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `customers_${new Date().toISOString().split('T')[0]}.csv`);
+    link.href = url;
+    link.setAttribute("download", `customers_crm_${new Date().toISOString().split("T")[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast(`Successfully exported ${listToExport.length} customer record${listToExport.length === 1 ? "" : "s"}`, "success");
   };
 
   const getTierBadge = (tier) => {
@@ -415,7 +450,7 @@ export default function CustomersCRMView({
             onClick={exportToCSV}
             className="bg-admin-surface border border-admin-border rounded-xl px-4 py-2 text-xs sm:text-sm text-admin-text font-semibold flex items-center gap-2 hover:bg-admin-surface-light shadow-2xs transition-all cursor-pointer"
           >
-            <Download className="w-4 h-4" /> Export
+            <Download className="w-4 h-4" /> {selectedIds.length > 0 ? `Export (${selectedIds.length})` : 'Export'}
           </button>
           <button
             type="button"
@@ -864,6 +899,12 @@ export default function CustomersCRMView({
             {selectedIds.length} Selected
           </span>
           <div className="flex items-center gap-2 border-l border-white/20 pl-4">
+            <button
+              onClick={exportToCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors text-xs font-bold text-slate-200 hover:text-white cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-cyan-400" /> Export
+            </button>
             <button
               onClick={() => triggerBulkAction("promo")}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors text-xs font-bold text-slate-200 hover:text-white cursor-pointer"
