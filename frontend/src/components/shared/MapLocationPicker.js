@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Loader2, Navigation } from 'lucide-react';
+import { Loader2, Navigation, MapPin } from 'lucide-react';
 
 // fix for default marker icon issues in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -16,37 +16,30 @@ L.Icon.Default.mergeOptions({
 // A component that updates the parent with the map's center coordinates when the user finishes dragging
 function MapCenterWatcher({ onMapSettle }) {
   const map = useMap();
+  const onMapSettleRef = useRef(onMapSettle);
+  onMapSettleRef.current = onMapSettle;
 
   useEffect(() => {
-    // Fix for map not rendering tiles correctly in modals
+    // Invalidate size once after modal transition finishes, without triggering map pan
     const timer = setTimeout(() => {
-      map.invalidateSize();
+      map.invalidateSize({ pan: false });
     }, 400);
-
-    const resizeObserver = new ResizeObserver(() => {
-      map.invalidateSize();
-    });
-    
-    if (map.getContainer()) {
-      resizeObserver.observe(map.getContainer());
-    }
 
     const handleMoveEnd = () => {
       const center = map.getCenter();
-      onMapSettle({ lat: center.lat, lng: center.lng });
+      onMapSettleRef.current({ lat: center.lat, lng: center.lng });
     };
 
     map.on('moveend', handleMoveEnd);
     
-    // initial trigger
+    // Initial trigger
     handleMoveEnd();
 
     return () => {
       clearTimeout(timer);
-      resizeObserver.disconnect();
       map.off('moveend', handleMoveEnd);
     };
-  }, [map, onMapSettle]);
+  }, [map]);
 
   return null;
 }
@@ -145,13 +138,28 @@ export default function MapLocationPicker({
     }
   }, [onAddressChange]);
 
+  const lastGeocodedCoords = useRef({ lat: null, lng: null });
+
   const handleMapSettle = useCallback((newCenter) => {
     setCenter(newCenter);
     
+    // Check if coordinates have meaningfully changed (> 0.00005 deg / ~5 meters)
+    if (
+      lastGeocodedCoords.current.lat !== null &&
+      lastGeocodedCoords.current.lng !== null
+    ) {
+      const latDiff = Math.abs(lastGeocodedCoords.current.lat - newCenter.lat);
+      const lngDiff = Math.abs(lastGeocodedCoords.current.lng - newCenter.lng);
+      if (latDiff < 0.00005 && lngDiff < 0.00005) {
+        return; // Exact same location, do not re-fetch!
+      }
+    }
+
     if (geocodeTimeout.current) clearTimeout(geocodeTimeout.current);
     geocodeTimeout.current = setTimeout(() => {
+      lastGeocodedCoords.current = { lat: newCenter.lat, lng: newCenter.lng };
       reverseGeocode(newCenter.lat, newCenter.lng);
-    }, 600); // Wait 600ms after map stops moving before calling API
+    }, 500);
   }, [reverseGeocode]);
 
   const handleConfirm = () => {
@@ -326,9 +334,9 @@ export default function MapLocationPicker({
       <div className="bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.05)] p-4 sm:p-5 z-[500] relative flex flex-col gap-3 sm:gap-4 shrink-0 border-t border-gray-100">
         
         {/* Geocoded Address Display */}
-        <div className="flex items-start gap-3 bg-gray-50/70 p-3 rounded-xl border border-gray-100">
-          <div className="mt-0.5 text-[#7a0b10]">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        <div className="flex items-start gap-3 bg-gray-50/70 p-3 rounded-xl border border-gray-100 min-h-[58px]">
+          <div className="mt-0.5 text-[#7a0b10] shrink-0">
+            <MapPin className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="font-bold text-[#1a1a1a] text-sm mb-0.5">Delivery Location</h4>
