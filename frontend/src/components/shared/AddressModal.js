@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Search, MapPin, Navigation, History, Loader2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { showToast } from '@/components/ui';
@@ -7,7 +8,7 @@ import dynamic from 'next/dynamic';
 const MapLocationPicker = dynamic(() => import('@/components/shared/MapLocationPicker'), {
   ssr: false,
   loading: () => (
-    <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] bg-gray-50 rounded-b-2xl">
+    <div className="flex-1 flex flex-col items-center justify-center min-h-[300px] bg-gray-50 rounded-b-2xl">
       <Loader2 className="w-8 h-8 text-[#7a0b10] animate-spin mb-3" />
       <p className="text-sm font-bold text-gray-500">Loading Map...</p>
     </div>
@@ -30,6 +31,17 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
 
   const [mounted, setMounted] = useState(false);
   const [show, setShow] = useState(false);
+
+  // Body scroll lock when modal is open
+  useEffect(() => {
+    if (show) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [show]);
 
   const getSessionToken = () => {
     if (!sessionTokenRef.current) {
@@ -157,34 +169,40 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
     setSelectedCenter(null);
   };
 
-  if (!mounted) return null;
+  if (!mounted || typeof document === 'undefined') return null;
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center sm:p-4">
       {/* Backdrop */}
       <div 
-        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ease-out ${show ? 'opacity-100' : 'opacity-0'}`}
+        className={`fixed inset-0 bg-black/65 backdrop-blur-sm transition-opacity duration-300 ease-out ${show ? 'opacity-100' : 'opacity-0'}`}
         onClick={handleClose}
       />
       
       {/* Modal Content */}
-      <div className={`relative z-10 w-full sm:max-w-xl bg-[#fcfbf9] text-[#1a1a1a] sm:rounded-[24px] rounded-t-[24px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[80vh] transition-all duration-300 ease-out ${show ? 'opacity-100 translate-y-0 sm:scale-100' : 'opacity-0 translate-y-8 sm:translate-y-4 sm:scale-95'}`}>
+      <div className={`relative z-10 w-full sm:max-w-xl bg-[#fcfbf9] text-[#1a1a1a] sm:rounded-[24px] rounded-t-[28px] shadow-2xl overflow-hidden flex flex-col h-[90dvh] sm:h-[650px] sm:max-h-[85vh] transition-all duration-300 ease-out ${show ? 'opacity-100 translate-y-0 sm:scale-100' : 'opacity-0 translate-y-full sm:translate-y-4 sm:scale-95'}`}>
         
+        {/* Mobile Grab Handle */}
+        <div className="pt-2.5 pb-1 bg-white sm:hidden flex justify-center">
+          <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+        </div>
+
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 bg-white z-10">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 sm:py-5 bg-white z-10 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-3">
             {view === 'map' && (
-              <button onClick={() => setView('search')} className="p-2 -ml-2 text-[#6b7280] hover:text-[#1f2937] hover:bg-[#f3f4f6] rounded-full transition-all">
+              <button onClick={() => setView('search')} className="p-2 -ml-2 text-[#6b7280] hover:text-[#1f2937] hover:bg-[#f3f4f6] rounded-full transition-all" aria-label="Back">
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
-            <h2 className="text-[20px] font-black text-[#4a0b0d] tracking-tight uppercase">
+            <h2 className="text-[18px] sm:text-[20px] font-black text-[#4a0b0d] tracking-tight uppercase">
               {view === 'search' ? 'Delivery Location' : 'Confirm Location'}
             </h2>
           </div>
           <button 
             onClick={handleClose}
             className="p-2 text-[#4b5563] hover:text-[#4a0b0d] hover:bg-[#fef2f2] rounded-full transition-all"
+            aria-label="Close"
           >
             <X className="h-6 w-6" strokeWidth={2.5} />
           </button>
@@ -299,7 +317,7 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col bg-white text-[#1a1a1a] min-h-[400px]">
+          <div className="flex-1 min-h-0 flex flex-col bg-white text-[#1a1a1a] overflow-hidden">
             <MapLocationPicker 
               initialCenter={selectedCenter} 
               onLocationSelect={handleFinalLocationConfirm} 
@@ -307,6 +325,7 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

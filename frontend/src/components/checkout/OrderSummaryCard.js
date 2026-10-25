@@ -14,7 +14,7 @@ export default function OrderSummaryCard({
   const isMinOrderMet = subtotal >= minOrderAmount;
 
   return (
-    <div className="rounded-2xl border border-[#e5e7eb] bg-[#ffffff] p-6 shadow-sm ll-slide-panel">
+    <div className="rounded-2xl border border-[#e5e7eb] bg-[#ffffff] p-4 sm:p-6 shadow-sm ll-slide-panel overflow-hidden">
       <h3 className="text-[22px] font-bold font-serif text-[#7a0b10] mb-6">Order Summary</h3>
 
       <div className="flex flex-col gap-5 max-h-[290px] overflow-y-auto pr-1 mb-6 ll-soft-scroll ll-stagger mt-1">
@@ -131,20 +131,22 @@ export default function OrderSummaryCard({
           <Tag className="w-4 h-4 text-[#4b5563]" /> Apply Coupon
         </div>
         
-        <div className="flex gap-2">
-          <input
-            placeholder="Enter coupon code"
-            name="couponCode"
-            autoComplete="off"
-            value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-            className="flex-1 rounded-lg border border-[#e5e7eb] bg-[#ffffff] px-3 py-2 text-[14px] text-[#1a1a1a] placeholder-[#9ca3af] focus:outline-none focus:border-[#7a0b10] transition-colors [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
-          />
+        <div className="flex items-stretch gap-2 w-full">
+          <div className="relative flex-1 min-w-0">
+            <input
+              placeholder="Enter coupon code"
+              name="couponCode"
+              autoComplete="off"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              className="w-full rounded-lg border border-[#e5e7eb] bg-[#ffffff] px-3 py-2 text-[14px] text-[#1a1a1a] placeholder-[#9ca3af] focus:outline-none focus:border-[#7a0b10] transition-colors uppercase tracking-wider [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_30px_#ffffff_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:#1a1a1a]"
+            />
+          </div>
           <button
             type="button"
             onClick={onApplyCoupon}
             disabled={couponLoading || couponApplied}
-            className={`text-[14px] font-bold text-[#ffffff] bg-[#7a0b10] hover:bg-[#5e080c] px-6 rounded-lg ll-interactive ll-focus-ring ${
+            className={`shrink-0 text-[14px] font-bold text-[#ffffff] bg-[#7a0b10] hover:bg-[#5e080c] px-4 sm:px-6 py-2 rounded-lg ll-interactive ll-focus-ring ${
               couponApplied ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >

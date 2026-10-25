@@ -237,7 +237,7 @@ export default function MapLocationPicker({
     <div className="flex flex-col h-full bg-white relative animate-in fade-in duration-300 rounded-b-2xl overflow-hidden">
       
       {/* Map Container - Flex 1 to take remaining space */}
-      <div className="relative flex-1 min-h-[300px] w-full bg-gray-100">
+      <div className="relative flex-1 min-h-[220px] sm:min-h-[300px] w-full bg-gray-100">
         <MapContainer 
           center={[center.lat, center.lng]} 
           zoom={17} 
@@ -323,14 +323,14 @@ export default function MapLocationPicker({
       </div>
 
       {/* Address Details Sheet */}
-      <div className="bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.05)] p-5 z-[500] relative flex flex-col gap-4">
+      <div className="bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.05)] p-4 sm:p-5 z-[500] relative flex flex-col gap-3 sm:gap-4 shrink-0 border-t border-gray-100">
         
         {/* Geocoded Address Display */}
         <div className="flex items-start gap-3 bg-gray-50/70 p-3 rounded-xl border border-gray-100">
           <div className="mt-0.5 text-[#7a0b10]">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h4 className="font-bold text-[#1a1a1a] text-sm mb-0.5">Delivery Location</h4>
             {isGeocoding ? (
               <div className="flex items-center gap-2 text-[#6b7280] text-xs font-medium">
@@ -347,7 +347,7 @@ export default function MapLocationPicker({
           type="button"
           onClick={handleConfirm}
           disabled={isGeocoding || !currentAddress}
-          className="w-full bg-[#7a0b10] text-white font-bold py-3.5 rounded-xl mt-2 hover:bg-[#5e080c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full bg-[#7a0b10] text-white font-bold py-3.5 rounded-xl hover:bg-[#5e080c] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm active:scale-[0.99]"
         >
           {isGeocoding ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
           Confirm Location
