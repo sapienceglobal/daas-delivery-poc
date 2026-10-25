@@ -116,9 +116,9 @@ class CrmModals {
   }
 
   static Future<void> showAssignGroupModal(BuildContext context, String restaurantId, List<String> targetIds, VoidCallback onSuccess) async {
-    String selectedGroup = 'App User';
+    String selectedGroup = 'General';
     bool isLoading = false;
-    final groups = ['App User', 'Guest', 'Family', 'Friends', 'Corporate', 'Others'];
+    final groups = ['General', 'VIP', 'Corporate', 'Family', 'Friends', 'Guest', 'Others'];
 
     await showDialog(
       context: context,
@@ -274,9 +274,9 @@ class CrmModals {
     final nameController = TextEditingController(text: customer?.name ?? '');
     final emailController = TextEditingController(text: customer?.email ?? '');
     final phoneController = TextEditingController(text: customer?.phone ?? '');
-    String selectedGroup = customer?.group ?? 'App User';
+    String selectedGroup = customer?.group ?? 'General';
     bool isLoading = false;
-    final groups = ['App User', 'Guest', 'Family', 'Friends', 'Corporate', 'Others'];
+    final groups = ['General', 'VIP', 'Corporate', 'Family', 'Friends', 'Guest', 'Others'];
 
     await showDialog(
       context: context,

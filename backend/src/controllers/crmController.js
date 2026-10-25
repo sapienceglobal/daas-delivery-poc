@@ -76,6 +76,7 @@ const computeRestaurantCustomers = async (req, actualRestaurantId) => {
       ...c,
       _id: c._id.toString(),
       source: 'manual',
+      group: (c.group && c.group !== 'App User') ? c.group : 'General',
     });
   });
 
@@ -101,7 +102,7 @@ const computeRestaurantCustomers = async (req, actualRestaurantId) => {
       name: existing.name || stat.name || (user ? user.name : 'Guest'),
       email: existing.email || email || (user ? user.email : ''),
       phone: existing.phone || phone || (user ? user.phone : ''),
-      group: existing.group || (user ? 'App User' : 'Guest'),
+      group: (existing.group && existing.group !== 'App User') ? existing.group : (user ? 'General' : 'Guest'),
       loyaltyTier: existing.loyaltyTier || 'Bronze',
       totalOrders: Math.max(existing.totalOrders || 0, stat.totalOrders || 0),
       totalSpent: Math.max(existing.totalSpent || 0, stat.totalSpent || 0),
@@ -120,10 +121,10 @@ const computeRestaurantCustomers = async (req, actualRestaurantId) => {
       addCustomerToMap(identifier, {
         _id: user._id.toString(),
         customerId: `#CUST-${user._id.toString().slice(-6).toUpperCase()}`,
-        name: user.name || 'App User',
+        name: user.name || (user.email ? user.email.split('@')[0] : 'Customer'),
         email: user.email || '',
         phone: user.phone || '',
-        group: 'App User',
+        group: 'General',
         loyaltyTier: 'Bronze',
         totalOrders: 0,
         totalSpent: 0,
@@ -395,7 +396,7 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
       name: user.name,
       email: user.email,
       phone: user.phone,
-      group: 'App User',
+      group: 'General',
       loyaltyTier: 'Bronze'
     };
   }
@@ -567,7 +568,7 @@ export const updateCustomer = asyncHandler(async (req, response) => {
       name: req.body.name || (user ? user.name : 'Guest'),
       email: req.body.email || (user ? user.email : (customerId.includes('@') ? customerId : '')),
       phone: req.body.phone || (user ? user.phone : (!customerId.includes('@') ? customerId : '')),
-      group: req.body.group || (user ? 'App User' : 'Guest'),
+      group: req.body.group || (user ? 'General' : 'Guest'),
       loyaltyTier: req.body.loyaltyTier || 'Bronze',
       status: req.body.status || 'Active',
       ...req.body
@@ -618,11 +619,32 @@ export const bulkUpdateCustomers = asyncHandler(async (req, response) => {
   }
 
   const CustomerModel = req.getModel?.('Customer') || Customer;
+  const UserModel = req.getModel?.('User') || User;
 
-  await CustomerModel.updateMany(
-    { _id: { $in: customerIds }, restaurantId },
-    { $set: updateData }
-  );
+  for (const custId of customerIds) {
+    let customer = await CustomerModel.findOneAndUpdate(
+      { _id: custId, restaurantId },
+      { $set: updateData },
+      { new: true }
+    );
+    if (!customer) {
+      const isValidId = mongoose.Types.ObjectId.isValid(custId);
+      let user = null;
+      if (isValidId) user = await UserModel.findById(custId).lean();
+      const count = await CustomerModel.countDocuments({ restaurantId });
+      const generatedCustId = `#CUST${1000 + count + 1}`;
+      await CustomerModel.create({
+        restaurantId,
+        customerId: generatedCustId,
+        name: user ? user.name : 'Customer',
+        email: user ? user.email : '',
+        phone: user ? user.phone : '',
+        group: 'General',
+        ...updateData,
+        ...(isValidId ? { _id: custId } : {})
+      });
+    }
+  }
 
   invalidateRestaurant(restaurantId);
   res.success(response, { message: `${customerIds.length} customers updated successfully` });
@@ -641,11 +663,30 @@ export const bulkDeleteCustomers = asyncHandler(async (req, response) => {
   }
 
   const CustomerModel = req.getModel?.('Customer') || Customer;
+  const UserModel = req.getModel?.('User') || User;
 
-  await CustomerModel.updateMany(
-    { _id: { $in: customerIds }, restaurantId },
-    { $set: { isDeleted: true } }
-  );
+  for (const custId of customerIds) {
+    let customer = await CustomerModel.findOneAndUpdate(
+      { _id: custId, restaurantId },
+      { $set: { isDeleted: true } },
+      { new: true }
+    );
+    if (!customer) {
+      const isValidId = mongoose.Types.ObjectId.isValid(custId);
+      let user = null;
+      if (isValidId) user = await UserModel.findById(custId).lean();
+      const count = await CustomerModel.countDocuments({ restaurantId });
+      await CustomerModel.create({
+        restaurantId,
+        customerId: `#CUST${1000 + count + 1}`,
+        name: user ? user.name : 'Customer',
+        email: user ? user.email : '',
+        phone: user ? user.phone : '',
+        isDeleted: true,
+        ...(isValidId ? { _id: custId } : {})
+      });
+    }
+  }
 
   invalidateRestaurant(restaurantId);
   res.success(response, { message: `${customerIds.length} customers deleted successfully` });

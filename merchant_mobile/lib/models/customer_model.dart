@@ -42,7 +42,7 @@ class Customer {
       name: json['name']?.toString() ?? 'Unknown User',
       email: json['email']?.toString(),
       phone: json['phone']?.toString(),
-      group: json['group']?.toString() ?? 'Others',
+      group: json['group']?.toString() ?? 'General',
       loyaltyTier: json['loyaltyTier']?.toString() ?? 'Bronze',
       totalOrders: (json['totalOrders'] is num) ? (json['totalOrders'] as num).toInt() : 0,
       totalSpent: (json['totalSpent'] is num) ? (json['totalSpent'] as num).toDouble() : 0.0,

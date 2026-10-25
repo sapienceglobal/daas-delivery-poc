@@ -700,7 +700,7 @@ class _CrmScreenState extends State<CrmScreen> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: ['All', 'App User', 'Guest', 'Family', 'Friends', 'Corporate', 'Others']
+                      children: ['All', 'General', 'VIP', 'Corporate', 'Family', 'Friends', 'Guest', 'Others']
                           .map((group) => ChoiceChip(
                                 label: Text(group),
                                 selected: _selectedGroup == group,

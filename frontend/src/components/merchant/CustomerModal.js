@@ -33,7 +33,7 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer, resta
           name: '',
           email: '',
           phone: '',
-          group: 'Others',
+          group: 'General',
           loyaltyTier: 'Bronze',
           status: 'Active',
           totalOrders: 0,
@@ -145,11 +145,12 @@ export default function CustomerModal({ isOpen, onClose, onSave, customer, resta
                       onChange={(e) => setFormData({...formData, group: e.target.value})}
                       className="w-full border border-admin-border rounded-xl !pl-10 pr-3.5 py-2.5 text-sm text-admin-text outline-none focus:border-brand bg-admin-card cursor-pointer"
                     >
-                      <option value="App User" className="bg-admin-surface text-admin-text">App User</option>
-                      <option value="Guest" className="bg-admin-surface text-admin-text">Guest</option>
+                      <option value="General" className="bg-admin-surface text-admin-text">General</option>
+                      <option value="VIP" className="bg-admin-surface text-admin-text">VIP</option>
+                      <option value="Corporate" className="bg-admin-surface text-admin-text">Corporate</option>
                       <option value="Family" className="bg-admin-surface text-admin-text">Family</option>
                       <option value="Friends" className="bg-admin-surface text-admin-text">Friends</option>
-                      <option value="Corporate" className="bg-admin-surface text-admin-text">Corporate</option>
+                      <option value="Guest" className="bg-admin-surface text-admin-text">Guest</option>
                       <option value="Others" className="bg-admin-surface text-admin-text">Others</option>
                     </select>
                   </div>

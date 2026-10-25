@@ -64,7 +64,7 @@ export default function DeliveryInfoSection({
               </div>
               <a
                 href="/login"
-                className="text-[12px] font-bold text-[#7a0b10] hover:underline shrink-0"
+                className="text-[14px] font-bold text-[#7a0b10] hover:underline shrink-0"
               >
                 Already have an account? Sign In &rarr;
               </a>

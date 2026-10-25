@@ -295,7 +295,7 @@ export default function CustomersCRMView({
       c.phone || "",
       c.email || "",
       c.segment || "Regular",
-      c.group || "Others",
+      c.group || "General",
       c.loyaltyTier || "Bronze",
       c.totalOrders || 0,
       Number(c.totalSpent || 0).toFixed(2),
@@ -529,9 +529,12 @@ export default function CustomersCRMView({
                 className="bg-admin-surface border border-admin-border rounded-xl px-3 py-2 text-xs font-semibold text-admin-text outline-none cursor-pointer hover:border-brand/40 transition-colors"
               >
                 <option>All Groups</option>
+                <option>General</option>
+                <option>VIP</option>
+                <option>Corporate</option>
                 <option>Family</option>
                 <option>Friends</option>
-                <option>Corporate</option>
+                <option>Guest</option>
                 <option>Others</option>
               </select>
 
@@ -740,7 +743,7 @@ export default function CustomersCRMView({
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-xs font-bold text-admin-text">
-                        {c.group || "Others"}
+                        {c.group || "General"}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -1214,7 +1217,7 @@ function PromoModal({ roomId, targetIds, onClose, onSuccess }) {
 
 function GroupModal({ roomId, targetIds, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
-  const [group, setGroup] = useState("Family");
+  const [group, setGroup] = useState("General");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1254,11 +1257,12 @@ function GroupModal({ roomId, targetIds, onClose, onSuccess }) {
             onChange={(e) => setGroup(e.target.value)}
             className="w-full border border-admin-border rounded-xl px-3 py-2 text-xs sm:text-sm text-admin-text outline-none focus:border-brand bg-admin-surface cursor-pointer"
           >
-            <option value="App User">App User</option>
-            <option value="Guest">Guest</option>
+            <option value="General">General</option>
+            <option value="VIP">VIP</option>
+            <option value="Corporate">Corporate</option>
             <option value="Family">Family</option>
             <option value="Friends">Friends</option>
-            <option value="Corporate">Corporate</option>
+            <option value="Guest">Guest</option>
             <option value="Others">Others</option>
           </select>
           <div className="flex gap-3 pt-2">
