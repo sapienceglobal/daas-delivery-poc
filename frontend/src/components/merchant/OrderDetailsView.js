@@ -5,7 +5,7 @@ import {
   MapPin, Phone, Mail, FileText,
   CheckCircle, XCircle, FileClock, RefreshCcw, X,
   AlertTriangle, ShieldAlert, Zap, ArrowDownLeft,
-  CreditCard, Info, Activity, Eye,
+  CreditCard, Info, Activity, Eye, Shield,
   Globe, Smartphone, Truck, Star, ExternalLink, Settings,
   QrCode, Copy
 } from 'lucide-react';
@@ -58,6 +58,10 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   const [isSendingLink, setIsSendingLink] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showRemakeModal, setShowRemakeModal] = useState(false);
+  const [remakeReason, setRemakeReason] = useState('Customer Complaint');
+  const [customReason, setCustomReason] = useState('');
+  const [remakePin, setRemakePin] = useState('');
+  const [remakeError, setRemakeError] = useState('');
   const [showDriverImage, setShowDriverImage] = useState(false);
 
   useEffect(() => {
@@ -190,18 +194,30 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   };
 
   const handleRemake = () => {
+    setRemakeReason('Customer Complaint');
+    setCustomReason('');
+    setRemakePin('');
+    setRemakeError('');
     setShowRemakeModal(true);
   };
 
   const executeRemake = async (chargeCustomer) => {
-    setShowRemakeModal(false);
+    const finalReason = remakeReason === 'Other' ? customReason.trim() : remakeReason;
+    if (!chargeCustomer && (!finalReason || finalReason.length < 3)) {
+      setRemakeError('Please provide a reason (minimum 3 chars) for free remake ($0).');
+      return;
+    }
+    setRemakeError('');
     setIsRemakingOrder(true);
     try {
-      await orderAPI.remake(order._id, chargeCustomer);
+      await orderAPI.remake(order._id, chargeCustomer, { reason: finalReason, pin: remakePin.trim() });
+      setShowRemakeModal(false);
       showToast(`Remake order sent to kitchen (${chargeCustomer ? 'Paid' : '$0 charge'})`, 'success');
       if (onRefresh) onRefresh();
     } catch (err) {
-      showToast('Failed to create remake order', 'error');
+      const errMsg = err.response?.data?.message || err.message || 'Failed to create remake order';
+      setRemakeError(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setIsRemakingOrder(false);
     }
@@ -399,12 +415,34 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   return (
     <div className="space-y-6 pb-20">
       {order.isRemake && (
-        <div className="bg-[#fff7ed] border border-[#fed7aa] rounded-xl p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-[#ea580c]" />
-            <div>
-              <h3 className="text-[#7c2d12] font-bold text-sm">Remade Order</h3>
-              <p className="text-[#c2410c] text-xs mt-0.5">This order is a remake of a previous order.</p>
+        <div className="bg-[#fff7ed] border border-[#fed7aa] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-[#7c2d12] font-black text-sm font-outfit">Remade Order</h3>
+                {order.remakeReason && (
+                  <span className="text-[11px] font-bold bg-amber-500/20 text-amber-800 px-2 py-0.5 rounded-full border border-amber-500/30">
+                    Reason: {order.remakeReason}
+                  </span>
+                )}
+              </div>
+              <p className="text-[#c2410c] text-xs">
+                {order.remakeBy?.name ? (
+                  <>Remade by <strong className="font-bold text-[#7c2d12]">{order.remakeBy.name}</strong> ({order.remakeBy.role || 'Staff'})</>
+                ) : (
+                  'This order is a remake of a previous order.'
+                )}
+              </p>
+              {(order.remakeBy?.ip || order.remakeBy?.deviceType || order.remakeBy?.os) && (
+                <div className="flex items-center gap-2 text-[10.5px] font-medium text-amber-800/80 flex-wrap pt-0.5">
+                  <span>💻 {order.remakeBy.deviceType || 'Device'}: {order.remakeBy.os || ''} {order.remakeBy.browser ? `(${order.remakeBy.browser})` : ''}</span>
+                  <span>•</span>
+                  <span>📍 IP: <code className="font-mono bg-amber-200/50 px-1 rounded">{order.remakeBy.ip}</code> {order.remakeBy.location ? `(${order.remakeBy.location})` : ''}</span>
+                </div>
+              )}
             </div>
           </div>
           {order.parentOrderId && (
@@ -416,9 +454,9 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                   window.open(`/merchant/all-orders`, '_blank');
                 }
               }}
-              className="px-4 py-1.5 bg-[#ffedd5] hover:bg-[#fed7aa] text-[#9a3412] text-xs font-bold rounded-lg transition-colors"
+              className="px-4 py-2 bg-[#fed7aa] hover:bg-[#fdba74] text-[#7c2d12] text-xs font-bold rounded-xl transition-colors shrink-0 shadow-sm font-outfit cursor-pointer"
             >
-              View Original
+              View Original Order
             </button>
           )}
         </div>
@@ -565,6 +603,54 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                     )}
                   </div>
                 )}
+
+                {/* Device & Fraud Telemetry (Chargeback Defense) */}
+                <div className="mt-4 pt-3 border-t border-admin-border/70">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-black text-brand uppercase tracking-wider flex items-center gap-1.5 font-outfit">
+                      <Shield className="w-3.5 h-3.5 text-emerald-500" /> Security & Device Telemetry
+                    </p>
+                    <span className="text-[9.5px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-mono">
+                      Fraud Proof
+                    </span>
+                  </div>
+                  <div className="bg-admin-card/60 border border-admin-border rounded-xl p-2.5 space-y-1.5 text-[11px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-admin-text-secondary font-medium shrink-0">Device & OS:</span>
+                      <span className="font-semibold text-admin-text text-right truncate">
+                        {order.deviceContext?.deviceType || (order.orderSource === 'app' ? 'Mobile' : 'Desktop')} • {order.deviceContext?.os || (order.orderSource === 'app' ? 'Mobile OS' : 'Web Client')}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-admin-text-secondary font-medium shrink-0">Browser / Client:</span>
+                      <span className="font-semibold text-admin-text text-right truncate">
+                        {order.deviceContext?.browser || (order.orderSource === 'app' ? 'Customer Mobile App' : 'Web Browser')}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-admin-text-secondary font-medium shrink-0">Client IP:</span>
+                      <span className="font-mono text-[10.5px] font-bold text-admin-text bg-admin-surface px-1.5 py-0.5 rounded border border-admin-border">
+                        {order.deviceContext?.ip || 'Verified Remote Session'}
+                      </span>
+                    </div>
+                    {order.deviceContext?.locationDisplay && (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-admin-text-secondary font-medium shrink-0">Location:</span>
+                        <span className="font-semibold text-admin-text text-right truncate max-w-[170px]" title={order.deviceContext.locationDisplay}>
+                          📍 {order.deviceContext.locationDisplay}
+                        </span>
+                      </div>
+                    )}
+                    {(order.deviceContext?.networkCarrier || order.deviceContext?.networkType) && (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-admin-text-secondary font-medium shrink-0">Network / Carrier:</span>
+                        <span className="font-semibold text-admin-text text-right truncate max-w-[170px]">
+                          📶 {order.deviceContext.networkCarrier || ''} {order.deviceContext.networkType ? `(${order.deviceContext.networkType})` : ''}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
             <div className="p-6 flex-1 flex flex-col justify-between bg-admin-surface">
@@ -1222,31 +1308,102 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
       {/* Remake Options Modal */}
       {showRemakeModal && mounted && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 text-center">
-              <h2 className="text-xl font-black text-admin-text mb-2 font-outfit">Remake Order</h2>
-              <p className="text-[13px] font-medium text-admin-text-secondary mb-6">Do you want to remake this order for free or charge the customer the full amount?</p>
-              
-              <div className="flex flex-col gap-3">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <div className="text-center mb-5">
+                <div className="w-12 h-12 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-500 flex items-center justify-center mx-auto mb-3">
+                  <RefreshCw className="w-6 h-6 animate-spin-slow" />
+                </div>
+                <h2 className="text-xl font-black text-admin-text font-outfit">Remake Order #{order.orderNumber}</h2>
+                <p className="text-[13px] font-medium text-admin-text-secondary mt-1">
+                  Send this order back to the kitchen. Select the reason and choose billing.
+                </p>
+              </div>
+
+              {remakeError && (
+                <div className="mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 text-xs font-bold flex items-center gap-2">
+                  <span>⚠️</span>
+                  <span>{remakeError}</span>
+                </div>
+              )}
+
+              {/* Reason Selector */}
+              <div className="space-y-2 mb-4">
+                <label className="text-xs font-bold text-admin-text flex items-center justify-between">
+                  <span>Remake Reason <span className="text-rose-500">*</span></span>
+                  <span className="text-[10px] text-admin-text-muted font-normal">Mandatory for $0 Free</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {['Customer Complaint', 'Cold / Quality Issue', 'Wrong Item Sent', 'Damaged / Spilled', 'Other'].map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRemakeReason(r)}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold transition-all text-left truncate border ${
+                        remakeReason === r
+                          ? 'bg-brand/15 text-brand border-brand/40 shadow-sm'
+                          : 'bg-admin-card text-admin-text-secondary border-admin-border hover:bg-admin-card/80'
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+                {remakeReason === 'Other' && (
+                  <input
+                    type="text"
+                    value={customReason}
+                    onChange={(e) => setCustomReason(e.target.value)}
+                    placeholder="Enter specific remake reason..."
+                    className="w-full mt-2 px-3 py-2 rounded-xl text-xs bg-admin-card border border-admin-border text-admin-text focus:outline-none focus:border-brand"
+                  />
+                )}
+              </div>
+
+              {/* Staff / Manager PIN (Optional / Policy) */}
+              <div className="space-y-1 mb-6">
+                <label className="text-xs font-bold text-admin-text flex items-center justify-between">
+                  <span>Manager / Staff PIN</span>
+                  <span className="text-[10px] text-admin-text-muted font-normal">If required by store</span>
+                </label>
+                <input
+                  type="password"
+                  maxLength={8}
+                  value={remakePin}
+                  onChange={(e) => setRemakePin(e.target.value)}
+                  placeholder="Enter PIN (e.g. 1234)"
+                  className="w-full px-3 py-2 rounded-xl text-xs bg-admin-card border border-admin-border text-admin-text focus:outline-none focus:border-brand font-mono tracking-widest"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-2.5">
                 <button
+                  type="button"
+                  disabled={isRemakingOrder}
                   onClick={() => executeRemake(false)}
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[14px] font-bold transition-all shadow-sm flex items-center justify-center gap-2 font-outfit"
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-[14px] font-bold transition-all shadow-sm flex items-center justify-center gap-2 font-outfit cursor-pointer"
                 >
-                  Free Remake ($0)
+                  {isRemakingOrder ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  <span>Free Remake ($0)</span>
                 </button>
                 <button
+                  type="button"
+                  disabled={isRemakingOrder}
                   onClick={() => executeRemake(true)}
-                  className="w-full py-3 bg-admin-card border-2 border-brand text-brand hover:bg-brand/10 rounded-xl text-[14px] font-bold transition-all shadow-sm flex items-center justify-center gap-2 font-outfit"
+                  className="w-full py-3 bg-admin-card border-2 border-brand text-brand hover:bg-brand/10 disabled:opacity-50 rounded-xl text-[14px] font-bold transition-all shadow-sm flex items-center justify-center gap-2 font-outfit cursor-pointer"
                 >
-                  Charge Customer ({formatCurrency(order.total, currency)})
+                  {isRemakingOrder ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  <span>Charge Customer ({formatCurrency(order.total, currency)})</span>
                 </button>
               </div>
             </div>
             
             <div className="p-4 border-t border-admin-border bg-admin-card/30">
               <button
+                type="button"
                 onClick={() => setShowRemakeModal(false)}
-                className="w-full py-2.5 bg-admin-card border border-admin-border rounded-xl text-[14px] font-bold text-admin-text hover:bg-admin-surface-hover transition-all shadow-sm font-outfit"
+                className="w-full py-2.5 bg-admin-card border border-admin-border rounded-xl text-[14px] font-bold text-admin-text hover:bg-admin-surface-hover transition-all shadow-sm font-outfit cursor-pointer"
               >
                 Cancel
               </button>

@@ -83,7 +83,7 @@ const computeRestaurantCustomers = async (req, actualRestaurantId) => {
   orderStats.forEach(stat => {
     const email = stat._id.email;
     const phone = stat._id.phone;
-    const identifier = email || phone;
+    const identifier = email || phone || (stat.userId ? stat.userId.toString() : (stat.name ? `guest-${stat.name.toLowerCase().trim()}` : null));
     if (!identifier) return;
 
     let user = null;
@@ -416,7 +416,7 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
 
   // Project only relevant fields for profile order history and calculation
   const orders = await OrderModel.find(orderQuery)
-    .select('orderNumber total discount loyaltyDiscount couponCode orderType createdAt status items loyaltyPointsEarned loyaltyPointsUsed')
+    .select('orderNumber total discount loyaltyDiscount couponCode orderType createdAt status items loyaltyPointsEarned loyaltyPointsUsed paymentMethod paymentStatus isRemake parentOrderId remakeReason')
     .sort({ createdAt: -1 })
     .lean();
 

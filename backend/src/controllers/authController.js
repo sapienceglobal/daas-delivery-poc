@@ -11,6 +11,7 @@ import axios from 'axios';
 import appleSignin from 'apple-signin-auth';
 import { generateSecret, generateURI, verify } from 'otplib';
 import QRCode from 'qrcode';
+import { logAuditEvent } from '../utils/auditLogger.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -33,10 +34,22 @@ export const ensureCanManageRestaurant = (reqOrUser, restaurantId) => {
 // role is embedded in JWT so Next.js Edge middleware can verify it without DB access.
 // the backend ALWAYS re-fetches the user from DB (auth.js protect middleware) —
 // the JWT role is only used for routing decisions, never trusted for data access.
-const generateToken = (id, role, tenantId = 'marketplace', tokenVersion = 0) => jwt.sign({ id, role, tenantId, tokenVersion }, JWT_SECRET, { expiresIn: '7d' });
+const generateToken = (id, role, tenantId = 'marketplace', tokenVersion = 0, isMobileMerchant = false, rememberMe = true) => {
+  let expiresIn = '30d';
+  if (isMobileMerchant) {
+    expiresIn = rememberMe ? '180d' : '1d';
+  } else {
+    expiresIn = rememberMe ? '90d' : '1d';
+  }
+  return jwt.sign({ id, role, tenantId, tokenVersion }, JWT_SECRET, { expiresIn });
+};
 
 const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace', rememberMe = true) => {
-  const token = generateToken(user._id, user.role, tenantId, user.tokenVersion);
+  const isMobileMerchant =
+    (response.req && response.req.headers['x-platform'] === 'merchant_app') ||
+    user.role === 'merchant' ||
+    user.role === 'admin';
+  const token = generateToken(user._id, user.role, tenantId, user.tokenVersion, isMobileMerchant, rememberMe);
   const secureCookie = process.env.COOKIE_SECURE === 'true' ||
     (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
   const body = {
@@ -61,10 +74,11 @@ const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace', r
     path: '/'
   };
 
-  // industry Standard: If rememberMe is checked, persist the cookie (e.g. 30 days).
+  // industry Standard: If rememberMe is checked, persist the cookie (e.g. 180 days for merchant, 30 days for web).
   // if not checked, omit 'expires' so it becomes a Session Cookie that deletes on browser close.
   if (rememberMe) {
-    cookieOptions.expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const days = isMobileMerchant ? 180 : 30;
+    cookieOptions.expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
   }
 
   response
@@ -213,7 +227,8 @@ export const register = asyncHandler(async (req, response) => {
 // is unchanged.
 
 export const login = asyncHandler(async (req, response) => {
-  const { email, password, rememberMe = true } = req.body;
+  const { email, password } = req.body;
+  const rememberMe = req.body.rememberMe === undefined ? true : (req.body.rememberMe === true || req.body.rememberMe === 'true' || req.body.rememberMe === 1 || req.body.rememberMe === '1');
 
   if (!email || !password) {
     throw new AppError('Please provide email and password.', 400);
@@ -256,6 +271,15 @@ export const login = asyncHandler(async (req, response) => {
         }
       );
       logger.warn('Account locked due to too many failed login attempts', { email });
+      logAuditEvent({
+        req,
+        actorType: 'system',
+        actor: { userId: user._id, name: user.name, email: user.email, role: user.role },
+        event: 'LOGIN_LOCKOUT',
+        action: 'SECURITY',
+        severity: 'warning',
+        message: `Account locked for 15 minutes due to ${MAX_FAILED_ATTEMPTS} failed login attempts: ${email}`
+      }).catch(() => {});
     }
     throw new AppError('Invalid email or password.', 401);
   }
@@ -306,6 +330,36 @@ export const login = asyncHandler(async (req, response) => {
   user.lastLogin = new Date();
   await user.save();
 
+  // Forensic Security Audit Log for Login
+  const isCustomer = user.role === 'customer';
+  let auditRestaurantId = user.restaurantId?._id || user.restaurantId || null;
+  if (!auditRestaurantId) {
+    try {
+      const RestaurantModel = req.getModel ? req.getModel('Restaurant') : null;
+      if (RestaurantModel) {
+        const r = await RestaurantModel.findOne().select('_id');
+        if (r) auditRestaurantId = r._id;
+      }
+    } catch (e) {}
+  }
+
+  logAuditEvent({
+    req,
+    restaurantId: auditRestaurantId,
+    actorType: isCustomer ? 'customer' : 'merchant',
+    actor: {
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role
+    },
+    event: isCustomer ? 'CUSTOMER_LOGIN' : 'MERCHANT_LOGIN',
+    action: 'LOGIN',
+    severity: 'info',
+    message: `${isCustomer ? 'Customer' : 'Merchant/Staff'} logged in (${user.email}) via ${platform || 'web'}`
+  }).catch(() => {});
+
   if (user.isTwoFactorEnabled) {
     const tempToken = jwt.sign({ id: user._id, requires2fa: true, tenantId }, JWT_SECRET, { expiresIn: '5m' });
     return response.status(200).json({
@@ -336,6 +390,9 @@ export const socialLogin = asyncHandler(async (req, response) => {
   const UserModel = req.getModel('User');
 
   let email, name, socialId, picture;
+  // SECURITY: true only when the email came from the provider itself (verified),
+  // never from the request body. Unverified emails must NOT match existing accounts.
+  let emailVerifiedByProvider = false;
 
   if (provider === 'google' || !provider) {
     // google Token Verification
@@ -348,7 +405,8 @@ export const socialLogin = asyncHandler(async (req, response) => {
     });
 
     const payload = ticket.getPayload();
-    email = payload.email;
+    email = payload.email?.toLowerCase();
+    emailVerifiedByProvider = Boolean(payload.email && payload.email_verified);
     name = payload.name;
     socialId = payload.sub;
     picture = payload.picture;
@@ -370,7 +428,8 @@ export const socialLogin = asyncHandler(async (req, response) => {
 
       socialId = fbData.id;
       name = fbData.name || clientName || 'Facebook User';
-      email = (fbData.email || clientEmail || `${socialId}@facebook.user`).toLowerCase();
+      emailVerifiedByProvider = Boolean(fbData.email);
+      email = (fbData.email || `${socialId}@facebook.user`).toLowerCase();
       picture = fbData.picture?.data?.url || null;
     } catch (fbErr) {
       if (fbErr instanceof AppError) throw fbErr;
@@ -398,7 +457,8 @@ export const socialLogin = asyncHandler(async (req, response) => {
 
       socialId = appleClaims.sub;
       // Apple only returns email in token claims or clientEmail on first sign-in
-      email = (appleClaims.email || clientEmail || `${socialId}@apple.user`).toLowerCase();
+      emailVerifiedByProvider = Boolean(appleClaims.email);
+      email = (appleClaims.email || `${socialId}@apple.user`).toLowerCase();
       name = clientName || (email.split('@')[0]) || 'Apple User';
       picture = null;
     } catch (appleErr) {
@@ -435,7 +495,11 @@ export const socialLogin = asyncHandler(async (req, response) => {
           }
         : { email };
 
-  let user = await UserModel.findOne(userQuery);
+  const socialIdField = provider === 'facebook' ? 'socialLogin.facebookId'
+    : provider === 'apple' ? 'socialLogin.appleId' : 'socialLogin.googleId';
+  let user = await UserModel.findOne(
+    emailVerifiedByProvider ? userQuery : { [socialIdField]: socialId }
+  );
 
   if (!user) {
     const allowedRoles = process.env.ALLOW_PUBLIC_MERCHANT_SIGNUP === 'true'
@@ -499,6 +563,11 @@ export const socialLogin = asyncHandler(async (req, response) => {
     throw new AppError('Your account has been deactivated. Contact support.', 403);
   }
 
+  // SECURITY: merchant/admin accounts must use email + password only.
+  if (user.role !== 'customer') {
+    throw new AppError('Please sign in with your email and password.', 403);
+  }
+
   user.lastLogin = new Date();
   const platform = req.headers['x-platform'];
   if (platform === 'merchant_app' && user.role === 'customer') {
@@ -509,6 +578,35 @@ export const socialLogin = asyncHandler(async (req, response) => {
     user.loginPlatforms.push(platform);
   }
   await user.save();
+
+  let auditSocialRestaurantId = user.restaurantId?._id || user.restaurantId || null;
+  if (!auditSocialRestaurantId) {
+    try {
+      const RestaurantModel = req.getModel ? req.getModel('Restaurant') : null;
+      if (RestaurantModel) {
+        const r = await RestaurantModel.findOne().select('_id');
+        if (r) auditSocialRestaurantId = r._id;
+      }
+    } catch (e) {}
+  }
+
+  // Audit log for customer social login
+  logAuditEvent({
+    req,
+    restaurantId: auditSocialRestaurantId,
+    actorType: 'customer',
+    actor: {
+      userId: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role
+    },
+    event: 'CUSTOMER_SOCIAL_LOGIN',
+    action: 'LOGIN',
+    severity: 'info',
+    message: `Customer logged in via ${provider || 'Google'} (${user.email})`
+  }).catch(() => {});
 
   sendTokenCookie(user, 200, response, tenantId);
 });

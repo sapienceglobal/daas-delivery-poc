@@ -70,5 +70,9 @@
 		<true/>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Lassi Lounge needs your location to display available delivery options, calculate delivery time, and find nearby stores.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>Lassi Lounge uses your location to deliver orders accurately to your address.</string>
 	</dict>
 </plist>

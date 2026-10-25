@@ -94,7 +94,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       if (!mounted) return;
 
       if (authProvider.isAuthenticated) {
-        context.go('/');
+        final isValid = await authProvider.validateSessionWithServer();
+        if (!mounted) return;
+        if (isValid) {
+          context.go('/');
+        } else {
+          context.go('/login');
+        }
       } else {
         context.go('/login');
       }

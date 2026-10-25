@@ -13,13 +13,19 @@ class AuthService {
   // Attempt to load token from storage and set it in ApiService
   Future<bool> loadToken() async {
     final prefs = await SharedPreferences.getInstance();
+    final rememberMe = prefs.getBool('remember_me') ?? false;
     final token = prefs.getString(_tokenKey);
-    if (token != null) {
+    if (rememberMe && token != null && token.isNotEmpty) {
       ApiService.setAuthToken(token);
       SocketService().reconnect();
       return true;
+    } else {
+      // Session-only or unremembered login: Wipe persistent token on app cold restart
+      await prefs.remove(_tokenKey);
+      await prefs.remove('remember_me');
+      ApiService.clearAuthToken();
+      return false;
     }
-    return false;
   }
 
   // Fetch the current user profile from the backend
@@ -152,7 +158,13 @@ class AuthService {
         final token = data['token'];
         if (token != null) {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(_tokenKey, token);
+          if (rememberMe) {
+            await prefs.setString(_tokenKey, token);
+            await prefs.setBool('remember_me', true);
+          } else {
+            await prefs.remove(_tokenKey);
+            await prefs.setBool('remember_me', false);
+          }
           ApiService.setAuthToken(token);
           SocketService().reconnect();
           PushNotificationService().syncTokenWithBackend();
@@ -198,6 +210,7 @@ class AuthService {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    await prefs.remove('remember_me');
     ApiService.clearAuthToken();
     try {
       await GoogleSignIn().signOut();

@@ -332,6 +332,49 @@ function OrdersTab({ data }) {
     );
   }
 
+  const renderPaymentInfo = (order) => {
+    const method = (order.paymentMethod || '').toLowerCase();
+    const status = (order.paymentStatus || '').toLowerCase();
+
+    let methodLabel = 'Card';
+    if (method === 'payment_link') methodLabel = 'Payment Link';
+    else if (method === 'cash') methodLabel = 'Cash';
+    else if (method === 'apple_pay') methodLabel = 'Apple Pay';
+    else if (method === 'google_pay') methodLabel = 'Google Pay';
+    else if (method === 'credit_card' || method === 'debit_card') methodLabel = 'Card';
+    else if (method) methodLabel = method.replace('_', ' ');
+
+    let statusLabel = status || 'Pending';
+    let statusClass = 'text-admin-text-muted';
+
+    if (method === 'payment_link') {
+      if (status === 'paid') {
+        return <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Link Paid</span>;
+      }
+      return <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">Link Pending</span>;
+    }
+
+    if (status === 'paid' || status === 'completed') {
+      statusLabel = 'Paid';
+      statusClass = 'text-emerald-500';
+    } else if (status === 'refunded') {
+      statusLabel = 'Refunded';
+      statusClass = 'text-rose-500';
+    } else if (status === 'failed') {
+      statusLabel = 'Failed';
+      statusClass = 'text-rose-500';
+    } else if (status === 'pending') {
+      statusLabel = method === 'cash' ? 'Cash / COD' : 'Pending';
+      statusClass = 'text-amber-500';
+    }
+
+    return (
+      <div className={`text-[10px] font-bold ${statusClass} mt-0.5 capitalize`}>
+        {methodLabel} • {statusLabel}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-3.5">
       {orders.map((order) => (
@@ -340,6 +383,11 @@ function OrdersTab({ data }) {
             <div>
               <h4 className="text-admin-text font-bold text-sm flex items-center gap-2">
                 Order #{order.orderNumber || (order._id ? String(order._id).slice(-6).toUpperCase() : 'N/A')}
+                {order.isRemake && (
+                  <span className="text-[9px] bg-amber-500/15 text-amber-600 dark:text-amber-400 font-black px-1.5 py-0.5 rounded border border-amber-500/30">
+                    REMADE
+                  </span>
+                )}
                 <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${
                   order.status === 'delivered' || order.status === 'completed' ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25' : 
                   order.status === 'cancelled' ? 'bg-rose-500/15 text-rose-500 border border-rose-500/25' :
@@ -355,7 +403,7 @@ function OrdersTab({ data }) {
             </div>
             <div className="text-right">
               <div className="font-heading text-lg font-black text-admin-text">${Number(order.total || 0).toFixed(2)}</div>
-              <div className="text-[10px] font-bold text-admin-text-muted mt-0.5 capitalize">{order.paymentMethod || 'Card'} • {order.paymentStatus || 'Paid'}</div>
+              {renderPaymentInfo(order)}
             </div>
           </div>
           

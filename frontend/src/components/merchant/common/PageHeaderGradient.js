@@ -31,26 +31,19 @@ export default function PageHeaderGradient({
             WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 50%, transparent 100%)',
           }}
         >
-          {/* Light mode: signature red atmospheric ambient wash */}
+          {/* Light mode: clean, subtle luxury ambient header wash without muddy pink blotch */}
           <div
             className="dark:hidden absolute inset-0 pointer-events-none"
             style={{
               background:
-                'linear-gradient(180deg, rgba(254, 226, 226, 0.55) 0%, rgba(254, 242, 242, 0.3) 45%, transparent 100%)',
+                'linear-gradient(180deg, rgba(254, 242, 242, 0.35) 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%)',
             }}
           />
           <div
-            className="dark:hidden absolute top-0 right-0 w-3/4 h-full pointer-events-none"
+            className="dark:hidden absolute top-0 right-0 w-2/3 h-full pointer-events-none"
             style={{
               background:
-                'radial-gradient(ellipse 75% 65% at 75% 15%, rgba(205, 19, 27, 0.16) 0%, rgba(220, 38, 38, 0.07) 50%, transparent 80%)',
-            }}
-          />
-          <div
-            className="dark:hidden absolute top-0 left-0 w-1/2 h-full pointer-events-none"
-            style={{
-              background:
-                'radial-gradient(ellipse 60% 50% at 20% 0%, rgba(239, 68, 68, 0.12) 0%, transparent 75%)',
+                'radial-gradient(ellipse 70% 55% at 75% 10%, rgba(205, 19, 27, 0.04) 0%, transparent 75%)',
             }}
           />
 

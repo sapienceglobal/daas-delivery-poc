@@ -43,6 +43,15 @@ export async function proxy(request) {
   // ── Role from cryptographically verified JWT — NOT from user_role cookie ───
   const role = await getVerifiedRole(token);
 
+  // ── Industry Multi-Tenant Domain Isolation Guard ─────────────────────────
+  // A client's custom domain (e.g., lassiloungeny.com) must NEVER expose Platform Super Admin.
+  // Requests to /admin on a client domain return 404 Not Found as if the route does not exist.
+  const host = request.headers.get('host') || '';
+  const isClientCustomDomain = host.toLowerCase().includes('lassiloungeny.com');
+  if (isClientCustomDomain && pathname.startsWith('/admin')) {
+    return NextResponse.rewrite(new URL('/not-found', request.url));
+  }
+
   // ── 1. Single Restaurant Mode routing ────────────────────────────────────
   if (SINGLE_MODE) {
     if (pathname.startsWith('/restaurant') && pathname !== '/restaurant-panel' && !pathname.includes('lassi-lounge') && !pathname.includes('/item/')) {
@@ -51,18 +60,14 @@ export async function proxy(request) {
   }
 
   // ── 2. Restaurant Partner Portal (/restaurant-panel) ──────────────────────
-  // If merchant or admin is already logged in, automatically send them to their dashboard
+  // If merchant is already logged in, automatically send them to their dashboard
   if (pathname === '/restaurant-panel' && token && role) {
-    if (role === 'admin') {
-      const redirectTo = request.nextUrl.searchParams.get('redirect');
-      const dest = (redirectTo && redirectTo.startsWith('/admin')) ? redirectTo : '/admin';
-      return NextResponse.redirect(new URL(dest, request.url));
-    }
     if (role === 'merchant') {
       const redirectTo = request.nextUrl.searchParams.get('redirect');
       const dest = (redirectTo && redirectTo.startsWith('/merchant')) ? redirectTo : '/merchant';
       return NextResponse.redirect(new URL(dest, request.url));
     }
+    // Note: Do not auto-redirect admins from /restaurant-panel; merchant portal is isolated
   }
 
   // ── 3. Customer Login (/login) ────────────────────────────────────────────
@@ -83,8 +88,14 @@ export async function proxy(request) {
 
   // ── 4. Protect /admin routes ──────────────────────────────────────────────
   if (pathname.startsWith('/admin')) {
+    if (pathname === '/admin/login') {
+      if (token && role === 'admin') {
+        return NextResponse.redirect(new URL('/admin', request.url));
+      }
+      return NextResponse.next();
+    }
     if (!token || role !== 'admin') {
-      const loginUrl = new URL('/restaurant-panel', request.url);
+      const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -92,7 +103,7 @@ export async function proxy(request) {
 
   // ── 5. Protect /merchant routes ───────────────────────────────────────────
   if (pathname.startsWith('/merchant')) {
-    if (!token || (role !== 'merchant' && role !== 'admin')) {
+    if (!token || role !== 'merchant') {
       const loginUrl = new URL('/restaurant-panel', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);

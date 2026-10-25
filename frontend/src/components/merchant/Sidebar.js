@@ -44,7 +44,7 @@ const SIDEBAR_STRUCTURE = [
     heading: 'FINANCE & REPORTS',
     items: [
       { id: 'analytics', label: 'Reports & Analytics', icon: BarChart, href: '/merchant/analytics' },
-      { id: 'audit', label: 'System Logs', icon: Shield, href: '/merchant/audit' },
+      { id: 'audit', label: 'Security & Activity Logs', icon: Shield, href: '/merchant/audit' },
     ]
   },
   {

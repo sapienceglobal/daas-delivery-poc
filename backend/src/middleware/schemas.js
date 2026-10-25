@@ -18,7 +18,8 @@ export const loginSchema = Joi.object({
   }),
   password: Joi.string().min(1).required().messages({
     'any.required': 'Password is required'
-  })
+  }),
+  rememberMe: Joi.boolean().optional().default(true)
 });
 
 export const registerSchema = Joi.object({

@@ -566,21 +566,6 @@ class RevenueOrdersCard extends StatelessWidget {
             selectedDays: selectedDays,
             onTap: () => context.push('/analytics'),
           ),
-          const SizedBox(width: 14),
-
-          // 8. Customer Rating Card (Blue)
-          _buildStatItemCard(
-            title: 'Customer Rating',
-            value: '0.0',
-            icon: Icons.star_outline_rounded,
-            iconColor: const Color(0xFF0284C7),
-            iconBg: const Color(0xFFF0F9FF),
-            sparklineColor: const Color(0xFFE0F2FE),
-            badgeText: 'Top Rated',
-            badgeColor: const Color(0xFF0284C7),
-            selectedDays: selectedDays,
-            onTap: () => context.push('/analytics'),
-          ),
         ],
       ),
     );

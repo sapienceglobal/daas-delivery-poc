@@ -9,13 +9,14 @@ class ApiService {
   // Use the same fallback IP or a defined environment variable
   static const String _configuredBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    // defaultValue: 'https://api.lassiloungeny.com',
-    defaultValue: 'http://192.168.1.3:5001',
+    defaultValue: 'https://api.lassiloungeny.com',
+    // defaultValue: 'http://192.168.1.3:5001',
   );
   
   static const Duration _requestTimeout = Duration(seconds: 20);
   
   static String? _authToken;
+  static void Function()? onSessionExpired;
 
   static String? get authToken => _authToken;
 
@@ -27,17 +28,31 @@ class ApiService {
     _authToken = null;
   }
 
+  /// Self-healing token loader: if in-memory _authToken is null, loads it from SharedPreferences.
+  static Future<void> ensureAuthTokenLoaded() async {
+    if (_authToken == null || _authToken!.isEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('token');
+        if (token != null && token.isNotEmpty) {
+          _authToken = token;
+        }
+      } catch (_) {}
+    }
+  }
+
   static Map<String, String> buildHeaders([Map<String, String>? customHeaders]) {
     final Map<String, String> headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'x-tenant-id': 'lassi-lounge', 
       'x-app-secret': 'mobile_app_secure_key_2026',
-      // Explicitly identifying as the merchant app as per industry standard
       'x-platform': 'merchant_app', 
+      'x-device-os': Platform.isAndroid ? 'Android' : (Platform.isIOS ? 'iOS' : Platform.operatingSystem),
+      'x-device-os-version': Platform.operatingSystemVersion,
     };
 
-    if (_authToken != null) {
+    if (_authToken != null && _authToken!.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_authToken';
     }
 
@@ -53,6 +68,9 @@ class ApiService {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return response;
     } else {
+      if (response.statusCode == 401) {
+        _handleSessionExpired();
+      }
       try {
         final decoded = json.decode(response.body);
         final errMsg = decoded['message'] ?? 'API request failed';
@@ -64,29 +82,50 @@ class ApiService {
     }
   }
 
+  static void _handleSessionExpired() {
+    clearAuthToken();
+    try {
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.remove('token');
+        prefs.remove('user');
+        prefs.remove('restaurantId');
+        prefs.remove('rememberMe');
+      });
+    } catch (_) {}
+
+    if (onSessionExpired != null) {
+      onSessionExpired!();
+    }
+  }
+
   static final http.Client _client = http.Client();
 
   static Future<http.Response> get(String endpoint, {Map<String, String>? headers}) async {
+    await ensureAuthTokenLoaded();
     final uri = Uri.parse('$baseUrl$endpoint');
     return _send(() => _client.get(uri, headers: buildHeaders(headers)));
   }
 
   static Future<http.Response> post(String endpoint, dynamic body, {Map<String, String>? headers}) async {
+    await ensureAuthTokenLoaded();
     final uri = Uri.parse('$baseUrl$endpoint');
     return _send(() => _client.post(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
   
   static Future<http.Response> put(String endpoint, dynamic body, {Map<String, String>? headers}) async {
+    await ensureAuthTokenLoaded();
     final uri = Uri.parse('$baseUrl$endpoint');
     return _send(() => _client.put(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
 
   static Future<http.Response> patch(String endpoint, dynamic body, {Map<String, String>? headers}) async {
+    await ensureAuthTokenLoaded();
     final uri = Uri.parse('$baseUrl$endpoint');
     return _send(() => _client.patch(uri, headers: buildHeaders(headers), body: json.encode(body)));
   }
 
   static Future<http.Response> delete(String endpoint, {dynamic body, Map<String, String>? headers}) async {
+    await ensureAuthTokenLoaded();
     final uri = Uri.parse('$baseUrl$endpoint');
     return _send(() => _client.delete(uri, headers: buildHeaders(headers), body: body != null ? json.encode(body) : null));
   }

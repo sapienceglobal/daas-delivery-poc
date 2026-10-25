@@ -6,6 +6,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
 import { roundMoney } from '../services/orderPricing.js';
+import { registerTenantId } from '../utils/tenant.js';
 
 export const getDashboardStats = asyncHandler(async (_req, response) => {
   const today = new Date();
@@ -112,6 +113,181 @@ export const getAllRestaurants = asyncHandler(async (req, response) => {
   ]);
 
   res.success(response, { data: restaurants, pagination: res.buildPagination(page, limit, total) });
+});
+
+export const createRestaurantTenant = asyncHandler(async (req, response) => {
+  const {
+    name,
+    slug: providedSlug,
+    tenantId: providedTenantId,
+    cuisine,
+    address,
+    phone,
+    ownerName,
+    ownerEmail,
+    ownerPassword,
+    plan,
+    customDomain,
+    subdomain,
+    themeConfig
+  } = req.body;
+
+  if (!name || !ownerEmail || !ownerPassword) {
+    throw new AppError('Restaurant name, owner email, and owner password are required', 400);
+  }
+
+  // 1. Slug & Tenant ID resolution
+  const baseSlug = (providedSlug || name)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+  const tenantId = (providedTenantId || baseSlug)
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '')
+    .trim();
+
+  if (!tenantId) {
+    throw new AppError('Valid tenant identifier could not be generated', 400);
+  }
+
+  // Check if tenantId or slug already taken
+  const existingRestaurant = await Restaurant.findOne({
+    $or: [{ tenantId }, { slug: baseSlug }]
+  });
+  if (existingRestaurant) {
+    throw new AppError(`A restaurant with tenant ID '${tenantId}' or slug '${baseSlug}' already exists`, 409);
+  }
+
+  // 2. Find or Create Owner User
+  let owner = await User.findOne({ email: ownerEmail.toLowerCase().trim() });
+  if (owner) {
+    if (owner.role !== 'merchant' && owner.role !== 'admin') {
+      owner.role = 'merchant';
+      await owner.save();
+    }
+  } else {
+    owner = new User({
+      name: ownerName || name + ' Admin',
+      email: ownerEmail.toLowerCase().trim(),
+      role: 'merchant',
+      phone: phone || '',
+      isEmailVerified: true,
+      isVerified: true,
+      hasAcceptedTerms: true
+    });
+    owner.setPassword(ownerPassword);
+    await owner.save();
+  }
+
+  // 3. Register Tenant in Allowed Tenants dynamically
+  registerTenantId(tenantId);
+
+  // 4. Create Restaurant
+  const restaurant = new Restaurant({
+    name: name.trim(),
+    slug: baseSlug,
+    tenantId,
+    ownerId: owner._id,
+    cuisine: cuisine || 'General Dining',
+    address: address || 'Cloud Kitchen',
+    phone: phone || '000-000-0000',
+    status: 'approved',
+    onboardingStatus: 'approved',
+    plan: plan || 'growth',
+    customDomain: customDomain ? customDomain.toLowerCase().trim() : null,
+    subdomain: subdomain ? subdomain.toLowerCase().trim() : null,
+    themeConfig: {
+      templateId: themeConfig?.templateId || 'lassi_classic',
+      primaryColor: themeConfig?.primaryColor || '#FDB714',
+      secondaryColor: themeConfig?.secondaryColor || '#430805',
+      accentColor: themeConfig?.accentColor || '#7A0B10',
+      fontFamily: themeConfig?.fontFamily || 'Inter',
+      heroTitle: themeConfig?.heroTitle || `Welcome to ${name}`,
+      heroSubtitle: themeConfig?.heroSubtitle || 'Order delicious food online',
+      logoUrl: themeConfig?.logoUrl || '',
+      bannerUrl: themeConfig?.bannerUrl || ''
+    }
+  });
+
+  await restaurant.save();
+
+  res.success(response, {
+    data: {
+      restaurant,
+      owner: {
+        _id: owner._id,
+        name: owner.name,
+        email: owner.email,
+        role: owner.role
+      }
+    },
+    message: `Restaurant '${name}' onboarded successfully with tenant '${tenantId}'`
+  }, 201);
+});
+
+export const updateRestaurantTheme = asyncHandler(async (req, response) => {
+  const { id } = req.params;
+  const restaurant = await Restaurant.findById(id);
+  if (!restaurant) throw new AppError('Restaurant not found', 404);
+
+  const { themeConfig } = req.body;
+  if (themeConfig) {
+    restaurant.themeConfig = {
+      ...(restaurant.themeConfig?.toObject ? restaurant.themeConfig.toObject() : restaurant.themeConfig || {}),
+      ...themeConfig
+    };
+    await restaurant.save();
+  }
+
+  res.success(response, {
+    data: restaurant,
+    message: 'Theme & template configuration updated successfully'
+  });
+});
+
+export const updateRestaurantDomain = asyncHandler(async (req, response) => {
+  const { id } = req.params;
+  const { customDomain, subdomain, tenantId } = req.body;
+
+  const restaurant = await Restaurant.findById(id);
+  if (!restaurant) throw new AppError('Restaurant not found', 404);
+
+  if (customDomain !== undefined) restaurant.customDomain = customDomain ? customDomain.toLowerCase().trim() : null;
+  if (subdomain !== undefined) restaurant.subdomain = subdomain ? subdomain.toLowerCase().trim() : null;
+  if (tenantId && tenantId !== restaurant.tenantId) {
+    const normalizedTenant = tenantId.toLowerCase().replace(/[^a-z0-9_-]/g, '').trim();
+    const existing = await Restaurant.findOne({ tenantId: normalizedTenant, _id: { $ne: id } });
+    if (existing) throw new AppError(`Tenant ID '${normalizedTenant}' is already in use`, 409);
+    restaurant.tenantId = normalizedTenant;
+    registerTenantId(normalizedTenant);
+  }
+
+  await restaurant.save();
+
+  res.success(response, {
+    data: restaurant,
+    message: 'Domain & tenant settings updated successfully'
+  });
+});
+
+export const toggleRestaurantStatus = asyncHandler(async (req, response) => {
+  const { id } = req.params;
+  const { status, subscriptionStatus, isActive } = req.body;
+
+  const restaurant = await Restaurant.findById(id);
+  if (!restaurant) throw new AppError('Restaurant not found', 404);
+
+  if (status) restaurant.status = status;
+  if (subscriptionStatus) restaurant.subscriptionStatus = subscriptionStatus;
+  if (isActive !== undefined) restaurant.isActive = isActive;
+
+  await restaurant.save();
+
+  res.success(response, {
+    data: restaurant,
+    message: `Restaurant status updated: status=${restaurant.status}`
+  });
 });
 
 export const getRevenueAnalytics = asyncHandler(async (req, response) => {

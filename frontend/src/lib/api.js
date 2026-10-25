@@ -37,6 +37,25 @@ const request = async (endpoint, options = {}) => {
     ...options.headers,
   };
 
+  // Attach client device geolocation and network headers if available
+  if (typeof window !== 'undefined') {
+    try {
+      const savedLoc = localStorage.getItem('user_geo_location');
+      if (savedLoc) {
+        const parsed = JSON.parse(savedLoc);
+        if (parsed.display) headers['x-device-location'] = parsed.display;
+        if (parsed.city) headers['x-device-city'] = parsed.city;
+        if (parsed.region) headers['x-device-region'] = parsed.region;
+        if (parsed.country) headers['x-device-country'] = parsed.country;
+        if (parsed.lat) headers['x-device-lat'] = String(parsed.lat);
+        if (parsed.lng) headers['x-device-lng'] = String(parsed.lng);
+      }
+      if (navigator.connection?.effectiveType) {
+        headers['x-network-type'] = navigator.connection.effectiveType;
+      }
+    } catch (e) {}
+  }
+
   // don't set Content-Type for FormData (browser sets it with boundary)
   if (options.body instanceof FormData) {
     delete headers['Content-Type'];
@@ -198,7 +217,7 @@ export const orderAPI = {
   accept: (id) => api.put(`/api/orders/${id}/accept`),
   reject: (id, reason) => api.put(`/api/orders/${id}/reject`, { reason }),
   addNote: (id, text) => api.post(`/api/orders/${id}/note`, { text }),
-  remake: (id, chargeCustomer = false) => api.post(`/api/orders/${id}/remake`, { chargeCustomer }),
+  remake: (id, chargeCustomer = false, extra = {}) => api.post(`/api/orders/${id}/remake`, { chargeCustomer, ...extra }),
   sendInvoice: (id) => api.post(`/api/orders/${id}/send-invoice`),
   sendPaymentLink: (id) => api.post(`/api/orders/${id}/send-payment-link`),
   // payment Audit Trail
@@ -253,6 +272,10 @@ export const adminAPI = {
   updateUserRole: (id, role) => api.put(`/api/admin/users/${id}/role`, { role }),
   toggleUserActive: (id) => api.put(`/api/admin/users/${id}/toggle`),
   getAllRestaurants: (params = '') => api.get(`/api/admin/restaurants${params ? '?' + params : ''}`),
+  createRestaurantTenant: (data) => api.post('/api/admin/restaurants', data),
+  updateRestaurantTheme: (id, data) => api.put(`/api/admin/restaurants/${id}/theme`, data),
+  updateRestaurantDomain: (id, data) => api.put(`/api/admin/restaurants/${id}/domain`, data),
+  toggleRestaurantStatus: (id, data) => api.put(`/api/admin/restaurants/${id}/status`, data),
   getRevenueAnalytics: (days) => api.get(`/api/admin/analytics/revenue?days=${days || 30}`),
   getOrderAnalytics: (days) => api.get(`/api/admin/analytics/orders?days=${days || 30}`),
   getFinanceSummary: (days) => api.get(`/api/admin/finance/summary?days=${days || 30}`),

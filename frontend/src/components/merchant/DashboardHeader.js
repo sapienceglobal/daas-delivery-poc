@@ -169,8 +169,18 @@ export default function DashboardHeader({ user, onToggleSidebar }) {
     if (!roomId) return;
     orderAPI.getRestaurantOrders(roomId)
       .then((res) => {
+        if (res.stats && typeof res.stats.active === 'number') {
+          setHeaderCounts({ activeOrders: res.stats.active });
+          return;
+        }
         const orders = res.data || [];
-        const active = orders.filter((order) => ['pending', 'accepted', 'preparing', 'ready'].includes(order.status)).length;
+        const isLive = (o) => {
+          const s = (o.status || '').toLowerCase().trim();
+          if (['completed', 'delivered', 'cancelled', 'refunded', 'failed', 'rejected'].includes(s)) return false;
+          if (s === 'picked_up') return (o.orderType || o.type || '').toLowerCase() === 'delivery';
+          return ['new', 'pending', 'accepted', 'driver_assigned', 'preparing', 'ready', 'out_for_delivery'].includes(s);
+        };
+        const active = orders.filter(isLive).length;
         setHeaderCounts({ activeOrders: active });
       })
       .catch(() => setHeaderCounts({ activeOrders: 0 }));

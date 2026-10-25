@@ -162,122 +162,237 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   void _confirmRemake(OrderModel order) {
+    String selectedReason = 'Customer Complaint';
+    final reasonController = TextEditingController();
+    final pinController = TextEditingController();
+    String? errorMessage;
+
+    final reasons = [
+      'Customer Complaint',
+      'Cold / Quality Issue',
+      'Wrong Item Sent',
+      'Damaged / Spilled',
+      'Other',
+    ];
+
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  shape: BoxShape.circle,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.refresh_rounded,
+                      color: Colors.orange,
+                      size: 32,
+                    ),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.refresh,
-                  color: Colors.orange,
-                  size: 36,
+                const SizedBox(height: 12),
+                Text(
+                  'Remake Order #${order.orderNumber}',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0F172A),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Remake Order',
-                style: GoogleFonts.inter(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 6),
+                Text(
+                  'Select reason before choosing billing option.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    color: Colors.grey.shade600,
+                    fontSize: 13,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Send this order back to the kitchen? You can remake it for free or charge the customer.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  color: Colors.grey.shade600,
-                  fontSize: 14,
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEE2E2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFFCA5A5)),
+                    ),
+                    child: Text(
+                      errorMessage!,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFDC2626),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Text(
+                  'Reason *',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF334155),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: reasons.map((r) {
+                    final isSel = selectedReason == r;
+                    return InkWell(
+                      onTap: () => setModalState(() => selectedReason = r),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isSel ? const Color(0xFFFEF3C7) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSel ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        child: Text(
+                          r,
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                            color: isSel ? const Color(0xFFB45309) : const Color(0xFF475569),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                if (selectedReason == 'Other') ...[
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: reasonController,
+                    decoration: InputDecoration(
+                      hintText: 'Enter specific reason...',
+                      hintStyle: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade400),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                Text(
+                  'Staff / Manager PIN (Optional)',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF334155),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: pinController,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 8,
+                  decoration: InputDecoration(
+                    counterText: '',
+                    hintText: 'Enter PIN if required',
+                    hintStyle: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade400),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF10B981),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () {
+                    final finalReason = selectedReason == 'Other'
+                        ? reasonController.text.trim()
+                        : selectedReason;
+                    if (finalReason.length < 3) {
+                      setModalState(() => errorMessage = 'Please enter a valid reason for free remake.');
+                      return;
+                    }
                     Navigator.pop(ctx);
-                    _executeRemake(order, true);
-                  },
-                  child: Text(
-                    'Charge Customer',
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    side: BorderSide(color: Colors.grey.shade300),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _executeRemake(order, false);
+                    _executeRemake(order, false, finalReason, pinController.text.trim());
                   },
                   child: Text(
                     'Free Remake (\$0)',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                    style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: TextButton(
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFFDC2626),
+                    side: const BorderSide(color: Color(0xFFDC2626)),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () {
+                    final finalReason = selectedReason == 'Other'
+                        ? reasonController.text.trim()
+                        : selectedReason;
+                    Navigator.pop(ctx);
+                    _executeRemake(order, true, finalReason, pinController.text.trim());
+                  },
+                  child: Text(
+                    'Charge Customer (\$${order.total.toStringAsFixed(2)})',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextButton(
                   onPressed: () => Navigator.pop(ctx),
                   child: Text(
                     'Cancel',
-                    style: GoogleFonts.inter(
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: GoogleFonts.inter(color: Colors.grey.shade600, fontWeight: FontWeight.bold),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  void _executeRemake(OrderModel order, bool chargeCustomer) async {
+  void _executeRemake(OrderModel order, bool chargeCustomer, [String? reason, String? pin]) async {
     setState(() => _isRemakingOrder = true);
     try {
       final res = await ApiService.post('/api/orders/${order.id}/remake', {
         'chargeCustomer': chargeCustomer,
+        if (reason != null && reason.isNotEmpty) 'reason': reason,
+        if (pin != null && pin.isNotEmpty) 'pin': pin,
       });
       final resData = json.decode(res.body);
+
+      if (res.statusCode >= 400) {
+        throw resData['message'] ?? 'Failed to create remake order';
+      }
 
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
@@ -644,7 +759,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildStatusBadge(order.status),
+                      _buildStatusBadge(order.status, orderType: order.orderType),
                       Text(
                         _formatDT(order.createdAt),
                         style: GoogleFonts.inter(
@@ -747,51 +862,91 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                     const SizedBox(height: 16),
                   ],
 
-                  if (order.isRemake && order.parentOrderId != null) ...[
+                  if (order.isRemake) ...[
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        border: Border.all(color: Colors.orange.shade200),
-                        borderRadius: BorderRadius.circular(12),
+                        color: const Color(0xFFFFF7ED),
+                        border: Border.all(color: const Color(0xFFFED7AA)),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.info_outline, color: Colors.orange.shade700),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
+                          Row(
+                            children: [
+                              const Icon(Icons.warning_amber_rounded, color: Color(0xFFEA580C), size: 22),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
                                   'Remade Order',
                                   style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orange.shade900,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    color: const Color(0xFF7C2D12),
                                   ),
                                 ),
-                                Text(
-                                  'This order is a remake of a previous order.',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    color: Colors.orange.shade800,
+                              ),
+                              if (order.parentOrderId != null)
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    backgroundColor: const Color(0xFFFFEDD5),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onPressed: () {
+                                    context.push('/order-details/${order.parentOrderId}');
+                                  },
+                                  child: Text(
+                                    'View Original',
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                      color: const Color(0xFF9A3412),
+                                    ),
                                   ),
                                 ),
-                              ],
-                            ),
+                            ],
                           ),
-                          TextButton(
-                            onPressed: () {
-                              context.push('/order-details/${order.parentOrderId}');
-                            },
-                            child: Text(
-                              'View Original',
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.orange.shade900,
+                          if (order.remakeReason != null && order.remakeReason!.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFDE68A),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'Reason: ${order.remakeReason}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF78350F),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
+                          if (order.remakeBy != null) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              'Remade by: ${order.remakeBy!['name'] ?? 'Merchant'} (${order.remakeBy!['role'] ?? 'Staff'})',
+                              style: GoogleFonts.inter(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF9A3412),
+                              ),
+                            ),
+                            if (order.remakeBy!['ip'] != null || order.remakeBy!['deviceType'] != null) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                '💻 ${order.remakeBy!['deviceType'] ?? 'Device'}: ${order.remakeBy!['os'] ?? ''} • 📍 IP: ${order.remakeBy!['ip'] ?? ''}${order.remakeBy!['location'] != null ? ' (${order.remakeBy!['location']})' : ''}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10.5,
+                                  color: const Color(0xFFB45309),
+                                ),
+                              ),
+                            ],
+                          ],
                         ],
                       ),
                     ),
@@ -1319,6 +1474,108 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                 ),
                               ),
                           ],
+
+                          // Security & Fraud Telemetry (Chargeback Defense)
+                          const SizedBox(height: 12),
+                          const Divider(height: 1, color: Colors.black12),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.security, size: 14, color: Colors.green),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'SECURITY & TELEMETRY',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey.shade600,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade50,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Colors.green.shade200),
+                                ),
+                                child: Text(
+                                  'AUDIT VERIFIED',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Device & OS:', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600)),
+                                    Text(
+                                      '${order.deviceContext?['deviceType'] ?? (order.orderSource == 'app' ? 'Mobile' : 'Desktop')} • ${order.deviceContext?['os'] ?? (order.orderSource == 'app' ? 'Mobile App' : 'Web')}',
+                                      style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('Client IP:', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600)),
+                                    Text(
+                                      order.deviceContext?['ip'] ?? 'Session Verified',
+                                      style: GoogleFonts.robotoMono(fontSize: 11, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                if (order.deviceContext?['locationDisplay'] != null && order.deviceContext!['locationDisplay'].toString().isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('Location:', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600)),
+                                      Text(
+                                        '📍 ${order.deviceContext!['locationDisplay']}',
+                                        style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                                if (order.deviceContext?['networkCarrier'] != null || order.deviceContext?['networkType'] != null) ...[
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('Network:', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600)),
+                                      Text(
+                                        '📶 ${order.deviceContext?['networkCarrier'] ?? ''} ${order.deviceContext?['networkType'] != null ? '(${order.deviceContext!['networkType']})' : ''}',
+                                        style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -2281,33 +2538,61 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 
-  Widget _buildStatusBadge(String status) {
+  Widget _buildStatusBadge(String status, {String? orderType}) {
     Color bg = Colors.grey.shade200;
     Color fg = Colors.grey.shade700;
-    switch (status) {
-      case 'new':
-        bg = Colors.red.shade50;
-        fg = Colors.red.shade700;
-        break;
-      case 'preparing':
-        bg = Colors.orange.shade50;
-        fg = Colors.orange.shade700;
-        break;
-      case 'ready':
+    String displayStatus;
+
+    final s = status.toLowerCase();
+    final type = orderType?.toLowerCase();
+
+    if (s == 'delivered') {
+      bg = Colors.green.shade50;
+      fg = Colors.green.shade700;
+      displayStatus = 'DELIVERED';
+    } else if (s == 'picked_up') {
+      bg = Colors.blue.shade50;
+      fg = Colors.blue.shade700;
+      displayStatus = 'PICKED UP';
+    } else if (s == 'completed') {
+      if (type == 'delivery') {
+        bg = Colors.green.shade50;
+        fg = Colors.green.shade700;
+        displayStatus = 'DELIVERED';
+      } else if (type == 'pickup') {
         bg = Colors.blue.shade50;
         fg = Colors.blue.shade700;
-        break;
-      case 'out_for_delivery':
+        displayStatus = 'PICKED UP';
+      } else {
         bg = Colors.green.shade50;
         fg = Colors.green.shade700;
-        break;
-      case 'delivered':
-      case 'picked_up':
-      case 'completed':
-        bg = Colors.green.shade50;
-        fg = Colors.green.shade700;
-        break;
+        displayStatus = 'COMPLETED';
+      }
+    } else {
+      switch (s) {
+        case 'new':
+          bg = Colors.red.shade50;
+          fg = Colors.red.shade700;
+          break;
+        case 'preparing':
+          bg = Colors.orange.shade50;
+          fg = Colors.orange.shade700;
+          break;
+        case 'ready':
+          bg = Colors.blue.shade50;
+          fg = Colors.blue.shade700;
+          break;
+        case 'out_for_delivery':
+          bg = Colors.green.shade50;
+          fg = Colors.green.shade700;
+          break;
+        default:
+          bg = Colors.grey.shade100;
+          fg = Colors.grey.shade700;
+      }
+      displayStatus = status.toUpperCase().replaceAll('_', ' ');
     }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -2315,7 +2600,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        status.toUpperCase().replaceAll('_', ' '),
+        displayStatus,
         style: GoogleFonts.inter(
           color: fg,
           fontSize: 10,

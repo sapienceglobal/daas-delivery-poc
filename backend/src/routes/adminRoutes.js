@@ -15,8 +15,12 @@ router.get('/users', adminController.getUsers);
 router.put('/users/:id/role', adminController.updateUserRole);
 router.put('/users/:id/toggle', adminController.toggleUserActive);
 
-// restaurant Management
+// restaurant & tenant management
 router.get('/restaurants', adminController.getAllRestaurants);
+router.post('/restaurants', adminController.createRestaurantTenant);
+router.put('/restaurants/:id/theme', adminController.updateRestaurantTheme);
+router.put('/restaurants/:id/domain', adminController.updateRestaurantDomain);
+router.put('/restaurants/:id/status', adminController.toggleRestaurantStatus);
 
 // platform Analytics
 router.get('/analytics/revenue', adminController.getRevenueAnalytics);

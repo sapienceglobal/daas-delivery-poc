@@ -18,6 +18,7 @@ import StatCard from './StatCard';
 
 export default function DashboardView({
   stats,
+  serverStats = null,
   orders,
   reservations,
   cateringInquiries,
@@ -95,26 +96,40 @@ export default function DashboardView({
     return d >= cutoffDate && d <= endCutoffDate;
   });
 
+  // Strict live order identifier: strictly excludes completed, delivered, cancelled, refunded, failed, and picked_up for pickup/dine-in
+  const isLiveOrder = (o) => {
+    if (!o) return false;
+    const s = (o.status || '').toLowerCase().trim();
+    if (['completed', 'delivered', 'cancelled', 'refunded', 'failed', 'rejected'].includes(s)) return false;
+    if (s === 'picked_up') {
+      const type = (o.orderType || o.type || '').toLowerCase();
+      return type === 'delivery';
+    }
+    return ['new', 'pending', 'accepted', 'driver_assigned', 'preparing', 'ready', 'out_for_delivery'].includes(s);
+  };
+
   // Top Stats Calculations
   const totalRevenue = analyticsData?.summary?.totalRevenue || 0;
-  const totalOrders = analyticsData?.summary?.totalOrders || 0;
-  const activeOrdersCount = filteredOrders.filter(o => ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'picked_up'].includes((o.status || '').toLowerCase())).length;
+  const totalOrders = analyticsData?.summary?.totalOrders || serverStats?.total || (orders || []).length;
+  const activeOrdersCount = (serverStats && typeof serverStats.active === 'number') 
+    ? serverStats.active 
+    : (orders || []).filter(isLiveOrder).length;
   const newCustomers = analyticsData?.summary?.newCustomers || 0;
   const pendingCateringCount = filteredCatering.filter(c => (c.status || '').toLowerCase() === 'pending').length;
 
-  // Live Order Pipeline Counts
+  // Live Order Pipeline Counts (Strictly live in-kitchen & en route)
   const orderCounts = { new: 0, accepted: 0, preparing: 0, ready: 0, delivery: 0 };
-  filteredOrders.forEach(o => {
+  (orders || []).filter(isLiveOrder).forEach(o => {
     const s = (o.status || '').toLowerCase();
     if (['new', 'pending'].includes(s)) orderCounts.new++;
-    else if (s === 'accepted') orderCounts.accepted++;
+    else if (['accepted', 'driver_assigned'].includes(s)) orderCounts.accepted++;
     else if (s === 'preparing') orderCounts.preparing++;
     else if (s === 'ready') orderCounts.ready++;
-    else if (s === 'out_for_delivery' || (s === 'picked_up' && o.orderType === 'delivery')) orderCounts.delivery++;
+    else if (s === 'out_for_delivery' || (s === 'picked_up' && (o.orderType || o.type) === 'delivery')) orderCounts.delivery++;
   });
 
-  const recentActiveOrders = filteredOrders
-    .filter(o => ['new', 'pending', 'accepted', 'preparing', 'ready', 'out_for_delivery'].includes((o.status || '').toLowerCase()))
+  const recentActiveOrders = (orders || [])
+    .filter(isLiveOrder)
     .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 5);
 

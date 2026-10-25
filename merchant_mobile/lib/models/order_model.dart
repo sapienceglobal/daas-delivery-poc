@@ -133,6 +133,9 @@ class OrderModel {
   final double? rating;
   final bool isRemake;
   final String? parentOrderId;
+  final String? remakeReason;
+  final Map<String, dynamic>? remakeBy;
+  final Map<String, dynamic>? deviceContext;
 
   // Delayed Dispatch (Shipday) Fields
   final String? dispatchStatus;
@@ -196,6 +199,9 @@ class OrderModel {
     this.rating,
     this.isRemake = false,
     this.parentOrderId,
+    this.remakeReason,
+    this.remakeBy,
+    this.deviceContext,
     this.dispatchStatus,
     this.dispatchAt,
     this.dispatchedAt,
@@ -283,6 +289,9 @@ class OrderModel {
       rating: json['rating'] != null ? (json['rating'] as num).toDouble() : null,
       isRemake: json['isRemake'] ?? false,
       parentOrderId: json['parentOrderId'],
+      remakeReason: json['remakeReason']?.toString(),
+      remakeBy: json['remakeBy'] is Map ? Map<String, dynamic>.from(json['remakeBy']) : null,
+      deviceContext: json['deviceContext'] is Map ? Map<String, dynamic>.from(json['deviceContext']) : null,
       dispatchStatus: json['dispatchStatus']?.toString(),
       dispatchAt: json['dispatchAt'] != null ? DateTime.tryParse(json['dispatchAt'].toString()) : null,
       dispatchedAt: json['dispatchedAt'] != null ? DateTime.tryParse(json['dispatchedAt'].toString()) : null,
@@ -357,6 +366,9 @@ class OrderModel {
       rating: rating,
       isRemake: isRemake,
       parentOrderId: parentOrderId,
+      remakeReason: remakeReason ?? this.remakeReason,
+      remakeBy: remakeBy ?? this.remakeBy,
+      deviceContext: deviceContext ?? this.deviceContext,
       dispatchStatus: dispatchStatus ?? this.dispatchStatus,
       dispatchAt: dispatchAt ?? this.dispatchAt,
       dispatchedAt: dispatchedAt ?? this.dispatchedAt,

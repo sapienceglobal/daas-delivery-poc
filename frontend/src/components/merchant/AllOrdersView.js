@@ -14,7 +14,7 @@ import StatCard from './StatCard';
 import TableScrollContainer from './common/TableScrollContainer';
 import PremiumDatePicker from '@/components/ui/PremiumDatePicker';
 
-export default function AllOrdersView({ orders = [], stats: serverStats = null, onRowClick }) {
+export default function AllOrdersView({ orders = [], stats: serverStats = null, pagination = null, onRowClick }) {
   const router = useRouter();
   const { restaurant } = useMerchantContext();
   const [mounted, setMounted] = useState(false);
@@ -40,7 +40,7 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
     setSelectedOrders([]);
   }, [searchQuery, dateRange, statusFilter, orderTypeFilter, paymentFilter, activeTab]);
 
-  // 1. STATS CALCULATIONS (Strictly real data)
+  // 1. STATS CALCULATIONS (Strictly real data synchronized with database and mobile admin)
   const stats = useMemo(() => {
     const hasFilter = searchQuery || dateRange || statusFilter !== 'All Status' || orderTypeFilter !== 'All Types' || paymentFilter !== 'All Payment Status' || activeTab !== 'All';
     if (!hasFilter && serverStats && typeof serverStats.total === 'number' && serverStats.total > 0) {
@@ -50,7 +50,8 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
         preparing: serverStats.preparing ?? 0,
         ready: serverStats.ready ?? 0,
         outForDelivery: serverStats.picked_up ?? 0,
-        completed: serverStats.completed ?? 0
+        completed: serverStats.completed ?? 0,
+        cancelled: serverStats.cancelled ?? 0
       };
     }
 
@@ -65,12 +66,32 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
       else if (['completed', 'delivered'].includes(s) || (s === 'picked_up' && o.orderType !== 'delivery')) completed++;
     });
 
-    const totalCount = (!hasFilter && serverStats?.total) ? serverStats.total : orders.length;
+    const totalCount = (!hasFilter && (serverStats?.total || pagination?.total)) 
+      ? (serverStats?.total || pagination?.total) 
+      : orders.length;
     return { total: totalCount, newOrders, preparing, ready, outForDelivery, completed };
-  }, [orders, serverStats, searchQuery, dateRange, statusFilter, orderTypeFilter, paymentFilter, activeTab]);
+  }, [orders, serverStats, pagination, searchQuery, dateRange, statusFilter, orderTypeFilter, paymentFilter, activeTab]);
 
   // Tabs Counts
   const tabCounts = useMemo(() => {
+    if (!searchQuery && !dateRange && statusFilter === 'All Status' && orderTypeFilter === 'All Types' && paymentFilter === 'All Payment Status') {
+      if (serverStats && typeof serverStats.total === 'number' && serverStats.total > 0) {
+        return {
+          all: serverStats.total,
+          dineIn: serverStats.dineIn ?? 0,
+          pickup: serverStats.pickup ?? 0,
+          delivery: serverStats.delivery ?? 0
+        };
+      }
+      if (pagination && typeof pagination.total === 'number' && pagination.total > 0) {
+        return {
+          all: pagination.total,
+          dineIn: orders.filter(o => (o.orderType || o.type || '').toLowerCase() === 'dine_in').length,
+          pickup: orders.filter(o => (o.orderType || o.type || '').toLowerCase() === 'pickup').length,
+          delivery: orders.filter(o => (o.orderType || o.type || '').toLowerCase() === 'delivery').length,
+        };
+      }
+    }
     let dineIn = 0, pickup = 0, delivery = 0;
     orders.forEach(o => {
       const type = (o.orderType || o.type || '').toLowerCase();
@@ -79,7 +100,7 @@ export default function AllOrdersView({ orders = [], stats: serverStats = null, 
       else if (type === 'delivery') delivery++;
     });
     return { all: orders.length, dineIn, pickup, delivery };
-  }, [orders]);
+  }, [orders, serverStats, pagination, searchQuery, dateRange, statusFilter, orderTypeFilter, paymentFilter]);
 
   // 2. FILTERING
   const filteredOrders = useMemo(() => {

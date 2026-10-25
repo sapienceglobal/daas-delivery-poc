@@ -163,11 +163,11 @@ export default function AdminLoginPage() {
   const { login, logout, verify2FA, user, isAuthenticated, loading: authLoading } = useAuth();
   const { brand } = useBrand();
 
-  // Seamless auto-login: if already authenticated as merchant or admin, immediately go to dashboard
+  // Auto-login: if already authenticated as merchant, immediately go to /merchant dashboard
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
-      if (user.role === 'admin' || user.role === 'merchant') {
-        const redirectUrl = searchParams.get('redirect') || (user.role === 'admin' ? '/admin' : '/merchant');
+      if (user.role === 'merchant') {
+        const redirectUrl = searchParams.get('redirect') || '/merchant';
         router.replace(redirectUrl);
       }
     }
@@ -212,6 +212,7 @@ export default function AdminLoginPage() {
     setFormError('');
     try {
       const result = await login(email, password, rememberMe);
+      const userRole = result?.role || result?.user?.role;
 
       if (result.requires2fa) {
         setRequires2fa(true);
@@ -220,9 +221,12 @@ export default function AdminLoginPage() {
         return;
       }
 
-      if (result.role === 'admin' || result.role === 'merchant') {
+      if (userRole === 'merchant') {
         const redirectUrl = searchParams.get('redirect') || '/merchant';
         router.push(redirectUrl);
+      } else if (userRole === 'admin') {
+        await logout();
+        setFormError('Access Restricted: This login portal is strictly reserved for Restaurant Store Merchants. Platform Super Admins must sign in via the official Control Plane at /admin/login.');
       } else {
         await logout();
         setFormError('Access Denied: This portal is for restaurant partners only.');
@@ -244,10 +248,14 @@ export default function AdminLoginPage() {
     setLoading(true);
     setFormError('');
     try {
-      const user = await verify2FA(tempToken, twoFactorCode, rememberMe);
-      if (user.role === 'admin' || user.role === 'merchant') {
+      const userRes = await verify2FA(tempToken, twoFactorCode, rememberMe);
+      const userRole = userRes?.role || userRes?.user?.role;
+      if (userRole === 'merchant') {
         const redirectUrl = searchParams.get('redirect') || '/merchant';
         router.push(redirectUrl);
+      } else if (userRole === 'admin') {
+        await logout();
+        setFormError('Access Restricted: This login portal is strictly reserved for Restaurant Store Merchants. Platform Super Admins must sign in via the official Control Plane at /admin/login.');
       } else {
         await logout();
         setFormError('Access Denied: This portal is for restaurant partners only.');

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
@@ -13,6 +14,7 @@ import 'package:single_restaurant_mobile/widgets/welcome/welcome_card_clipper.da
 import 'package:single_restaurant_mobile/widgets/welcome/welcome_food_header.dart';
 import 'package:single_restaurant_mobile/widgets/welcome/welcome_icons.dart';
 import 'package:single_restaurant_mobile/services/push_notification_service.dart';
+import 'package:single_restaurant_mobile/services/location_service.dart';
 
 class SplashScreen extends StatefulWidget {
   final bool isLoggedIn;
@@ -36,6 +38,11 @@ class _SplashScreenState extends State<SplashScreen> {
         PushNotificationService().initialize(context);
       } catch (e) {
         debugPrint('PushNotification init on splash error: $e');
+      }
+      try {
+        LocationService().requestStartupLocationPermission();
+      } catch (e) {
+        debugPrint('Location permission on splash error: $e');
       }
     });
   }
@@ -126,12 +133,14 @@ class _SplashScreenState extends State<SplashScreen> {
           builder: (context, constraints) {
             final screenHeight = constraints.maxHeight;
             final isCompact = screenHeight < 720 || constraints.maxWidth < 380;
+            final maxAllowedHeader = math.max(160.0, screenHeight * 0.52);
+            final minAllowedHeader = math.min(isCompact ? 200.0 : 250.0, maxAllowedHeader);
             final headerHeight = (screenHeight * 0.46).clamp(
-              isCompact ? 220.0 : 275.0,
-              440.0,
+              minAllowedHeader,
+              maxAllowedHeader,
             );
             const waveOverlap = 30.0;
-            final cardMinHeight = screenHeight - (headerHeight - waveOverlap);
+            final cardMinHeight = math.max(0.0, screenHeight - (headerHeight - waveOverlap));
 
             return Stack(
               children: [
@@ -215,12 +224,16 @@ class _SplashScreenState extends State<SplashScreen> {
                                     ),
                                     SizedBox(height: isCompact ? 16 : 24),
 
-                                    // 3 Action Buttons with reduced sleek width
+                                    // 3 Action Buttons with reduced sleek width (guaranteed safe width)
                                     ConstrainedBox(
                                       constraints: BoxConstraints(
-                                        maxWidth: (constraints.maxWidth *
-                                                (isCompact ? 0.82 : 0.80))
-                                            .clamp(275.0, 315.0),
+                                        maxWidth: math.max(
+                                          180.0,
+                                          math.min(
+                                            constraints.maxWidth - (isCompact ? 32.0 : 40.0),
+                                            315.0,
+                                          ),
+                                        ),
                                       ),
                                       child: Column(
                                         children: [

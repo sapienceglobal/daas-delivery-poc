@@ -5,8 +5,8 @@
  *   { success: Boolean, message: String, data: Any, pagination?: Object }
  */
 
-export const success = (res, { data = null, message = 'Success', statusCode = 200, pagination = null, meta = null } = {}) => {
-  const body = { success: true, message, data };
+export const success = (res, { data = null, message = 'Success', statusCode = 200, pagination = null, meta = null, ...rest } = {}) => {
+  const body = { success: true, message, data, ...rest };
   if (pagination) body.pagination = pagination;
   if (meta) body.meta = meta;
   return res.status(statusCode).json(body);

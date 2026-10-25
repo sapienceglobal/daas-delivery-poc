@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI } from '@/lib/api';
+import { initClientGeolocation } from '@/utils/geolocationHelper';
 
 const AuthContext = createContext(null);
 
@@ -80,6 +81,7 @@ export function AuthProvider({ children }) {
     };
 
     initializeAuth();
+    initClientGeolocation(false);
 
     return () => {
       cancelled = true;
@@ -87,6 +89,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback(async (email, password, rememberMe = true) => {
+    initClientGeolocation(true);
     const data = await authAPI.login({ email, password, rememberMe });
     
     if (data.requires2fa) {

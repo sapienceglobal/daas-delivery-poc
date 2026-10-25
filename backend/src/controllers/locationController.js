@@ -144,51 +144,84 @@ export const reverseGeocode = async (req, res) => {
     const longitude = lon || lng;
     if (!lat || !longitude) return res.status(400).json({ error: 'lat and lon/lng are required' });
 
-    const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
-      httpsAgent,
-      params: {
-        latlng: `${lat},${longitude}`,
-        key: GOOGLE_MAPS_API_KEY
-      }
-    });
-
-    if (response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
-      throw new Error(`Google Maps API error: ${response.data.status} - ${response.data.error_message || 'No additional details'}`);
-    }
-
-    if (response.data.status === 'ZERO_RESULTS' || response.data.results.length === 0) {
-      return res.json(null);
-    }
-
-    const result = response.data.results[0];
-    
-    // parse address components
     let houseNumber = '';
     let road = '';
     let city = '';
     let state = '';
     let zip = '';
+    let country = '';
+    let formattedAddress = '';
 
-    result.address_components?.forEach(comp => {
-      if (comp.types.includes('street_number')) houseNumber = comp.long_name;
-      if (comp.types.includes('route')) road = comp.long_name;
-      if (comp.types.includes('locality') || comp.types.includes('sublocality')) {
-        if (!city) city = comp.long_name;
+    // 1. Try Google Maps if configured
+    if (GOOGLE_MAPS_API_KEY) {
+      try {
+        const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+          httpsAgent,
+          params: {
+            latlng: `${lat},${longitude}`,
+            key: GOOGLE_MAPS_API_KEY
+          },
+          timeout: 4000
+        });
+
+        if (response.data.status === 'OK' && response.data.results?.length > 0) {
+          const result = response.data.results[0];
+          formattedAddress = result.formatted_address;
+          result.address_components?.forEach(comp => {
+            if (comp.types.includes('street_number')) houseNumber = comp.long_name;
+            if (comp.types.includes('route')) road = comp.long_name;
+            if (comp.types.includes('locality') || comp.types.includes('sublocality')) {
+              if (!city) city = comp.long_name;
+            }
+            if (comp.types.includes('administrative_area_level_1')) state = comp.short_name;
+            if (comp.types.includes('postal_code')) zip = comp.long_name;
+            if (comp.types.includes('country')) country = comp.long_name;
+          });
+        }
+      } catch (gErr) {
+        logger.warn('Google reverse geocode failed, using Nominatim fallback', { error: gErr.message });
       }
-      if (comp.types.includes('administrative_area_level_1')) state = comp.short_name;
-      if (comp.types.includes('postal_code')) zip = comp.long_name;
-    });
+    }
+
+    // 2. High-availability Fallback: OpenStreetMap Nominatim
+    if (!formattedAddress) {
+      try {
+        const nomRes = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${longitude}`, {
+          httpsAgent,
+          headers: { 'User-Agent': 'LassiLoungePlatform/1.0 (support@lassilounge.com)' },
+          timeout: 4000
+        });
+        if (nomRes.data && nomRes.data.address) {
+          const a = nomRes.data.address;
+          city = a.city || a.town || a.suburb || a.village || a.county || '';
+          state = a.state || a.region || '';
+          country = a.country || '';
+          zip = a.postcode || '';
+          road = a.road || '';
+          houseNumber = a.house_number || '';
+          formattedAddress = nomRes.data.display_name || [city, state, country].filter(Boolean).join(', ');
+        }
+      } catch (nomErr) {
+        logger.warn('Nominatim reverse geocode fallback failed', { error: nomErr.message });
+      }
+    }
+
+    if (!formattedAddress) {
+      formattedAddress = `${lat}, ${longitude}`;
+    }
 
     res.json({
-      lat: result.geometry?.location?.lat,
-      lon: result.geometry?.location?.lng,
-      lng: result.geometry?.location?.lng,
-      display_name: result.formatted_address,
+      lat: Number(lat),
+      lon: Number(longitude),
+      lng: Number(longitude),
+      display_name: formattedAddress,
+      displayName: formattedAddress,
       address: {
         house_number: houseNumber,
         road: road,
         city: city,
         state: state,
+        country: country,
         postcode: zip
       }
     });

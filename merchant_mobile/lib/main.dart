@@ -32,6 +32,7 @@ import 'screens/support_messages_screen.dart';
 
 import 'services/socket_service.dart';
 import 'services/push_notification_service.dart';
+import 'services/api_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -183,6 +184,22 @@ void main() async {
       await authProvider.checkLoginStatus();
     }, const Duration(seconds: 4)),
   ]);
+
+  // Wire up global 401 session expiration handler
+  ApiService.onSessionExpired = () {
+    debugPrint('[ApiService] Session expired (401). Redirecting to login...');
+    authProvider.forceLogout();
+    rootNavigatorKey.currentContext?.go('/login');
+    try {
+      toastification.show(
+        title: const Text('Session Expired'),
+        description: const Text('Your session has expired. Please sign in again.'),
+        type: ToastificationType.warning,
+        style: ToastificationStyle.flat,
+        autoCloseDuration: const Duration(seconds: 5),
+      );
+    } catch (_) {}
+  };
 
   runApp(
     MultiProvider(

@@ -18,6 +18,7 @@ export default function MerchantOverview() {
   
   // data for the dashboard view
   const [orders, setOrders] = useState([]);
+  const [serverStats, setServerStats] = useState(null);
   const [reservations, setReservations] = useState([]);
   const [cateringInquiries, setCateringInquiries] = useState([]);
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -25,6 +26,17 @@ export default function MerchantOverview() {
   const [stats, setLocalStats] = useState({ todayOrders: 0, todayRevenue: 0, activeOrders: 0 });
 
   const { on, off } = useSocket();
+
+  const isLiveOrder = (o) => {
+    if (!o) return false;
+    const s = (o.status || '').toLowerCase().trim();
+    if (['completed', 'delivered', 'cancelled', 'refunded', 'failed', 'rejected'].includes(s)) return false;
+    if (s === 'picked_up') {
+      const type = (o.orderType || o.type || '').toLowerCase();
+      return type === 'delivery';
+    }
+    return ['new', 'pending', 'accepted', 'driver_assigned', 'preparing', 'ready', 'out_for_delivery'].includes(s);
+  };
 
   const fetchDashboardData = async (silent = false) => {
     if (globalLoading || !roomId) return;
@@ -35,7 +47,7 @@ export default function MerchantOverview() {
         reservationsData, cateringData, analyticsResp
       ] = await Promise.all([
         menuAPI.getByRestaurant(roomId).catch(() => ({ data: [] })),
-        orderAPI.getRestaurantOrders(roomId).catch(() => ({ data: [] })),
+        orderAPI.getRestaurantOrders(roomId, 'limit=100').catch(() => ({ data: [] })),
         reservationAPI.getRestaurantReservations ? reservationAPI.getRestaurantReservations(roomId).catch(() => ({ data: [] })) : { data: [] },
         cateringAPI.getRestaurantInquiries ? cateringAPI.getRestaurantInquiries(roomId).catch(() => ({ data: [] })) : { data: [] },
         analyticsAPI.getSalesAnalytics 
@@ -49,6 +61,7 @@ export default function MerchantOverview() {
       ]);
 
       const fetchedOrders = ordersData.data || [];
+      if (ordersData.stats) setServerStats(ordersData.stats);
       setMenu(menuData.data || []);
       setOrders(fetchedOrders);
       setReservations(reservationsData?.data || []);
@@ -57,12 +70,12 @@ export default function MerchantOverview() {
 
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const todayOrders = fetchedOrders.filter(o => new Date(o.createdAt) >= today);
-      const activeOrdersList = fetchedOrders.filter(o => ['pending', 'accepted', 'preparing', 'ready'].includes(o.status));
+      const activeOrdersList = fetchedOrders.filter(isLiveOrder);
 
       setLocalStats({
         todayOrders: todayOrders.length,
         todayRevenue: todayOrders.reduce((s, o) => s + (o.total || 0), 0),
-        activeOrders: activeOrdersList.length,
+        activeOrders: ordersData.stats?.active !== undefined ? ordersData.stats.active : activeOrdersList.length,
       });
 
     } catch (err) {
@@ -85,11 +98,15 @@ export default function MerchantOverview() {
     on('new_order', handleSilentRefresh);
     on('order_updated', handleSilentRefresh);
     on('order_status_changed', handleSilentRefresh);
+    on('order_cancelled', handleSilentRefresh);
+    on('order:dispatch-updated', handleSilentRefresh);
 
     return () => {
       off('new_order', handleSilentRefresh);
       off('order_updated', handleSilentRefresh);
       off('order_status_changed', handleSilentRefresh);
+      off('order_cancelled', handleSilentRefresh);
+      off('order:dispatch-updated', handleSilentRefresh);
     };
   }, [on, off, roomId, globalLoading, restaurant, timeframe, customStartDate, customEndDate]);
 
@@ -98,6 +115,7 @@ export default function MerchantOverview() {
   return (
     <DashboardView
       stats={stats}
+      serverStats={serverStats}
       orders={orders}
       reservations={reservations}
       cateringInquiries={cateringInquiries}

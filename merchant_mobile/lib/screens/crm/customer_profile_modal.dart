@@ -61,7 +61,7 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
   }
 
   String _formatRelativeTime(dynamic dateStr) {
-    if (dateStr == null) return '2 months ago';
+    if (dateStr == null) return 'No orders yet';
     try {
       final dt = DateTime.parse(dateStr.toString());
       final now = DateTime.now();
@@ -79,7 +79,7 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
         return 'Just now';
       }
     } catch (_) {
-      return '2 months ago';
+      return 'No orders yet';
     }
   }
 
@@ -485,15 +485,19 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
     final promos = _profileData?['promos'] as List? ?? [];
     final orders = _profileData?['orders'] as List? ?? [];
 
-    final totalSpent = (stats['totalSpent'] ?? 25.97).toDouble();
-    final totalOrders = stats['totalOrders'] ?? (orders.isNotEmpty ? orders.length : 2);
-    final aov = stats['aov'] ?? '12.98';
-    final totalSavings = (stats['totalSavings'] ?? 0.0).toDouble();
+    final totalSpent = (stats['totalSpent'] as num?)?.toDouble() ?? widget.customer.totalSpent;
+    final totalOrders = (stats['totalOrders'] as num?)?.toInt() ?? (orders.isNotEmpty ? orders.length : widget.customer.totalOrders);
+    final aov = stats['aov'] != null && stats['aov'].toString().isNotEmpty
+        ? stats['aov'].toString()
+        : (totalOrders > 0 ? (totalSpent / totalOrders).toStringAsFixed(2) : '0.00');
+    final totalSavings = (stats['totalSavings'] as num?)?.toDouble() ?? 0.0;
     final lastOrder = stats['lastOrderDate'] != null
         ? stats['lastOrderDate'].toString().substring(0, 10)
         : (orders.isNotEmpty && orders.first['createdAt'] != null
             ? orders.first['createdAt'].toString().substring(0, 10)
-            : '2026-08-15');
+            : (widget.customer.lastOrderDate != null && widget.customer.lastOrderDate!.isNotEmpty
+                ? widget.customer.lastOrderDate!.substring(0, 10)
+                : 'None'));
     final accountStatus = widget.customer.status.isNotEmpty ? widget.customer.status : 'Active';
 
     return SingleChildScrollView(
@@ -934,18 +938,70 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
   }
 
   Widget _buildRecentOrdersSection(List orders) {
-    // If no orders from API, show default sample matching UI image so it looks polished
-    final displayOrders = orders.isNotEmpty
-        ? orders.take(3).toList()
-        : [
-            {
-              'orderNumber': 'LL1024',
-              'createdAt': '2026-08-15',
-              'orderType': 'Online Order',
-              'status': 'Delivered',
-              'total': 12.98,
-            }
-          ];
+    if (orders.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Recent Orders',
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF1F5F9),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.receipt_long_outlined, size: 22, color: Color(0xFF94A3B8)),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'No Recent Orders',
+                  style: GoogleFonts.inter(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF475569),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'This customer has not placed any orders yet.',
+                  style: GoogleFonts.inter(
+                    fontSize: 11.5,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    final displayOrders = orders.take(3).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -985,13 +1041,21 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
         ),
         const SizedBox(height: 10),
         ...displayOrders.map((order) {
-          final orderNum = order['orderNumber'] ?? order['_id']?.toString().substring(0, 6).toUpperCase() ?? 'LL1024';
+          final orderNum = order['orderNumber'] ??
+              (order['_id'] != null && order['_id'].toString().length >= 6
+                  ? order['_id'].toString().substring(order['_id'].toString().length - 6).toUpperCase()
+                  : 'ORDER');
           final dateStr = order['createdAt'] != null
-              ? order['createdAt'].toString().substring(0, 10)
-              : 'Aug 15, 2026';
+              ? (order['createdAt'].toString().length >= 10
+                  ? order['createdAt'].toString().substring(0, 10)
+                  : order['createdAt'].toString())
+              : '';
           final orderType = (order['orderType'] ?? 'Online Order').toString();
           final status = (order['status'] ?? 'Delivered').toString();
-          final total = (order['total'] ?? 12.98).toDouble();
+          final total = (order['total'] is num) ? (order['total'] as num).toDouble() : 0.0;
+          final items = order['items'] as List? ?? [];
+          final firstItem = items.isNotEmpty ? items.first : null;
+          final dishImage = firstItem is Map ? firstItem['image']?.toString() : null;
 
           return Container(
             margin: const EdgeInsets.only(bottom: 10),
@@ -1012,18 +1076,25 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.asset(
-                    'assets/images/branded/lassi-lounge/dishes/chicken-biryani.jpg',
-                    width: 44,
-                    height: 44,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 44,
-                      height: 44,
-                      color: const Color(0xFFF1F5F9),
-                      child: const Icon(Icons.restaurant_rounded, size: 20, color: Color(0xFF991B1B)),
-                    ),
-                  ),
+                  child: dishImage != null && dishImage.startsWith('http')
+                      ? Image.network(
+                          dishImage,
+                          width: 44,
+                          height: 44,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            width: 44,
+                            height: 44,
+                            color: const Color(0xFFF1F5F9),
+                            child: const Icon(Icons.restaurant_rounded, size: 20, color: Color(0xFF991B1B)),
+                          ),
+                        )
+                      : Container(
+                          width: 44,
+                          height: 44,
+                          color: const Color(0xFFF1F5F9),
+                          child: const Icon(Icons.restaurant_rounded, size: 20, color: Color(0xFF991B1B)),
+                        ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -1040,7 +1111,7 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '$dateStr • $orderType',
+                        dateStr.isNotEmpty ? '$dateStr • $orderType' : orderType,
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           color: const Color(0xFF64748B),

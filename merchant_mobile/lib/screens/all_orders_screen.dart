@@ -880,6 +880,9 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
     final displayReady = hasActiveFilter
         ? scopedOrders.where((o) => o.status.toLowerCase() == 'ready').length
         : (serverStats['ready'] ?? scopedOrders.where((o) => o.status.toLowerCase() == 'ready').length);
+    final displayCancelled = hasActiveFilter
+        ? scopedOrders.where((o) => ['cancelled', 'refunded'].contains(o.status.toLowerCase())).length
+        : (serverStats['cancelled'] ?? scopedOrders.where((o) => ['cancelled', 'refunded'].contains(o.status.toLowerCase())).length);
 
     // 3. Filtered Orders for the list view (scopedOrders further filtered by active Status Tab)
     final filteredOrders = scopedOrders.where((o) {
@@ -1268,6 +1271,8 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                           _buildFilterTab('Picked Up', displayPickedUp),
                           const SizedBox(width: 8),
                           _buildFilterTab('Completed', displayCompleted),
+                          const SizedBox(width: 8),
+                          _buildFilterTab('Cancelled', displayCancelled),
                         ],
                       ),
                     ),
@@ -1649,17 +1654,43 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Order Number
-                    Text(
-                      '#${order.orderNumber}',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
-                        letterSpacing: -0.2,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    // Order Number & Remake Tag
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            '#${order.orderNumber}',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F172A),
+                              letterSpacing: -0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (order.isRemake) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFFDE68A)),
+                            ),
+                            child: Text(
+                              'REMADE',
+                              style: GoogleFonts.inter(
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFFD97706),
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 3),
 
@@ -1777,11 +1808,11 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                   const SizedBox(height: 6),
 
                   // Status Pill
-                  _buildMockupStatusPill(order.status),
+                  _buildMockupStatusPill(order.status, orderType: order.orderType),
                   const SizedBox(height: 8),
 
                   // Payment Status
-                  _buildPaymentBadge(order.paymentStatus),
+                  _buildPaymentBadge(order),
                 ],
               ),
             ],
@@ -1792,22 +1823,39 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
   }
 
   // --- Mockup Status Pill Resolver ---
-  Widget _buildMockupStatusPill(String status) {
+  Widget _buildMockupStatusPill(String status, {String? orderType}) {
     Color bg;
     Color textColor;
     String label;
 
-    switch (status.toLowerCase()) {
+    final s = status.toLowerCase();
+    final type = orderType?.toLowerCase();
+
+    switch (s) {
       case 'picked_up':
         bg = const Color(0xFFE0F2FE);
         textColor = const Color(0xFF0284C7);
         label = 'PICKED UP';
         break;
-      case 'completed':
       case 'delivered':
         bg = const Color(0xFFDCFCE7);
         textColor = const Color(0xFF16A34A);
-        label = 'COMPLETED';
+        label = 'DELIVERED';
+        break;
+      case 'completed':
+        if (type == 'delivery') {
+          bg = const Color(0xFFDCFCE7);
+          textColor = const Color(0xFF16A34A);
+          label = 'DELIVERED';
+        } else if (type == 'pickup') {
+          bg = const Color(0xFFE0F2FE);
+          textColor = const Color(0xFF0284C7);
+          label = 'PICKED UP';
+        } else {
+          bg = const Color(0xFFDCFCE7);
+          textColor = const Color(0xFF16A34A);
+          label = 'COMPLETED';
+        }
         break;
       case 'preparing':
         bg = const Color(0xFFFEF3C7);
@@ -1856,10 +1904,52 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
   }
 
   // --- Payment Status Badge ---
-  Widget _buildPaymentBadge(String paymentStatus) {
-    final p = paymentStatus.toLowerCase();
-    final isPaid = p == 'paid' || p == 'completed';
+  Widget _buildPaymentBadge(OrderModel order) {
+    final p = order.paymentStatus.toLowerCase();
+    final method = order.paymentMethod.toLowerCase();
 
+    if (method == 'payment_link') {
+      final isPaid = p == 'paid' || p == 'completed';
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPaid ? Icons.check_circle_rounded : Icons.link_rounded,
+            color: isPaid ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+            size: 13,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isPaid ? 'LINK PAID' : 'LINK PENDING',
+            style: GoogleFonts.inter(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: isPaid ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (p == 'refunded') {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.undo_rounded, color: Color(0xFFDC2626), size: 13),
+          const SizedBox(width: 4),
+          Text(
+            'REFUNDED',
+            style: GoogleFonts.inter(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFFDC2626),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final isPaid = p == 'paid' || p == 'completed';
     if (isPaid) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -1884,7 +1974,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
         const Icon(Icons.payments_outlined, color: Color(0xFF64748B), size: 13),
         const SizedBox(width: 4),
         Text(
-          p == 'cod' ? 'COD' : 'UNPAID',
+          method == 'cash' || p == 'cod' ? 'CASH / COD' : 'UNPAID',
           style: GoogleFonts.inter(
             fontSize: 10.5,
             fontWeight: FontWeight.w700,

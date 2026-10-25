@@ -28,6 +28,8 @@ import { sendPushNotification } from '../services/webPushService.js';
 import { sendOrderAlert, sendInvoiceWhatsApp } from '../services/whatsappService.js';
 import logger from '../utils/logger.js';
 import { handleOrderPlaced, handleOrderDelivered, handleOrderReverted } from '../services/referralService.js';
+import { extractDeviceContext } from '../utils/deviceInfo.js';
+import { logAuditEvent } from '../utils/auditLogger.js';
 import { scheduleOrDispatch, dispatchOrder } from '../services/dispatch/dispatchService.js';
 import { emitDispatchUpdated } from '../services/dispatch/dispatchEvents.js';
 import { DISPATCH_BY, DISPATCH_STATUSES } from '../services/dispatch/dispatchConfig.js';
@@ -493,9 +495,9 @@ export const createOrder = asyncHandler(async (req, response) => {
     orderType = 'delivery', paymentMethod = 'credit_card',
     tip = 0, couponCode, courierNotes, specialInstructions, scheduledTime, tableNumber,
     stripePaymentIntentId, useLoyaltyPoints = false, savedCardId,
-    customerPhone, customerName, customerEmail, orderSource
+    customerPhone, customerName, customerEmail, orderSource, platform: bodyPlatform
   } = req.body;
-  const platform = orderSource || req.headers['x-platform'] || 'web';
+  const platform = orderSource || bodyPlatform || req.headers['x-platform'] || 'web';
 
   if (!restaurantId || !items?.length) {
     throw new AppError('restaurantId and items are required', 400);
@@ -871,7 +873,8 @@ export const createOrder = asyncHandler(async (req, response) => {
       statusUpdates: [
         { status: 'pending', description: 'Order placed', timestamp: new Date() },
         ...(((restaurant.autoAcceptOrders || ['merchant_app', 'merchant_web', 'pos'].includes(platform)) && paymentMethod !== 'payment_link') ? [{ status: 'accepted', description: 'Order accepted by merchant', timestamp: new Date() }] : [])
-      ]
+      ],
+      deviceContext: extractDeviceContext(req)
     });
 
     await order.save({ session });
@@ -971,6 +974,36 @@ export const createOrder = asyncHandler(async (req, response) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    // Centralized Immutable Forensic Audit Log
+    const isPosOrMerchant = ['merchant_app', 'merchant_web', 'pos', 'in_store'].includes(platform) || (req.user && ['merchant', 'staff', 'admin'].includes(req.user.role));
+    logAuditEvent({
+      req,
+      restaurantId: restaurant._id,
+      actorType: isPosOrMerchant ? 'merchant' : 'customer',
+      actor: {
+        userId: req.user?._id || targetUser._id,
+        name: req.user?.name || customerName || targetUser.name,
+        email: req.user?.email || customerEmail || targetUser.email,
+        phone: req.user?.phone || customerPhone || targetUser.phone,
+        role: req.user?.role || 'customer'
+      },
+      event: isPosOrMerchant ? 'POS_ORDER_CREATED' : 'CUSTOMER_ORDER_PLACED',
+      action: 'ORDER_CREATE',
+      severity: 'info',
+      message: `${isPosOrMerchant ? 'POS Order created by staff/merchant' : 'Customer placed order'} #${order.orderNumber} ($${pricing.total.toFixed(2)}, ${orderType}, ${paymentMethod})`,
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      metadata: {
+        orderType,
+        paymentMethod,
+        total: pricing.total,
+        itemCount: pricing.orderItems.length,
+        platform,
+        customerName: customerName || targetUser.name || 'Walk-in Customer',
+        customerPhone: customerPhone || targetUser.phone || null
+      }
+    }).catch(() => {});
 
     if (pricing.coupon) {
       await handleOrderPlaced({ getModel: req.getModel, order, coupon: pricing.coupon });
@@ -1355,6 +1388,26 @@ export const cancelOrder = asyncHandler(async (req, response) => {
   order.statusUpdates.push({ status: 'cancelled', description: 'Cancelled by customer' });
   await order.save();
 
+  logAuditEvent({
+    req,
+    restaurantId: order.restaurantId,
+    actorType: 'customer',
+    actor: {
+      userId: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      phone: req.user.phone,
+      role: req.user.role
+    },
+    event: 'ORDER_CANCELLED',
+    action: 'CANCEL',
+    severity: 'warning',
+    message: `Order #${order.orderNumber} was cancelled by customer (${req.user.name})`,
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    metadata: { total: order.total }
+  }).catch(() => {});
+
   const io = req.app.get('io');
   emitDispatchUpdated(order, io);
   processAutoRefund(order, 'Cancelled by customer', io, req.getModel).catch(err => logger.error('Auto refund error', err));
@@ -1477,7 +1530,7 @@ export const getRestaurantOrders = asyncHandler(async (req, response) => {
   ensureCanManageRestaurant(req.user, req.params.restaurantId);
 
   const page = Math.max(1, parseInt(req.query.page) || 1);
-  const limit = Math.min(100, parseInt(req.query.limit) || 50);
+  const limit = Math.min(500, Math.max(1, parseInt(req.query.limit) || 50));
   const skip = (page - 1) * limit;
 
   const filter = { restaurantId: req.params.restaurantId };
@@ -1536,7 +1589,7 @@ export const getRestaurantOrders = asyncHandler(async (req, response) => {
     Order.countDocuments(filter),
     Order.aggregate([
       { $match: statsMatch },
-      { $group: { _id: '$status', count: { $sum: 1 } } }
+      { $group: { _id: { status: '$status', orderType: '$orderType' }, count: { $sum: 1 } } }
     ])
   ]);
 
@@ -1547,25 +1600,41 @@ export const getRestaurantOrders = asyncHandler(async (req, response) => {
     ready: 0,
     picked_up: 0,
     completed: 0,
-    cancelled: 0
+    cancelled: 0,
+    active: 0,
+    dineIn: 0,
+    pickup: 0,
+    delivery: 0
   };
 
   if (Array.isArray(statusAgg)) {
     for (const item of statusAgg) {
-      const s = (item._id || '').toLowerCase();
+      const s = (item._id?.status || item._id || '').toLowerCase();
+      const type = (item._id?.orderType || '').toLowerCase();
       const count = Number(item.count) || 0;
       stats.total += count;
+
+      if (type === 'dine_in') stats.dineIn += count;
+      else if (type === 'pickup') stats.pickup += count;
+      else if (type === 'delivery') stats.delivery += count;
+
       if (s === 'new' || s === 'pending') {
         stats.new += count;
+        stats.active += count;
+      } else if (s === 'accepted' || s === 'driver_assigned') {
+        stats.active += count;
       } else if (s === 'preparing') {
         stats.preparing += count;
+        stats.active += count;
       } else if (s === 'ready') {
         stats.ready += count;
-      } else if (s === 'picked_up') {
+        stats.active += count;
+      } else if (s === 'out_for_delivery' || (s === 'picked_up' && type === 'delivery')) {
         stats.picked_up += count;
-      } else if (s === 'completed' || s === 'delivered') {
+        stats.active += count;
+      } else if (s === 'completed' || s === 'delivered' || (s === 'picked_up' && type !== 'delivery')) {
         stats.completed += count;
-      } else if (s === 'cancelled' || s === 'refunded') {
+      } else if (s === 'cancelled' || s === 'refunded' || s === 'failed' || s === 'rejected') {
         stats.cancelled += count;
       }
     }
@@ -1628,7 +1697,7 @@ export const getMerchantOrders = asyncHandler(async (req, response) => {
     Order.countDocuments(filter),
     Order.aggregate([
       { $match: { restaurantId: mMatchRestId } },
-      { $group: { _id: '$status', count: { $sum: 1 } } }
+      { $group: { _id: { status: '$status', orderType: '$orderType' }, count: { $sum: 1 } } }
     ])
   ]);
 
@@ -1639,25 +1708,41 @@ export const getMerchantOrders = asyncHandler(async (req, response) => {
     ready: 0,
     picked_up: 0,
     completed: 0,
-    cancelled: 0
+    cancelled: 0,
+    active: 0,
+    dineIn: 0,
+    pickup: 0,
+    delivery: 0
   };
 
   if (Array.isArray(statusAgg)) {
     for (const item of statusAgg) {
-      const s = (item._id || '').toLowerCase();
+      const s = (item._id?.status || item._id || '').toLowerCase();
+      const type = (item._id?.orderType || '').toLowerCase();
       const count = Number(item.count) || 0;
       stats.total += count;
+
+      if (type === 'dine_in') stats.dineIn += count;
+      else if (type === 'pickup') stats.pickup += count;
+      else if (type === 'delivery') stats.delivery += count;
+
       if (s === 'new' || s === 'pending') {
         stats.new += count;
+        stats.active += count;
+      } else if (s === 'accepted' || s === 'driver_assigned') {
+        stats.active += count;
       } else if (s === 'preparing') {
         stats.preparing += count;
+        stats.active += count;
       } else if (s === 'ready') {
         stats.ready += count;
-      } else if (s === 'picked_up') {
+        stats.active += count;
+      } else if (s === 'out_for_delivery' || (s === 'picked_up' && type === 'delivery')) {
         stats.picked_up += count;
-      } else if (s === 'completed' || s === 'delivered') {
+        stats.active += count;
+      } else if (s === 'completed' || s === 'delivered' || (s === 'picked_up' && type !== 'delivery')) {
         stats.completed += count;
-      } else if (s === 'cancelled' || s === 'refunded') {
+      } else if (s === 'cancelled' || s === 'refunded' || s === 'failed' || s === 'rejected') {
         stats.cancelled += count;
       }
     }
@@ -1731,6 +1816,26 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
 
   status = finalStatus;
   order = finalOrder;
+
+  logAuditEvent({
+    req,
+    restaurantId: order.restaurantId,
+    actorType: 'merchant',
+    actor: {
+      userId: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    },
+    event: `ORDER_STATUS_${status.toUpperCase()}`,
+    action: 'STATUS_UPDATE',
+    severity: status === 'cancelled' ? 'warning' : 'info',
+    message: `Order #${order.orderNumber} status updated to '${status}' by ${req.user.name || 'Merchant'}`,
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    metadata: { newStatus: status }
+  }).catch(() => {});
+
   if (status === 'accepted') {
     const io = req.app.get('io');
     scheduleOrDispatch(order, { io, getModel: req.getModel }).catch(err => logger.error('Shipday background error', err));
@@ -1794,6 +1899,24 @@ export const acceptOrder = asyncHandler(async (req, response) => {
   order.status = 'accepted';
   order.statusUpdates.push({ status: 'accepted', description: 'Order accepted by restaurant' });
   await order.save();
+
+  logAuditEvent({
+    req,
+    restaurantId: order.restaurantId,
+    actorType: 'merchant',
+    actor: {
+      userId: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    },
+    event: 'ORDER_ACCEPTED',
+    action: 'STATUS_UPDATE',
+    severity: 'info',
+    message: `Order #${order.orderNumber} accepted by ${req.user.name || 'Merchant'}`,
+    orderId: order._id,
+    orderNumber: order.orderNumber
+  }).catch(() => {});
   scheduleOrDispatch(order, { io: req.app.get('io'), getModel: req.getModel, restaurantId: order.restaurantId }).catch(err => logger.error('Shipday background error', err));
 
   const io = req.app.get('io');
@@ -1842,6 +1965,25 @@ export const rejectOrder = asyncHandler(async (req, response) => {
   order.status = 'cancelled';
   order.statusUpdates.push({ status: 'cancelled', description: xss(String(req.body.reason || '')) || 'Rejected by restaurant' });
   await order.save();
+
+  logAuditEvent({
+    req,
+    restaurantId: order.restaurantId,
+    actorType: 'merchant',
+    actor: {
+      userId: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    },
+    event: 'ORDER_REJECTED',
+    action: 'CANCEL',
+    severity: 'warning',
+    message: `Order #${order.orderNumber} rejected by ${req.user.name || 'Merchant'}. Reason: ${req.body.reason || 'N/A'}`,
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    metadata: { reason: req.body.reason }
+  }).catch(() => {});
 
   const ioReject = req.app.get('io');
   emitDispatchUpdated(order, ioReject);
@@ -1970,6 +2112,30 @@ export const refundOrder = asyncHandler(async (req, response) => {
     description: `Refund of $${refundAmount.toFixed(2)} processed`
   });
   await order.save();
+
+  logAuditEvent({
+    req,
+    restaurantId: order.restaurantId,
+    actorType: 'merchant',
+    actor: {
+      userId: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    },
+    event: 'ORDER_REFUNDED',
+    action: 'REFUND',
+    severity: 'warning',
+    message: `Refund of $${refundAmount.toFixed(2)} processed for Order #${order.orderNumber}. Reason: ${reason || 'N/A'}`,
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    metadata: {
+      refundAmount,
+      totalRefunded: nextRefundedTotal,
+      stripeRefundId,
+      reason
+    }
+  }).catch(() => {});
 
   if (order.paymentStatus === 'refunded') {
     await rollbackLoyaltyPoints(order, 'order_refund');
@@ -2193,6 +2359,33 @@ export const remakeOrder = asyncHandler(async (req, response) => {
   ensureCanManageRestaurant(req.user, order.restaurantId);
 
   const chargeCustomer = req.body.chargeCustomer === true;
+  const reason = (req.body.reason || '').trim();
+  const pin = (req.body.pin || '').trim();
+
+  // SECURITY: For free remakes ($0), reason is mandatory to prevent accidental or unauthorized free orders
+  if (!chargeCustomer && (!reason || reason.length < 3)) {
+    throw new AppError('A valid reason (minimum 3 characters) is required for a free remake ($0)', 400);
+  }
+
+  let authorizedEmployee = null;
+  // If pin is provided, verify against Employee model
+  if (pin) {
+    const EmployeeModel = getTenantModel(tenantId, 'Employee');
+    const employee = await EmployeeModel.findOne({
+      restaurantId: order.restaurantId,
+      isActive: true,
+      pin
+    });
+    if (!employee) {
+      throw new AppError('Invalid Manager/Staff PIN', 403);
+    }
+    authorizedEmployee = employee;
+  }
+
+  const device = extractDeviceContext(req);
+  const actorName = authorizedEmployee 
+    ? `${authorizedEmployee.name} (Staff PIN)` 
+    : (req.user.name || req.user.email || 'Merchant');
 
   const remake = new OrderModel({
     ...order.toObject(),
@@ -2204,14 +2397,40 @@ export const remakeOrder = asyncHandler(async (req, response) => {
     status: 'pending',
     isRemake: true,
     parentOrderId: order._id,
+    remakeReason: reason || (chargeCustomer ? 'Customer requested reorder' : 'Free remake'),
+    remakeBy: {
+      userId: req.user._id,
+      name: req.user.name || 'Merchant',
+      email: req.user.email,
+      role: req.user.role,
+      employeeName: authorizedEmployee?.name || null,
+      ip: device.ip,
+      deviceType: device.deviceType,
+      os: device.os,
+      browser: device.browser,
+      location: device.locationDisplay,
+      platform: device.platform,
+      userAgent: device.userAgent
+    },
+    deviceContext: device,
     statusUpdates: [
       ...(order.statusUpdates || []),
-      { status: 'pending', timestamp: new Date(), description: `Order Remade from #${order.orderNumber}` }
+      { 
+        status: 'pending', 
+        timestamp: new Date(), 
+        description: `Order Remade from #${order.orderNumber} (${chargeCustomer ? 'Paid' : '$0 Free'}${reason ? ` - Reason: ${reason}` : ''}) by ${actorName} [${device.deviceType} • ${device.os} • ${device.browser} • IP: ${device.ip}${device.locationDisplay ? ` • ${device.locationDisplay}` : ''}]` 
+      }
     ],
     stripeCheckoutSessionId: undefined,
     stripePaymentIntentId: undefined,
     paymentLinkUrl: undefined,
-    adminNotes: [{ text: `Remake of order ${order.orderNumber}${chargeCustomer ? ' (Paid)' : ' ($0)'}`, author: 'Merchant', timestamp: new Date() }]
+    adminNotes: [
+      { 
+        text: `Remake of order ${order.orderNumber} [${chargeCustomer ? 'Paid' : '$0 Free'}] | Reason: ${reason || 'N/A'}${authorizedEmployee ? ` | Approved by: ${authorizedEmployee.name}` : ''} | Remade by: ${actorName} | Device: ${device.deviceType} (${device.os}, ${device.browser}) | IP: ${device.ip}${device.locationDisplay ? ` (${device.locationDisplay})` : ''}`, 
+        author: actorName, 
+        timestamp: new Date() 
+      }
+    ]
   });
 
   if (!chargeCustomer) {
@@ -2231,6 +2450,60 @@ export const remakeOrder = asyncHandler(async (req, response) => {
   }
 
   await remake.save();
+
+  // 1. Audit record on parent order as well
+  try {
+    order.adminNotes = order.adminNotes || [];
+    order.adminNotes.push({
+      text: `Remade into order #${remake.orderNumber || remake._id} [${chargeCustomer ? 'Paid' : '$0 Free'}] | Reason: ${reason || 'N/A'} by ${actorName} from ${device.deviceType} (${device.os}, ${device.browser}, IP: ${device.ip}${device.locationDisplay ? `, Loc: ${device.locationDisplay}` : ''})`,
+      author: actorName,
+      timestamp: new Date()
+    });
+    await order.save();
+  } catch (err) {
+    logger.warn('Failed to append remake note to parent order', { error: err.message });
+  }
+
+  // 2. Centralized system AuditLog record
+  try {
+    await AuditLog.create({
+      restaurantId: order.restaurantId,
+      userId: req.user._id,
+      actorType: 'merchant',
+      actor: {
+        userId: req.user._id,
+        email: req.user.email,
+        name: req.user.name,
+        role: req.user.role,
+        employeeName: authorizedEmployee?.name || null
+      },
+      event: 'ORDER_REMAKE',
+      action: 'REMAKE',
+      severity: chargeCustomer ? 'info' : 'warning',
+      message: `Order #${order.orderNumber} remade into #${remake.orderNumber || remake._id} (${chargeCustomer ? 'Paid' : '$0 Free'}). Reason: ${reason || 'N/A'}`,
+      orderId: remake._id,
+      orderNumber: remake.orderNumber || order.orderNumber,
+      device,
+      metadata: {
+        parentOrderId: order._id,
+        parentOrderNumber: order.orderNumber,
+        remakeOrderId: remake._id,
+        remakeOrderNumber: remake.orderNumber,
+        chargeCustomer,
+        reason,
+        actor: {
+          userId: req.user._id,
+          email: req.user.email,
+          name: req.user.name,
+          role: req.user.role,
+          employeeName: authorizedEmployee?.name || null
+        },
+        device
+      }
+    });
+  } catch (err) {
+    logger.warn('Failed to create central AuditLog for remake', { error: err.message });
+  }
 
   await PaymentModel.create([{
     orderId: remake._id,

@@ -157,7 +157,13 @@ class MoreSettingsScreen extends StatelessWidget {
                         const Color(0xFFFDF2F8),
                         onTap: () => context.push('/marketing'),
                       ),
-                      _buildGridItem(context, 'System Logs', Icons.receipt_long, const Color(0xFF64748B), const Color(0xFFF8FAFC)),
+                      _buildGridItem(
+                        context, 
+                        'Security & Activity Logs', 
+                        Icons.shield_outlined, 
+                        const Color(0xFF6366F1), 
+                        const Color(0xFFEEF2FF),
+                      ),
                       _buildGridItem(
                         context, 
                         'Support Messages', 

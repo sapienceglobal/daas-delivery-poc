@@ -255,6 +255,32 @@ const OrderSchema = new mongoose.Schema({
     ref: 'Order',
     default: null
   },
+  remakeReason: { type: String, default: null },
+  remakeBy: {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    name: { type: String, default: null },
+    email: { type: String, default: null },
+    role: { type: String, default: null },
+    employeeName: { type: String, default: null },
+    ip: { type: String, default: null },
+    deviceType: { type: String, default: null },
+    os: { type: String, default: null },
+    browser: { type: String, default: null },
+    location: { type: String, default: null },
+    platform: { type: String, default: null },
+    userAgent: { type: String, default: null }
+  },
+  deviceContext: {
+    ip: { type: String, default: null },
+    platform: { type: String, default: null },
+    deviceType: { type: String, default: null },
+    os: { type: String, default: null },
+    browser: { type: String, default: null },
+    location: { type: String, default: null },
+    networkCarrier: { type: String, default: null },
+    networkType: { type: String, default: null },
+    userAgent: { type: String, default: null }
+  },
 
   // ── Delayed Dispatch (Shipday) ──────────────────────────────────────────
   dispatchStatus: {

@@ -237,7 +237,49 @@ const RestaurantSchema = new mongoose.Schema({
 
 
   // ── Stripe ────────────────────────────────────────────────────────────
-  stripeAccountId: { type: String, default: null }
+  stripeAccountId: { type: String, default: null },
+
+  // ── White-Label Multi-Tenant SaaS & Theme Engine ────────────────────────
+  tenantId: {
+    type: String,
+    unique: true,
+    sparse: true,
+    lowercase: true,
+    trim: true
+  },
+  customDomain: {
+    type: String,
+    lowercase: true,
+    trim: true,
+    default: null
+  },
+  subdomain: {
+    type: String,
+    lowercase: true,
+    trim: true,
+    default: null
+  },
+  plan: {
+    type: String,
+    enum: ['starter', 'growth', 'enterprise'],
+    default: 'growth'
+  },
+  subscriptionStatus: {
+    type: String,
+    enum: ['active', 'trial', 'past_due', 'suspended'],
+    default: 'active'
+  },
+  themeConfig: {
+    templateId: { type: String, default: 'lassi_classic' }, // 'lassi_classic', 'template_bistro', 'template_cafe', 'template_dark_kitchen'
+    primaryColor: { type: String, default: '#FDB714' },
+    secondaryColor: { type: String, default: '#430805' },
+    accentColor: { type: String, default: '#7A0B10' },
+    fontFamily: { type: String, default: 'Inter' },
+    heroTitle: { type: String, default: '' },
+    heroSubtitle: { type: String, default: '' },
+    logoUrl: { type: String, default: '' },
+    bannerUrl: { type: String, default: '' }
+  }
 }, { timestamps: true });
 
 // ── Indexes ─────────────────────────────────────────────────────────────────

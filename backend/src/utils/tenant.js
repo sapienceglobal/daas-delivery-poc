@@ -3,6 +3,20 @@ import mongoose from 'mongoose';
 const DEFAULT_TENANT_IDS = ['marketplace', 'lassi-lounge'];
 const TENANT_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,62}$/i;
 
+// In-memory set of dynamically provisioned tenants from Super Admin
+const dynamicTenants = new Set();
+
+export const registerTenantId = (tenantId) => {
+  if (tenantId) {
+    const normalized = normalizeTenantId(tenantId);
+    if (TENANT_ID_PATTERN.test(normalized)) {
+      dynamicTenants.add(normalized);
+    }
+  }
+};
+
+export const getRegisteredDynamicTenants = () => Array.from(dynamicTenants);
+
 export const normalizeTenantId = (tenantId) => (
   String(tenantId || 'marketplace').trim().toLowerCase()
 );
@@ -14,7 +28,7 @@ export const getAllowedTenantIds = () => {
     .filter(Boolean);
 
   const tenants = configured.length > 0 ? configured : DEFAULT_TENANT_IDS;
-  return new Set(['marketplace', ...tenants]);
+  return new Set(['marketplace', ...tenants, ...dynamicTenants]);
 };
 
 export const resolveTenantId = (tenantId) => {
