@@ -109,12 +109,12 @@ export default function DashboardView({
   };
 
   // Top Stats Calculations
-  const totalRevenue = analyticsData?.summary?.totalRevenue || 0;
-  const totalOrders = analyticsData?.summary?.totalOrders || serverStats?.total || (orders || []).length;
+  const totalRevenue = analyticsData?.summary?.totalRevenue ?? filteredOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  const totalOrders = analyticsData?.summary?.totalOrders ?? filteredOrders.length;
   const activeOrdersCount = (serverStats && typeof serverStats.active === 'number') 
     ? serverStats.active 
     : (orders || []).filter(isLiveOrder).length;
-  const newCustomers = analyticsData?.summary?.newCustomers || 0;
+  const newCustomers = analyticsData?.summary?.newCustomers ?? 0;
   const pendingCateringCount = filteredCatering.filter(c => (c.status || '').toLowerCase() === 'pending').length;
 
   // Live Order Pipeline Counts (Strictly live in-kitchen & en route)
