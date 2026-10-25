@@ -30,13 +30,16 @@ export function MerchantProvider({ children }) {
   useEffect(() => {
     if (authLoading) return;
     if (!backendVerified || !isAuthenticated) { 
-      router.push('/restaurant-panel'); 
+      window.location.href = '/restaurant-panel'; 
       return; 
     }
-    if (!isMerchant && !isAdmin) { router.push('/'); return; }
+    if (!isMerchant && !isAdmin) { 
+      window.location.href = '/'; 
+      return; 
+    }
     
     initMerchantData();
-  }, [isAuthenticated, isMerchant, isAdmin, authLoading, backendVerified, router]);
+  }, [isAuthenticated, isMerchant, isAdmin, authLoading, backendVerified]);
 
   const initMerchantData = async () => {
     try {

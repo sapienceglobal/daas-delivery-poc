@@ -50,6 +50,8 @@ export function AuthProvider({ children }) {
       // user_role cookie is a UX hint only — NEVER used for security decisions.
       // next.js middleware verifies the JWT directly (via jose), not this cookie.
       document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      document.cookie = "marketplace_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     };
 
     const initializeAuth = async () => {
@@ -194,6 +196,8 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('marketplace_remember_me');
     localStorage.removeItem('marketplace_last_activity');
     document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "marketplace_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     setUser(null);
     setBackendVerified(false);
   }, []);

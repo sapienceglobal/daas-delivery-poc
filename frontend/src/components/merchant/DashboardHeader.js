@@ -390,9 +390,9 @@ export default function DashboardHeader({ user, onToggleSidebar }) {
   const handleLogout = async () => {
     try {
       await logout();
-      router.push('/restaurant-panel');
+      window.location.href = '/restaurant-panel';
     } catch (err) {
-      showToast('Logout failed', 'error');
+      window.location.href = '/restaurant-panel';
     }
   };
 

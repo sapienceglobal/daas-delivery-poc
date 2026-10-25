@@ -630,17 +630,28 @@ export const logout = asyncHandler(async (req, response) => {
     }
   }
 
+  const isHttps = Boolean(
+    req && (
+      req.secure ||
+      req.headers['x-forwarded-proto'] === 'https' ||
+      req.protocol === 'https'
+    )
+  );
+
   const secureCookie = process.env.COOKIE_SECURE === 'true' ||
-    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
+    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production' && isHttps);
+
+  const clearCookieOptions = {
+    httpOnly: true,
+    secure: secureCookie,
+    sameSite: secureCookie ? 'none' : 'lax',
+    expires: new Date(0),
+    path: '/'
+  };
 
   response
-    .cookie('token', '', {
-      httpOnly: true,
-      secure: secureCookie,
-      sameSite: secureCookie ? 'none' : 'lax',
-      expires: new Date(0),
-      path: '/'
-    })
+    .cookie('token', '', clearCookieOptions)
+    .cookie('marketplace_token', '', clearCookieOptions)
     .json({ success: true, message: 'Logged out successfully' });
 });
 
