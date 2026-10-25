@@ -54,8 +54,17 @@ export async function proxy(request) {
 
   // ── 2. Restaurant Partner Portal (/restaurant-panel) ──────────────────────
   // If merchant is already logged in, automatically send them to their dashboard
-  if (pathname === '/restaurant-panel' && token && role) {
-    if (role === 'merchant') {
+  if (pathname === '/restaurant-panel') {
+    // If session expired or logged out, break loops immediately and purge cookies at edge
+    if (request.nextUrl.searchParams.has('expired') || request.nextUrl.searchParams.has('logout')) {
+      const response = NextResponse.next();
+      response.cookies.delete('token');
+      response.cookies.delete('marketplace_token');
+      response.cookies.delete('user_role');
+      return response;
+    }
+
+    if (token && role === 'merchant') {
       const redirectTo = request.nextUrl.searchParams.get('redirect');
       const dest = (redirectTo && redirectTo.startsWith('/merchant')) ? redirectTo : '/merchant';
       return NextResponse.redirect(new URL(dest, request.url));
@@ -65,23 +74,40 @@ export async function proxy(request) {
 
   // ── 3. Customer Login (/login) ────────────────────────────────────────────
   // Redirect already-logged-in merchant/admin to their dashboard so they don't get stuck
-  if (pathname === '/login' && token && role) {
-    if (role === 'admin') {
-      const redirectTo = request.nextUrl.searchParams.get('redirect');
-      const dest = (redirectTo && redirectTo.startsWith('/admin')) ? redirectTo : '/admin';
-      return NextResponse.redirect(new URL(dest, request.url));
+  if (pathname === '/login') {
+    if (request.nextUrl.searchParams.has('expired') || request.nextUrl.searchParams.has('logout')) {
+      const response = NextResponse.next();
+      response.cookies.delete('token');
+      response.cookies.delete('marketplace_token');
+      response.cookies.delete('user_role');
+      return response;
     }
-    if (role === 'merchant') {
-      const redirectTo = request.nextUrl.searchParams.get('redirect');
-      const dest = (redirectTo && redirectTo.startsWith('/merchant')) ? redirectTo : '/merchant';
-      return NextResponse.redirect(new URL(dest, request.url));
+
+    if (token && role) {
+      if (role === 'admin') {
+        const redirectTo = request.nextUrl.searchParams.get('redirect');
+        const dest = (redirectTo && redirectTo.startsWith('/admin')) ? redirectTo : '/admin';
+        return NextResponse.redirect(new URL(dest, request.url));
+      }
+      if (role === 'merchant') {
+        const redirectTo = request.nextUrl.searchParams.get('redirect');
+        const dest = (redirectTo && redirectTo.startsWith('/merchant')) ? redirectTo : '/merchant';
+        return NextResponse.redirect(new URL(dest, request.url));
+      }
+      // customers: handled by login page useEffect with ?redirect=
     }
-    // customers: handled by login page useEffect with ?redirect=
   }
 
   // ── 4. Protect /admin routes ──────────────────────────────────────────────
   if (pathname.startsWith('/admin')) {
     if (pathname === '/admin/login') {
+      if (request.nextUrl.searchParams.has('expired') || request.nextUrl.searchParams.has('logout')) {
+        const response = NextResponse.next();
+        response.cookies.delete('token');
+        response.cookies.delete('marketplace_token');
+        response.cookies.delete('user_role');
+        return response;
+      }
       if (token && role === 'admin') {
         return NextResponse.redirect(new URL('/admin', request.url));
       }

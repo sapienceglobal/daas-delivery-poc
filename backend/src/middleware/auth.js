@@ -17,10 +17,38 @@ if (!JWT_SECRET) {
 const resolvedJwtSecret = JWT_SECRET || 'DEV_MARKETPLACE_JWT_SECRET';
 
 /**
+ * Helper to wipe auth cookies when session expires or token becomes invalid.
+ */
+export const clearAuthCookies = (res, req) => {
+  if (!res || typeof res.cookie !== 'function') return;
+  const isHttps = Boolean(
+    req && (
+      req.secure ||
+      req.headers?.['x-forwarded-proto'] === 'https' ||
+      req.protocol === 'https'
+    )
+  );
+
+  const secureCookie = process.env.COOKIE_SECURE === 'true' ||
+    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production' && isHttps);
+
+  const clearCookieOptions = {
+    httpOnly: true,
+    secure: secureCookie,
+    sameSite: secureCookie ? 'none' : 'lax',
+    expires: new Date(0),
+    path: '/'
+  };
+
+  res.cookie('token', '', clearCookieOptions);
+  res.cookie('marketplace_token', '', clearCookieOptions);
+};
+
+/**
  * Protects a route — verifies JWT from cookie or Authorization header
  * and attaches the user document to req.user.
  */
-export const protect = async (req, _res, next) => {
+export const protect = async (req, res, next) => {
   let token;
 
   // 1. Check httpOnly cookie first
@@ -47,16 +75,19 @@ export const protect = async (req, _res, next) => {
     const user = await req.getModel('User').findById(decoded.id).select('-password -salt');
 
     if (!user) {
+      clearAuthCookies(res, req);
       return next(new AppError('Not authorized, user not found', 401));
     }
 
     // block deactivated accounts even if they have a valid token
     if (!user.isActive) {
+      clearAuthCookies(res, req);
       return next(new AppError('Your account has been deactivated. Contact support.', 403));
     }
 
     // invalidate old sessions if password was changed
     if ((decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
+      clearAuthCookies(res, req);
       return next(new AppError('Session expired. Please log in again.', 401));
     }
 
@@ -64,6 +95,7 @@ export const protect = async (req, _res, next) => {
     return next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      clearAuthCookies(res, req);
       return next(new AppError('Not authorized, token failed', 401));
     }
     // if it's a DB error or something else, pass it down so it's logged properly

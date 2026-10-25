@@ -182,6 +182,12 @@ export default function AdminLoginPage() {
   const [formError, setFormError] = useState('');
   const [isForgotOpen, setIsForgotOpen] = useState(false);
 
+  useEffect(() => {
+    if (searchParams.get('expired') === 'true') {
+      setFormError('Your session has expired. Please sign in again with your updated credentials.');
+    }
+  }, [searchParams]);
+
   // 2FA state
   const [requires2fa, setRequires2fa] = useState(false);
   const [tempToken, setTempToken] = useState('');

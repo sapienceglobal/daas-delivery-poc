@@ -1,4 +1,5 @@
 import logger from '../utils/logger.js';
+import { clearAuthCookies } from './auth.js';
 
 // custom application error with HTTP status code.
 export class AppError extends Error {
@@ -68,6 +69,11 @@ export const errorHandler = (err, req, res, _next) => {
     }
   } else {
     logger.warn(`[${req.method}] ${req.originalUrl} — ${statusCode} ${message}`);
+  }
+
+  // If request failed with 401 and an auth cookie was present, clear it from browser immediately
+  if (statusCode === 401 && req?.cookies && (req.cookies.token || req.cookies.marketplace_token)) {
+    clearAuthCookies(res, req);
   }
 
   res.status(statusCode).json({

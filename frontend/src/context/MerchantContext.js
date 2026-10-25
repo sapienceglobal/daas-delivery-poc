@@ -30,7 +30,7 @@ export function MerchantProvider({ children }) {
   useEffect(() => {
     if (authLoading) return;
     if (!backendVerified || !isAuthenticated) { 
-      window.location.href = '/restaurant-panel'; 
+      window.location.href = '/restaurant-panel?expired=true'; 
       return; 
     }
     if (!isMerchant && !isAdmin) { 
