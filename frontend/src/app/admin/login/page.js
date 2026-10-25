@@ -2,17 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, Layers, Activity } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, Layers, Activity, LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button, showToast } from '@/components/ui';
 
 export default function SuperAdminLoginPage() {
   const router = useRouter();
-  const { login, isAuthenticated, isAdmin, loading: authLoading, user } = useAuth();
+  const { login, logout, isAuthenticated, isAdmin, loading: authLoading, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [clearingSession, setClearingSession] = useState(false);
   const [formError, setFormError] = useState('');
 
   // Auto redirect if already authenticated as Super Admin
@@ -20,11 +21,22 @@ export default function SuperAdminLoginPage() {
     if (!authLoading && isAuthenticated && user) {
       if (user.role === 'admin') {
         router.replace('/admin');
-      } else if (user.role === 'merchant') {
-        setFormError('You are currently signed in with a merchant account. Please logout to access the Super Admin control plane.');
       }
     }
   }, [authLoading, isAuthenticated, user, router]);
+
+  const handleClearSession = async () => {
+    try {
+      setClearingSession(true);
+      await logout();
+      setFormError('');
+      showToast('Merchant session cleared. Please sign in as Super Admin.', 'info');
+    } catch {
+      showToast('Failed to clear session', 'error');
+    } finally {
+      setClearingSession(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,6 +100,31 @@ export default function SuperAdminLoginPage() {
 
         {/* Login Card */}
         <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-2xl p-7 sm:p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] relative space-y-5">
+          {user?.role === 'merchant' && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-200 leading-relaxed space-y-2.5">
+              <div className="flex items-start gap-2.5">
+                <div className="h-5 w-5 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 text-amber-400 font-bold text-xs mt-0.5">!</div>
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-300">Previous Merchant Session Detected</p>
+                  <p className="text-[11px] text-amber-200/80 mt-0.5">
+                    Your browser has a saved login for <strong>{user?.email || 'Merchant Store'}</strong>. Clear it to enter cleanly, or enter Super Admin credentials below.
+                  </p>
+                </div>
+              </div>
+              <div className="pt-0.5">
+                <button
+                  type="button"
+                  onClick={handleClearSession}
+                  disabled={clearingSession}
+                  className="w-full sm:w-auto px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 active:scale-95 text-amber-200 border border-amber-500/40 text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  {clearingSession ? 'Clearing session...' : 'Logout Merchant Session Now'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {formError && (
             <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 text-xs text-red-300 leading-relaxed flex items-start gap-2.5">
               <div className="h-4 w-4 rounded-full bg-red-500/20 flex items-center justify-center shrink-0 mt-0.5 text-red-400 font-bold text-[10px]">!</div>

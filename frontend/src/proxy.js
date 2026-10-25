@@ -49,7 +49,7 @@ export async function proxy(request) {
   const host = request.headers.get('host') || '';
   const isClientCustomDomain = host.toLowerCase().includes('lassiloungeny.com');
   if (isClientCustomDomain && pathname.startsWith('/admin')) {
-    return NextResponse.rewrite(new URL('/not-found', request.url));
+    return new NextResponse('Not Found', { status: 404 });
   }
 
   // ── 1. Single Restaurant Mode routing ────────────────────────────────────
