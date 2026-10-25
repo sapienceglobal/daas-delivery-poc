@@ -103,7 +103,12 @@ export function AuthProvider({ children }) {
     }
 
     localStorage.setItem('marketplace_user', JSON.stringify(toSafeCacheObject(userData)));
-    localStorage.removeItem('marketplace_token');
+    if (data.token) {
+      localStorage.setItem('marketplace_token', data.token);
+      const cookieAge = rememberMe ? 'max-age=2592000;' : '';
+      document.cookie = `token=${data.token}; path=/; ${cookieAge} SameSite=Lax`;
+      document.cookie = `marketplace_token=${data.token}; path=/; ${cookieAge} SameSite=Lax`;
+    }
     localStorage.setItem('marketplace_remember_me', rememberMe ? 'true' : 'false');
     
     if (!rememberMe) {

@@ -50,22 +50,26 @@ const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace', r
     user.role === 'merchant' ||
     user.role === 'admin';
   const token = generateToken(user._id, user.role, tenantId, user.tokenVersion, isMobileMerchant, rememberMe);
+
+  const req = response.req;
+  const isHttps = Boolean(
+    req && (
+      req.secure ||
+      req.headers['x-forwarded-proto'] === 'https' ||
+      req.protocol === 'https'
+    )
+  );
+
+  // If accessed over HTTP (e.g. direct IP:port 195.35.20.207:8088), secure: true causes modern browsers to drop the cookie.
+  // Only enforce secure cookies when on HTTPS or explicitly forced.
   const secureCookie = process.env.COOKIE_SECURE === 'true' ||
-    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production');
+    (process.env.COOKIE_SECURE !== 'false' && process.env.NODE_ENV === 'production' && isHttps);
+
   const body = {
     success: true,
-    user: user.toSafeJSON()
+    user: user.toSafeJSON(),
+    token: token // Always include token in body so frontend client can persist it in localStorage/document.cookie
   };
-
-  // the mobile app requires the token in the JSON body because it doesn't automatically parse httpOnly cookies.
-  // we check for x-app-secret to identify mobile app requests and return the token even in production.
-  if (
-    process.env.RETURN_AUTH_TOKEN === 'true' ||
-    process.env.NODE_ENV !== 'production' ||
-    (response.req && response.req.headers['x-app-secret'] && response.req.headers['x-app-secret'] === process.env.APP_SECRET)
-  ) {
-    body.token = token;
-  }
 
   const cookieOptions = {
     httpOnly: true,
@@ -84,6 +88,7 @@ const sendTokenCookie = (user, statusCode, response, tenantId = 'marketplace', r
   response
     .status(statusCode)
     .cookie('token', token, cookieOptions)
+    .cookie('marketplace_token', token, cookieOptions)
     .json(body);
 };
 

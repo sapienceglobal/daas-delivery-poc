@@ -37,6 +37,14 @@ const request = async (endpoint, options = {}) => {
     ...options.headers,
   };
 
+  // Fallback: attach Authorization header if token exists in localStorage
+  if (typeof window !== 'undefined') {
+    const savedToken = localStorage.getItem('marketplace_token');
+    if (savedToken && !headers['Authorization']) {
+      headers['Authorization'] = `Bearer ${savedToken}`;
+    }
+  }
+
   // Attach client device geolocation and network headers if available
   if (typeof window !== 'undefined') {
     try {

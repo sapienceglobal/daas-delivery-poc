@@ -20,10 +20,10 @@ export default function SuperAdminLoginPage() {
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
       if (user.role === 'admin') {
-        router.replace('/admin');
+        window.location.href = '/admin';
       }
     }
-  }, [authLoading, isAuthenticated, user, router]);
+  }, [authLoading, isAuthenticated, user]);
 
   const handleClearSession = async () => {
     try {
@@ -53,7 +53,7 @@ export default function SuperAdminLoginPage() {
       const userRole = res?.role || res?.user?.role;
       if (userRole === 'admin') {
         showToast('Super Admin authenticated successfully', 'success');
-        router.push('/admin');
+        window.location.href = '/admin';
       } else {
         await logout();
         setFormError('Access Denied: This console is strictly reserved for Platform Super Administrators. Restaurant store merchants must login via /restaurant-panel.');
