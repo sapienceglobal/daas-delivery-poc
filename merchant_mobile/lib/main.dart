@@ -33,6 +33,7 @@ import 'screens/support_messages_screen.dart';
 import 'services/socket_service.dart';
 import 'services/push_notification_service.dart';
 import 'services/api_service.dart';
+import 'services/location_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -179,6 +180,7 @@ void main() async {
     _guard('Stripe', _initStripe, const Duration(seconds: 5)),
     _guard('Prefs', () async {
       prefs = await SharedPreferences.getInstance();
+      await ApiService.initTelemetry(prefs);
     }, const Duration(seconds: 4)),
     _guard('Auth', () async {
       await authProvider.checkLoginStatus();
@@ -200,6 +202,9 @@ void main() async {
       );
     } catch (_) {}
   };
+
+  // Asynchronously request location permission and update geolocation telemetry
+  LocationService().requestStartupLocationPermission();
 
   runApp(
     MultiProvider(
@@ -367,7 +372,7 @@ final GoRouter _router = GoRouter(
 );
 
 class MerchantApp extends StatelessWidget {
-  const MerchantApp({Key? key}) : super(key: key);
+  const MerchantApp({super.key});
 
   @override
   Widget build(BuildContext context) {

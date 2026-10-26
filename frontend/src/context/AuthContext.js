@@ -83,7 +83,7 @@ export function AuthProvider({ children }) {
     };
 
     initializeAuth();
-    initClientGeolocation(false);
+    initClientGeolocation(true);
 
     return () => {
       cancelled = true;

@@ -41,6 +41,64 @@ class ApiService {
     }
   }
 
+  static String? _deviceLocation;
+  static String? _deviceCity;
+  static String? _deviceRegion;
+  static String? _deviceCountry;
+  static double? _deviceLat;
+  static double? _deviceLng;
+  static String? _networkCarrier;
+  static String? _networkType;
+
+  /// Loads cached location/telemetry from SharedPreferences immediately upon boot
+  static Future<void> initTelemetry(SharedPreferences? prefs) async {
+    try {
+      final p = prefs ?? await SharedPreferences.getInstance();
+      _deviceCity = p.getString('geo_city');
+      _deviceRegion = p.getString('geo_region');
+      _deviceCountry = p.getString('geo_country');
+      _deviceLocation = p.getString('geo_display');
+      _deviceLat = p.getDouble('geo_lat');
+      _deviceLng = p.getDouble('geo_lng');
+    } catch (_) {}
+  }
+
+  static void setDeviceLocation({String? city, String? region, String? country, String? display}) {
+    if (city != null) _deviceCity = city;
+    if (region != null) _deviceRegion = region;
+    if (country != null) _deviceCountry = country;
+    if (display != null) {
+      _deviceLocation = display;
+    } else {
+      final parts = [_deviceCity, _deviceRegion, _deviceCountry].where((s) => s != null && s.isNotEmpty).toList();
+      if (parts.isNotEmpty) _deviceLocation = parts.join(', ');
+    }
+    SharedPreferences.getInstance().then((p) {
+      if (_deviceCity != null) p.setString('geo_city', _deviceCity!);
+      if (_deviceRegion != null) p.setString('geo_region', _deviceRegion!);
+      if (_deviceCountry != null) p.setString('geo_country', _deviceCountry!);
+      if (_deviceLocation != null) p.setString('geo_display', _deviceLocation!);
+    }).catchError((_) {});
+  }
+
+  static void setDeviceCoordinates(double lat, double lng) {
+    _deviceLat = lat;
+    _deviceLng = lng;
+    if (_deviceLocation == null || _deviceLocation!.isEmpty) {
+      _deviceLocation = '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}';
+    }
+    SharedPreferences.getInstance().then((p) {
+      p.setDouble('geo_lat', lat);
+      p.setDouble('geo_lng', lng);
+      if (_deviceLocation != null) p.setString('geo_display', _deviceLocation!);
+    }).catchError((_) {});
+  }
+
+  static void setNetworkInfo({String? carrier, String? type}) {
+    if (carrier != null) _networkCarrier = carrier;
+    if (type != null) _networkType = type;
+  }
+
   static Map<String, String> buildHeaders([Map<String, String>? customHeaders]) {
     final Map<String, String> headers = {
       'Content-Type': 'application/json',
@@ -54,6 +112,29 @@ class ApiService {
 
     if (_authToken != null && _authToken!.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_authToken';
+    }
+
+    if (_deviceLocation != null && _deviceLocation!.isNotEmpty) {
+      headers['x-device-location'] = _deviceLocation!;
+    }
+    if (_deviceCity != null && _deviceCity!.isNotEmpty) {
+      headers['x-device-city'] = _deviceCity!;
+    }
+    if (_deviceRegion != null && _deviceRegion!.isNotEmpty) {
+      headers['x-device-region'] = _deviceRegion!;
+    }
+    if (_deviceCountry != null && _deviceCountry!.isNotEmpty) {
+      headers['x-device-country'] = _deviceCountry!;
+    }
+    if (_deviceLat != null && _deviceLng != null) {
+      headers['x-device-lat'] = _deviceLat.toString();
+      headers['x-device-lng'] = _deviceLng.toString();
+    }
+    if (_networkCarrier != null && _networkCarrier!.isNotEmpty) {
+      headers['x-network-carrier'] = _networkCarrier!;
+    }
+    if (_networkType != null && _networkType!.isNotEmpty) {
+      headers['x-network-type'] = _networkType!;
     }
 
     if (customHeaders != null) {

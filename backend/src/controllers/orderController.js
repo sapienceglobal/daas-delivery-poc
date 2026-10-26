@@ -982,10 +982,10 @@ export const createOrder = asyncHandler(async (req, response) => {
       restaurantId: restaurant._id,
       actorType: isPosOrMerchant ? 'merchant' : 'customer',
       actor: {
-        userId: req.user?._id || targetUser._id,
-        name: req.user?.name || customerName || targetUser.name,
-        email: req.user?.email || customerEmail || targetUser.email,
-        phone: req.user?.phone || customerPhone || targetUser.phone,
+        userId: req.user?._id || targetUser?._id,
+        name: req.user?.name || customerName || targetUser?.name || 'Customer',
+        email: req.user?.email || customerEmail || targetUser?.email || null,
+        phone: req.user?.phone || customerPhone || targetUser?.phone || null,
         role: req.user?.role || 'customer'
       },
       event: isPosOrMerchant ? 'POS_ORDER_CREATED' : 'CUSTOMER_ORDER_PLACED',
@@ -1000,8 +1000,12 @@ export const createOrder = asyncHandler(async (req, response) => {
         total: pricing.total,
         itemCount: pricing.orderItems.length,
         platform,
-        customerName: customerName || targetUser.name || 'Walk-in Customer',
-        customerPhone: customerPhone || targetUser.phone || null
+        customerName: customerName || targetUser?.name || 'Walk-in Customer',
+        customerPhone: customerPhone || targetUser?.phone || null,
+        customerEmail: customerEmail || targetUser?.email || null,
+        isGuestCheckout: !req.user,
+        deliveryAddress: order.address || null,
+        isNewAccountCreated: Boolean(isNewAccountCreated)
       }
     }).catch(() => {});
 

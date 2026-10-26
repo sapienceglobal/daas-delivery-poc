@@ -32,6 +32,21 @@ export async function initClientGeolocation(promptIfNeeded = false) {
   }
 }
 
+export function saveClientLocation({ lat, lng, city = '', region = '', country = '', display = '' }) {
+  if (typeof window === 'undefined') return;
+  try {
+    const locDisplay = display || [city, region, country].filter(Boolean).join(', ') || (lat && lng ? `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}` : '');
+    localStorage.setItem('user_geo_location', JSON.stringify({
+      lat: lat ? Number(lat) : undefined,
+      lng: lng ? Number(lng) : undefined,
+      city,
+      region,
+      country,
+      display: locDisplay
+    }));
+  } catch (e) {}
+}
+
 function fetchAndStoreLocation() {
   if (!navigator.geolocation) return;
 
@@ -41,7 +56,7 @@ function fetchAndStoreLocation() {
       const lng = position.coords.longitude;
 
       try {
-        // Reverse geocode via backend or open API
+        // Reverse geocode via backend API
         const res = await fetch(`/api/location/reverse-geocode?lat=${lat}&lng=${lng}`);
         if (res.ok) {
           const data = await res.json();
@@ -49,27 +64,27 @@ function fetchAndStoreLocation() {
           const city = addr.city || addr.town || addr.village || addr.suburb || addr.county || '';
           const region = addr.state || addr.region || '';
           const country = addr.country || '';
-          const display = data.displayName || [city, region, country].filter(Boolean).join(', ') || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+          const display = data.displayName || data.display_name || [city, region, country].filter(Boolean).join(', ') || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 
-          localStorage.setItem('user_geo_location', JSON.stringify({
+          saveClientLocation({
             lat,
             lng,
             city,
             region,
             country,
             display
-          }));
+          });
           return;
         }
       } catch (e) {
         // Fallback to storing lat/lng
       }
 
-      localStorage.setItem('user_geo_location', JSON.stringify({
+      saveClientLocation({
         lat,
         lng,
         display: `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-      }));
+      });
     },
     (err) => {
       // Permission denied or unavailable - silent fail
@@ -77,3 +92,4 @@ function fetchAndStoreLocation() {
     { timeout: 8000, maximumAge: 300000, enableHighAccuracy: false }
   );
 }
+

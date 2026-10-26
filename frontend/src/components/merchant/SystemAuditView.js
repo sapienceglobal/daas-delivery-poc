@@ -120,9 +120,10 @@ export default function SystemAuditView({ onSelectOrder }) {
   // Helper to render actor badge
   const renderActorBadge = (log) => {
     const actorType = log.actorType || (log.actor?.role === 'customer' ? 'customer' : 'system');
-    const name = log.actor?.name || log.userId?.name || 'System / Platform';
-    const email = log.actor?.email || log.userId?.email || null;
+    const name = log.actor?.name || log.userId?.name || log.metadata?.customerName || 'System / Platform';
+    const email = log.actor?.email || log.userId?.email || log.metadata?.customerEmail || null;
     const role = log.actor?.role || null;
+    const isGuest = log.metadata?.isGuestCheckout;
 
     if (actorType === 'customer') {
       return (
@@ -131,7 +132,14 @@ export default function SystemAuditView({ onSelectOrder }) {
             <User className="w-3.5 h-3.5" />
           </div>
           <div className="min-w-0">
-            <p className="font-bold text-admin-text text-xs truncate">{name}</p>
+            <p className="font-bold text-admin-text text-xs truncate flex items-center gap-1.5">
+              <span>{name}</span>
+              {isGuest && (
+                <span className="text-[9px] px-1.5 py-0.2 rounded font-semibold bg-amber-500/10 text-amber-700 border border-amber-500/20">
+                  Guest
+                </span>
+              )}
+            </p>
             <p className="text-[10px] text-emerald-600 font-medium">Customer {email ? `• ${email}` : ''}</p>
           </div>
         </div>
@@ -430,7 +438,7 @@ export default function SystemAuditView({ onSelectOrder }) {
                     locationDisplay: rawDevice.locationDisplay || rawDevice.location || (
                       (rawDevice.city || rawDevice.country) 
                         ? [rawDevice.city, rawDevice.region, rawDevice.country].filter(Boolean).join(', ') 
-                        : null
+                        : (log.metadata?.deliveryAddress || null)
                     )
                   };
 

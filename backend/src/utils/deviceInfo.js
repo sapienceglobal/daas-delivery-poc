@@ -6,6 +6,7 @@
 
 export function extractDeviceContext(req) {
   const headers = req.headers || {};
+  const body = req.body || {};
 
   // 1. Client IP Resolution (prioritizing Cloudflare and trusted reverse proxies)
   const forwardedFor = headers['x-forwarded-for'];
@@ -21,10 +22,42 @@ export function extractDeviceContext(req) {
   const ip = rawIp.replace(/^::ffff:/, '');
 
   // 2. Geolocation headers (explicit device headers from Flutter APK / Web, Cloudflare, Vercel, AWS CloudFront)
-  const explicitLocation = headers['x-device-location'] || null;
-  const explicitCity = headers['x-device-city'] || null;
-  const explicitRegion = headers['x-device-region'] || null;
-  const explicitCountry = headers['x-device-country'] || null;
+  let explicitLocation = headers['x-device-location'] || null;
+  let explicitCity = headers['x-device-city'] || null;
+  let explicitRegion = headers['x-device-region'] || null;
+  let explicitCountry = headers['x-device-country'] || null;
+  const lat = headers['x-device-lat'] || body.addressLat || null;
+  const lng = headers['x-device-lng'] || body.addressLng || null;
+
+  // Fallback to order delivery address if explicit geolocation headers are missing (e.g., guest checkouts)
+  if (!explicitLocation && (body.address || body.deliveryAddress)) {
+    const rawAddr = body.address || body.deliveryAddress;
+    if (typeof rawAddr === 'string' && rawAddr.trim()) {
+      explicitLocation = rawAddr.trim();
+      const parts = rawAddr.split(',').map(p => p.trim());
+      if (parts.length >= 3) {
+        const countryPart = parts[parts.length - 1];
+        const stateZipPart = parts[parts.length - 2];
+        const cityPart = parts[parts.length - 3];
+        if (!explicitCountry && countryPart) explicitCountry = countryPart;
+        if (!explicitRegion && stateZipPart) {
+          const stateMatch = stateZipPart.match(/^([A-Za-z\s]+)/);
+          explicitRegion = stateMatch ? stateMatch[1].trim() : stateZipPart;
+        }
+        if (!explicitCity && cityPart) explicitCity = cityPart;
+      } else if (parts.length === 2) {
+        if (!explicitCity) explicitCity = parts[0];
+        if (!explicitRegion) explicitRegion = parts[1];
+      }
+    } else if (typeof rawAddr === 'object') {
+      if (!explicitCity && rawAddr.city) explicitCity = rawAddr.city;
+      if (!explicitRegion && (rawAddr.state || rawAddr.region)) explicitRegion = rawAddr.state || rawAddr.region;
+      if (!explicitCountry && rawAddr.country) explicitCountry = rawAddr.country;
+      if (!explicitLocation) {
+        explicitLocation = [rawAddr.street || rawAddr.line1, rawAddr.city, rawAddr.state, rawAddr.country].filter(Boolean).join(', ');
+      }
+    }
+  }
 
   const city = headers['cf-ipcity'] || headers['x-vercel-ip-city'] || explicitCity || null;
   const region = headers['cf-region'] || headers['cf-region-code'] || headers['x-vercel-ip-country-region'] || explicitRegion || null;
@@ -102,11 +135,12 @@ export function extractDeviceContext(req) {
     headers['x-connection-type'] ||
     (isPrivateIp ? 'WiFi' : null);
 
-  // Clean location display: prioritize city/region/country, fallback to GPS coordinates
+  // Clean location display: prioritize city/region/country, fallback to full address or GPS coordinates
   const locationParts = [city, region, country].filter(Boolean);
   const locationDisplay =
     (locationParts.length > 0 ? locationParts.join(', ') : null) ||
     explicitLocation ||
+    (lat && lng ? `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}` : null) ||
     null;
 
   return {

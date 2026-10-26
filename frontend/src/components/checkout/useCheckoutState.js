@@ -8,6 +8,7 @@ import { orderAPI, couponAPI, restaurantAPI } from '@/lib/api';
 import { showToast } from '@/components/ui';
 import { isValidPhoneNumber } from 'react-phone-number-input';
 import { trackBeginCheckout, trackPurchase } from '@/lib/analytics';
+import { saveClientLocation } from '@/utils/geolocationHelper';
 
 const US_STATE_CODES = {
   Alabama: 'AL',
@@ -599,6 +600,14 @@ export function useCheckoutState() {
             setAddressLat(pos.coords.latitude);
             setAddressLng(pos.coords.longitude);
             setAddressVerified(true);
+            saveClientLocation({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              city: cityVal,
+              region: stateCode,
+              country: 'US',
+              display: [line1, cityVal, stateCode].filter(Boolean).join(', ')
+            });
             setDeliveryQuote(null);
 
             if (!line1 || !cityVal || !stateCode || !zipCodeVal) {
@@ -805,6 +814,17 @@ export function useCheckoutState() {
         finalPaymentMethod = 'credit_card';
       } else if (paymentMethod === 'stripe_online') {
         finalPaymentMethod = 'credit_card';
+      }
+
+      if (city || addressLine1 || compiledAddress) {
+        saveClientLocation({
+          lat: addressLat,
+          lng: addressLng,
+          city: city || '',
+          region: state || '',
+          country: 'US',
+          display: compiledAddress || [addressLine1, city, state].filter(Boolean).join(', ')
+        });
       }
 
       const orderData = {
