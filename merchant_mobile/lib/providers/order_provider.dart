@@ -303,9 +303,21 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> refundOrder(String orderId) async {
+  Future<Map<String, dynamic>> requestRefundOtp(String orderId) async {
     try {
-      await ApiService.post('/api/orders/$orderId/refund', {'reason': 'Merchant initiated refund'});
+      final res = await ApiService.post('/api/orders/$orderId/refund-otp', {});
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> refundOrder(String orderId, {required String otp, String? reason}) async {
+    try {
+      await ApiService.post('/api/orders/$orderId/refund', {
+        'otp': otp.trim(),
+        'reason': reason ?? 'Merchant initiated refund',
+      });
       await Future.delayed(const Duration(milliseconds: 1500)); // wait for Stripe webhook
       await fetchOrderById(orderId);
     } catch (e) {

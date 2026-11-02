@@ -243,6 +243,15 @@ const OrderSchema = new mongoose.Schema({
   refundAmount: { type: Number, default: 0 },
   refundReason: { type: String, default: null },
 
+  // ── Refund Authorization OTP ──────────────────────────────────────────
+  refundOtp: {
+    code: { type: String, default: null },
+    expiresAt: { type: Date, default: null },
+    requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    requestedEmail: { type: String, default: null },
+    attempts: { type: Number, default: 0 }
+  },
+
   // ── Payment Audit Log ─────────────────────────────────────────────────
   // structured event log of every payment + order lifecycle event.
   // use pushPaymentEvent() append safely.

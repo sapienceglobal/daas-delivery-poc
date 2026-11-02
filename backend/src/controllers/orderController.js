@@ -20,7 +20,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { retrievePaymentIntent, refundPayment as refundStripePayment, chargeSavedCard, createCheckoutSession, expireCheckoutSession } from '../services/stripeService.js';
 import { calculateOrderPricing, roundMoney } from '../services/orderPricing.js';
-import { sendOrderConfirmationEmail, sendInvoiceEmail, sendPaymentLinkEmail, sendGuestOrderWelcomeEmail } from '../services/emailService.js';
+import { sendOrderConfirmationEmail, sendInvoiceEmail, sendPaymentLinkEmail, sendGuestOrderWelcomeEmail, sendRefundAuthorizationOtpEmail } from '../services/emailService.js';
 import { generateInvoiceHTML, generateKOTHTML } from '../services/documentService.js';
 import { createNotification } from './notificationController.js';
 import { getNotificationImageUrl } from '../utils/imageUrl.js';
@@ -2089,6 +2089,88 @@ export const getAllOrders = asyncHandler(async (req, response) => {
   res.success(response, { data: orders, pagination: res.buildPagination(page, limit, total) });
 });
 
+// ── Request Refund Security Authorization OTP ─────────────────────────────
+export const requestRefundOtp = asyncHandler(async (req, response) => {
+  const Order = req.getModel('Order');
+  const order = await Order.findById(req.params.id);
+  if (!order) throw new AppError('Order not found', 404);
+  if (req.user.role === 'merchant') {
+    ensureCanManageRestaurant(req.user, order.restaurantId);
+  }
+
+  if (order.refunded || order.paymentStatus === 'refunded') {
+    throw new AppError('This order has already been fully refunded', 400);
+  }
+
+  if (!['paid', 'partially_refunded'].includes(order.paymentStatus)) {
+    throw new AppError('Only paid orders can be refunded', 400);
+  }
+
+  const remainingRefundable = roundMoney(order.total - (order.refundAmount || 0));
+  if (remainingRefundable <= 0) {
+    throw new AppError('No refundable balance remaining for this order', 400);
+  }
+
+  // Generate 6-digit random code
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  order.refundOtp = {
+    code: otp,
+    expiresAt,
+    requestedBy: req.user._id,
+    requestedEmail: req.user.email,
+    attempts: 0
+  };
+  await order.save();
+
+  const ownerEmail = process.env.OWNER_SECURITY_EMAIL || 'lassiloungellc@gmail.com';
+  const device = extractDeviceContext(req);
+  const deviceInfo = `${device?.os || 'Unknown OS'} • ${device?.browser || 'App'} (${device?.ip || req.ip || 'Unknown IP'})`;
+
+  await sendRefundAuthorizationOtpEmail({
+    to: ownerEmail,
+    orderNumber: order.orderNumber,
+    amount: remainingRefundable,
+    customerName: order.customerName,
+    requesterName: req.user.name || 'Merchant Staff',
+    requesterEmail: req.user.email,
+    otp,
+    deviceInfo
+  });
+
+  logAuditEvent({
+    req,
+    restaurantId: order.restaurantId,
+    actorType: 'merchant',
+    actor: {
+      userId: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    },
+    event: 'REFUND_OTP_REQUESTED',
+    action: 'SECURITY_OTP',
+    severity: 'warning',
+    message: `Security authorization OTP for refund requested for Order #${order.orderNumber} by ${req.user.email}. Authorization code dispatched to ${ownerEmail}.`,
+    orderId: order._id,
+    orderNumber: order.orderNumber,
+    metadata: {
+      requestedBy: req.user.email,
+      targetEmail: ownerEmail,
+      remainingRefundable,
+      deviceInfo
+    }
+  }).catch(() => {});
+
+  const maskedEmail = ownerEmail.replace(/^(.)(.*)(@.*)$/, (_, a, b, c) => a + '***' + c);
+
+  res.success(response, {
+    message: `Security authorization OTP sent to restaurant owner (${maskedEmail}). Please enter the 6-digit code to complete the refund.`,
+    targetEmail: maskedEmail
+  });
+});
+
 export const refundOrder = asyncHandler(async (req, response) => {
   const Order = req.getModel('Order');
   const order = await Order.findById(req.params.id);
@@ -2097,7 +2179,39 @@ export const refundOrder = asyncHandler(async (req, response) => {
     ensureCanManageRestaurant(req.user, order.restaurantId);
   }
 
-  const { amount } = req.body;
+  // ── Enforce Security Authorization OTP ────────────────────────────────────
+  const { otp } = req.body;
+  if (!otp || String(otp).trim().length !== 6) {
+    throw new AppError('A valid 6-digit Security Authorization OTP is required to process refunds. Please request an OTP first.', 400);
+  }
+
+  if (!order.refundOtp || !order.refundOtp.code) {
+    throw new AppError('No pending refund authorization found. Please request an OTP first.', 400);
+  }
+
+  if (new Date() > new Date(order.refundOtp.expiresAt)) {
+    order.refundOtp = undefined;
+    await order.save();
+    throw new AppError('Security authorization OTP has expired. Please request a new OTP.', 400);
+  }
+
+  if ((order.refundOtp.attempts || 0) >= 4) {
+    order.refundOtp = undefined;
+    await order.save();
+    throw new AppError('Too many invalid attempts. Security OTP revoked for safety. Please request a new OTP.', 400);
+  }
+
+  if (String(otp).trim() !== String(order.refundOtp.code).trim()) {
+    order.refundOtp.attempts = (order.refundOtp.attempts || 0) + 1;
+    await order.save();
+    const remaining = 4 - order.refundOtp.attempts;
+    throw new AppError(`Invalid Security Authorization OTP. Refund blocked. (${remaining} attempt${remaining === 1 ? '' : 's'} remaining)`, 400);
+  }
+
+  // OTP is verified! Clear it immediately to prevent replay attacks
+  order.refundOtp = undefined;
+
+    const { amount } = req.body;
   const reason = req.body.reason ? xss(String(req.body.reason)) : undefined;
   const refundAmount = roundMoney(amount || order.total);
   const nextRefundedTotal = roundMoney((order.refundAmount || 0) + refundAmount);

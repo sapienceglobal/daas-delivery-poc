@@ -380,3 +380,59 @@ export const sendInvoiceEmail = async (email, order, payment = null) => {
     ] : []
   });
 };
+
+export const sendRefundAuthorizationOtpEmail = async ({
+  to,
+  orderNumber,
+  amount,
+  customerName,
+  requesterName,
+  requesterEmail,
+  otp,
+  deviceInfo
+}) => {
+  const bodyHtml = `
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 20px;"><tr><td>
+      <div style="width:60px;height:60px;border-radius:999px;background-color:#fee2e2;text-align:center;line-height:60px;font-size:30px;">🚨</div>
+    </td></tr></table>
+    <h2 style="margin:0 0 8px;font-size:22px;color:#991b1b;text-align:center;">Security Authorization Required</h2>
+    <p style="margin:0 0 20px;text-align:center;color:${BRAND_MUTED};font-size:14px;">
+      A request to issue a refund was initiated on <strong>${FROM_NAME}</strong>.
+    </p>
+
+    <div style="background-color:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px 20px;margin-bottom:24px;">
+      <p style="margin:0 0 8px;font-size:14px;color:#1a1a1a;"><strong>Order Number:</strong> #${orderNumber}</p>
+      <p style="margin:0 0 8px;font-size:14px;color:#1a1a1a;"><strong>Refund Amount:</strong> <span style="color:#b91c1c;font-weight:bold;">$${Number(amount).toFixed(2)}</span></p>
+      <p style="margin:0 0 8px;font-size:14px;color:#1a1a1a;"><strong>Customer Name:</strong> ${customerName || 'N/A'}</p>
+      <p style="margin:0 0 8px;font-size:14px;color:#1a1a1a;"><strong>Initiated By:</strong> ${requesterName} (${requesterEmail})</p>
+      <p style="margin:0;font-size:12px;color:#6b7280;"><strong>Device / Client:</strong> ${deviceInfo || 'Merchant App'}</p>
+    </div>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+      <tr><td style="background-color:${BRAND_CREAM};border:2px solid ${BRAND_ACCENT};border-radius:12px;padding:20px 40px;text-align:center;">
+        <div style="font-size:12px;font-weight:bold;color:${BRAND_PRIMARY};letter-spacing:1px;margin-bottom:6px;text-transform:uppercase;">6-Digit Authorization Code</div>
+        <span style="font-size:36px;font-weight:900;letter-spacing:12px;color:${BRAND_PRIMARY};font-family:monospace;">${otp}</span>
+      </td></tr>
+    </table>
+
+    <div style="background-color:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px 16px;margin-bottom:20px;">
+      <p style="margin:0;font-size:13px;line-height:1.5;color:#92400e;">
+        <strong>⚠️ CRITICAL SECURITY WARNING:</strong><br>
+        If you or your authorized staff did NOT initiate this refund, <strong>DO NOT SHARE THIS CODE WITH ANYONE</strong>.
+        Anyone with this code can deduct funds directly from your Stripe restaurant account.
+        Google Play reviewers or unauthorized persons cannot complete any refund without this code.
+      </p>
+    </div>
+
+    <p style="margin:0;text-align:center;font-size:13px;color:${BRAND_MUTED};">
+      This authorization code expires in <strong>10 minutes</strong>.
+    </p>
+  `;
+
+  return sendEmail({
+    to,
+    subject: `🚨 [SECURITY CODE ${otp}] Refund Authorization for Order #${orderNumber} ($${Number(amount).toFixed(2)})`,
+    text: `SECURITY AUTHORIZATION REQUIRED\n\nA refund of $${Number(amount).toFixed(2)} for Order #${orderNumber} was requested by ${requesterName} (${requesterEmail}).\n\nYour 6-digit Authorization Code is: ${otp}\n\nThis code expires in 10 minutes.\n\nWARNING: If you did not authorize this refund, DO NOT SHARE THIS CODE.`,
+    html: emailShell({ preheader: `SECURITY CODE ${otp}: Refund authorization for Order #${orderNumber}`, bodyHtml })
+  });
+};

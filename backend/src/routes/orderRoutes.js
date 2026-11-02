@@ -44,6 +44,7 @@ router.get('/:id/invoice', protect, authorize('merchant', 'admin'), orderControl
 
 // ── Admin Routes ────────────────────────────────────────────────────────────
 router.get('/', protect, authorize('admin'), orderController.getAllOrders);
+router.post('/:id/refund-otp', protect, authorize('admin', 'merchant'), orderController.requestRefundOtp);
 router.post('/:id/refund', protect, authorize('admin', 'merchant'), validate(refundOrderSchema), orderController.refundOrder);
 
 // ── Driver Routes ───────────────────────────────────────────────────────────

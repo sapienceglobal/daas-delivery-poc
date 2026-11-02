@@ -44,6 +44,12 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   const [order, setOrder] = useState(initialOrder);
   const [mounted, setMounted] = useState(false);
   const [isRefunding, setIsRefunding] = useState(false);
+  const [showRefundOtpModal, setShowRefundOtpModal] = useState(false);
+  const [refundOtp, setRefundOtp] = useState('');
+  const [refundOtpSent, setRefundOtpSent] = useState(false);
+  const [refundOtpLoading, setRefundOtpLoading] = useState(false);
+  const [refundOtpError, setRefundOtpError] = useState('');
+  const [refundTargetEmail, setRefundTargetEmail] = useState('lassiloungellc@gmail.com');
   const [isCancelling, setIsCancelling] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isRemakingOrder, setIsRemakingOrder] = useState(false);
@@ -142,30 +148,15 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   const totalItems = (order.items || []).reduce((acc, it) => acc + it.quantity, 0);
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
-  const handleRefund = async () => {
+  const handleRefund = () => {
     if (!canRefund) {
       showToast(isRefunded ? 'This order has already been refunded' : 'Order is not eligible for refund', 'info');
       return;
     }
-    setConfirmConfig({
-      isOpen: true,
-      title: 'Issue Refund',
-      message: `Refund ${formatCurrency(order.total - (order.refundAmount || 0), currency)} to the customer's card? This action cannot be reversed.`,
-      onConfirm: async () => {
-        setIsRefunding(true);
-        try {
-          await orderAPI.refund(order._id, { reason: 'Merchant initiated refund' });
-          showToast('Order refunded successfully', 'success');
-          await fetchFreshOrder();
-          setPaymentAudit(null); // reset so next expand fetches fresh
-          if (onRefresh) onRefresh();
-        } catch (err) {
-          showToast(err.message || 'Failed to refund order', 'error');
-        } finally {
-          setIsRefunding(false);
-        }
-      }
-    });
+    setRefundOtp('');
+    setRefundOtpSent(false);
+    setRefundOtpError('');
+    setShowRefundOtpModal(true);
   };
 
   const handleCancel = async () => {
@@ -1486,6 +1477,157 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
               <button
                 type="button"
                 onClick={() => setShowRemakeModal(false)}
+                className="w-full py-2.5 bg-admin-card border border-admin-border rounded-xl text-[14px] font-bold text-admin-text hover:bg-admin-surface-hover transition-all shadow-sm font-outfit cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Security Authorization Refund OTP Modal */}
+      {showRefundOtpModal && mounted && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-admin-surface border border-admin-border rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <div className="text-center mb-5">
+                <div className="w-12 h-12 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-500 flex items-center justify-center mx-auto mb-3">
+                  <ShieldAlert className="w-6 h-6" />
+                </div>
+                <h2 className="text-xl font-black text-admin-text font-outfit">Owner Security Authorization</h2>
+                <p className="text-[13px] font-medium text-admin-text-secondary mt-1">
+                  Issuing a refund of <strong>{formatCurrency(order.total - (order.refundAmount || 0), currency)}</strong> requires an OTP sent to the restaurant owner.
+                </p>
+              </div>
+
+              {refundOtpError && (
+                <div className="mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 text-xs font-bold flex items-center gap-2">
+                  <span>⚠️</span>
+                  <span>{refundOtpError}</span>
+                </div>
+              )}
+
+              {!refundOtpSent ? (
+                <div className="space-y-4">
+                  <div className="p-3.5 rounded-xl bg-admin-card border border-admin-border flex items-center gap-3">
+                    <Mail className="w-5 h-5 text-admin-text-secondary shrink-0" />
+                    <div className="text-left">
+                      <p className="text-[11px] text-admin-text-secondary font-semibold uppercase tracking-wider">Owner Email</p>
+                      <p className="text-xs font-bold text-admin-text">lassiloungellc@gmail.com</p>
+                    </div>
+                  </div>
+
+                  <p className="text-[12px] text-admin-text-secondary text-center leading-relaxed">
+                    Click below to dispatch a 6-digit verification code to the official restaurant owner email.
+                  </p>
+
+                  <button
+                    type="button"
+                    disabled={refundOtpLoading}
+                    onClick={async () => {
+                      setRefundOtpLoading(true);
+                      setRefundOtpError('');
+                      try {
+                        const res = await orderAPI.requestRefundOtp(order._id);
+                        setRefundOtpSent(true);
+                        setRefundTargetEmail(res?.targetEmail || 'lassiloungellc@gmail.com');
+                      } catch (err) {
+                        setRefundOtpError(err.message || 'Failed to dispatch security code');
+                      } finally {
+                        setRefundOtpLoading(false);
+                      }
+                    }}
+                    className="w-full py-3 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white rounded-xl text-[14px] font-bold transition-all shadow-sm flex items-center justify-center gap-2 font-outfit cursor-pointer"
+                  >
+                    {refundOtpLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    <span>{refundOtpLoading ? 'Sending Security Code...' : 'Send 6-Digit Code'}</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-2 justify-center">
+                    <CheckCircle className="w-4 h-4 shrink-0" />
+                    <span>Code dispatched to {refundTargetEmail}</span>
+                  </div>
+
+                  <div className="space-y-1.5 text-center">
+                    <label className="text-xs font-bold text-admin-text block">
+                      Enter 6-Digit Authorization Code
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      autoFocus
+                      value={refundOtp}
+                      onChange={(e) => setRefundOtp(e.target.value.replace(/\D/g, ''))}
+                      placeholder="••••••"
+                      className="w-full py-3 text-center text-2xl font-mono font-bold tracking-[0.5em] bg-admin-card border border-admin-border text-admin-text rounded-xl focus:outline-none focus:border-rose-500"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={refundOtpLoading || refundOtp.length !== 6}
+                    onClick={async () => {
+                      if (refundOtp.length !== 6) {
+                        return setRefundOtpError('Please enter all 6 digits');
+                      }
+                      setRefundOtpLoading(true);
+                      setRefundOtpError('');
+                      try {
+                        await orderAPI.refund(order._id, {
+                          otp: refundOtp.trim(),
+                          reason: 'Merchant initiated refund'
+                        });
+                        showToast('Order refunded successfully!', 'success');
+                        setShowRefundOtpModal(false);
+                        await fetchFreshOrder();
+                        setPaymentAudit(null);
+                        if (onRefresh) onRefresh();
+                      } catch (err) {
+                        setRefundOtpError(err.message || 'Refund authorization failed');
+                      } finally {
+                        setRefundOtpLoading(false);
+                      }
+                    }}
+                    className="w-full py-3 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white rounded-xl text-[14px] font-bold transition-all shadow-sm flex items-center justify-center gap-2 font-outfit cursor-pointer"
+                  >
+                    {refundOtpLoading ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <ShieldAlert className="w-4 h-4" />}
+                    <span>{refundOtpLoading ? 'Authorizing Refund...' : 'Authorize & Issue Refund'}</span>
+                  </button>
+
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      disabled={refundOtpLoading}
+                      onClick={async () => {
+                        setRefundOtpLoading(true);
+                        setRefundOtpError('');
+                        try {
+                          const res = await orderAPI.requestRefundOtp(order._id);
+                          setRefundOtpError('');
+                          showToast(`New code sent to ${res?.targetEmail || 'owner email'}`, 'info');
+                        } catch (err) {
+                          setRefundOtpError(err.message || 'Failed to resend code');
+                        } finally {
+                          setRefundOtpLoading(false);
+                        }
+                      }}
+                      className="text-xs font-bold text-brand hover:underline cursor-pointer disabled:opacity-50"
+                    >
+                      Resend Code
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-admin-border bg-admin-card/30">
+              <button
+                type="button"
+                onClick={() => setShowRefundOtpModal(false)}
                 className="w-full py-2.5 bg-admin-card border border-admin-border rounded-xl text-[14px] font-bold text-admin-text hover:bg-admin-surface-hover transition-all shadow-sm font-outfit cursor-pointer"
               >
                 Cancel

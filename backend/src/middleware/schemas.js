@@ -252,6 +252,11 @@ export const replyToReviewSchema = Joi.object({
 // ── Refund Schema ───────────────────────────────────────────────────────────
 
 export const refundOrderSchema = Joi.object({
+  otp: Joi.string().trim().length(6).required().messages({
+    'any.required': 'Owner authorization OTP is required to process refunds',
+    'string.length': 'Security authorization OTP must be exactly 6 digits'
+  }),
   amount: Joi.number().min(0.01).optional(),
-  reason: Joi.string().max(500).allow('', null).optional()
+  reason: Joi.string().max(500).allow('', null).optional(),
+  idempotencyKey: Joi.string().optional()
 });

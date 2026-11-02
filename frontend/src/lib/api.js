@@ -236,6 +236,7 @@ export const orderAPI = {
   getKotUrl: (id) => `${API_BASE_URL}/api/orders/${id}/kot`,
   // admin
   getAll: (params = '') => api.get(`/api/orders${params ? '?' + params : ''}`),
+  requestRefundOtp: (id) => api.post(`/api/orders/${id}/refund-otp`),
   refund: (id, data) => api.post(`/api/orders/${id}/refund`, data),
   // dev
   simulate: (id) => api.post(`/api/orders/${id}/simulate`),
