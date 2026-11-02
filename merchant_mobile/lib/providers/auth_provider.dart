@@ -9,11 +9,22 @@ class AuthProvider extends ChangeNotifier {
   String? _error;
   String? _token;
   Map<String, dynamic>? _user;
+  bool _requires2fa = false;
+  String? _tempToken;
 
   bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
   String? get error => _error;
   Map<String, dynamic>? get user => _user;
+  bool get requires2fa => _requires2fa;
+  String? get tempToken => _tempToken;
+
+  void reset2FA() {
+    _requires2fa = false;
+    _tempToken = null;
+    _error = null;
+    notifyListeners();
+  }
 
   Future<void> checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
@@ -73,6 +84,15 @@ class AuthProvider extends ChangeNotifier {
       });
 
       final decoded = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && decoded['requires2fa'] == true) {
+        _requires2fa = true;
+        _tempToken = decoded['tempToken'];
+        _isLoading = false;
+        _error = null;
+        notifyListeners();
+        return false;
+      }
 
       if (response.statusCode == 200 && decoded['success'] == true) {
         final token = decoded['token'];
@@ -227,6 +247,138 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return 'Unable to connect to the server. Please check your internet connection.';
+    }
+  }
+  Future<bool> verify2FA(String code, {bool rememberMe = true}) async {
+    if (_tempToken == null) {
+      _error = 'Session expired. Please log in again.';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.post('/api/auth/2fa/verify', {
+        'tempToken': _tempToken,
+        'token': code.trim(),
+        'rememberMe': rememberMe,
+      });
+
+      final decoded = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && decoded['success'] == true) {
+        final token = decoded['token'];
+        final user = decoded['user'];
+
+        if (user['role'] == 'admin' || user['role'] == 'merchant') {
+          if (user['restaurantId'] is Map) {
+            user['timezone'] = user['restaurantId']['timezone'];
+            user['restaurantId'] = user['restaurantId']['_id'] ?? user['restaurantId']['id'];
+          }
+
+          _token = token;
+          _user = user;
+          _isAuthenticated = true;
+          _requires2fa = false;
+          _tempToken = null;
+          ApiService.setAuthToken(token);
+
+          final prefs = await SharedPreferences.getInstance();
+          if (rememberMe) {
+            await prefs.setString('token', token);
+            await prefs.setString('user', jsonEncode(user));
+            if (user['restaurantId'] != null) {
+              await prefs.setString('restaurantId', user['restaurantId'].toString());
+            }
+            await prefs.setBool('rememberMe', true);
+          } else {
+            await prefs.remove('token');
+            await prefs.remove('user');
+            await prefs.remove('restaurantId');
+            await prefs.setBool('rememberMe', false);
+          }
+
+          _isLoading = false;
+          notifyListeners();
+          return true;
+        } else {
+          _error = 'Access Denied: This portal is for restaurant partners only.';
+          _isLoading = false;
+          notifyListeners();
+          return false;
+        }
+      } else {
+        _error = decoded['message'] ?? 'Invalid 2FA code';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } on HttpException catch (e) {
+      _error = e.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _error = e.toString().replaceAll('Exception: ', '').replaceAll('HttpException: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> generate2FA() async {
+    try {
+      final response = await ApiService.get('/api/auth/2fa/generate');
+      final decoded = jsonDecode(response.body);
+      return decoded['data'] ?? {};
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> enable2FA(String secret, String token) async {
+    try {
+      final response = await ApiService.post('/api/auth/2fa/enable', {
+        'secret': secret,
+        'token': token.trim(),
+      });
+      final decoded = jsonDecode(response.body);
+      if (response.statusCode == 200 && decoded['status'] == 'success') {
+        if (_user != null) {
+          _user!['isTwoFactorEnabled'] = true;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user', jsonEncode(_user));
+        }
+        notifyListeners();
+      } else {
+        throw Exception(decoded['message'] ?? 'Failed to enable 2FA');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> disable2FA(String token) async {
+    try {
+      final response = await ApiService.post('/api/auth/2fa/disable', {
+        'token': token.trim(),
+      });
+      final decoded = jsonDecode(response.body);
+      if (response.statusCode == 200 && decoded['status'] == 'success') {
+        if (_user != null) {
+          _user!['isTwoFactorEnabled'] = false;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user', jsonEncode(_user));
+        }
+        notifyListeners();
+      } else {
+        throw Exception(decoded['message'] ?? 'Failed to disable 2FA');
+      }
+    } catch (e) {
+      rethrow;
     }
   }
 }

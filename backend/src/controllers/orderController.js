@@ -2205,6 +2205,30 @@ export const refundOrder = asyncHandler(async (req, response) => {
     order.refundOtp.attempts = (order.refundOtp.attempts || 0) + 1;
     await order.save();
     const remaining = 4 - order.refundOtp.attempts;
+
+    logAuditEvent({
+      req,
+      restaurantId: order.restaurantId,
+      actorType: 'merchant',
+      actor: {
+        userId: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        role: req.user.role
+      },
+      event: 'REFUND_OTP_FAILED',
+      action: 'SECURITY_OTP_FAILED',
+      severity: 'critical',
+      message: `Failed refund authorization attempt for Order #${order.orderNumber}. Invalid OTP entered by ${req.user.email}. (${remaining} attempt(s) remaining)`,
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      metadata: {
+        enteredBy: req.user.email,
+        attempts: order.refundOtp.attempts,
+        remainingAttempts: remaining
+      }
+    }).catch(() => {});
+
     throw new AppError(`Invalid Security Authorization OTP. Refund blocked. (${remaining} attempt${remaining === 1 ? '' : 's'} remaining)`, 400);
   }
 

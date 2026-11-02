@@ -663,6 +663,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     String? maskedEmail = 'lassiloungellc@gmail.com';
     String? errorMessage;
 
+    final String refundAmountText = '\$${order.total.toStringAsFixed(2)}';
+    final String orderRefText = order.orderNumber.isNotEmpty
+        ? '#${order.orderNumber}'
+        : (order.id.length >= 6 ? '#${order.id.substring(order.id.length - 6)}' : '#${order.id}');
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -670,110 +675,313 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               elevation: 0,
               backgroundColor: Colors.transparent,
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 20,
-                      offset: Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.shield_outlined, color: Colors.red.shade700, size: 36),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 25,
+                        offset: Offset(0, 10),
                       ),
-                      const SizedBox(height: 18),
-                      Text(
-                        'Owner Security Authorization',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.outfit(
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E293B),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Issuing a refund of \${order.total.toStringAsFixed(2)} for Order #${order.orderNumber} requires a 6-digit OTP sent to the restaurant owner email.',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: const Color(0xFF64748B),
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      if (!otpSent) ...[
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            color: Colors.red.shade50,
+                            shape: BoxShape.circle,
                           ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.mark_email_read_outlined, size: 20, color: Color(0xFF64748B)),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Owner Email:\nlassiloungellc@gmail.com',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF334155),
+                          child: Icon(Icons.shield_outlined, color: Colors.red.shade700, size: 36),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          'Owner Security Authorization',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.outfit(
+                            fontSize: 19,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Issuing a refund of $refundAmountText for Order $orderRefText requires a 6-digit OTP sent to the restaurant owner email.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: const Color(0xFF64748B),
+                            height: 1.45,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        if (!otpSent) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.mark_email_read_outlined, size: 20, color: Color(0xFF64748B)),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Owner Email:\nlassiloungellc@gmail.com',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF334155),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (errorMessage != null) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            errorMessage!,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: Colors.red.shade700,
-                              fontWeight: FontWeight.w500,
+                              ],
                             ),
                           ),
-                        ],
-                        const SizedBox(height: 22),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: isRequestingOtp ? null : () => Navigator.of(ctx).pop(),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  side: BorderSide(color: Colors.grey.shade300),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          if (errorMessage != null) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              errorMessage!,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: Colors.red.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 22),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: isRequestingOtp
+                                  ? null
+                                  : () async {
+                                      setDialogState(() {
+                                        isRequestingOtp = true;
+                                        errorMessage = null;
+                                      });
+                                      try {
+                                        final res = await context.read<OrderProvider>().requestRefundOtp(order.id);
+                                        setDialogState(() {
+                                          otpSent = true;
+                                          isRequestingOtp = false;
+                                          maskedEmail = res['targetEmail'] ?? 'lassiloungellc@gmail.com';
+                                        });
+                                      } catch (e) {
+                                        setDialogState(() {
+                                          isRequestingOtp = false;
+                                          errorMessage = e.toString().replaceAll('Exception: ', '').replaceAll('HttpException: ', '');
+                                        });
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade700,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                              child: isRequestingOtp
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.send_rounded, size: 18),
+                                        const SizedBox(width: 8),
+                                        Text('Send Code', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 40,
+                            child: TextButton(
+                              onPressed: isRequestingOtp ? null : () => Navigator.of(ctx).pop(),
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF64748B),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: Text('Cancel', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600)),
+                            ),
+                          ),
+                        ] else ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.green.shade200),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.check_circle_outline, size: 16, color: Colors.green.shade700),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    'Code sent to $maskedEmail',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.green.shade800,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                                child: Text('Cancel', style: GoogleFonts.inter(color: Colors.grey.shade700)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFFCBD5E1), width: 1.5),
+                            ),
+                            child: Center(
+                              child: TextField(
+                                controller: otpController,
+                                keyboardType: TextInputType.number,
+                                textAlign: TextAlign.center,
+                                maxLength: 6,
+                                autofocus: true,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(6),
+                                ],
+                                style: GoogleFonts.robotoMono(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 10,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                                decoration: const InputDecoration(
+                                  counterText: '',
+                                  hintText: '••••••',
+                                  hintStyle: TextStyle(color: Color(0xFF94A3B8), letterSpacing: 8),
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: isRequestingOtp
+                          ),
+                          if (errorMessage != null) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                errorMessage!,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: Colors.red.shade700,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 18),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: isVerifying
+                                  ? null
+                                  : () async {
+                                      final code = otpController.text.trim();
+                                      if (code.length != 6) {
+                                        setDialogState(() {
+                                          errorMessage = 'Please enter all 6 digits';
+                                        });
+                                        return;
+                                      }
+                                      setDialogState(() {
+                                        isVerifying = true;
+                                        errorMessage = null;
+                                      });
+                                      try {
+                                        await context.read<OrderProvider>().refundOrder(order.id, otp: code);
+                                        if (mounted) {
+                                          Navigator.of(ctx).pop();
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Refund of $refundAmountText processed successfully!'),
+                                              backgroundColor: Colors.green.shade700,
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        setDialogState(() {
+                                          isVerifying = false;
+                                          errorMessage = e.toString().replaceAll('Exception: ', '').replaceAll('HttpException: ', '');
+                                        });
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade700,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                              child: isVerifying
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.shield_rounded, size: 18),
+                                        const SizedBox(width: 8),
+                                        FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            'Authorize Refund ($refundAmountText)',
+                                            style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              TextButton(
+                                onPressed: isVerifying ? null : () => Navigator.of(ctx).pop(),
+                                child: Text('Cancel', style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), fontWeight: FontWeight.w600)),
+                              ),
+                              TextButton.icon(
+                                onPressed: (isRequestingOtp || isVerifying)
                                     ? null
                                     : () async {
                                         setDialogState(() {
@@ -783,9 +991,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                         try {
                                           final res = await context.read<OrderProvider>().requestRefundOtp(order.id);
                                           setDialogState(() {
-                                            otpSent = true;
                                             isRequestingOtp = false;
-                                            maskedEmail = res['targetEmail'] ?? 'lassiloungellc@gmail.com';
+                                            errorMessage = 'New code sent to ${res['targetEmail'] ?? 'owner email'}';
                                           });
                                         } catch (e) {
                                           setDialogState(() {
@@ -794,204 +1001,17 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                           });
                                         }
                                       },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red.shade700,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                child: isRequestingOtp
-                                    ? const SizedBox(
-                                        height: 18,
-                                        width: 18,
-                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                      )
-                                    : Text(
-                                        'Send Code',
-                                        style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                                      ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ] else ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.green.shade200),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.check_circle_outline, size: 16, color: Colors.green.shade700),
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
-                                  'Code sent to $maskedEmail',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.green.shade800,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
+                                icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF2563EB)),
+                                label: Text(
+                                  'Resend Code',
+                                  style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF2563EB), fontWeight: FontWeight.w700),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: otpController,
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          maxLength: 6,
-                          autofocus: true,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(6),
-                          ],
-                          style: GoogleFonts.robotoMono(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 10,
-                            color: const Color(0xFF1E293B),
-                          ),
-                          decoration: InputDecoration(
-                            counterText: '',
-                            hintText: '••••••',
-                            hintStyle: TextStyle(color: Colors.grey.shade400, letterSpacing: 8),
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.red.shade700, width: 2),
-                            ),
-                          ),
-                        ),
-                        if (errorMessage != null) ...[
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              errorMessage!,
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: Colors.red.shade700,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
                         ],
-                        const SizedBox(height: 18),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: isVerifying ? null : () => Navigator.of(ctx).pop(),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  side: BorderSide(color: Colors.grey.shade300),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                child: Text('Cancel', style: GoogleFonts.inter(color: Colors.grey.shade700)),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: isVerifying
-                                    ? null
-                                    : () async {
-                                        final code = otpController.text.trim();
-                                        if (code.length != 6) {
-                                          setDialogState(() {
-                                            errorMessage = 'Please enter the 6-digit code';
-                                          });
-                                          return;
-                                        }
-                                        setDialogState(() {
-                                          isVerifying = true;
-                                          errorMessage = null;
-                                        });
-                                        try {
-                                          await context.read<OrderProvider>().refundOrder(order.id, otp: code);
-                                          if (mounted) {
-                                            Navigator.of(ctx).pop();
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text('Refund of \${order.total.toStringAsFixed(2)} processed successfully!'),
-                                                backgroundColor: Colors.green.shade700,
-                                              ),
-                                            );
-                                          }
-                                        } catch (e) {
-                                          setDialogState(() {
-                                            isVerifying = false;
-                                            errorMessage = e.toString().replaceAll('Exception: ', '').replaceAll('HttpException: ', '');
-                                          });
-                                        }
-                                      },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red.shade700,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                child: isVerifying
-                                    ? const SizedBox(
-                                        height: 18,
-                                        width: 18,
-                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                      )
-                                    : Text(
-                                        'Authorize Refund',
-                                        style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                                      ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: (isRequestingOtp || isVerifying)
-                              ? null
-                              : () async {
-                                  setDialogState(() {
-                                    isRequestingOtp = true;
-                                    errorMessage = null;
-                                  });
-                                  try {
-                                    final res = await context.read<OrderProvider>().requestRefundOtp(order.id);
-                                    setDialogState(() {
-                                      isRequestingOtp = false;
-                                      errorMessage = 'New code sent to ${res['targetEmail'] ?? 'owner email'}';
-                                    });
-                                  } catch (e) {
-                                    setDialogState(() {
-                                      isRequestingOtp = false;
-                                      errorMessage = e.toString().replaceAll('Exception: ', '').replaceAll('HttpException: ', '');
-                                    });
-                                  }
-                                },
-                          child: Text(
-                            'Resend Code',
-                            style: GoogleFonts.inter(fontSize: 12, color: Colors.blue.shade700, fontWeight: FontWeight.w600),
-                          ),
-                        ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -1001,7 +1021,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       },
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<OrderProvider>();

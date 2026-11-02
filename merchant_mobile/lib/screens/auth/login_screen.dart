@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,6 +18,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _twoFactorController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberMe = true;
 
@@ -37,7 +39,27 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _twoFactorController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handle2FAVerify() async {
+    FocusScope.of(context).unfocus();
+    final code = _twoFactorController.text.trim();
+    if (code.length != 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter the 6-digit code from your authenticator app')),
+      );
+      return;
+    }
+
+    final authProvider = context.read<AuthProvider>();
+    final success = await authProvider.verify2FA(code, rememberMe: _rememberMe);
+
+    if (success && mounted) {
+      LocationService().requestStartupLocationPermission();
+      context.go('/');
+    }
   }
 
   Future<void> _handleLogin() async {
@@ -139,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                           // Header Titles
                           Text(
-                            'Admin Login',
+                            authProvider.requires2fa ? 'Two-Factor Verification' : 'Admin Login',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.inter(
                               fontSize: 24,
@@ -152,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 28.0),
                             child: Text(
-                              'Welcome back! Please sign in to access\nyour Lassi Lounge admin panel.',
+                              authProvider.requires2fa ? 'Enter the 6-digit code from your authenticator app\nto complete secure sign in.' : 'Welcome back! Please sign in to access\nyour Lassi Lounge admin panel.',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.inter(
                                 fontSize: 13,
@@ -170,7 +192,138 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                // Email Address Label
+                                if (authProvider.requires2fa) ...[
+                                  Center(
+                                    child: Container(
+                                      width: 58,
+                                      height: 58,
+                                      decoration: const BoxDecoration(
+                                        color: badgeBg,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.shield_outlined, color: primaryCrimson, size: 30),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  Text(
+                                    '6-Digit Authenticator Code',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: darkNavy,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: borderGray, width: 1.5),
+                                    ),
+                                    child: Center(
+                                      child: TextField(
+                                        controller: _twoFactorController,
+                                        keyboardType: TextInputType.number,
+                                        textAlign: TextAlign.center,
+                                        maxLength: 6,
+                                        autofocus: true,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.digitsOnly,
+                                          LengthLimitingTextInputFormatter(6),
+                                        ],
+                                        style: GoogleFonts.robotoMono(
+                                          fontSize: 26,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 10,
+                                          color: darkNavy,
+                                        ),
+                                        decoration: const InputDecoration(
+                                          counterText: '',
+                                          hintText: '••••••',
+                                          hintStyle: TextStyle(color: hintGray, letterSpacing: 8),
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
+                                        onSubmitted: (_) => _handle2FAVerify(),
+                                      ),
+                                    ),
+                                  ),
+                                  if (authProvider.error != null) ...[
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 16),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            authProvider.error!,
+                                            style: GoogleFonts.inter(
+                                              color: const Color(0xFFDC2626),
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                  const SizedBox(height: 22),
+                                  Container(
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(14),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: primaryCrimson.withValues(alpha: 0.28),
+                                          blurRadius: 16,
+                                          offset: const Offset(0, 5),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: authProvider.isLoading ? null : _handle2FAVerify,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: primaryCrimson,
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      ),
+                                      child: authProvider.isLoading
+                                          ? const SizedBox(
+                                              height: 20,
+                                              width: 20,
+                                              child: CircularProgressIndicator(strokeWidth: 2.2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                                            )
+                                          : Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  'Verify & Sign In',
+                                                  style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                const Icon(Icons.check_rounded, size: 18, color: Colors.white),
+                                              ],
+                                            ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Center(
+                                    child: TextButton.icon(
+                                      onPressed: () {
+                                        authProvider.reset2FA();
+                                        _twoFactorController.clear();
+                                      },
+                                      icon: const Icon(Icons.arrow_back_rounded, size: 16, color: slateSub),
+                                      label: Text(
+                                        'Back to Login',
+                                        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: slateSub),
+                                      ),
+                                    ),
+                                  ),
+                                ] else ...[
+                                  // Email Address Label
                                 Text(
                                   'Email Address',
                                   style: GoogleFonts.inter(
@@ -536,7 +689,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ],
                                 ),
                               ],
-                            ),
+                            ],
+                          ),
                           ),
 
                           const SizedBox(height: 15),

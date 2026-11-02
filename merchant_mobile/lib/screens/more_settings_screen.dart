@@ -159,10 +159,11 @@ class MoreSettingsScreen extends StatelessWidget {
                       ),
                       _buildGridItem(
                         context, 
-                        'Security & Activity Logs', 
+                        'Security & 2FA', 
                         Icons.shield_outlined, 
                         const Color(0xFF6366F1), 
                         const Color(0xFFEEF2FF),
+                        onTap: () => context.push('/security-2fa'),
                       ),
                       _buildGridItem(
                         context, 

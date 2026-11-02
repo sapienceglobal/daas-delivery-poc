@@ -29,6 +29,7 @@ import 'screens/loyalty_rewards_screen.dart';
 import 'screens/referral_management_screen.dart';
 import 'screens/marketing_screen.dart';
 import 'screens/support_messages_screen.dart';
+import 'screens/security_2fa_screen.dart';
 
 import 'services/socket_service.dart';
 import 'services/push_notification_service.dart';
@@ -367,6 +368,10 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/support-messages',
       builder: (context, state) => const SupportMessagesScreen(),
+    ),
+    GoRoute(
+      path: '/security-2fa',
+      builder: (context, state) => const Security2FAScreen(),
     ),
   ],
 );

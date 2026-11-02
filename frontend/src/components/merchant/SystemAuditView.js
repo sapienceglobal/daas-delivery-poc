@@ -178,6 +178,20 @@ export default function SystemAuditView({ onSelectOrder }) {
   // Helper to render action badge
   const renderActionBadge = (event) => {
     const ev = (event || '').toUpperCase();
+    if (ev.includes('OTP_FAILED') || ev.includes('OTP_INVALID') || ev.includes('OTP_BLOCKED')) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30">
+          <ShieldAlert className="w-3 h-3 text-rose-600" /> Invalid Refund OTP
+        </span>
+      );
+    }
+    if (ev.includes('OTP')) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-800 border border-amber-500/30">
+          <ShieldCheck className="w-3 h-3 text-amber-600" /> Refund OTP Requested
+        </span>
+      );
+    }
     if (ev.includes('REMAKE')) {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-800 border border-amber-500/30">
