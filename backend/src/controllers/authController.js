@@ -907,13 +907,13 @@ export const saveFcmToken = asyncHandler(async (req, response) => {
     user.fcmTokens = [];
   }
 
-  if (!user.fcmTokens.includes(fcmToken)) {
-    user.fcmTokens.push(fcmToken);
-    if (user.fcmTokens.length > 10) {
-      user.fcmTokens = user.fcmTokens.slice(-10);
-    }
-    await user.save();
+  // Always move active token to the end (MRU order) so frequently used devices are never evicted
+  user.fcmTokens = user.fcmTokens.filter(t => t !== fcmToken);
+  user.fcmTokens.push(fcmToken);
+  if (user.fcmTokens.length > 20) {
+    user.fcmTokens = user.fcmTokens.slice(-20);
   }
+  await user.save();
 
   res.success(response, { message: 'FCM token saved successfully' });
 });

@@ -45,6 +45,7 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   const [mounted, setMounted] = useState(false);
   const [isRefunding, setIsRefunding] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
   const [isRemakingOrder, setIsRemakingOrder] = useState(false);
   const [isSendingInvoice, setIsSendingInvoice] = useState(false);
   const [paymentAudit, setPaymentAudit] = useState(null);
@@ -193,6 +194,32 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
     });
   };
 
+  const handleManualComplete = async () => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Manual Complete Order',
+      message: 'Are you sure you want to manually mark this order as completed?',
+      onConfirm: async () => {
+        setIsCompleting(true);
+        try {
+          if (onUpdateStatus) {
+            await onUpdateStatus(order._id, 'completed');
+          } else {
+            await orderAPI.updateStatus(order._id, 'completed');
+          }
+          showToast('Order manually marked as completed', 'success');
+          await fetchFreshOrder();
+          setPaymentAudit(null);
+          if (onRefresh) onRefresh();
+        } catch (err) {
+          showToast(err.message || 'Failed to complete order', 'error');
+        } finally {
+          setIsCompleting(false);
+        }
+      }
+    });
+  };
+
   const handleRemake = () => {
     setRemakeReason('Customer Complaint');
     setCustomReason('');
@@ -328,9 +355,20 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
   const nextStatusInfo = getNextStatusInfo();
 
   const handleStatusProgression = async () => {
-    if (!nextStatusInfo || !nextStatusInfo.next || !onUpdateStatus) return;
+    if (!nextStatusInfo || !nextStatusInfo.next) return;
     try {
-      await onUpdateStatus(order._id, nextStatusInfo.next);
+      if (nextStatusInfo.next === 'accepted') {
+        try {
+          await orderAPI.accept(order._id);
+        } catch (e) {
+          if (onUpdateStatus) await onUpdateStatus(order._id, 'accepted');
+          else throw e;
+        }
+      } else if (onUpdateStatus) {
+        await onUpdateStatus(order._id, nextStatusInfo.next);
+      } else {
+        await orderAPI.updateStatus(order._id, nextStatusInfo.next);
+      }
       await fetchFreshOrder();
       if (onRefresh) onRefresh();
     } catch (err) {
@@ -954,14 +992,36 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 <span className="text-[14px] font-bold text-[#166534]">{nextStatusInfo.label}</span>
               </div>
             ) : (
-              <button
-                onClick={handleStatusProgression}
-                className="w-full py-3.5 rounded-xl text-white font-bold text-[14px] flex items-center justify-center gap-2.5 shadow-md hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: nextStatusInfo.color }}
-              >
-                {React.createElement(nextStatusInfo.icon, { className: 'w-5 h-5' })}
-                {nextStatusInfo.label}
-              </button>
+              <div className="flex flex-col gap-2.5">
+                <button
+                  onClick={handleStatusProgression}
+                  className="w-full py-3.5 rounded-xl text-white font-bold text-[14px] flex items-center justify-center gap-2.5 shadow-md hover:opacity-90 transition-opacity cursor-pointer"
+                  style={{ backgroundColor: nextStatusInfo.color }}
+                >
+                  {React.createElement(nextStatusInfo.icon, { className: 'w-5 h-5' })}
+                  {nextStatusInfo.label}
+                </button>
+                {['pending', 'new'].includes(oStatus) && (
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      onClick={handleManualComplete}
+                      disabled={isCompleting}
+                      className="w-full py-2.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl hover:bg-emerald-500/20 transition-all text-[13px] flex items-center justify-center gap-1.5 shadow-sm font-outfit cursor-pointer disabled:opacity-50"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>{isCompleting ? 'Completing...' : 'Manual Complete'}</span>
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      disabled={isCancelling}
+                      className="w-full py-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-500 font-bold rounded-xl hover:bg-rose-500/20 transition-all text-[13px] flex items-center justify-center gap-1.5 shadow-sm font-outfit cursor-pointer disabled:opacity-50"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      <span>{isCancelling ? 'Cancelling...' : 'Manual Cancel'}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             )
           )}
 
@@ -1031,15 +1091,38 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                 {isRefunding ? 'Refunding...' : (isRefunded ? 'Refunded' : 'Refund')}
               </button>
 
-              <button onClick={handleCancel} disabled={isCancelling || !canCancel}
-                className={`col-span-2 border rounded-xl py-3 flex items-center justify-center gap-2 font-bold text-[13px] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${!canCancel && !isCancelling ? 'border-admin-border bg-admin-card/50 text-admin-text-secondary/50' : 'border-rose-500/30 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20'}`}>
-                {isCancelling ? (
-                  <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <XCircle className="w-4 h-4" />
-                )}
-                {isCancelling ? 'Cancelling…' : 'Cancel Order'}
-              </button>
+              {['pending', 'new'].includes(oStatus) ? (
+                <>
+                  <button onClick={handleManualComplete} disabled={isCompleting}
+                    className="border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl py-3 flex items-center justify-center gap-2 hover:bg-emerald-500/20 transition-all font-bold text-[13px] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-outfit cursor-pointer">
+                    {isCompleting ? (
+                      <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4" />
+                    )}
+                    {isCompleting ? 'Completing…' : 'Manual Complete'}
+                  </button>
+                  <button onClick={handleCancel} disabled={isCancelling || !canCancel}
+                    className="border border-rose-500/30 bg-rose-500/10 text-rose-500 rounded-xl py-3 flex items-center justify-center gap-2 hover:bg-rose-500/20 transition-all font-bold text-[13px] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-outfit cursor-pointer">
+                    {isCancelling ? (
+                      <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <XCircle className="w-4 h-4" />
+                    )}
+                    {isCancelling ? 'Cancelling…' : 'Manual Cancel'}
+                  </button>
+                </>
+              ) : (
+                <button onClick={handleCancel} disabled={isCancelling || !canCancel}
+                  className={`col-span-2 border rounded-xl py-3 flex items-center justify-center gap-2 font-bold text-[13px] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${!canCancel && !isCancelling ? 'border-admin-border bg-admin-card/50 text-admin-text-secondary/50' : 'border-rose-500/30 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20'}`}>
+                  {isCancelling ? (
+                    <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <XCircle className="w-4 h-4" />
+                  )}
+                  {isCancelling ? 'Cancelling…' : 'Cancel Order'}
+                </button>
+              )}
             </div>
           </div>
 

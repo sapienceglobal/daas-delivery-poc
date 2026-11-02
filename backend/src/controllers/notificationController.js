@@ -127,7 +127,7 @@ export const createNotification = async (userId, title, body, type = 'system', a
 
         const isNewOrder = type === 'new_order';
         const soundName = (isMerchantUser && isNewOrder) ? 'new_order_sound' : 'default';
-        const channelIdName = isMerchantUser ? 'merchant_orders_channel_v3' : 'customer_alerts_channel_v2';
+        const channelIdName = isMerchantUser ? 'merchant_orders_channel_v4' : 'customer_alerts_channel_v2';
 
         // For merchant new_order, omit the top-level 'notification' block to avoid duplicate alerts.
         // Android OS renders the top-level 'notification' block natively, while the merchant mobile app's
@@ -180,10 +180,28 @@ export const createNotification = async (userId, title, body, type = 'system', a
         
         const { getMessaging } = await import('firebase-admin/messaging');
         getMessaging(firebaseApp).sendEachForMulticast(message)
-          .then(response => {
+          .then(async (response) => {
             if (response.failureCount > 0) {
               logger.warn(`FCM partial failure: ${response.failureCount} failed out of ${user.fcmTokens.length} tokens.`);
-              // in production, we should remove unregistered tokens from user.fcmTokens here.
+              const deadTokens = [];
+              response.responses.forEach((resp, idx) => {
+                if (!resp.success && resp.error?.code && [
+                  'messaging/registration-token-not-registered',
+                  'messaging/invalid-registration-token',
+                  'messaging/invalid-argument'
+                ].includes(resp.error.code)) {
+                  deadTokens.push(user.fcmTokens[idx]);
+                }
+              });
+              if (deadTokens.length > 0) {
+                try {
+                  await UserModel.updateOne(
+                    { _id: userId },
+                    { $pull: { fcmTokens: { $in: deadTokens } } }
+                  );
+                  logger.info(`Pruned ${deadTokens.length} stale FCM token(s) for user ${userId}`);
+                } catch (_) {}
+              }
             } else {
               logger.info(`Successfully sent FCM push to user ${userId}`);
             }

@@ -12,7 +12,7 @@ import { createPortal } from 'react-dom';
 import { QrCode, CreditCard } from 'lucide-react';
 import PaymentSimulatorModal from '@/components/checkout/PaymentSimulatorModal';
 import { api } from '@/lib/api';
-import { showToast } from '@/components/ui';
+import { showToast, ConfirmModal } from '@/components/ui';
 import DispatchControl from '@/components/merchant/DispatchControl';
 
 export default function LiveOrdersView({ 
@@ -30,6 +30,35 @@ export default function LiveOrdersView({
   const [qrModalOrder, setQrModalOrder] = useState(null);
   const [stripeModalOrder, setStripeModalOrder] = useState(null);
   const [modalTimeLeft, setModalTimeLeft] = useState(0);
+  const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+
+  const confirmManualComplete = (order) => {
+    const orderNum = order.orderNumber || order._id?.toString().slice(-6).toUpperCase();
+    setConfirmConfig({
+      isOpen: true,
+      title: `Manual Complete Order #${orderNum}`,
+      message: 'Are you sure you want to manually mark this order as completed?',
+      onConfirm: async () => {
+        if (onUpdateStatus) await onUpdateStatus(order._id, 'completed');
+      }
+    });
+  };
+
+  const confirmManualCancel = (order) => {
+    const orderNum = order.orderNumber || order._id?.toString().slice(-6).toUpperCase();
+    setConfirmConfig({
+      isOpen: true,
+      title: `Manual Cancel Order #${orderNum}`,
+      message: 'Are you sure you want to manually cancel this order? If paid, an auto-refund will be initiated.',
+      onConfirm: async () => {
+        if (onUpdateStatus) {
+          await onUpdateStatus(order._id, 'cancelled');
+        } else if (onRejectOrder) {
+          await onRejectOrder(order._id);
+        }
+      }
+    });
+  };
 
   useEffect(() => {
     let interval;
@@ -299,12 +328,18 @@ export default function LiveOrdersView({
                     >
                       <CreditCard className="w-3.5 h-3.5" /> Charge Card (Stripe)
                     </button>
-                    <button onClick={() => onRejectOrder && onRejectOrder(order._id)} className="w-full bg-admin-surface border border-rose-500/30 text-rose-500 text-xs font-bold py-2 rounded-xl hover:bg-rose-500/10 transition-colors mt-1 cursor-pointer">Cancel Order</button>
+                    <div className="grid grid-cols-2 gap-2 w-full mt-1">
+                      <button onClick={() => confirmManualComplete(order)} className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold py-2 rounded-xl hover:bg-emerald-500/20 transition-colors cursor-pointer">Manual Complete</button>
+                      <button onClick={() => confirmManualCancel(order)} className="w-full bg-admin-surface border border-rose-500/30 text-rose-500 text-xs font-bold py-2 rounded-xl hover:bg-rose-500/10 transition-colors cursor-pointer">Manual Cancel</button>
+                    </div>
                   </>
                 ) : (
-                  <div className="flex gap-2 w-full">
-                    <button onClick={() => onAcceptOrder && onAcceptOrder(order._id)} className={`w-full text-white text-xs font-bold py-2 rounded-xl transition-all shadow-sm cursor-pointer ${col.theme.buttonBg} ${col.theme.buttonHover}`}>Accept</button>
-                    <button onClick={() => onRejectOrder && onRejectOrder(order._id)} className="w-full bg-admin-surface border border-rose-500/30 text-rose-500 text-xs font-bold py-2 rounded-xl hover:bg-rose-500/10 transition-colors cursor-pointer">Reject</button>
+                  <div className="flex flex-col gap-2 w-full">
+                    <button onClick={() => onAcceptOrder && onAcceptOrder(order._id)} className={`w-full text-white text-xs font-bold py-2.5 rounded-xl transition-all shadow-sm cursor-pointer ${col.theme.buttonBg} ${col.theme.buttonHover}`}>Accept Order</button>
+                    <div className="grid grid-cols-2 gap-2 w-full">
+                      <button onClick={() => confirmManualComplete(order)} className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold py-2 rounded-xl hover:bg-emerald-500/20 transition-colors cursor-pointer">Manual Complete</button>
+                      <button onClick={() => confirmManualCancel(order)} className="w-full bg-admin-surface border border-rose-500/30 text-rose-500 text-xs font-bold py-2 rounded-xl hover:bg-rose-500/10 transition-colors cursor-pointer">Manual Cancel</button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -570,8 +605,8 @@ export default function LiveOrdersView({
               <button onClick={() => onViewAll && onViewAll('all-orders')} className="text-xs font-bold text-brand hover:underline cursor-pointer">View All</button>
             </div>
             <div className="space-y-3">
-              {orders.filter(o => ['delivered', 'completed'].includes(o.status?.toLowerCase())).length > 0 ? (
-                orders.filter(o => ['delivered', 'completed'].includes(o.status?.toLowerCase()))
+              {orders.filter(o => ['delivered', 'completed'].includes(o.status?.toLowerCase()) || (o.status?.toLowerCase() === 'picked_up' && o.orderType !== 'delivery')).length > 0 ? (
+                orders.filter(o => ['delivered', 'completed'].includes(o.status?.toLowerCase()) || (o.status?.toLowerCase() === 'picked_up' && o.orderType !== 'delivery'))
                   .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
                   .slice(0, 5).map((order, idx) => (
                   <div key={order._id || idx} className="flex justify-between items-start border-b border-admin-border/50 pb-3 last:border-0 last:pb-0">
@@ -717,6 +752,11 @@ export default function LiveOrdersView({
           }}
         />
       )}
+
+      <ConfirmModal
+        {...confirmConfig}
+        onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+      />
     </>
   );
 }

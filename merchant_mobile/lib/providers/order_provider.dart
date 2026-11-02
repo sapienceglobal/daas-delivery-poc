@@ -6,6 +6,7 @@ import '../models/order_model.dart';
 import '../services/api_service.dart';
 import '../services/socket_service.dart';
 import '../services/server_clock.dart';
+import '../services/push_notification_service.dart';
 
 class OrderProvider extends ChangeNotifier {
   final SocketService socketService;
@@ -371,7 +372,52 @@ class OrderProvider extends ChangeNotifier {
        }
     }
 
-    socketService.on('new_order', handleUpdate);
+    socketService.on('new_order', (data) {
+      handleUpdate(data);
+      try {
+        Map<String, dynamic> payload;
+        if (data is String) {
+          payload = jsonDecode(data);
+        } else if (data is Map) {
+          payload = Map<String, dynamic>.from(data);
+        } else if (data is List && data.isNotEmpty) {
+          payload = data.first is String
+              ? jsonDecode(data.first)
+              : Map<String, dynamic>.from(data.first);
+        } else {
+          return;
+        }
+        final orderData = payload['order'] ?? payload;
+        if (orderData is Map) {
+          final orderId = (orderData['_id'] ?? orderData['orderId'] ?? payload['orderId'])?.toString();
+          final orderNumber = orderData['orderNumber']?.toString() ?? '';
+          final total = orderData['total'];
+          if (orderId != null && orderId.isNotEmpty) {
+            // Show immediate in-app toast banner for admin on any screen
+            PushNotificationService.showInAppOrderBanner(
+              orderId: orderId,
+              orderNumber: orderNumber,
+              total: total?.toString(),
+            );
+
+            // Fallback alert after 2s if FCM was delayed/throttled while app is in foreground
+            Future.delayed(const Duration(seconds: 2), () {
+              PushNotificationService.showRichNotificationFromData({
+                'type': 'new_order',
+                'orderId': orderId,
+                'actionUrl': '/orders/$orderId',
+                'title': 'New Order Request 🛎️',
+                'body': orderNumber.isNotEmpty
+                    ? 'New order #$orderNumber received!${total != null ? ' Total: \$$total' : ''}'
+                    : 'A new order has been placed!',
+              });
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('Socket new_order alert fallback error: $e');
+      }
+    });
     socketService.on('order_updated', handleUpdate);
     socketService.on('order_status_changed', handleUpdate);
     socketService.on('order:dispatch-updated', (data) {

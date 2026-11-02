@@ -107,34 +107,82 @@ class WelcomeBannerText extends StatelessWidget {
   void _showTimeframeSheet(BuildContext parentContext) {
     showModalBottomSheet(
       context: parentContext,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (BuildContext sheetContext) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Select Timeframe',
-                style: GoogleFonts.inter(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            top: false,
+            bottom: true,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(sheetContext).size.height * 0.85,
+              ),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 4.5,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Select Timeframe',
+                          style: GoogleFonts.inter(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.close,
+                            size: 20,
+                            color: Color(0xFF64748B),
+                          ),
+                          onPressed: () => Navigator.pop(sheetContext),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    const SizedBox(height: 8),
+                    _buildTimeframeOption(sheetContext, 'Today', 1),
+                    _buildSpecialTimeframeOption(
+                      sheetContext,
+                      'Yesterday',
+                      'yesterday',
+                    ),
+                    _buildTimeframeOption(sheetContext, 'Last 7 Days', 7),
+                    _buildTimeframeOption(sheetContext, 'Last 30 Days', 30),
+                    _buildTimeframeOption(sheetContext, 'Last 90 Days', 90),
+                    _buildTimeframeOption(sheetContext, 'Last 365 Days', 365),
+                    _buildCustomTimeframeOption(sheetContext, parentContext),
+                    const SizedBox(height: 16),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              _buildTimeframeOption(sheetContext, 'Today', 1),
-              _buildSpecialTimeframeOption(sheetContext, 'Yesterday', 'yesterday'),
-              _buildTimeframeOption(sheetContext, 'Last 7 Days', 7),
-              _buildTimeframeOption(sheetContext, 'Last 30 Days', 30),
-              _buildTimeframeOption(sheetContext, 'Last 90 Days', 90),
-              _buildTimeframeOption(sheetContext, 'Last 365 Days', 365),
-              _buildCustomTimeframeOption(sheetContext, parentContext),
-            ],
+            ),
           ),
         );
       },
@@ -143,10 +191,12 @@ class WelcomeBannerText extends StatelessWidget {
 
   Widget _buildTimeframeOption(BuildContext context, String label, int days) {
     final provider = context.watch<AnalyticsProvider>();
-    final isSelected = provider.specialTimeframe == null && provider.selectedDays == days;
+    final isSelected =
+        provider.specialTimeframe == null && provider.selectedDays == days;
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
+      dense: true,
       title: Text(
         label,
         style: GoogleFonts.inter(
@@ -155,23 +205,33 @@ class WelcomeBannerText extends StatelessWidget {
           color: isSelected ? const Color(0xFFFF5722) : AppColors.textPrimary,
         ),
       ),
-      trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFFFF5722)) : null,
+      trailing: isSelected
+          ? const Icon(Icons.check_circle, color: Color(0xFFFF5722))
+          : null,
       onTap: () {
         final auth = context.read<AuthProvider>();
         if (auth.user?['restaurantId'] != null) {
-          context.read<AnalyticsProvider>().setSelectedDays(days, auth.user!['restaurantId']);
+          context.read<AnalyticsProvider>().setSelectedDays(
+            days,
+            auth.user!['restaurantId'],
+          );
         }
         Navigator.pop(context);
       },
     );
   }
 
-  Widget _buildSpecialTimeframeOption(BuildContext context, String label, String specialType) {
+  Widget _buildSpecialTimeframeOption(
+    BuildContext context,
+    String label,
+    String specialType,
+  ) {
     final provider = context.watch<AnalyticsProvider>();
     final isSelected = provider.specialTimeframe == specialType;
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
+      dense: true,
       title: Text(
         label,
         style: GoogleFonts.inter(
@@ -180,23 +240,32 @@ class WelcomeBannerText extends StatelessWidget {
           color: isSelected ? const Color(0xFFFF5722) : AppColors.textPrimary,
         ),
       ),
-      trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFFFF5722)) : null,
+      trailing: isSelected
+          ? const Icon(Icons.check_circle, color: Color(0xFFFF5722))
+          : null,
       onTap: () {
         final auth = context.read<AuthProvider>();
         if (auth.user?['restaurantId'] != null) {
-          context.read<AnalyticsProvider>().setSpecialTimeframe(specialType, auth.user!['restaurantId']);
+          context.read<AnalyticsProvider>().setSpecialTimeframe(
+            specialType,
+            auth.user!['restaurantId'],
+          );
         }
         Navigator.pop(context);
       },
     );
   }
 
-  Widget _buildCustomTimeframeOption(BuildContext sheetContext, BuildContext parentContext) {
+  Widget _buildCustomTimeframeOption(
+    BuildContext sheetContext,
+    BuildContext parentContext,
+  ) {
     final provider = sheetContext.watch<AnalyticsProvider>();
     final isSelected = provider.specialTimeframe == 'custom';
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
+      dense: true,
       title: Text(
         'Custom Date Range',
         style: GoogleFonts.inter(

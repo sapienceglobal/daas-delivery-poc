@@ -600,6 +600,40 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 
+  void _confirmComplete(OrderModel order) {
+    _showPremiumDialog(
+      title: 'Manual Complete Order',
+      subtitle:
+          'Are you sure you want to manually mark this order as completed?',
+      icon: Icons.check_circle_outline,
+      iconColor: Colors.green,
+      confirmText: 'Yes, Complete',
+      onConfirm: () async {
+        setState(() => _isLoadingAction = true);
+        try {
+          await context.read<OrderProvider>().updateOrderStatus(
+            order.id,
+            'completed',
+          );
+          if (mounted)
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Order Manually Completed'),
+                backgroundColor: Colors.green,
+              ),
+            );
+        } catch (e) {
+          if (mounted)
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        } finally {
+          if (mounted) setState(() => _isLoadingAction = false);
+        }
+      },
+    );
+  }
+
   void _confirmRefund(OrderModel order) {
     if (order.refunded) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1117,13 +1151,41 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Opacity(
-                                  opacity: isTerminal ? 0.4 : 1.0,
+                          if (['pending', 'new'].contains(
+                            order.status.toLowerCase(),
+                          ))
+                            Row(
+                              children: [
+                                Expanded(
                                   child: OutlinedButton.icon(
-                                    onPressed: isTerminal
+                                    onPressed: _isLoadingAction
+                                        ? null
+                                        : () => _confirmComplete(order),
+                                    icon: Icon(
+                                      Icons.check_circle_outline,
+                                      size: 16,
+                                      color: Colors.green.shade700,
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(
+                                        color: Colors.green.shade200,
+                                      ),
+                                      backgroundColor: Colors.green.shade50,
+                                    ),
+                                    label: Text(
+                                      'Manual Complete',
+                                      style: GoogleFonts.inter(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        color: Colors.green.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: _isLoadingAction
                                         ? null
                                         : () => _confirmCancel(order),
                                     icon: const Icon(
@@ -1138,17 +1200,50 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                       backgroundColor: Colors.red.shade50,
                                     ),
                                     label: Text(
-                                      'Cancel',
+                                      'Manual Cancel',
                                       style: GoogleFonts.inter(
                                         fontWeight: FontWeight.bold,
+                                        fontSize: 12,
                                         color: Colors.red.shade700,
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            )
+                          else
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Opacity(
+                                    opacity: isTerminal ? 0.4 : 1.0,
+                                    child: OutlinedButton.icon(
+                                      onPressed: isTerminal
+                                          ? null
+                                          : () => _confirmCancel(order),
+                                      icon: const Icon(
+                                        Icons.cancel,
+                                        size: 16,
+                                        color: Colors.red,
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        side: BorderSide(
+                                          color: Colors.red.shade200,
+                                        ),
+                                        backgroundColor: Colors.red.shade50,
+                                      ),
+                                      label: Text(
+                                        'Cancel',
+                                        style: GoogleFonts.inter(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.red.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
                     ),
@@ -2651,6 +2746,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
     switch (status) {
       case 'pending':
+      case 'new':
         buttonText = 'Accept Order';
         nextStatus = 'accepted';
         buttonColor = const Color(0xFF8B0000);
@@ -2721,17 +2817,21 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
     if (buttonText.isEmpty) return const SizedBox.shrink();
 
-    return SizedBox(
+    final primaryButton = SizedBox(
       width: double.infinity,
       height: 50,
       child: ElevatedButton.icon(
         onPressed: () async {
           try {
-            await context.read<OrderProvider>().updateOrderStatus(
-              order.id,
-              nextStatus,
-            );
-            if (context.mounted) {
+            if (nextStatus == 'accepted') {
+              await context.read<OrderProvider>().acceptOrder(order.id);
+            } else {
+              await context.read<OrderProvider>().updateOrderStatus(
+                order.id,
+                nextStatus,
+              );
+            }
+            if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Order status updated successfully'),
@@ -2741,7 +2841,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             }
           } catch (e) {
             print('Error updating order status: $e');
-            if (context.mounted) {
+            if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
@@ -2772,5 +2872,82 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         ),
       ),
     );
+
+    if (status == 'pending' || status == 'new') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          primaryButton,
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoadingAction
+                        ? null
+                        : () => _confirmComplete(order),
+                    icon: Icon(
+                      Icons.check_circle_outline,
+                      size: 18,
+                      color: Colors.green.shade700,
+                    ),
+                    label: Text(
+                      'Manual Complete',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Colors.green.shade700,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.green.shade50,
+                      side: BorderSide(color: Colors.green.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoadingAction
+                        ? null
+                        : () => _confirmCancel(order),
+                    icon: Icon(
+                      Icons.cancel_outlined,
+                      size: 18,
+                      color: Colors.red.shade700,
+                    ),
+                    label: Text(
+                      'Manual Cancel',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.red.shade50,
+                      side: BorderSide(color: Colors.red.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return primaryButton;
   }
 }

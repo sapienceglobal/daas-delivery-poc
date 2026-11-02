@@ -31,15 +31,63 @@ class PushNotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
-    'merchant_orders_channel_v3', // Changed channel ID to register new settings
+    'merchant_orders_channel_v4', // Bumped channel ID to apply Alarm audio stream across all devices
     'New Orders & Updates',
     description: 'Rich notifications for new orders and merchant updates.',
     importance: Importance.max,
     playSound: true,
     sound: RawResourceAndroidNotificationSound('new_order_sound'),
+    audioAttributesUsage: AudioAttributesUsage.alarm,
     enableVibration: true,
   );
 
+  static final Set<String> _notifiedOrderIds = <String>{};
+  static final Set<String> _inAppNotifiedOrderIds = <String>{};
+
+  static void showInAppOrderBanner({
+    required String orderId,
+    required String orderNumber,
+    String? total,
+  }) {
+    if (orderId.isEmpty || _inAppNotifiedOrderIds.contains(orderId)) return;
+    _inAppNotifiedOrderIds.add(orderId);
+    if (_inAppNotifiedOrderIds.length > 50) {
+      _inAppNotifiedOrderIds.remove(_inAppNotifiedOrderIds.first);
+    }
+
+    final activeContext = rootNavigatorKey.currentContext;
+    if (activeContext == null || !activeContext.mounted) return;
+
+    toastification.show(
+      context: activeContext,
+      type: ToastificationType.success,
+      style: ToastificationStyle.flat,
+      title: Text(
+        orderNumber.isNotEmpty
+            ? 'New Order #$orderNumber Received! 🛎️'
+            : 'New Order Received! 🛎️',
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+      ),
+      description: Text(
+        total != null && total.isNotEmpty
+            ? 'Total: \$$total • Tap to view order details'
+            : 'New order waiting for confirmation • Tap to view',
+        style: const TextStyle(fontSize: 12),
+      ),
+      alignment: Alignment.topCenter,
+      autoCloseDuration: const Duration(seconds: 6),
+      showProgressBar: true,
+      callbacks: ToastificationCallbacks(
+        onTap: (toastItem) {
+          toastification.dismiss(toastItem);
+          final ctx = rootNavigatorKey.currentContext;
+          if (ctx != null && ctx.mounted) {
+            ctx.push('/order-details/$orderId');
+          }
+        },
+      ),
+    );
+  }
   bool _initialized = false;
 
   Future<void> initialize(BuildContext context) async {
@@ -135,6 +183,19 @@ class PushNotificationService {
   // Exposed globally so the background handler in main.dart can call it
   static Future<void> showRichNotificationFromData(Map<String, dynamic> data) async {
     final FlutterLocalNotificationsPlugin localNotifications = FlutterLocalNotificationsPlugin();
+
+    // Ensure plugin is initialized even when invoked in a fresh background isolate
+    try {
+      const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@drawable/ic_notification');
+      const DarwinInitializationSettings iosInit = DarwinInitializationSettings();
+      const InitializationSettings initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
+      await localNotifications.initialize(
+        settings: initSettings,
+        onDidReceiveBackgroundNotificationResponse: _notificationTapBackground,
+      );
+    } catch (e) {
+      debugPrint('Background localNotifications init warning: $e');
+    }
     
     // Ensure channel exists
     final androidImplementation = localNotifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -150,6 +211,24 @@ class PushNotificationService {
     final bool isReservation = type.contains('reservation');
     final bool isCatering = type.contains('catering');
 
+    // Deduplicate new_order alerts within the same isolate so Socket.IO + FCM never double-ring
+    String? extractedOrderId = data['orderId']?.toString();
+    if ((extractedOrderId == null || extractedOrderId.isEmpty) && data['actionUrl'] != null) {
+      final actionUrl = data['actionUrl'].toString();
+      if (actionUrl.startsWith('/orders/')) {
+        extractedOrderId = actionUrl.split('/').last;
+      }
+    }
+    if (type == 'new_order' && extractedOrderId != null && extractedOrderId.isNotEmpty) {
+      if (_notifiedOrderIds.contains(extractedOrderId)) {
+        return;
+      }
+      _notifiedOrderIds.add(extractedOrderId);
+      if (_notifiedOrderIds.length > 100) {
+        _notifiedOrderIds.remove(_notifiedOrderIds.first);
+      }
+    }
+
     ByteArrayAndroidBitmap? largeIconBitmap;
     StyleInformation styleInformation = BigTextStyleInformation(
       body,
@@ -160,7 +239,7 @@ class PushNotificationService {
 
     if (imageUrl != null && imageUrl.isNotEmpty) {
       try {
-        final response = await http.get(Uri.parse(imageUrl));
+        final response = await http.get(Uri.parse(imageUrl)).timeout(const Duration(seconds: 4));
         if (response.statusCode == 200) {
           final imageBytes = response.bodyBytes;
           largeIconBitmap = ByteArrayAndroidBitmap(imageBytes);
@@ -179,8 +258,8 @@ class PushNotificationService {
     }
 
     int notificationId = data.hashCode;
-    if (data['orderId'] != null) {
-      notificationId = data['orderId'].hashCode;
+    if (extractedOrderId != null && extractedOrderId.isNotEmpty) {
+      notificationId = extractedOrderId.hashCode;
     } else if (data['entityId'] != null) {
       notificationId = data['entityId'].hashCode;
     }
@@ -211,6 +290,7 @@ class PushNotificationService {
           priority: Priority.high,
           playSound: true,
           sound: const RawResourceAndroidNotificationSound('new_order_sound'),
+          audioAttributesUsage: isOrder ? AudioAttributesUsage.alarm : AudioAttributesUsage.notification,
           fullScreenIntent: isOrder,
           additionalFlags: isOrder ? Int32List.fromList(<int>[4]) : null, // FLAG_INSISTENT loops only for orders
           actions: actions.isNotEmpty ? actions : null,

@@ -472,13 +472,15 @@ export const handleStripeWebhookSuccess = async (orderId, paymentIntentId, dbNam
   await order.save();
 
   if (io) {
-    io.to(order.restaurantId.toString()).emit('order_updated', order);
-    io.to(order.restaurantId.toString()).emit('new_order', {
-      orderId: order._id,
+    const plainOrder = typeof order.toObject === 'function' ? order.toObject() : order;
+    const socketPayload = {
+      ...plainOrder,
+      orderId: order._id.toString(),
       orderNumber: order.orderNumber,
-      items: order.items.length,
       total: order.total
-    });
+    };
+    io.to(order.restaurantId.toString()).emit('order_updated', socketPayload);
+    io.to(order.restaurantId.toString()).emit('new_order', socketPayload);
   }
 };
 
@@ -1016,12 +1018,15 @@ export const createOrder = asyncHandler(async (req, response) => {
     // emit socket event
     const io = req.app.get('io');
     if (io) {
-      io.to(restaurant._id.toString()).emit('new_order', {
-        orderId: order._id,
+      const plainOrder = typeof order.toObject === 'function' ? order.toObject() : order;
+      const socketPayload = {
+        ...plainOrder,
+        orderId: order._id.toString(),
         orderNumber: order.orderNumber,
-        items: order.items.length,
         total: order.total
-      });
+      };
+      io.to(restaurant._id.toString()).emit('new_order', socketPayload);
+      io.to(restaurant._id.toString()).emit('order_updated', socketPayload);
     }
 
     // Auto-generate payment link and email it if paymentMethod is payment_link
@@ -1772,12 +1777,12 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
   ensureCanManageRestaurant(req.user, order.restaurantId);
 
   const allowedTransitions = {
-    pending: ['accepted', 'cancelled'],
-    accepted: ['driver_assigned', 'preparing', 'cancelled'],
-    driver_assigned: ['preparing', 'ready', 'picked_up', 'cancelled'],
-    preparing: ['driver_assigned', 'ready', 'cancelled'],
-    ready: ['driver_assigned', 'picked_up', 'cancelled'],
-    picked_up: ['delivered'],
+    pending: ['accepted', 'picked_up', 'delivered', 'cancelled'],
+    accepted: ['driver_assigned', 'preparing', 'picked_up', 'delivered', 'cancelled'],
+    driver_assigned: ['preparing', 'ready', 'picked_up', 'delivered', 'cancelled'],
+    preparing: ['driver_assigned', 'ready', 'picked_up', 'delivered', 'cancelled'],
+    ready: ['driver_assigned', 'picked_up', 'delivered', 'cancelled'],
+    picked_up: ['delivered', 'cancelled'],
     delivered: [],
     cancelled: [],
     failed: []
@@ -1787,6 +1792,7 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
   let wasAlreadyInState = false;
 
   const { doc: finalOrder } = await withOptimisticRetry(order, async (doc) => {
+    const isPickup = ['pickup', 'dine-in', 'dine_in'].includes(doc.orderType);
     if (!status) {
       if (doc.status === 'pending') finalStatus = 'accepted';
       else if (doc.status === 'accepted') finalStatus = 'preparing';
@@ -1794,6 +1800,12 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
       else if (doc.status === 'ready') finalStatus = 'picked_up';
       else if (doc.status === 'picked_up') finalStatus = 'delivered';
       else finalStatus = doc.status;
+    } else if (status === 'completed') {
+      finalStatus = isPickup ? 'picked_up' : 'delivered';
+    } else if (status === 'ready_for_pickup') {
+      finalStatus = 'ready';
+    } else if (status === 'out for delivery' || status === 'out_for_delivery') {
+      finalStatus = 'picked_up';
     } else {
       finalStatus = status;
     }
@@ -1810,8 +1822,20 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
       throw new AppError('Card orders must be paid before acceptance', 400);
     }
 
+    const previousStatus = doc.status;
     doc.status = finalStatus;
-    doc.statusUpdates.push({ status: finalStatus, description: `Status updated to ${finalStatus}` });
+    if ((finalStatus === 'delivered' || (finalStatus === 'picked_up' && isPickup)) && (doc.paymentMethod === 'cash' || doc.paymentMethod === 'cod')) {
+      doc.paymentStatus = 'paid';
+    }
+    const isManualCompleteFromPending = previousStatus === 'pending' && (finalStatus === 'delivered' || (finalStatus === 'picked_up' && isPickup));
+    doc.statusUpdates.push({
+      status: finalStatus,
+      description: isManualCompleteFromPending
+        ? 'Order manually completed by restaurant'
+        : finalStatus === 'cancelled' && previousStatus === 'pending'
+          ? 'Order manually cancelled by restaurant'
+          : `Status updated to ${finalStatus}`
+    });
   });
 
   if (wasAlreadyInState) {
@@ -1862,6 +1886,12 @@ export const updateOrderStatus = asyncHandler(async (req, response) => {
       expireCheckoutSession(order.stripeCheckoutSessionId).catch(err => logger.error('Stripe checkout expire error', err));
     }
   } else if (status === 'delivered' || status === 'picked_up') {
+    const io = req.app.get('io');
+    if (order.dispatchStatus === DISPATCH_STATUSES.SCHEDULED || order.dispatchStatus === DISPATCH_STATUSES.DISPATCHING) {
+      order.dispatchStatus = DISPATCH_STATUSES.CANCELLED;
+      await order.save();
+      emitDispatchUpdated(order, io);
+    }
     awardLoyaltyPoints(order).catch(err => logger.error('Award points error', err));
   }
 

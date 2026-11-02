@@ -13,10 +13,10 @@ export const initCronJobs = (io, getModel) => {
       const Order = getModel('Order');
       const now = Date.now();
       
-      // 1. Auto-Cancel: 40 minutes ago for 'pending'
-      const pendingCutoff = new Date(now - 40 * 60 * 1000);
-      
-      // 2. Auto-Cancel: 2 hours ago for 'accepted', 'preparing', 'ready'
+      // Note: Pending orders are no longer auto-cancelled; the merchant manually
+      // accepts, completes, or cancels them from Live Orders / Order Details.
+
+      // 2. Auto-Complete: 2 hours ago for 'accepted', 'preparing', 'ready'
       const prepCutoff = new Date(now - 2 * 60 * 60 * 1000);
       
       // 3. Auto-Complete: 4 hours ago for 'picked_up'
@@ -24,22 +24,6 @@ export const initCronJobs = (io, getModel) => {
 
       // 4. Auto-Complete: 8 hours ago for pickup/dine-in 'ready' orders
       const pickupReadyCutoff = new Date(now - 8 * 60 * 60 * 1000);
-
-      // --- Rule 1: Pending Timeout (5 mins) ---
-      const stalePendingOrders = await Order.find({
-        status: 'pending',
-        createdAt: { $lt: pendingCutoff }
-      });
-
-      for (const order of stalePendingOrders) {
-        await processAutoCancel(
-          order, 
-          'Auto-cancelled: Merchant did not accept in time',
-          `We're sorry, ${order.restaurantName} is currently busy and couldn't accept your order in time. Any eligible charges and loyalty points have been reversed.`,
-          io, 
-          getModel
-        );
-      }
 
       // 2. Auto-Complete: 2 hours ago for 'accepted', 'preparing', 'ready' (both pickup & delivery)
       // Do not auto-complete orders whose rider dispatch is legitimately scheduled for the future

@@ -58,7 +58,15 @@ export default function MerchantLiveOrdersPage() {
 
   const handleUpdateStatus = async (orderId, status) => {
     try { 
-      await orderAPI.updateStatus(orderId, status); 
+      if (status === 'accepted') {
+        try {
+          await orderAPI.accept(orderId);
+        } catch (e) {
+          await orderAPI.updateStatus(orderId, status);
+        }
+      } else {
+        await orderAPI.updateStatus(orderId, status); 
+      }
       showToast(`Status → ${status}`, 'success'); 
       loadData(); 
     } catch (err) { 
