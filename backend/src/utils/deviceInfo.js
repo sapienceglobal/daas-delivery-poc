@@ -8,18 +8,28 @@ export function extractDeviceContext(req) {
   const headers = req.headers || {};
   const body = req.body || {};
 
-  // 1. Client IP Resolution (prioritizing Cloudflare and trusted reverse proxies)
+  // 1. Client IP Resolution (prioritizing Cloudflare, NGINX, mobile app headers, and reverse proxies)
   const forwardedFor = headers['x-forwarded-for'];
-  const rawIp =
-    headers['cf-connecting-ip'] ||
-    headers['x-real-ip'] ||
-    (forwardedFor ? forwardedFor.split(',')[0].trim() : null) ||
-    req.socket?.remoteAddress ||
-    req.ip ||
-    '127.0.0.1';
+  const candidateIps = [
+    headers['cf-connecting-ip'],
+    headers['true-client-ip'],
+    headers['x-real-ip'],
+    headers['x-client-ip'],
+    forwardedFor ? forwardedFor.split(',')[0].trim() : null,
+    headers['x-device-ip'],
+    req.ip,
+    req.ips && req.ips.length > 0 ? req.ips[0] : null,
+    req.socket?.remoteAddress
+  ].filter(val => typeof val === 'string' && val.trim().length > 0);
+
+  // Pick the first candidate IP that is NOT loopback (127.0.0.1 / ::1 / localhost)
+  let rawIp = candidateIps.find(val => {
+    const clean = val.replace(/^::ffff:/, '').trim();
+    return clean !== '127.0.0.1' && clean !== '::1' && clean !== 'localhost';
+  }) || candidateIps[0] || '127.0.0.1';
 
   // Clean IPv6 mapped IPv4 format (e.g. ::ffff:192.168.1.1)
-  const ip = rawIp.replace(/^::ffff:/, '');
+  const ip = rawIp.replace(/^::ffff:/, '').trim();
 
   // 2. Geolocation headers (explicit device headers from Flutter APK / Web, Cloudflare, Vercel, AWS CloudFront)
   let explicitLocation = headers['x-device-location'] || null;

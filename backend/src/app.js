@@ -70,12 +70,8 @@ const corsOrigin = (origin, callback) => {
 const app = express();
 app.disable('x-powered-by');
 
-if (process.env.TRUST_PROXY) {
-  const tp = Number(process.env.TRUST_PROXY);
-  app.set('trust proxy', Number.isNaN(tp) ? process.env.TRUST_PROXY : tp);
-} else if (isProduction) {
-  app.set('trust proxy', 1);
-}
+// Always trust reverse proxies (NGINX, Cloudflare, Load Balancer) so client IP is accurately extracted
+app.set('trust proxy', true);
 
 // ── Global Middleware ───────────────────────────────────────────────────────
 app.use(helmet({

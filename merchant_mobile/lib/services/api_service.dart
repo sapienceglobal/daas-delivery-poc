@@ -49,6 +49,7 @@ class ApiService {
   static double? _deviceLng;
   static String? _networkCarrier;
   static String? _networkType;
+  static String? _deviceIp;
 
   /// Loads cached location/telemetry from SharedPreferences immediately upon boot
   static Future<void> initTelemetry(SharedPreferences? prefs) async {
@@ -60,7 +61,15 @@ class ApiService {
       _deviceLocation = p.getString('geo_display');
       _deviceLat = p.getDouble('geo_lat');
       _deviceLng = p.getDouble('geo_lng');
+      _deviceIp = p.getString('geo_ip');
     } catch (_) {}
+  }
+
+  static void setDeviceIp(String ip) {
+    _deviceIp = ip;
+    SharedPreferences.getInstance().then((p) {
+      p.setString('geo_ip', ip);
+    }).catchError((_) {});
   }
 
   static void setDeviceLocation({String? city, String? region, String? country, String? display}) {
@@ -135,6 +144,9 @@ class ApiService {
     }
     if (_networkType != null && _networkType!.isNotEmpty) {
       headers['x-network-type'] = _networkType!;
+    }
+    if (_deviceIp != null && _deviceIp!.isNotEmpty) {
+      headers['x-device-ip'] = _deviceIp!;
     }
 
     if (customHeaders != null) {
