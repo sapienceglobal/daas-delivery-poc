@@ -1,5 +1,5 @@
 import AuditLog from '../models/AuditLog.js';
-import { extractDeviceContext } from './deviceInfo.js';
+import { extractDeviceContext, enrichNetworkInfo } from './deviceInfo.js';
 import logger from './logger.js';
 
 /**
@@ -23,6 +23,9 @@ export async function logAuditEvent({
 }) {
   try {
     const device = req ? extractDeviceContext(req) : null;
+    if (device && (!device.networkCarrier || !device.networkType)) {
+      await enrichNetworkInfo(device, device.ip);
+    }
 
     const resolvedUser = req?.user || null;
     const finalActor = actor || (resolvedUser ? {

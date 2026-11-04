@@ -70,6 +70,63 @@ export const rateLimitKeyGenerator = (req) => {
   const ip = getClientIp(req);
   return ipKeyGenerator(ip);
 };
+// In-memory cache for IP ASN / ISP lookups (max 5000 items)
+export const ipIntelligenceCache = new Map();
+
+/**
+ * Enriches device context with real ISP / Network Carrier (e.g. Bharti Airtel, Jio, T-Mobile)
+ * and network connection type (WiFi / Broadband vs Cellular / Mobile Data).
+ */
+export async function enrichNetworkInfo(device, ip) {
+  if (!ip) return;
+  const targetIp = ip.replace(/^::ffff:/, '').trim();
+  if (isPrivateOrLoopbackIp(targetIp)) {
+    if (device) {
+      if (!device.networkCarrier) device.networkCarrier = 'WiFi / Local Network';
+      if (!device.networkType) device.networkType = 'WiFi';
+    }
+    return;
+  }
+
+  if (ipIntelligenceCache.has(targetIp)) {
+    const cached = ipIntelligenceCache.get(targetIp);
+    if (device) {
+      if (!device.networkCarrier && cached.carrier) device.networkCarrier = cached.carrier;
+      if (!device.networkType && cached.type) device.networkType = cached.type;
+    }
+    return;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+    const res = await fetch(`http://ip-api.com/json/${targetIp}?fields=status,isp,org,as,mobile`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.status === 'success') {
+        const carrier = data.isp || data.org || null;
+        const type = data.mobile ? 'Cellular / Mobile Data' : 'WiFi / Broadband';
+        if (ipIntelligenceCache.size > 5000) {
+          const firstKey = ipIntelligenceCache.keys().next().value;
+          ipIntelligenceCache.delete(firstKey);
+        }
+        ipIntelligenceCache.set(targetIp, { carrier, type });
+
+        if (device) {
+          if (!device.networkCarrier && carrier) device.networkCarrier = carrier;
+          if (!device.networkType && type) device.networkType = type;
+        }
+      }
+    }
+  } catch (err) {
+    // Non-blocking fail-safe: Never throw or disrupt audit logging
+  }
+}
+
 
 /**
  * Device & Forensic Information Extractor
@@ -185,16 +242,19 @@ export function extractDeviceContext(req) {
   const isPrivateIp = isPrivateOrLoopbackIp(ip);
 
   // 4. Cellular / SIM / ISP Network Carrier and Connection Type
+  const cachedIntel = ipIntelligenceCache.get(ip);
   let networkCarrier =
     headers['x-network-carrier'] ||
     headers['x-carrier'] ||
     headers['x-sim-operator-name'] ||
     headers['cf-as-organization'] ||
+    cachedIntel?.carrier ||
     (isPrivateIp ? 'WiFi / Local Router' : null);
 
   let networkType =
     headers['x-network-type'] ||
     headers['x-connection-type'] ||
+    cachedIntel?.type ||
     (isPrivateIp ? 'WiFi' : null);
 
   // Clean location display: prioritize city/region/country, fallback to full address or GPS coordinates

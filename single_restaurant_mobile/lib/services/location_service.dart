@@ -7,6 +7,24 @@ class LocationService {
   /// Asynchronously request location permission at startup without blocking or crashing.
   /// If granted, saves position and reverse-geocoded address into ApiService telemetry context.
   Future<void> requestStartupLocationPermission() async {
+    // Asynchronously resolve public device IP & network carrier in background
+    try {
+      http.get(Uri.parse('http://ip-api.com/json/?fields=status,query,isp,org,mobile')).timeout(const Duration(seconds: 4)).then((res) {
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body);
+          if (data['status'] == 'success') {
+            if (data['query'] != null) ApiService.setDeviceIp(data['query'].toString());
+            final carrier = data['isp'] ?? data['org'];
+            final isMobile = data['mobile'] == true;
+            ApiService.setNetworkInfo(
+              carrier: carrier?.toString(),
+              type: isMobile ? 'Cellular / Mobile Data' : 'WiFi / Broadband',
+            );
+          }
+        }
+      }).catchError((_) {});
+    } catch (_) {}
+
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) return;

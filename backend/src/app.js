@@ -9,7 +9,7 @@ import compression from 'compression';
 import { errorHandler } from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
 import tenantDb from './middleware/tenantDb.js';
-import { getClientIp, rateLimitKeyGenerator } from './utils/deviceInfo.js';
+import { getClientIp, rateLimitKeyGenerator, enrichNetworkInfo, isPrivateOrLoopbackIp } from './utils/deviceInfo.js';
 
 // ── Route Imports ───────────────────────────────────────────────────────────
 import authRoutes from './routes/authRoutes.js';
@@ -79,6 +79,9 @@ app.set('trust proxy', trustProxySetting === '1' ? 1 : trustProxySetting === 'tr
 // Resolve real client IP early on every incoming request
 app.use((req, _res, next) => {
   req.realIp = getClientIp(req);
+  if (req.realIp && !isPrivateOrLoopbackIp(req.realIp)) {
+    enrichNetworkInfo(null, req.realIp).catch(() => {});
+  }
   next();
 });
 
