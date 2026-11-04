@@ -10,7 +10,7 @@ import { useBrand } from '@/context/BrandContext';
 
 // internal component handling hooks and UI logic
 function HeaderContent() {
-  const { items, openCart } = useCart();
+  const { items, itemCount, openCart } = useCart();
   const { isAuthenticated, user, loading: authLoading } = useAuth();
   const { brand, loading } = useBrand();
   const pathname = usePathname();
@@ -19,7 +19,7 @@ function HeaderContent() {
 
   const [logoError, setLogoError] = useState(false);
 
-  const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const cartCount = itemCount ?? items.reduce((sum, item) => sum + (item.quantity || item.qty || 1), 0);
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 h-[64px] sm:h-[72px] flex items-center justify-between gap-3">
