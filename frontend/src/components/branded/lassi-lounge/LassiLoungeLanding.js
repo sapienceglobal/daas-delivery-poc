@@ -1,5 +1,6 @@
 import HomeTopSection from './sections/HomeTopSection';
 import SignatureDishesSection from './sections/SignatureDishesSection';
+import DeliveryPartnersSection from './sections/DeliveryPartnersSection';
 import StoryAndCateringSection from './sections/StoryAndCateringSection';
 import TestimonialsSection from './sections/TestimonialsSection';
 import TrustFeaturesStrip from './sections/TrustFeaturesStrip';
@@ -15,8 +16,9 @@ import TrustFeaturesStrip from './sections/TrustFeaturesStrip';
 export default function LassiLoungeLanding() {
   return (
     <div className="ll-page-enter">
-      <HomeTopSection/>
+      <HomeTopSection />
       <div className="ll-reveal"><SignatureDishesSection /></div>
+      <div className="ll-reveal"><DeliveryPartnersSection /></div>
       <div className="ll-reveal"><StoryAndCateringSection /></div>
       <div className="ll-reveal"><TestimonialsSection /></div>
       <div className="ll-reveal"><TrustFeaturesStrip /></div>

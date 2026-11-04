@@ -25,6 +25,7 @@ class ApiService {
   static String? _deviceLocation;
   static double? _deviceLat;
   static double? _deviceLng;
+  static String? _deviceIp;
   static String? _networkCarrier;
   static String? _networkType;
 
@@ -71,6 +72,13 @@ class ApiService {
     }
   }
 
+  static void setDeviceIp(String ip) {
+    _deviceIp = ip;
+    SharedPreferences.getInstance().then((p) {
+      p.setString('geo_ip', ip);
+    }).catchError((_) {});
+  }
+
   static void setNetworkInfo({String? carrier, String? type}) {
     if (carrier != null) _networkCarrier = carrier;
     if (type != null) _networkType = type;
@@ -98,6 +106,9 @@ class ApiService {
     }
     if (_deviceCountry != null && _deviceCountry!.isNotEmpty) {
       headers['x-device-country'] = _deviceCountry!;
+    }
+        if (_deviceIp != null && _deviceIp!.isNotEmpty) {
+      headers['x-device-ip'] = _deviceIp!;
     }
     if (_deviceLat != null && _deviceLng != null) {
       headers['x-device-lat'] = _deviceLat.toString();

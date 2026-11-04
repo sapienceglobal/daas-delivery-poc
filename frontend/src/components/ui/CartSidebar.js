@@ -202,20 +202,15 @@ export default function CartSidebar() {
                 <ShoppingBag size={18} className="sm:hidden" strokeWidth={2.4} />
                 <ShoppingBag size={20} className="hidden sm:block" strokeWidth={2.4} />
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                  <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-white leading-none shrink-0 font-sans">
-                    Your Order
-                  </h2>
-                  {itemCount > 0 && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#F5B53D] text-[#4A070C] text-[10px] sm:text-[11px] font-black tracking-wide whitespace-nowrap shrink-0">
-                      {itemCount} {itemCount === 1 ? 'Item' : 'Items'}
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-[#FDE6C4]/85 mt-0.5 sm:mt-1 font-medium">
-                  Lassi Lounge<span className="hidden sm:inline"> • Authentic Royal Indian Cuisine</span>
-                </p>
+              <div className="min-w-0 flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-none shrink-0 font-sans">
+                  My Order
+                </h2>
+                {itemCount > 0 && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#F5B53D] text-[#4A070C] text-[10px] sm:text-[11px] font-black tracking-wide whitespace-nowrap shrink-0">
+                    {itemCount} {itemCount === 1 ? 'Item' : 'Items'}
+                  </span>
+                )}
               </div>
             </div>
 
