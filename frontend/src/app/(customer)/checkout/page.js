@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ShoppingBag } from 'lucide-react';
-import { Button, EmptyState } from '@/components/ui';
+import { Button } from '@/components/ui';
 
 import { useCheckoutState } from '@/components/checkout/useCheckoutState';
 import { useCheckoutTheme } from '@/components/checkout/useCheckoutTheme';
@@ -14,8 +15,12 @@ import OrderSummaryCard from '@/components/checkout/OrderSummaryCard';
 import LoyaltySignupBanner from '@/components/checkout/LoyaltySignupBanner';
 import SupportCard from '@/components/checkout/SupportCard';
 import PaymentSimulatorModal from '@/components/checkout/PaymentSimulatorModal';
+import LassiCheckoutPage from '@/components/branded/lassi-lounge/checkout/LassiCheckoutPage';
 
-export default function CheckoutPage() {
+/**
+ * Desktop checkout layout for screens >= 1024px
+ */
+function DesktopLassiCheckout() {
   const c = useCheckoutState();
   const t = useCheckoutTheme(c.isSingleRestaurantMode);
 
@@ -27,7 +32,9 @@ export default function CheckoutPage() {
             <ShoppingBag className="h-8 w-8 text-[#7a0b10]" />
           </div>
           <h3 className="text-lg font-bold text-[#1a1a1a] mb-1">Your cart is empty</h3>
-          <p className="text-sm text-[#6b7280] max-w-sm mb-4">Browse and add items to your cart before checking out</p>
+          <p className="text-sm text-[#6b7280] max-w-sm mb-4">
+            Browse and add items to your cart before checking out
+          </p>
           <Button
             onClick={() => c.router.push(c.isSingleRestaurantMode ? '/menu' : '/')}
             className="bg-[#7a0b10] hover:bg-[#5e070c] text-[#ffffff] transition-colors animate-in px-6 py-2 rounded-lg font-medium"
@@ -48,19 +55,32 @@ export default function CheckoutPage() {
       <div className="mx-auto max-w-[1550px] w-full px-4 md:px-6 lg:px-8 py-4 lg:py-8 flex-1">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-start relative">
 
+          {/* Delivery & Payment Form Column */}
           <div className="lg:col-span-8 space-y-6 ll-stagger order-2 lg:order-1">
             <DeliveryInfoSection
-              step={c.step} setStep={c.setStep} t={t}
-              fullName={c.fullName} setFullName={c.setFullName}
-              phone={c.phone} setPhone={c.setPhone}
-              email={c.email} setEmail={c.setEmail}
-              addressLine1={c.addressLine1} setAddressLine1={c.setAddressLine1}
-              addressLine2={c.addressLine2} setAddressLine2={c.setAddressLine2}
-              city={c.city} setCity={c.setCity}
-              state={c.state} setState={c.setState}
-              zipCode={c.zipCode} setZipCode={c.setZipCode}
-              deliveryInstructions={c.deliveryInstructions} setDeliveryInstructions={c.setDeliveryInstructions}
-              orderType={c.orderType} setOrderType={c.setOrderType}
+              step={c.step}
+              setStep={c.setStep}
+              t={t}
+              fullName={c.fullName}
+              setFullName={c.setFullName}
+              phone={c.phone}
+              setPhone={c.setPhone}
+              email={c.email}
+              setEmail={c.setEmail}
+              addressLine1={c.addressLine1}
+              setAddressLine1={c.setAddressLine1}
+              addressLine2={c.addressLine2}
+              setAddressLine2={c.setAddressLine2}
+              city={c.city}
+              setCity={c.setCity}
+              state={c.state}
+              setState={c.setState}
+              zipCode={c.zipCode}
+              setZipCode={c.setZipCode}
+              deliveryInstructions={c.deliveryInstructions}
+              setDeliveryInstructions={c.setDeliveryInstructions}
+              orderType={c.orderType}
+              setOrderType={c.setOrderType}
               user={c.user}
               onSelectSavedAddress={c.handleSelectSavedAddress}
               onUseCurrentLocation={c.handleUseCurrentLocation}
@@ -78,12 +98,11 @@ export default function CheckoutPage() {
             />
 
             <PaymentMethodSection
-              step={c.step} setStep={c.setStep} t={t}
-              paymentMethod={c.paymentMethod} setPaymentMethod={c.setPaymentMethod}
-              
-              
-              
-              
+              step={c.step}
+              setStep={c.setStep}
+              t={t}
+              paymentMethod={c.paymentMethod}
+              setPaymentMethod={c.setPaymentMethod}
               onBack={() => c.router.push(c.isSingleRestaurantMode ? '/menu' : '/')}
               onContinue={c.handleContinueToReview}
               orderType={c.orderType}
@@ -95,21 +114,35 @@ export default function CheckoutPage() {
               isFullNameValid={c.isFullNameValid}
               isEmailValid={c.isEmailValid}
             />
-
           </div>
 
+          {/* Order Summary Sidebar Column */}
           <div className="lg:col-span-4 space-y-6 ll-reveal order-1 lg:order-2">
             <div className="sticky top-24 space-y-5">
               <OrderSummaryCard
                 t={t}
                 restaurant={c.restaurant}
-                items={c.items} itemCount={c.itemCount} subtotal={c.subtotal} updateQuantity={c.updateQuantity}
-                orderType={c.orderType} deliveryFee={c.deliveryFee} quoteLoading={c.quoteLoading}
-                tax={c.tax} platformFee={c.platformFee} serviceFee={c.serviceFee} packagingFee={c.packagingFee}
-                couponCode={c.couponCode} setCouponCode={c.setCouponCode}
-                onApplyCoupon={c.handleApplyCoupon} couponLoading={c.couponLoading}
-                couponApplied={c.couponApplied} couponDiscount={c.couponDiscount} onRemoveCoupon={c.handleRemoveCoupon}
-                user={c.user} useLoyaltyPoints={c.useLoyaltyPoints} setUseLoyaltyPoints={c.setUseLoyaltyPoints}
+                items={c.items}
+                itemCount={c.itemCount}
+                subtotal={c.subtotal}
+                updateQuantity={c.updateQuantity}
+                orderType={c.orderType}
+                deliveryFee={c.deliveryFee}
+                quoteLoading={c.quoteLoading}
+                tax={c.tax}
+                platformFee={c.platformFee}
+                serviceFee={c.serviceFee}
+                packagingFee={c.packagingFee}
+                couponCode={c.couponCode}
+                setCouponCode={c.setCouponCode}
+                onApplyCoupon={c.handleApplyCoupon}
+                couponLoading={c.couponLoading}
+                couponApplied={c.couponApplied}
+                couponDiscount={c.couponDiscount}
+                onRemoveCoupon={c.handleRemoveCoupon}
+                user={c.user}
+                useLoyaltyPoints={c.useLoyaltyPoints}
+                setUseLoyaltyPoints={c.setUseLoyaltyPoints}
                 total={c.total}
                 quoteError={c.quoteError}
                 minOrderAmount={c.restaurant?.minimumOrder || 0}
@@ -134,6 +167,7 @@ export default function CheckoutPage() {
         </div>
       </div>
 
+      {/* Step 3: Review Order Modal Popup with Driver Tip Selection & Place Order */}
       <ReviewOrderSection
         step={c.step}
         t={t}
@@ -185,15 +219,12 @@ export default function CheckoutPage() {
           margin-right: 8px;
         }
         
-        /* Force light mode for the native select dropdown to prevent OS dark mode 
-           from making it black, and to ensure the scrollbar looks standard light */
         .PhoneInputCountrySelect {
           color-scheme: light;
           background-color: #ffffff;
           color: #1a1a1a;
         }
         
-        /* Style the options explicitly for browsers that allow it */
         .PhoneInputCountrySelect option {
           background-color: #ffffff;
           color: #1a1a1a;
@@ -220,3 +251,30 @@ export default function CheckoutPage() {
   );
 }
 
+/**
+ * Adaptive Checkout Page:
+ * - Mobile / Tablet (< 1024px): Renders LassiCheckoutPage (luxury mobile design, branded hero, sticky bottom bar)
+ * - Desktop (>= 1024px): Renders DesktopLassiCheckout (full desktop multi-column layout)
+ */
+export default function CheckoutPage() {
+  const [isMobile, setIsMobile] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener('resize', check, { passive: true });
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-[#FAF3E8]" />;
+  }
+
+  if (isMobile) {
+    return <LassiCheckoutPage />;
+  }
+
+  return <DesktopLassiCheckout />;
+}

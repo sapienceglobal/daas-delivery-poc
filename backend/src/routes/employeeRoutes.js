@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { protect, authorize } from '../middleware/auth.js';
 import { USER_ROLES } from '../config/constants.js';
 import * as employeeController from '../controllers/employeeController.js';
+import { rateLimitKeyGenerator } from '../utils/deviceInfo.js';
 
 const router = express.Router();
 
@@ -14,6 +15,8 @@ const pinLimiter = rateLimit({
   max: 10,                   // 10 attempts per IP per window
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: rateLimitKeyGenerator,
+  validate: { keyGeneratorIpFallback: false },
   message: { success: false, message: 'Too many PIN attempts. Please wait 15 minutes before trying again.' },
   skipSuccessfulRequests: false, // Count successful attempts too (prevent enumeration)
 });

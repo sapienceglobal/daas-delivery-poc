@@ -95,6 +95,7 @@ export function useCheckoutState() {
     updateQuantity,
     removeItem,
     clearCart,
+    openCart,
     specialInstructions,
   } = useCart();
   const { isAuthenticated, user, refreshUser } = useAuth();
@@ -103,6 +104,7 @@ export function useCheckoutState() {
 
   const [step, setStep] = useState(1);
   const [restaurant, setRestaurant] = useState(cachedRestaurant);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   useEffect(() => {
     if (cachedRestaurant && !restaurant) {
@@ -152,6 +154,25 @@ export function useCheckoutState() {
   
   
   
+
+  
+  // Delivery Time state (ASAP vs Schedule for Later)
+  const [deliveryTimeOption, setDeliveryTimeOption] = useState('asap'); // 'asap' | 'scheduled'
+  const [scheduledDate, setScheduledDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().split('T')[0];
+  });
+  const [scheduledSlot, setScheduledSlot] = useState('18:30');
+
+  const scheduledTime = useMemo(() => {
+    if (deliveryTimeOption !== 'scheduled' || !scheduledDate || !scheduledSlot) return null;
+    try {
+      const dt = new Date(`${scheduledDate}T${scheduledSlot}:00`);
+      return isNaN(dt.getTime()) ? null : dt.toISOString();
+    } catch {
+      return null;
+    }
+  }, [deliveryTimeOption, scheduledDate, scheduledSlot]);
 
   const [tip, setTip] = useState(0);
   const [couponCode, setCouponCode] = useState('');
@@ -356,7 +377,8 @@ export function useCheckoutState() {
       specialInstructions,
       customerPhone: phone,
       customerName: fullName,
-      customerEmail: email
+      customerEmail: email,
+      scheduledDeliveryTime: deliveryTimeOption === 'scheduled' ? scheduledTime : undefined,
     }),
     [restaurant?._id, checkoutItems, orderType, tip, couponApplied, couponCode, useLoyaltyPoints, compiledAddress, addressLat, addressLng, specialInstructions, phone, fullName, email]
   );
@@ -800,6 +822,7 @@ export function useCheckoutState() {
   };
 
   const executeOrderCreation = async (paymentIntentId = null) => {
+    setIsPlacingOrder(true);
     try {
       if (hasEmoji(fullName) || !isFullNameValid || hasEmoji(email) || !isEmailValid || hasEmoji(phone) || !isPhoneValid) {
         showToast('Please enter valid contact details without emojis.', 'error');
@@ -834,6 +857,7 @@ export function useCheckoutState() {
         savedCardId,
         courierNotes: deliveryInstructions || undefined,
         stripePaymentIntentId: paymentIntentId,
+        scheduledDeliveryTime: deliveryTimeOption === 'scheduled' ? scheduledTime : undefined,
       };
 
       const data = await orderAPI.create(orderData);
@@ -869,6 +893,7 @@ export function useCheckoutState() {
         router.push('/');
       }
     } finally {
+      setIsPlacingOrder(false);
       setShowPaymentModal(false);
     }
   };
@@ -939,5 +964,11 @@ export function useCheckoutState() {
     handleApplyCoupon, handleRemoveCoupon,
     handleContinueToPayment, handleContinueToReview,
     handlePlaceOrder, executeOrderCreation,
+    openCart,
+    isPlacingOrder,
+    deliveryTimeOption, setDeliveryTimeOption,
+    scheduledDate, setScheduledDate,
+    scheduledSlot, setScheduledSlot,
+    scheduledTime,
   };
 }

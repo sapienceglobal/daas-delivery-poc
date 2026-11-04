@@ -1,35 +1,87 @@
+import { ipKeyGenerator } from 'express-rate-limit';
+
+/**
+ * Checks if an IP is loopback or local private address (RFC 1918 / RFC 4193 / Loopback)
+ */
+export function isPrivateOrLoopbackIp(ip) {
+  if (!ip || typeof ip !== 'string') return true;
+  const clean = ip.replace(/^::ffff:/, '').trim().toLowerCase();
+  if (['127.0.0.1', '::1', 'localhost'].includes(clean)) return true;
+  // Private IPv4 ranges:
+  // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 (link-local)
+  if (/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.)/.test(clean)) return true;
+  // Private IPv6 ranges: fc00::/7 (unique local), fe80::/10 (link-local)
+  if (/^(fc|fd|fe80)/i.test(clean)) return true;
+  return false;
+}
+
+/**
+ * Robust Client IP Resolution across NGINX, Cloudflare, Next.js rewrites, AWS CloudFront, and Mobile Apps.
+ * Correctly handles multi-hop reverse proxies (e.g. Client -> NGINX -> Next.js -> Express)
+ * by finding the outermost non-private public IP address.
+ */
+export function getClientIp(req) {
+  if (!req) return '127.0.0.1';
+  const headers = req.headers || {};
+
+  const rawCandidates = [
+    headers['cf-connecting-ip'],
+    headers['true-client-ip'],
+    headers['x-real-ip'],
+    headers['x-client-ip'],
+    headers['x-device-ip'],
+  ];
+
+  // X-Forwarded-For can contain comma-separated list of hops: "client, proxy1, proxy2"
+  if (headers['x-forwarded-for']) {
+    const parts = headers['x-forwarded-for'].split(',').map(s => s.trim());
+    rawCandidates.push(...parts);
+  }
+
+  // Express req.ips array (when trust proxy is enabled)
+  if (Array.isArray(req.ips) && req.ips.length > 0) {
+    rawCandidates.push(...req.ips);
+  }
+
+  rawCandidates.push(req.ip);
+  rawCandidates.push(req.socket?.remoteAddress);
+
+  const cleaned = rawCandidates
+    .filter(val => typeof val === 'string' && val.trim().length > 0)
+    .map(val => val.replace(/^::ffff:/, '').trim());
+
+  // 1. Search for the first non-private, non-loopback public IP address
+  const publicIp = cleaned.find(ip => !isPrivateOrLoopbackIp(ip));
+  if (publicIp) return publicIp;
+
+  // 2. If no public IP found (e.g. private LAN / VPN / testing), find first non-loopback IP
+  const nonLoopback = cleaned.find(ip => !['127.0.0.1', '::1', 'localhost'].includes(ip.toLowerCase()));
+  if (nonLoopback) return nonLoopback;
+
+  // 3. Fallback for pure localhost development
+  return cleaned[0] || '127.0.0.1';
+}
+
+/**
+ * Standardized key generator for express-rate-limit that prevents
+ * 127.0.0.1 collisions and IPv6 bypasses.
+ */
+export const rateLimitKeyGenerator = (req) => {
+  const ip = getClientIp(req);
+  return ipKeyGenerator(ip);
+};
+
 /**
  * Device & Forensic Information Extractor
  * Extracts client IP, device type, OS, browser, geolocation headers, network carrier, and platform
  * for industry-grade audit trails on sensitive merchant and customer actions.
  */
-
 export function extractDeviceContext(req) {
-  const headers = req.headers || {};
-  const body = req.body || {};
+  const headers = req?.headers || {};
+  const body = req?.body || {};
 
   // 1. Client IP Resolution (prioritizing Cloudflare, NGINX, mobile app headers, and reverse proxies)
-  const forwardedFor = headers['x-forwarded-for'];
-  const candidateIps = [
-    headers['cf-connecting-ip'],
-    headers['true-client-ip'],
-    headers['x-real-ip'],
-    headers['x-client-ip'],
-    forwardedFor ? forwardedFor.split(',')[0].trim() : null,
-    headers['x-device-ip'],
-    req.ip,
-    req.ips && req.ips.length > 0 ? req.ips[0] : null,
-    req.socket?.remoteAddress
-  ].filter(val => typeof val === 'string' && val.trim().length > 0);
-
-  // Pick the first candidate IP that is NOT loopback (127.0.0.1 / ::1 / localhost)
-  let rawIp = candidateIps.find(val => {
-    const clean = val.replace(/^::ffff:/, '').trim();
-    return clean !== '127.0.0.1' && clean !== '::1' && clean !== 'localhost';
-  }) || candidateIps[0] || '127.0.0.1';
-
-  // Clean IPv6 mapped IPv4 format (e.g. ::ffff:192.168.1.1)
-  const ip = rawIp.replace(/^::ffff:/, '').trim();
+  const ip = req?.realIp || getClientIp(req);
 
   // 2. Geolocation headers (explicit device headers from Flutter APK / Web, Cloudflare, Vercel, AWS CloudFront)
   let explicitLocation = headers['x-device-location'] || null;
@@ -75,7 +127,7 @@ export function extractDeviceContext(req) {
 
   // 3. User-Agent & Hardware / Software Fingerprint
   const ua = headers['user-agent'] || '';
-  const xPlatform = headers['x-platform'] || req.body?.orderSource || null;
+  const xPlatform = headers['x-platform'] || req?.body?.orderSource || null;
 
   let deviceType = 'Desktop';
   let os = 'Unknown OS';
@@ -130,7 +182,7 @@ export function extractDeviceContext(req) {
   const platform = xPlatform || (deviceType === 'Mobile' ? 'mobile_web' : 'web');
 
   // Check if IP is private/LAN (RFC 1918)
-  const isPrivateIp = /^(127\.|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(ip);
+  const isPrivateIp = isPrivateOrLoopbackIp(ip);
 
   // 4. Cellular / SIM / ISP Network Carrier and Connection Type
   let networkCarrier =

@@ -9,6 +9,7 @@ import compression from 'compression';
 import { errorHandler } from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
 import tenantDb from './middleware/tenantDb.js';
+import { getClientIp, rateLimitKeyGenerator } from './utils/deviceInfo.js';
 
 // ── Route Imports ───────────────────────────────────────────────────────────
 import authRoutes from './routes/authRoutes.js';
@@ -70,8 +71,16 @@ const corsOrigin = (origin, callback) => {
 const app = express();
 app.disable('x-powered-by');
 
-// Always trust reverse proxies (NGINX, Cloudflare, Load Balancer) so client IP is accurately extracted
-app.set('trust proxy', true);
+// Trust reverse proxies (NGINX, Cloudflare, Next.js rewrites, Docker bridge)
+// Configures Express to trust loopback (127.0.0.1, ::1) and private subnets (RFC 1918)
+const trustProxySetting = process.env.TRUST_PROXY || 'loopback, linklocal, uniquelocal';
+app.set('trust proxy', trustProxySetting === '1' ? 1 : trustProxySetting === 'true' ? true : trustProxySetting);
+
+// Resolve real client IP early on every incoming request
+app.use((req, _res, next) => {
+  req.realIp = getClientIp(req);
+  next();
+});
 
 // ── Global Middleware ───────────────────────────────────────────────────────
 app.use(helmet({
@@ -94,6 +103,8 @@ const apiLimiter = rateLimit({
   message: { success: false, message: 'Too many requests from this IP, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: rateLimitKeyGenerator,
+  validate: { keyGeneratorIpFallback: false },
   skip: (req) => req.path.includes('/shipday-webhook') || req.path.includes('/shipday-location-webhook')
 });
 app.use('/api/', apiLimiter);
@@ -110,6 +121,8 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,     // Only failed attempts count toward the limit
+  keyGenerator: rateLimitKeyGenerator,
+  validate: { keyGeneratorIpFallback: false },
 });
 app.use('/api/auth/login', loginLimiter);
 
@@ -119,6 +132,8 @@ const registerLimiter = rateLimit({
   message: { success: false, message: 'Too many accounts created from this IP. Please try again in an hour.' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: rateLimitKeyGenerator,
+  validate: { keyGeneratorIpFallback: false },
 });
 app.use('/api/auth/register', registerLimiter);
 
@@ -128,6 +143,8 @@ const forgotPasswordLimiter = rateLimit({
   message: { success: false, message: 'Too many password reset requests. Please try again in an hour.' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: rateLimitKeyGenerator,
+  validate: { keyGeneratorIpFallback: false },
 });
 app.use('/api/auth/forgot-password', forgotPasswordLimiter);
 

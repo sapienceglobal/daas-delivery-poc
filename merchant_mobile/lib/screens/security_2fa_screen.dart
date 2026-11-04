@@ -6,7 +6,8 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 
 class Security2FAScreen extends StatefulWidget {
-  const Security2FAScreen({Key? key}) : super(key: key);
+  final bool embedded;
+  const Security2FAScreen({Key? key, this.embedded = false}) : super(key: key);
 
   @override
   State<Security2FAScreen> createState() => _Security2FAScreenState();
@@ -250,20 +251,8 @@ class _Security2FAScreenState extends State<Security2FAScreen> {
     final authProvider = context.watch<AuthProvider>();
     final is2FAEnabled = authProvider.user?['isTwoFactorEnabled'] == true;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFFAF7F2),
-      appBar: AppBar(
-        title: Text(
-          'Security & 2FA',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+    final content = SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -546,7 +535,25 @@ class _Security2FAScreenState extends State<Security2FAScreen> {
             ],
           ],
         ),
+      );
+
+    if (widget.embedded) {
+      return content;
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAF7F2),
+      appBar: AppBar(
+        title: Text(
+          'Security & 2FA',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+        centerTitle: true,
       ),
+      body: content,
     );
   }
 }

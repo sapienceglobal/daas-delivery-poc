@@ -82,7 +82,7 @@ export const applyCode = asyncHandler(async (req, response) => {
     getModel: req.getModel,
     userId: req.user._id,
     code: req.body?.code,
-    ip: req.ip
+    ip: req.realIp || req.ip
   });
   res.success(response, { data: result, message: result.message });
 });

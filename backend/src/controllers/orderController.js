@@ -568,7 +568,7 @@ export const createOrder = asyncHandler(async (req, response) => {
 
   // prevent double-submit / accidental duplicate orders (15 seconds debounce) - ATOMIC LOCK
   try {
-    await IdempotencyLock.create({ userId: targetUser ? targetUser._id : (customerEmail || req.ip), restaurantId });
+    await IdempotencyLock.create({ userId: targetUser ? targetUser._id : (customerEmail || req.realIp || req.ip), restaurantId });
   } catch (error) {
     if (error.code === 11000) {
       throw new AppError('You just placed an order. Please wait a moment before placing another one.', 429);

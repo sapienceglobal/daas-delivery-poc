@@ -18,6 +18,7 @@ export default function SiteChrome({ children }) {
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password') || pathname.startsWith('/forgot-password') || pathname.startsWith('/verify-otp');
   const isStandalonePage = pathname.startsWith('/payment-success');
   const isMerchantPublicPage = pathname.startsWith('/merchant-') || pathname === '/merchant-portal';
+  const isCheckoutPage = pathname === '/checkout' || pathname.startsWith('/checkout');
 
   if (isAuthPage || isAdminOrMerchant || isStandalonePage || isMerchantPublicPage) {
     return (
@@ -30,10 +31,10 @@ export default function SiteChrome({ children }) {
   // industry Standard: Wrap everything in a flex-col with min-h-screen
   if (SINGLE_MODE && !isAdminOrMerchant) {
     return (
-      <div className="flex flex-col min-h-screen pb-16 lg:pb-0 relative">
+      <div className={`flex flex-col min-h-screen relative ${isCheckoutPage ? '' : 'pb-16 lg:pb-0'}`}>
         <LassiLoungeHeader />
         <CartSidebar />
-        <MobileBottomNav />
+        {!isCheckoutPage && <MobileBottomNav />}
         {children}
         <LassiLoungeFooter />
         <WhatsAppWidget />
@@ -42,10 +43,10 @@ export default function SiteChrome({ children }) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen pb-16 lg:pb-0 relative">
+    <div className={`flex flex-col min-h-screen relative ${isCheckoutPage ? '' : 'pb-16 lg:pb-0'}`}>
       <Header />
       <CartSidebar />
-      <MobileBottomNav />
+      {!isCheckoutPage && <MobileBottomNav />}
       {children}
       <Footer />
       <WhatsAppWidget />

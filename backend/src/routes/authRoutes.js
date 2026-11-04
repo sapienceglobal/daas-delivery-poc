@@ -4,12 +4,15 @@ import { protect, authorize } from '../middleware/auth.js';
 import validate from '../middleware/validate.js';
 import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } from '../middleware/schemas.js';
 import * as authController from '../controllers/authController.js';
+import { rateLimitKeyGenerator } from '../utils/deviceInfo.js';
 
 const router = Router();
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50,
+  keyGenerator: rateLimitKeyGenerator,
+  validate: { keyGeneratorIpFallback: false },
   message: { success: false, message: 'Too many attempts. Try again after 15 minutes.' }
 });
 

@@ -15,7 +15,7 @@ const MapLocationPicker = dynamic(() => import('@/components/shared/MapLocationP
   )
 });
 
-export default function AddressModal({ isOpen, onClose, onSelect, initialView = 'search' }) {
+export default function AddressModal({ isOpen, onClose, onSelect, initialView = 'map' }) {
   const { user } = useAuth();
   const [view, setView] = useState(initialView);
   const [selectedCenter, setSelectedCenter] = useState(null);
@@ -190,8 +190,12 @@ export default function AddressModal({ isOpen, onClose, onSelect, initialView = 
         {/* Header */}
         <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 sm:py-5 bg-white z-10 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-3">
-            {view === 'map' && (
-              <button onClick={() => setView('search')} className="p-2 -ml-2 text-[#6b7280] hover:text-[#1f2937] hover:bg-[#f3f4f6] rounded-full transition-all" aria-label="Back">
+            {view === 'map' ? (
+              <button type="button" onClick={() => setView('search')} className="p-2 -ml-2 text-[#6b7280] hover:text-[#1f2937] hover:bg-[#f3f4f6] rounded-full transition-all cursor-pointer" aria-label="Search or saved addresses" title="Search or saved addresses">
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            ) : (
+              <button type="button" onClick={() => setView('map')} className="p-2 -ml-2 text-[#6b7280] hover:text-[#1f2937] hover:bg-[#f3f4f6] rounded-full transition-all cursor-pointer" aria-label="Back to map" title="Back to interactive map">
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}

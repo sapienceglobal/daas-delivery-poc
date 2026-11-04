@@ -313,7 +313,7 @@ export default function ReviewOrderSection({
         </div>
 
         {/* Modal Footer Controls */}
-        <div className="bg-[#f9fafb] border-t border-[#e5e7eb] px-4 sm:px-6 py-4 flex flex-col-reverse sm:flex-row gap-3 sm:gap-4">
+        <div className="bg-[#f9fafb] border-t border-[#e5e7eb] px-4 sm:px-6 pt-4 flex flex-col-reverse sm:flex-row gap-3 sm:gap-4" style={{ paddingBottom: 'max(16px, calc(env(safe-area-inset-bottom, 0px) + 12px))' }}>
           <button
             onClick={onBack}
             className="w-full sm:flex-1 py-3 border border-[#e5e7eb] hover:bg-[#ffffff] text-[13px] font-bold text-[#4b5563] uppercase tracking-wider rounded-xl ll-interactive ll-focus-ring"

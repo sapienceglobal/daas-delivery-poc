@@ -12,6 +12,7 @@ import appleSignin from 'apple-signin-auth';
 import { generateSecret, generateURI, verify } from 'otplib';
 import QRCode from 'qrcode';
 import { logAuditEvent } from '../utils/auditLogger.js';
+import { getClientIp } from '../utils/deviceInfo.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -178,7 +179,7 @@ export const register = asyncHandler(async (req, response) => {
   // brand-new customers get the one-time "Do you have a referral code?" screen
   if ((role || 'customer') === 'customer') {
     user.referralOnboarding = 'pending';
-    user.signupIp = req.ip || null;
+    user.signupIp = req.realIp || getClientIp(req) || req.ip || null;
   }
 
   // generate 6-digit OTP for email verification.
@@ -535,7 +536,7 @@ export const socialLogin = asyncHandler(async (req, response) => {
     user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
     if (finalRole === 'customer') {
       user.referralOnboarding = 'pending';
-      user.signupIp = req.ip || null;
+      user.signupIp = req.realIp || getClientIp(req) || req.ip || null;
     }
     await user.save();
 

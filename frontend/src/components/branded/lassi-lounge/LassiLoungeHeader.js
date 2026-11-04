@@ -22,24 +22,24 @@ function HeaderContent() {
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-[5px] flex items-center justify-between">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-[5px] flex items-center justify-between">
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2 shrink-0 py-1">
         {brand?.logo && !logoError ? (
           <img
             src={brand.logo}
             alt={brand.name}
-            className="h-[64px] md:h-[64px] w-auto scale-125 origin-left object-contain"
+            className="h-[52px] sm:h-[64px] w-auto scale-110 sm:scale-125 origin-left object-contain"
             onError={() => setLogoError(true)}
           />
         ) : loading ? (
-          <div className="h-9 md:h-[50px] w-28 animate-pulse bg-white/10 rounded" />
+          <div className="h-9 md:h-[50px] w-28 animate-pulse bg-white/20 rounded" />
         ) : (
           <>
-            <span className="text-2xl font-bold text-primary-600" style={{ fontFamily: 'var(--font-script)' }}>
+            <span className="text-2xl font-bold text-white lg:text-primary-600" style={{ fontFamily: 'var(--font-script)' }}>
               Lassi
             </span>
-            <span className="text-xs font-bold text-accent-500 tracking-widest -ml-1 self-end mb-1">LOUNGE</span>
+            <span className="text-xs font-bold text-[#FFC107] lg:text-accent-500 tracking-widest -ml-1 self-end mb-1">LOUNGE</span>
           </>
         )}
       </Link>
@@ -76,18 +76,18 @@ function HeaderContent() {
       </nav>
 
       {/* Right icons (Visible on all screens) */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         {authLoading ? (
           <div className="flex items-center gap-2 animate-pulse">
-            <div className="rounded-full bg-white/10 shrink-0" style={{ width: '32px', height: '32px' }}></div>
-            <div className="hidden sm:block w-16 h-4 bg-white/10 rounded"></div>
+            <div className="rounded-full bg-white/20 shrink-0" style={{ width: '32px', height: '32px' }}></div>
+            <div className="hidden sm:block w-16 h-4 bg-white/20 rounded"></div>
           </div>
         ) : isAuthenticated && user ? (
           <>
             {(user.role === 'merchant' || user.role === 'admin') && (
               <Link
                 href={user.role === 'admin' ? '/admin' : '/merchant'}
-                className="group relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#f59e0b] via-[#ea580c] to-[#c61f26] text-white hover:from-[#fbbf24] hover:via-[#f97316] hover:to-[#dc2626] transition-all duration-300 text-[11px] font-black uppercase tracking-wider shadow-[0_2px_12px_rgba(245,158,11,0.35)] hover:shadow-[0_4px_18px_rgba(234,88,12,0.55)] hover:scale-[1.03] active:scale-[0.98] border border-amber-300/40 shrink-0"
+                className="group relative flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-gradient-to-r from-[#f59e0b] via-[#ea580c] to-[#c61f26] text-white hover:from-[#fbbf24] hover:via-[#f97316] hover:to-[#dc2626] transition-all duration-300 text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-[0_2px_12px_rgba(245,158,11,0.35)] hover:shadow-[0_4px_18px_rgba(234,88,12,0.55)] hover:scale-[1.03] active:scale-[0.98] border border-amber-300/40 shrink-0"
                 title={user.role === 'admin' ? 'Switch to Admin Panel' : 'Switch to Merchant Dashboard'}
               >
                 <span className="p-0.5 rounded-full bg-black/20 flex items-center justify-center text-white group-hover:rotate-6 transition-transform">
@@ -98,9 +98,9 @@ function HeaderContent() {
                 </span>
               </Link>
             )}
-            <a href="/profile?tab=dashboard" aria-label="Profile" className="flex items-center gap-2 text-text hover:text-accent-500 transition-colors">
+            <a href="/profile?tab=dashboard" aria-label="Profile" className="flex items-center gap-2 text-white/90 lg:text-text hover:text-[#FFC107] lg:hover:text-accent-500 transition-colors">
               <div 
-                className="rounded-full bg-primary-600 text-white flex items-center justify-center text-[12px] font-bold uppercase shadow-sm shrink-0"
+                className="rounded-full bg-[#FFC107] text-[#680D13] lg:bg-primary-600 lg:text-white flex items-center justify-center text-[12px] font-bold uppercase shadow-sm shrink-0"
                 style={{ width: '32px', height: '32px', minWidth: '32px', minHeight: '32px' }}
               >
                 {user.name ? user.name.charAt(0) : <User size={14} />}
@@ -109,15 +109,15 @@ function HeaderContent() {
             </a>
           </>
         ) : (
-          <a href="/login" className="flex items-center gap-1.5 text-text hover:text-accent-500 text-[11px] font-bold uppercase tracking-wider transition-colors">
+          <a href="/login" className="flex items-center gap-1.5 text-white/90 lg:text-text hover:text-[#FFC107] lg:hover:text-accent-500 text-[11px] font-bold uppercase tracking-wider transition-colors">
             <User size={18} />
             <span className="hidden sm:inline-block mt-0.5">Log In</span>
           </a>
         )}
-        <button onClick={openCart} aria-label="Cart" className="relative text-text hover:text-accent-500 bg-transparent border-none p-0 cursor-pointer">
+        <button onClick={openCart} aria-label="Cart" className="relative text-white/90 lg:text-text hover:text-[#FFC107] lg:hover:text-accent-500 bg-transparent border-none p-0 cursor-pointer">
           <ShoppingCart size={20} />
           {cartCount > 0 && (
-            <span className="absolute -top-2 -right-2 bg-primary-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+            <span className="absolute -top-2 -right-2 bg-[#FFC107] text-[#680D13] lg:bg-primary-600 lg:text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-xs">
               {cartCount}
             </span>
           )}
@@ -130,7 +130,7 @@ function HeaderContent() {
 // main exported component wrapping the header content in Suspense
 export default function LassiLoungeHeader() {
   return (
-    <header className="sticky top-0 z-sticky bg-background border-b border-border">
+    <header className="sticky top-0 z-sticky bg-[#680D13] lg:bg-background border-b border-[#8B141C]/60 lg:border-border shadow-[0_2px_12px_rgba(0,0,0,0.18)] lg:shadow-none transition-colors">
       {/* Suspense add kiya gaya hai taaki Next.js build ke dauran fail na ho */}
       <Suspense fallback={<div className="h-[74px] w-full" />}>
         <HeaderContent />

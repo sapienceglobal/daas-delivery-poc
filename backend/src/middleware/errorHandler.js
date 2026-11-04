@@ -60,7 +60,7 @@ export const errorHandler = (err, req, res, _next) => {
   if (statusCode >= 500) {
     logger.error(`[${req.method}] ${req.originalUrl} — ${message}`, {
       stack: err.stack,
-      ip: req.ip
+      ip: req.realIp || req.ip
     });
     
     // security Hardening: Hide internal error details in production
