@@ -118,7 +118,12 @@ export async function enrichNetworkInfo(device, ip) {
 
         if (device) {
           if (!device.networkCarrier && carrier) device.networkCarrier = carrier;
-          if (!device.networkType && type) device.networkType = type;
+          if (type) {
+            const current = String(device.networkType || '').toLowerCase();
+            if (!device.networkType || ['4g', '3g', '2g', 'slow-2g', 'high speed connection'].includes(current)) {
+              device.networkType = type;
+            }
+          }
         }
       }
     }
@@ -251,11 +256,17 @@ export function extractDeviceContext(req) {
     cachedIntel?.carrier ||
     (isPrivateIp ? 'WiFi / Local Router' : null);
 
-  let networkType =
-    headers['x-network-type'] ||
-    headers['x-connection-type'] ||
-    cachedIntel?.type ||
-    (isPrivateIp ? 'WiFi' : null);
+  const rawNetworkType = headers['x-network-type'] || headers['x-connection-type'];
+  let networkType = null;
+  if (cachedIntel?.type) {
+    networkType = cachedIntel.type;
+  } else if (rawNetworkType && !['4g', '3g', '2g', 'slow-2g'].includes(String(rawNetworkType).toLowerCase())) {
+    networkType = rawNetworkType;
+  } else if (isPrivateIp) {
+    networkType = 'WiFi / Local Network';
+  } else if (rawNetworkType) {
+    networkType = 'High Speed Connection';
+  }
 
   // Clean location display: prioritize city/region/country, fallback to full address or GPS coordinates
   const locationParts = [city, region, country].filter(Boolean);

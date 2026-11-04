@@ -5,7 +5,8 @@ import {
   ShieldAlert, AlertTriangle, Info, ChevronDown, ChevronUp, Search, 
   Calendar, RefreshCcw, Activity, ShieldCheck, User, Users, Smartphone, 
   Laptop, Globe, Wifi, Key, Lock, ArrowUpRight, ShoppingBag, 
-  RefreshCw, RotateCcw, Ban, CheckCircle2, Filter, Layers, Clock
+  RefreshCw, RotateCcw, Ban, CheckCircle2, Filter, Layers, Clock,
+  ChefHat, Truck, Check, XCircle
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { PageLoader, showToast } from '../ui';
@@ -174,10 +175,12 @@ export default function SystemAuditView({ onSelectOrder }) {
       </div>
     );
   };
-
-  // Helper to render action badge
-  const renderActionBadge = (event) => {
+  // Helper to render action badge with accurate status and event detection
+  const renderActionBadge = (event, action) => {
     const ev = (event || '').toUpperCase();
+    const act = (action || '').toUpperCase();
+
+    // Security & Auth
     if (ev.includes('OTP_FAILED') || ev.includes('OTP_INVALID') || ev.includes('OTP_BLOCKED')) {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30">
@@ -192,10 +195,10 @@ export default function SystemAuditView({ onSelectOrder }) {
         </span>
       );
     }
-    if (ev.includes('REMAKE')) {
+    if (ev.includes('LOCKOUT')) {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-800 border border-amber-500/30">
-          <RefreshCw className="w-3 h-3 text-amber-600" /> Remake Order
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30">
+          <Lock className="w-3 h-3 text-rose-600" /> Account Locked
         </span>
       );
     }
@@ -206,10 +209,12 @@ export default function SystemAuditView({ onSelectOrder }) {
         </span>
       );
     }
-    if (ev.includes('CANCEL')) {
+
+    // Remake, Refund, Cancellation
+    if (ev.includes('REMAKE')) {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30">
-          <Ban className="w-3 h-3 text-rose-600" /> Order Cancelled
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-800 border border-amber-500/30">
+          <RefreshCw className="w-3 h-3 text-amber-600" /> Remake Order
         </span>
       );
     }
@@ -220,20 +225,83 @@ export default function SystemAuditView({ onSelectOrder }) {
         </span>
       );
     }
-    if (ev.includes('POS')) {
+    if (ev.includes('CANCEL')) {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-blue-500/15 text-blue-700 border border-blue-500/30">
-          <ShoppingBag className="w-3 h-3 text-blue-600" /> POS Terminal Order
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30">
+          <Ban className="w-3 h-3 text-rose-600" /> Order Cancelled
         </span>
       );
     }
-    if (ev.includes('ORDER')) {
+    if (ev.includes('REJECT')) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-rose-500/15 text-rose-700 border border-rose-500/30">
+          <XCircle className="w-3 h-3 text-rose-600" /> Order Rejected
+        </span>
+      );
+    }
+
+    // Order Status Updates (MUST precede generic 'ORDER' check)
+    if (ev.includes('READY')) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-teal-500/15 text-teal-700 border border-teal-500/30">
+          <CheckCircle2 className="w-3 h-3 text-teal-600" /> Order Ready
+        </span>
+      );
+    }
+    if (ev.includes('PREPARING')) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30">
+          <ChefHat className="w-3 h-3 text-amber-600" /> Order Preparing
+        </span>
+      );
+    }
+    if (ev.includes('ACCEPTED')) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-blue-500/15 text-blue-700 border border-blue-500/30">
+          <Check className="w-3 h-3 text-blue-600" /> Order Accepted
+        </span>
+      );
+    }
+    if (ev.includes('OUT_FOR_DELIVERY') || ev.includes('DISPATCH')) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-cyan-500/15 text-cyan-700 border border-cyan-500/30">
+          <Truck className="w-3 h-3 text-cyan-600" /> Out for Delivery
+        </span>
+      );
+    }
+    if (ev.includes('COMPLETED') || ev.includes('DELIVERED')) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
+          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> {ev.includes('DELIVERED') ? 'Order Delivered' : 'Order Completed'}
+        </span>
+      );
+    }
+    if (ev.startsWith('ORDER_STATUS_') || act === 'STATUS_UPDATE') {
+      const rawStatus = ev.replace('ORDER_STATUS_', '').replace(/_/g, ' ').toLowerCase();
+      const statusTitle = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-sky-500/15 text-sky-700 border border-sky-500/30">
+          <CheckCircle2 className="w-3 h-3 text-sky-600" /> Order {statusTitle || 'Updated'}
+        </span>
+      );
+    }
+
+    // POS & Order Placement
+    if (ev.includes('POS')) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-indigo-500/15 text-indigo-700 border border-indigo-500/30">
+          <ShoppingBag className="w-3 h-3 text-indigo-600" /> POS Terminal Order
+        </span>
+      );
+    }
+    if (ev.includes('ORDER_PLACED') || ev.includes('ORDER_CREATED') || ev === 'CUSTOMER_ORDER_PLACED' || ev === 'ORDER') {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
           <ShoppingBag className="w-3 h-3 text-emerald-600" /> Order Placed
         </span>
       );
     }
+
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-mono font-bold bg-admin-surface-2 text-admin-text border border-admin-border">
         {event}
@@ -488,7 +556,7 @@ export default function SystemAuditView({ onSelectOrder }) {
 
                         {/* Action Event */}
                         <td className="p-3.5 whitespace-nowrap">
-                          {renderActionBadge(log.event)}
+                          {renderActionBadge(log.event, log.action)}
                         </td>
 
                         {/* Device & Forensic Telemetry */}

@@ -87,7 +87,10 @@ router.get('/', protect, authorize('admin', 'merchant'), asyncHandler(async (req
         { 'device.ip': regex },
         { 'device.os': regex },
         { 'device.browser': regex },
-        { 'device.locationDisplay': regex }
+        { 'device.locationDisplay': regex },
+        { 'device.networkCarrier': regex },
+        { 'device.networkType': regex },
+        { action: regex }
       ]
     });
   }
