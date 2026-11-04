@@ -165,13 +165,13 @@ export default function HomeTopSection() {
 
         {/* ll-stagger cascades each direct child in on mount (Welcome-to, headline,
             cuisine badge, description, CTA row) using the existing fade-lift system. */}
-        <div className="relative z-20 mx-auto max-w-7xl w-full px-4 md:px-8 flex flex-col justify-start items-start text-left ll-stagger">
+        <div className="relative z-20 mx-auto max-w-7xl w-full px-4 md:px-8 flex flex-col justify-start items-center md:items-start text-center md:text-left ll-stagger">
 
-          {/* Hero text container: on mobile, capped at matching width so Title, Cuisine lines, and CTA align seamlessly */}
-          <div className="w-full max-w-[295px] xs:max-w-[325px] md:max-w-none flex flex-col items-start">
-            <div className="relative self-start">
+          {/* Hero text container: centered on mobile, natural left on desktop */}
+          <div className="w-full max-w-[315px] xs:max-w-[340px] md:max-w-none flex flex-col items-center md:items-start">
+            <div className="relative self-center md:self-start">
               <p
-                className="text-[26px] xs:text-3xl md:text-4xl text-white tracking-wide font-normal mb-0.5"
+                className="text-[28px] xs:text-3xl md:text-4xl text-white tracking-wide font-normal mb-0.5"
                 style={{ fontFamily: "'Dancing Script', cursive" }}
               >
                 Welcome to
@@ -180,42 +180,43 @@ export default function HomeTopSection() {
               <span className="absolute top-2 -right-6 text-[#e8a020] text-base font-bold rotate-[65deg]">\</span>
             </div>
 
-            <h1 className="w-full font-serif font-black leading-none flex items-center justify-between md:justify-start flex-nowrap md:gap-3.5 mt-1">
+            {/* LASSI LOUNGE: Large, cohesive, tight natural word gap (no large canyon) */}
+            <h1 className="w-full font-serif font-black leading-none flex items-center justify-center md:justify-start flex-nowrap gap-2 xs:gap-2.5 sm:gap-3.5 md:gap-4 mt-1">
               <span
-                className="text-[35px] xs:text-[39px] sm:text-[46px] md:text-[58px] lg:text-[62px] text-white uppercase whitespace-nowrap ll-text-wipe"
+                className="text-[38px] xs:text-[42px] sm:text-[48px] md:text-[58px] lg:text-[62px] text-white uppercase whitespace-nowrap ll-text-wipe"
                 style={{ animationDelay: '500ms' }}
               >
                 {brandName1}
               </span>
-              <span className="text-[35px] xs:text-[39px] sm:text-[46px] md:text-[58px] lg:text-[62px] text-[#e8a020] uppercase whitespace-nowrap ll-text-wipe-shimmer">
+              <span className="text-[38px] xs:text-[42px] sm:text-[48px] md:text-[58px] lg:text-[62px] text-[#e8a020] uppercase whitespace-nowrap ll-text-wipe-shimmer">
                 {brandName2}
               </span>
             </h1>
 
-            {/* Cuisine — line 1 bold white, line 2 golden banner/pill */}
-            <div className="w-full mt-2 sm:mt-3 flex flex-col items-start gap-1.5 sm:gap-2">
-              <span className="w-full block text-white font-black uppercase tracking-wide leading-tight text-[13px] xs:text-[14.5px] sm:text-xl md:text-[26px] whitespace-nowrap drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
+            {/* Cuisine — line 1 bold white matching title width, line 2 golden banner */}
+            <div className="w-full mt-2 sm:mt-3 flex flex-col items-center md:items-start gap-1.5 sm:gap-2">
+              <span className="w-full block text-white font-black uppercase tracking-[0.06em] xs:tracking-[0.08em] leading-tight text-[13px] xs:text-[14.5px] sm:text-xl md:text-[26px] whitespace-nowrap text-center md:text-left drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
                 {cuisineLine1}
               </span>
               {cuisineLine2 && (
-                <span className="w-full md:w-auto inline-flex items-center justify-center text-center bg-gradient-to-r from-[#f5b82e] to-[#e8a020] text-[#1a0806] font-black uppercase tracking-wider rounded-lg md:rounded-full px-3.5 sm:px-5 py-1.5 text-[11px] xs:text-[12px] sm:text-sm md:text-base shadow-[0_6px_18px_-6px_rgba(232,160,32,0.7)]">
+                <span className="w-full max-w-[290px] xs:max-w-[315px] md:max-w-none md:w-auto inline-flex items-center justify-center text-center bg-gradient-to-r from-[#f5b82e] via-[#e8a020] to-[#d4821a] text-[#1a0806] font-black uppercase tracking-wider rounded-xl md:rounded-full px-4 py-1.5 text-[11px] xs:text-[12px] sm:text-sm md:text-base shadow-[0_6px_18px_-6px_rgba(232,160,32,0.7)] border border-[#ffdf79]/40">
                   {cuisineLine2}
                 </span>
               )}
             </div>
 
             {/* Subtitle Description — Shown on Desktop, hidden on mobile */}
-            <p className="hidden md:block text-white/85 text-sm md:text-base font-sans max-w-xl mt-4 leading-relaxed font-light">
+            <p className="hidden md:block text-white/85 text-sm md:text-base font-sans max-w-xl mt-4 leading-relaxed font-light text-left">
               {heroContent.description}
             </p>
 
-            <div className="w-full md:w-auto flex flex-row items-center justify-start gap-2.5 sm:gap-4 mt-3.5 sm:mt-7 ll-hero-cta-row">
+            <div className="w-full md:w-auto flex flex-row items-center justify-center md:justify-start gap-2.5 sm:gap-4 mt-3.5 sm:mt-7 ll-hero-cta-row">
               <Button
                 href={heroContent.primaryCta.href}
                 variant="custom"
-                className="w-full md:w-auto !bg-[#cd131b] hover:!bg-[#b01017] text-white border border-[#ff3a3a]/40 px-6 sm:px-7 py-3 !rounded-full font-bold text-[13px] sm:text-sm tracking-wide flex items-center justify-center gap-2 transition-all shadow-[0_8px_22px_-8px_rgba(205,19,27,0.8)] hover:-translate-y-0.5 ll-hero-cta-btn ll-hero-cta-btn--primary"
+                className="w-full max-w-[290px] xs:max-w-[315px] md:max-w-none md:w-auto !bg-[#cd131b] hover:!bg-[#b01017] text-white border border-[#ff3a3a]/40 px-6 sm:px-8 py-3.5 !rounded-full font-black text-sm xs:text-base sm:text-base tracking-wide flex items-center justify-center gap-2.5 transition-all shadow-[0_8px_22px_-8px_rgba(205,19,27,0.8)] hover:-translate-y-0.5 ll-hero-cta-btn ll-hero-cta-btn--primary"
               >
-                <Bike size={17} strokeWidth={2.5} /> <span>{heroContent.primaryCta.label}</span>
+                <Bike size={19} strokeWidth={2.6} /> <span className="font-extrabold uppercase tracking-wide">{heroContent.primaryCta.label}</span>
               </Button>
 
               <Button
@@ -324,19 +325,19 @@ export default function HomeTopSection() {
             <div className="absolute inset-0 opacity-[0.08] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '14px 14px' }} />
 
             <div className="relative flex items-center gap-3.5 xs:gap-4 sm:gap-7 md:gap-12 px-3.5 xs:px-5 sm:px-8 md:px-12 py-5 sm:py-8 md:py-8">
-              {/* Phone mockups with user's actual app home screen - bigger & richer */}
-              <div className="relative shrink-0 w-[100px] h-[155px] xs:w-[115px] xs:h-[175px] sm:w-[155px] sm:h-[195px] md:w-[195px] md:h-[210px]">
+              {/* Phone mockups with user's actual app home screen */}
+              <div className="relative shrink-0 w-[84px] h-[134px] xs:w-[105px] xs:h-[165px] sm:w-[155px] sm:h-[195px] md:w-[195px] md:h-[210px]">
                 {/* Front Phone */}
-                <div className="absolute left-0 bottom-0 w-[70px] h-[140px] xs:w-[78px] xs:h-[156px] sm:w-[98px] sm:h-[188px] md:w-[108px] md:h-[204px] rounded-[18px] sm:rounded-[22px] bg-[#111] p-[3px] shadow-[0_16px_36px_rgba(0,0,0,0.65)] -rotate-[7deg] z-10 border border-white/20">
-                  <div className="w-full h-full rounded-[15px] sm:rounded-[19px] overflow-hidden bg-[#fcfaf5] flex flex-col">
+                <div className="absolute left-0 bottom-0 w-[59px] h-[118px] xs:w-[72px] xs:h-[146px] sm:w-[98px] sm:h-[188px] md:w-[108px] md:h-[204px] rounded-[16px] sm:rounded-[22px] bg-[#111] p-[2.5px] sm:p-[3px] shadow-[0_16px_36px_rgba(0,0,0,0.65)] -rotate-[7deg] z-10 border border-white/20">
+                  <div className="w-full h-full rounded-[13px] sm:rounded-[19px] overflow-hidden bg-[#fcfaf5] flex flex-col">
                     <div className="relative flex-1">
                       <Image src="/images/branded/lassi-lounge/app-home-screen.jpg" alt="Lassi Lounge mobile app" fill className="object-cover object-top" sizes="120px" />
                     </div>
                   </div>
                 </div>
                 {/* Back Phone */}
-                <div className="absolute right-0 top-0 w-[62px] h-[126px] xs:w-[70px] xs:h-[142px] sm:w-[90px] sm:h-[174px] md:w-[100px] md:h-[190px] rounded-[16px] sm:rounded-[20px] bg-[#111] p-[3px] shadow-[0_14px_30px_rgba(0,0,0,0.5)] rotate-[7deg] border border-white/15">
-                  <div className="w-full h-full rounded-[13px] sm:rounded-[17px] overflow-hidden bg-[#fcfaf5] flex flex-col">
+                <div className="absolute right-0 top-0 w-[53px] h-[106px] xs:w-[64px] xs:h-[132px] sm:w-[90px] sm:h-[174px] md:w-[100px] md:h-[190px] rounded-[14px] sm:rounded-[20px] bg-[#111] p-[2.5px] sm:p-[3px] shadow-[0_14px_30px_rgba(0,0,0,0.5)] rotate-[7deg] border border-white/15">
+                  <div className="w-full h-full rounded-[11px] sm:rounded-[17px] overflow-hidden bg-[#fcfaf5] flex flex-col">
                     <div className="relative flex-1">
                       <Image src="/images/branded/lassi-lounge/app-home-screen.jpg" alt="" fill className="object-cover object-[center_45%]" sizes="110px" />
                     </div>
@@ -345,33 +346,41 @@ export default function HomeTopSection() {
               </div>
 
               {/* Copy + CTAs */}
-              <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center md:justify-between gap-2.5 sm:gap-4 md:gap-8">
+              <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center md:justify-between gap-2 xs:gap-2.5 sm:gap-4 md:gap-8">
                 <div className="flex flex-col items-start md:items-center md:text-center">
-                  <h3 className="flex items-center gap-1.5 font-black uppercase leading-tight text-white text-[14.5px] xs:text-[17px] sm:text-2xl md:text-[28px] tracking-tight">
-                    <Download className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 text-[#f5b82e] shrink-0" strokeWidth={3} />
-                    <span>Download Our <span className="text-[#f5b82e] drop-shadow-[0_2px_10px_rgba(245,184,46,0.45)]">Mobile App</span></span>
+                  {/* Clean 1-line Heading with Icon & DOWNLOAD strictly centered */}
+                  <h3 className="flex items-center gap-1.5 xs:gap-2 uppercase leading-none tracking-tight whitespace-nowrap">
+                    <Download className="w-3.5 h-3.5 xs:w-4.5 xs:h-4.5 sm:w-5 sm:h-5 md:w-6 md:h-6 text-[#f5b82e] shrink-0" strokeWidth={3} />
+                    <span className="text-[#f5b82e] font-black text-[12.5px] xs:text-[15px] sm:text-[22px] md:text-[26px] drop-shadow-[0_2px_8px_rgba(245,184,46,0.35)] leading-none inline-block">
+                      DOWNLOAD
+                    </span>
+                    <span className="text-white font-bold text-[10.5px] xs:text-[12.5px] sm:text-[17px] md:text-[22px] tracking-normal leading-none inline-block">
+                      OUR MOBILE APP
+                    </span>
                   </h3>
                   
-                  {/* 2-line clean descriptive text on mobile & desktop */}
-                  <div className="text-white/90 text-[11px] xs:text-[12.5px] sm:text-[14px] md:text-base mt-1.5 sm:mt-2 leading-snug font-medium">
-                    <p className="whitespace-nowrap">Order on our mobile app directly</p>
-                    <p className="text-white/80">and get</p>
-                  </div>
+                  {/* Line 1: Order on our mobile app directly */}
+                  <p className="text-white/90 text-[10.5px] xs:text-[12px] sm:text-[14px] md:text-base mt-1.5 sm:mt-2 leading-tight font-medium whitespace-nowrap">
+                    Order on our mobile app directly
+                  </p>
 
-                  {/* 20% OFF Offer Pill */}
-                  <div className="flex items-center gap-1.5 xs:gap-2 mt-1.5 sm:mt-2.5">
-                    <span className="bg-gradient-to-r from-[#f5b82e] via-[#e8a020] to-[#d4821a] text-[#1a0806] font-black text-[14px] xs:text-[16px] sm:text-2xl md:text-3xl px-2.5 py-0.5 sm:py-1 rounded-xl leading-none shadow-[0_6px_16px_rgba(232,160,32,0.45)] border border-[#ffdf79]/50 whitespace-nowrap">
+                  {/* Line 2: and get [20% OFF] on every order on the SAME line */}
+                  <div className="flex items-center gap-1 xs:gap-1.5 sm:gap-2 mt-1.5 sm:mt-2 flex-nowrap">
+                    <span className="text-white/90 text-[9.5px] xs:text-[11.5px] sm:text-sm font-medium whitespace-nowrap">
+                      and get
+                    </span>
+                    <span className="bg-gradient-to-r from-[#f5b82e] via-[#e8a020] to-[#d4821a] text-[#1a0806] font-black text-[11.5px] xs:text-[14px] sm:text-2xl px-1.5 xs:px-2 py-0.5 rounded-lg leading-none shadow-[0_4px_12px_rgba(232,160,32,0.45)] whitespace-nowrap">
                       20% OFF
                     </span>
-                    <span className="text-white text-[10.5px] xs:text-xs sm:text-base font-bold whitespace-nowrap tracking-tight">
+                    <span className="text-white text-[9.5px] xs:text-[11px] sm:text-sm font-bold whitespace-nowrap">
                       on every order
                     </span>
                   </div>
 
                   {/* Coupon Code badge */}
-                  <div className="mt-2 sm:mt-2.5 inline-flex items-center gap-1.5 xs:gap-2 rounded-full border border-dashed border-[#f5b82e] bg-black/40 backdrop-blur-md px-3 py-0.5 xs:py-1 text-[9.5px] xs:text-[10.5px] sm:text-xs text-white shadow-inner">
+                  <div className="mt-1.5 sm:mt-2.5 inline-flex items-center gap-1.5 xs:gap-2 rounded-full border border-dashed border-[#f5b82e] bg-black/40 backdrop-blur-md px-2.5 xs:px-3 py-0.5 xs:py-1 text-[8.5px] xs:text-[10px] sm:text-xs text-white shadow-inner">
                     <span className="text-white/85 font-medium">Use Code:</span>
-                    <span className="font-black text-[#f5b82e] tracking-widest text-[11px] xs:text-xs sm:text-sm">WELCOME20</span>
+                    <span className="font-black text-[#f5b82e] tracking-widest text-[9.5px] xs:text-xs sm:text-sm">WELCOME20</span>
                   </div>
                 </div>
 
