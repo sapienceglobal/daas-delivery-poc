@@ -12,7 +12,7 @@ export default function MenuHero() {
       {/* 2. using max-w-[1550px] to align with rest of the page */}
       <div className="relative mx-auto max-w-[1550px] px-4 md:px-6 lg:px-8 w-full text-left mt-10">
         
-        <h1 className="font-serif font-black text-[#ffffff] text-5xl md:text-[64px] lg:text-[72px] tracking-tight mb-2 leading-none">
+        <h1 className="font-serif font-black text-[#ffffff] text-[36px] sm:text-[44px] md:text-[56px] lg:text-[56px] tracking-tight mb-2 leading-none">
           Our Menu
         </h1>
         

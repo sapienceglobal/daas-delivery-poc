@@ -27,7 +27,7 @@ export default function AboutHeroSection() {
         </nav>
 
         <div className="space-y-3 max-w-2xl">
-          <h1 className="text-[48px] md:text-[64px] font-serif font-black tracking-tight leading-[1.1]">
+          <h1 className="text-[36px] sm:text-[44px] md:text-[56px] lg:text-[56px] font-serif font-black tracking-tight leading-[1.1]">
             <span className="text-[#ffffff] block">About</span>
             <span className="text-[#e8a020] block">Lassi Lounge</span>
           </h1>

@@ -316,9 +316,10 @@ html {
 */
 @media (max-width: 767px) {
   .ll-hero-mobile-fit {
-    padding-top: 5rem !important;
-    padding-bottom: 4rem !important;
-    min-height: 560px !important;
+    padding-top: 1.25rem !important;
+    padding-bottom: 4.5rem !important;
+    min-height: 0 !important;
+    justify-content: flex-start !important;
   }
 
   .ll-hero-mobile-vignette {
@@ -326,17 +327,22 @@ html {
   }
 
   .ll-hero-cta-row {
-    flex-direction: column !important;
-    width: 100% !important;
-    gap: 0.75rem !important;
+    flex-direction: row !important;
+    width: auto !important;
+    gap: 0.625rem !important;
   }
 
   .ll-hero-cta-btn {
-    width: 100% !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
     justify-content: center !important;
     border-radius: 9999px !important;
-    padding-top: 0.875rem !important;
-    padding-bottom: 0.875rem !important;
+    padding-top: 0.7rem !important;
+    padding-bottom: 0.7rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1.1rem !important;
+    font-size: 0.75rem !important;
+    white-space: nowrap !important;
   }
 
   .ll-hero-cta-btn--primary {
@@ -349,12 +355,8 @@ html {
     backdrop-filter: blur(4px) !important;
   }
 
-  /* A touch more breathing room between the CTA row and the Explore Menu
-     card — the card's -mt-20 pull was tuned against the hero's original
-     (taller) mobile padding; now that the hero is tighter, easing the
-     pull keeps the two from crowding each other. */
   .ll-explore-mobile-gap {
-    margin-top: -2.5rem !important;
+    margin-top: -2.25rem !important;
   }
 
   /* Soft right-edge fade on the horizontal category carousel — hints

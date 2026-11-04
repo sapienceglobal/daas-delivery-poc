@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Bike, Utensils, ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, LayoutGrid } from 'lucide-react';
+import { Bike, Utensils, ChevronRight, ChevronLeft, ArrowRight, ArrowLeft, LayoutGrid, Download } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { menuCategoryContent, deliveryPartnersContent, heroContent } from '../config';
 import { restaurantAPI } from '@/lib/api';
@@ -141,6 +141,10 @@ export default function HomeTopSection() {
   const brandNameParts = brand?.name ? brand.name.split(' ') : ['LASSI', 'LOUNGE'];
   const brandName1 = brandNameParts[0];
   const brandName2 = brandNameParts.slice(1).join(' ') || 'LOUNGE';
+  const cuisineRaw = brand?.cuisine || 'Authentic Indian Restaurant | Veg & Non-Veg Cuisine';
+  const [cuisineLine1, cuisineLine2] = cuisineRaw.includes('|')
+    ? cuisineRaw.split('|').map(s => s.trim())
+    : [cuisineRaw, ''];
 
   return (
     <div className="w-full relative flex flex-col bg-[#f7f1e4]">
@@ -149,19 +153,17 @@ export default function HomeTopSection() {
           1. HERO SECTION (DARK LAYER)
           ========================================= */}
 
-      <section className="relative w-full pt-20 pb-28 sm:pt-32 sm:pb-36 lg:pt-52 lg:pb-44 flex flex-col justify-center overflow-hidden z-10 min-h-[560px] sm:min-h-[620px] lg:min-h-[720px] ll-hero-mobile-fit bg-[#0e0d0c]">
+      <section className="relative w-full pt-16 pb-20 sm:pt-20 sm:pb-28 lg:pt-24 lg:pb-32 flex flex-col justify-start overflow-hidden z-10 min-h-[340px] sm:min-h-[480px] lg:min-h-[540px] ll-hero-mobile-fit bg-[#0e0d0c]">
 
         {/* Full-width Background Image */}
-        <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${loadingCms ? 'opacity-0' : 'opacity-100'}`}>
-          {!loadingCms && (
-            <Image
-              src={cmsData?.heroBanners?.home || "/images/branded/lassi-lounge/hero-spread.jpg"}
-              alt="Hero background"
-              fill
-              priority
-              className="object-cover object-center"
-            />
-          )}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src={cmsData?.heroBanners?.home || "/images/branded/lassi-lounge/hero-spread.jpg"}
+            alt="Hero background"
+            fill
+            priority
+            className="object-cover object-center"
+          />
         </div>
 
         {/* Dark Rich Gradient Overlay */}
@@ -177,11 +179,11 @@ export default function HomeTopSection() {
 
         {/* ll-stagger cascades each direct child in on mount (Welcome-to, headline,
             cuisine badge, description, CTA row) using the existing fade-lift system. */}
-        <div className="relative z-20 mx-auto max-w-7xl w-full px-4 md:px-8 flex flex-col justify-center text-left ll-stagger">
+        <div className="relative z-20 mx-auto max-w-7xl w-full px-4 md:px-8 flex flex-col justify-start items-start text-left ll-stagger">
 
           <div className="relative self-start">
             <p
-              className="text-3xl md:text-4xl text-white tracking-wide font-normal mb-1"
+              className="text-[26px] xs:text-3xl md:text-4xl text-white tracking-wide font-normal mb-0.5"
               style={{ fontFamily: "'Dancing Script', cursive" }}
             >
               Welcome to
@@ -190,43 +192,50 @@ export default function HomeTopSection() {
             <span className="absolute top-2 -right-6 text-[#e8a020] text-base font-bold rotate-[65deg]">\</span>
           </div>
 
-          <h1 className="font-serif font-black leading-[0.85] flex-col flex gap-[7px] mt-1 md:block">
+          <h1 className="font-serif font-black leading-none flex items-center justify-start flex-nowrap gap-2 sm:gap-3.5 mt-1">
             <span
-              className="block text-[48px] md:text-[95px] text-white uppercase ll-text-wipe"
+              className="text-[32px] xs:text-[36px] sm:text-[46px] md:text-[58px] lg:text-[62px] text-white uppercase whitespace-nowrap ll-text-wipe"
               style={{ animationDelay: '500ms' }}
             >
               {brandName1}
             </span>
-            <span className="block text-[48px] md:text-[95px] text-[#e8a020] uppercase ll-text-wipe-shimmer">
+            <span className="text-[32px] xs:text-[36px] sm:text-[46px] md:text-[58px] lg:text-[62px] text-[#e8a020] uppercase whitespace-nowrap ll-text-wipe-shimmer">
               {brandName2}
             </span>
           </h1>
 
-          <div className="mt-4 self-start relative ml-1">
-            <div className="bg-[#cd131b] text-white text-xs md:text-sm font-bold tracking-widest px-6 py-2.5 uppercase relative z-10 shadow-lg">
-              {brand?.cuisine ? `${brand.cuisine}` : 'INDIAN RESTAURANT'}
-            </div>
-            <div className="absolute -left-1.5 top-0 h-full w-2 bg-[#cd131b] z-0"></div>
-            <div className="absolute -left-1.5 -bottom-1.5 border-t-[6px] border-t-[#78060b] border-l-[6px] border-l-transparent z-0"></div>
+          {/* Cuisine — line 1 bold white, line 2 golden pill */}
+          <div className="mt-2.5 sm:mt-4 flex flex-col items-start gap-2">
+            <span className="block text-white font-black uppercase tracking-wide leading-tight text-[15px] xs:text-[17px] sm:text-xl md:text-[26px] whitespace-nowrap drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]">
+              {cuisineLine1}
+            </span>
+            {cuisineLine2 && (
+              <span className="inline-flex items-center bg-gradient-to-r from-[#f5b82e] to-[#e8a020] text-[#1a0806] font-black uppercase tracking-wide rounded-full px-3.5 sm:px-5 py-1 sm:py-1.5 text-[11px] xs:text-[12px] sm:text-sm md:text-base shadow-[0_6px_18px_-6px_rgba(232,160,32,0.7)]">
+                {cuisineLine2}
+              </span>
+            )}
           </div>
 
-          <p className="text-[#f7f1e4]/80 text-xs md:text-sm leading-relaxed mt-6 max-w-[380px] font-sans">
-            {brand?.description || 'Experience the rich and authentic flavors. From traditional favorites to modern delights, every dish is made with love.'}
+          {/* Subtitle Description — Shown on Desktop, hidden on mobile */}
+          <p className="hidden md:block text-white/85 text-sm md:text-base font-sans max-w-xl mt-4 leading-relaxed font-light">
+            {heroContent.description}
           </p>
 
-          <div className="flex flex-wrap items-center gap-4 mt-8 ll-hero-cta-row">
+          <div className="flex flex-row items-center justify-start gap-2.5 sm:gap-4 mt-4 sm:mt-7 ll-hero-cta-row">
             <Button
               href={heroContent.primaryCta.href}
-              className="bg-[#e8a020] hover:bg-[#d68f13] text-black px-6 py-3 rounded-md font-bold uppercase text-xs tracking-wider flex items-center gap-2 transition-colors shadow-md ll-hero-cta-btn ll-hero-cta-btn--primary"
+              variant="custom"
+              className="!bg-[#cd131b] hover:!bg-[#b01017] text-white border border-[#ff3a3a]/40 px-4 sm:px-7 py-2.5 sm:py-3 !rounded-full font-bold text-[12px] sm:text-sm tracking-wide flex items-center justify-center gap-2 transition-all shadow-[0_8px_22px_-8px_rgba(205,19,27,0.8)] hover:-translate-y-0.5 ll-hero-cta-btn ll-hero-cta-btn--primary"
             >
-              <Bike size={18} strokeWidth={2.5} /> {heroContent.primaryCta.label}
+              <Bike size={16} strokeWidth={2.5} /> <span>{heroContent.primaryCta.label}</span>
             </Button>
 
             <Button
               href={heroContent.secondaryCta.href}
-              className="bg-transparent border border-[#e8a020] text-white hover:bg-[#e8a020]/10 px-6 py-3 rounded-md font-bold uppercase text-xs tracking-wider flex items-center gap-2 transition-colors ll-hero-cta-btn ll-hero-cta-btn--secondary"
+              variant="custom"
+              className="!bg-black/30 hover:!bg-[#e8a020]/15 backdrop-blur-sm border-[1.5px] border-[#e8a020] text-white px-4 sm:px-7 py-2.5 sm:py-3 !rounded-full font-bold text-[12px] sm:text-sm tracking-wide flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 ll-hero-cta-btn ll-hero-cta-btn--secondary"
             >
-              <Utensils size={16} strokeWidth={2.5} className="text-[#e8a020]" /> {heroContent.secondaryCta.label}
+              <Utensils size={15} strokeWidth={2.5} className="text-[#e8a020]" /> <span>{heroContent.secondaryCta.label}</span>
             </Button>
           </div>
         </div>
@@ -335,6 +344,77 @@ export default function HomeTopSection() {
           </div>
         </div>
 
+        
+        {/* ─── DOWNLOAD OUR MOBILE APP PROMO CARD ─── */}
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-8 mt-6 md:mt-10 relative z-30">
+          <div className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#8f0d14] via-[#6e0a10] to-[#3d0508] border border-[#e8a020]/25 shadow-[0_20px_45px_-18px_rgba(110,10,16,0.75)]">
+            {/* decorative glows */}
+            <div className="absolute -top-16 -right-10 w-56 h-56 rounded-full bg-[#e8a020]/15 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-20 -left-10 w-64 h-64 rounded-full bg-[#ff3a3a]/15 blur-3xl pointer-events-none" />
+            <div className="absolute inset-0 opacity-[0.07] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '14px 14px' }} />
+
+            <div className="relative flex items-center gap-3 sm:gap-6 md:gap-10 px-3.5 sm:px-8 md:px-12 py-5 md:py-7">
+              {/* Phone mockups with user's actual app home screen */}
+              <div className="relative shrink-0 w-[92px] h-[140px] sm:w-[150px] sm:h-[190px] md:w-[190px] md:h-[200px]">
+                <div className="absolute left-0 bottom-0 w-[62px] h-[126px] sm:w-[92px] sm:h-[180px] md:w-[100px] md:h-[196px] rounded-[16px] sm:rounded-[20px] bg-[#111] p-[3px] shadow-[0_14px_30px_rgba(0,0,0,0.55)] -rotate-[8deg] z-10">
+                  <div className="w-full h-full rounded-[13px] sm:rounded-[17px] overflow-hidden bg-[#fcfaf5] flex flex-col">
+                    <div className="relative flex-1">
+                      <Image src="/images/branded/lassi-lounge/app-home-screen.jpg" alt="Lassi Lounge mobile app" fill className="object-cover object-top" sizes="110px" />
+                    </div>
+                  </div>
+                </div>
+                <div className="absolute right-0 top-0 w-[56px] h-[114px] sm:w-[84px] sm:h-[166px] md:w-[92px] md:h-[180px] rounded-[15px] sm:rounded-[18px] bg-[#111] p-[3px] shadow-[0_14px_30px_rgba(0,0,0,0.5)] rotate-[6deg]">
+                  <div className="w-full h-full rounded-[12px] sm:rounded-[15px] overflow-hidden bg-[#fcfaf5] flex flex-col">
+                    <div className="relative flex-1">
+                      <Image src="/images/branded/lassi-lounge/app-home-screen.jpg" alt="" fill className="object-cover object-[center_45%]" sizes="100px" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Copy + CTAs */}
+              <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-8">
+                <div className="flex flex-col items-start md:items-center md:text-center">
+                  <h3 className="flex items-center gap-1.5 font-black uppercase leading-tight text-white text-[15px] xs:text-[17px] sm:text-xl md:text-[26px]">
+                    <Download className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-[#e8a020] shrink-0" strokeWidth={3} />
+                    <span>Download Our <span className="text-[#e8a020]">Mobile App</span></span>
+                  </h3>
+                  <p className="text-white/85 text-[11px] sm:text-[13px] md:text-sm mt-1 leading-snug">
+                    Order on our mobile app directly and get
+                  </p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="bg-[#e8a020] text-[#1a0806] font-black text-[15px] sm:text-xl md:text-2xl px-2.5 py-0.5 rounded-lg leading-none shadow-md whitespace-nowrap">20% OFF</span>
+                    <span className="text-white text-[11px] sm:text-sm font-semibold whitespace-nowrap">on your every order</span>
+                  </div>
+                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-dashed border-[#e8a020]/80 bg-black/20 px-3 py-1 text-[10px] sm:text-xs text-white">
+                    Use Code: <span className="font-black text-[#e8a020] tracking-wider">WELCOME20</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-row md:flex-col gap-2 shrink-0">
+                  <a
+                    href={brand?.playStoreUrl || 'https://play.google.com/store/apps/details?id=com.lassilounge.customer&hl=en'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 bg-black hover:bg-[#1a1a1a] border border-white/25 rounded-lg px-2 md:px-4 py-1.5 md:py-2 transition-all hover:-translate-y-0.5"
+                  >
+                    <svg viewBox="0 0 24 24" className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true"><path fill="#34A853" d="M3.6 1.8 13.8 12 3.6 22.2c-.4-.2-.6-.6-.6-1.1V2.9c0-.5.2-.9.6-1.1z"/><path fill="#FBBC04" d="m17.2 15.4-3.4-3.4 3.4-3.4 3.9 2.2c1.1.6 1.1 1.8 0 2.4z"/><path fill="#EA4335" d="M17.2 15.4 13.8 12 3.6 22.2c.4.2.9.2 1.4-.1z"/><path fill="#4285F4" d="M17.2 8.6 5 1.9c-.5-.3-1-.3-1.4-.1L13.8 12z"/></svg>
+                    <span className="flex flex-col leading-none text-white whitespace-nowrap"><span className="text-[7px] md:text-[9px] uppercase">Get it on</span><span className="text-[10px] xs:text-[11px] md:text-sm font-bold">Google Play</span></span>
+                  </a>
+
+                  <div
+                    className="flex items-center gap-1.5 bg-black/80 border border-white/20 rounded-lg px-2 md:px-4 py-1.5 md:py-2 select-none cursor-default opacity-85"
+                    title="iOS App Coming Soon!"
+                  >
+                    <svg viewBox="0 0 24 24" className="w-4 h-4 md:w-5 md:h-5 fill-white/80" aria-hidden="true"><path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4.1zM13.9 4.9c.7-.9 1.2-2.1 1.1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"/></svg>
+                    <span className="flex flex-col leading-none text-white whitespace-nowrap"><span className="text-[7px] md:text-[9px] uppercase font-bold text-[#e8a020] tracking-wider">Coming Soon</span><span className="text-[10px] xs:text-[11px] md:text-sm font-bold text-white/90">App Store</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* ─── ALL CATEGORIES 3D MODAL (Matches Flutter All Categories Bottom Sheet) ─── */}
         <AllCategoriesModal
           isOpen={isAllCategoriesOpen}
@@ -386,12 +466,6 @@ export default function HomeTopSection() {
                 <span className="font-black text-[#ff3008] text-base md:text-lg tracking-widest font-sans uppercase flex flex-col items-center">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="#ff3008" xmlns="http://www.w3.org/2000/svg" className="mb-1.5"><path d="M22.956 16.037c0 4.148-4.708 6.44-8.868 6.44-4.887 0-9.824-2.83-9.824-6.44 0-4.149 4.706-6.44 8.867-6.44 4.889 0 9.825 2.829 9.825 6.44zm-14.93-9.043c0-4.147 4.708-6.44 8.867-6.44 4.889 0 9.825 2.83 9.825 6.44 0 4.149-4.707 6.44-8.868 6.44-4.887 0-9.824-2.829-9.824-6.44z" /></svg>
                   DOORDASH
-                </span>
-              </a>
-
-              <a href={partners[2].href} target="_blank" rel="noopener noreferrer" className="shrink-0 snap-center bg-white hover:bg-gray-50 rounded-2xl shadow-xl flex items-center justify-center w-[150px] sm:w-[170px] lg:w-[190px] h-[85px] lg:h-[95px] transition-transform hover:-translate-y-1">
-                <span className="font-black text-[#f28100] text-2xl md:text-3xl tracking-tight font-sans uppercase">
-                  GRUBHUB
                 </span>
               </a>
 

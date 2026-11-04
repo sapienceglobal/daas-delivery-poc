@@ -97,7 +97,7 @@ export default function OrderOnlineHero() {
           </h2>
           
           {/* Main Heading */}
-          <h1 className="font-sans font-black text-[#4a0b0d] text-5xl md:text-[72px] lg:text-[84px] tracking-tight uppercase leading-[0.9] mb-4">
+          <h1 className="font-sans font-black text-[#4a0b0d] text-[36px] sm:text-[44px] md:text-[56px] lg:text-[56px] tracking-tight uppercase leading-[0.9] mb-4">
             Order Online
           </h1>
           

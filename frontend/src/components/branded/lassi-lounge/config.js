@@ -50,7 +50,6 @@ export const deliveryPartnersContent = {
   partners: [
     { id: 'ubereats', name: 'Uber Eats', logo: '/images/branded/lassi-lounge/partners/ubereats.svg', href: 'https://www.ubereats.com' },
     { id: 'doordash', name: 'DoorDash', logo: '/images/branded/lassi-lounge/partners/doordash.svg', href: 'https://www.doordash.com' },
-    { id: 'grubhub', name: 'Grubhub', logo: '/images/branded/lassi-lounge/partners/grubhub.svg', href: 'https://www.grubhub.com' },
   ],
 };
 

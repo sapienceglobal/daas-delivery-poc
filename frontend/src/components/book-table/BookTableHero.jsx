@@ -37,7 +37,7 @@ export default function BookTableHero() {
           </h2>
           
           {/* Main Heading - Tall, Bold, Tight Spacing */}
-          <h1 className="text-[48px] md:text-[88px] font-black text-white uppercase tracking-tighter leading-[0.85] mb-4 md:mb-5 drop-shadow-2xl font-sans" style={{ transform: 'scaleY(1.05)', transformOrigin: 'left' }}>
+          <h1 className="text-[36px] sm:text-[44px] md:text-[56px] lg:text-[56px] font-black text-white uppercase tracking-tighter leading-[0.85] mb-4 md:mb-5 drop-shadow-2xl font-sans" style={{ transform: 'scaleY(1.05)', transformOrigin: 'left' }}>
             BOOK A TABLE
           </h1>
           
