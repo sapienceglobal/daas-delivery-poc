@@ -130,6 +130,8 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/images/branded/lassi-lounge/Lassi-Lounge-icon.png"
+  remove_alpha_ios: true
+  background_color_ios: "#ffffff"
 
 flutter_native_splash:
   color: "#FFFFFF"

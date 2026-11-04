@@ -39,8 +39,8 @@ export default function CartSidebar({
         className="bg-[#5c060a] text-[#ffffff] px-5 py-4 flex items-center justify-between cursor-pointer"
         onClick={() => setIsCartExpanded(!isCartExpanded)}
       >
-        <h3 className="text-[17px] font-extrabold gap-1 tracking-wide flex items-center gap-1.5 font-sans">
-          Your Cart <span className="text-[14px]  font-normal text-white/80">({itemCount} Items)</span>
+        <h3 className="text-lg font-black gap-1 tracking-wide flex items-center gap-1.5 font-sans">
+          My Order <span className="text-[13px] font-medium text-white/80">({itemCount} Items)</span>
         </h3>
         <button className="text-white hover:text-white/80 transition-colors ll-focus-ring" aria-label="Toggle Cart">
           <ChevronUp className={`h-5 w-5 transition-transform duration-300 ${isCartExpanded ? '' : 'rotate-180'}`} strokeWidth={2.5} />

@@ -323,11 +323,11 @@ export default function HomeTopSection() {
             <div className="absolute -bottom-24 -left-12 w-72 h-72 rounded-full bg-[#ff3a3a]/20 blur-3xl pointer-events-none" />
             <div className="absolute inset-0 opacity-[0.08] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '14px 14px' }} />
 
-            <div className="relative flex items-center gap-4 sm:gap-7 md:gap-12 px-4 xs:px-5 sm:px-8 md:px-12 py-6 sm:py-8 md:py-8">
+            <div className="relative flex items-center gap-3.5 xs:gap-4 sm:gap-7 md:gap-12 px-3.5 xs:px-5 sm:px-8 md:px-12 py-5 sm:py-8 md:py-8">
               {/* Phone mockups with user's actual app home screen - bigger & richer */}
-              <div className="relative shrink-0 w-[108px] h-[165px] xs:w-[118px] xs:h-[178px] sm:w-[155px] sm:h-[195px] md:w-[195px] md:h-[210px]">
+              <div className="relative shrink-0 w-[100px] h-[155px] xs:w-[115px] xs:h-[175px] sm:w-[155px] sm:h-[195px] md:w-[195px] md:h-[210px]">
                 {/* Front Phone */}
-                <div className="absolute left-0 bottom-0 w-[74px] h-[148px] xs:w-[80px] xs:h-[160px] sm:w-[98px] sm:h-[188px] md:w-[108px] md:h-[204px] rounded-[18px] sm:rounded-[22px] bg-[#111] p-[3px] shadow-[0_16px_36px_rgba(0,0,0,0.65)] -rotate-[7deg] z-10 border border-white/20">
+                <div className="absolute left-0 bottom-0 w-[70px] h-[140px] xs:w-[78px] xs:h-[156px] sm:w-[98px] sm:h-[188px] md:w-[108px] md:h-[204px] rounded-[18px] sm:rounded-[22px] bg-[#111] p-[3px] shadow-[0_16px_36px_rgba(0,0,0,0.65)] -rotate-[7deg] z-10 border border-white/20">
                   <div className="w-full h-full rounded-[15px] sm:rounded-[19px] overflow-hidden bg-[#fcfaf5] flex flex-col">
                     <div className="relative flex-1">
                       <Image src="/images/branded/lassi-lounge/app-home-screen.jpg" alt="Lassi Lounge mobile app" fill className="object-cover object-top" sizes="120px" />
@@ -335,7 +335,7 @@ export default function HomeTopSection() {
                   </div>
                 </div>
                 {/* Back Phone */}
-                <div className="absolute right-0 top-0 w-[66px] h-[134px] xs:w-[72px] xs:h-[146px] sm:w-[90px] sm:h-[174px] md:w-[100px] md:h-[190px] rounded-[16px] sm:rounded-[20px] bg-[#111] p-[3px] shadow-[0_14px_30px_rgba(0,0,0,0.5)] rotate-[7deg] border border-white/15">
+                <div className="absolute right-0 top-0 w-[62px] h-[126px] xs:w-[70px] xs:h-[142px] sm:w-[90px] sm:h-[174px] md:w-[100px] md:h-[190px] rounded-[16px] sm:rounded-[20px] bg-[#111] p-[3px] shadow-[0_14px_30px_rgba(0,0,0,0.5)] rotate-[7deg] border border-white/15">
                   <div className="w-full h-full rounded-[13px] sm:rounded-[17px] overflow-hidden bg-[#fcfaf5] flex flex-col">
                     <div className="relative flex-1">
                       <Image src="/images/branded/lassi-lounge/app-home-screen.jpg" alt="" fill className="object-cover object-[center_45%]" sizes="110px" />
@@ -345,66 +345,66 @@ export default function HomeTopSection() {
               </div>
 
               {/* Copy + CTAs */}
-              <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 md:gap-8">
+              <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center md:justify-between gap-2.5 sm:gap-4 md:gap-8">
                 <div className="flex flex-col items-start md:items-center md:text-center">
-                  <h3 className="flex items-center gap-1.5 font-black uppercase leading-tight text-white text-[16px] xs:text-[18px] sm:text-2xl md:text-[28px] tracking-tight">
+                  <h3 className="flex items-center gap-1.5 font-black uppercase leading-tight text-white text-[14.5px] xs:text-[17px] sm:text-2xl md:text-[28px] tracking-tight">
                     <Download className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 text-[#f5b82e] shrink-0" strokeWidth={3} />
                     <span>Download Our <span className="text-[#f5b82e] drop-shadow-[0_2px_10px_rgba(245,184,46,0.45)]">Mobile App</span></span>
                   </h3>
                   
                   {/* 2-line clean descriptive text on mobile & desktop */}
-                  <div className="text-white/90 text-[12px] xs:text-[13px] sm:text-[14px] md:text-base mt-1.5 sm:mt-2 leading-snug font-medium">
+                  <div className="text-white/90 text-[11px] xs:text-[12.5px] sm:text-[14px] md:text-base mt-1.5 sm:mt-2 leading-snug font-medium">
                     <p className="whitespace-nowrap">Order on our mobile app directly</p>
                     <p className="text-white/80">and get</p>
                   </div>
 
                   {/* 20% OFF Offer Pill */}
-                  <div className="flex items-center gap-2 mt-2 sm:mt-2.5">
-                    <span className="bg-gradient-to-r from-[#f5b82e] via-[#e8a020] to-[#d4821a] text-[#1a0806] font-black text-[16px] xs:text-[18px] sm:text-2xl md:text-3xl px-3 py-0.5 sm:py-1 rounded-xl leading-none shadow-[0_6px_16px_rgba(232,160,32,0.45)] border border-[#ffdf79]/50 whitespace-nowrap">
+                  <div className="flex items-center gap-1.5 xs:gap-2 mt-1.5 sm:mt-2.5">
+                    <span className="bg-gradient-to-r from-[#f5b82e] via-[#e8a020] to-[#d4821a] text-[#1a0806] font-black text-[14px] xs:text-[16px] sm:text-2xl md:text-3xl px-2.5 py-0.5 sm:py-1 rounded-xl leading-none shadow-[0_6px_16px_rgba(232,160,32,0.45)] border border-[#ffdf79]/50 whitespace-nowrap">
                       20% OFF
                     </span>
-                    <span className="text-white text-xs xs:text-sm sm:text-base font-bold whitespace-nowrap tracking-wide">
-                      on your every order
+                    <span className="text-white text-[10.5px] xs:text-xs sm:text-base font-bold whitespace-nowrap tracking-tight">
+                      on every order
                     </span>
                   </div>
 
                   {/* Coupon Code badge */}
-                  <div className="mt-2.5 inline-flex items-center gap-1.5 xs:gap-2 rounded-full border border-dashed border-[#f5b82e] bg-black/40 backdrop-blur-md px-3.5 py-1 text-[11px] sm:text-xs text-white shadow-inner">
+                  <div className="mt-2 sm:mt-2.5 inline-flex items-center gap-1.5 xs:gap-2 rounded-full border border-dashed border-[#f5b82e] bg-black/40 backdrop-blur-md px-3 py-0.5 xs:py-1 text-[9.5px] xs:text-[10.5px] sm:text-xs text-white shadow-inner">
                     <span className="text-white/85 font-medium">Use Code:</span>
-                    <span className="font-black text-[#f5b82e] tracking-widest text-xs sm:text-sm">WELCOME20</span>
+                    <span className="font-black text-[#f5b82e] tracking-widest text-[11px] xs:text-xs sm:text-sm">WELCOME20</span>
                   </div>
                 </div>
 
                 {/* App Download Buttons */}
-                <div className="flex flex-row md:flex-col gap-2 xs:gap-2.5 shrink-0 mt-1 md:mt-0">
+                <div className="flex flex-row md:flex-col gap-1.5 xs:gap-2 sm:gap-2.5 shrink-0 mt-0.5 md:mt-0">
                   <a
                     href={brand?.playStoreUrl || 'https://play.google.com/store/apps/details?id=com.lassilounge.customer&hl=en'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 bg-black/90 hover:bg-black border border-white/25 rounded-xl px-2.5 xs:px-3.5 sm:px-4 py-2 transition-all hover:scale-105 shadow-md"
+                    className="flex items-center gap-1.5 bg-black/90 hover:bg-black border border-white/25 rounded-xl px-2 xs:px-3 sm:px-4 py-1.5 xs:py-2 transition-all hover:scale-105 shadow-md"
                   >
-                    <svg viewBox="0 0 24 24" className="w-4 h-4 xs:w-5 xs:h-5 md:w-6 md:h-6 shrink-0" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 shrink-0" aria-hidden="true">
                       <path fill="#34A853" d="M3.6 1.8 13.8 12 3.6 22.2c-.4-.2-.6-.6-.6-1.1V2.9c0-.5.2-.9.6-1.1z"/>
                       <path fill="#FBBC04" d="m17.2 15.4-3.4-3.4 3.4-3.4 3.9 2.2c1.1.6 1.1 1.8 0 2.4z"/>
                       <path fill="#EA4335" d="M17.2 15.4 13.8 12 3.6 22.2c.4.2.9.2 1.4-.1z"/>
                       <path fill="#4285F4" d="M17.2 8.6 5 1.9c-.5-.3-1-.3-1.4-.1L13.8 12z"/>
                     </svg>
                     <span className="flex flex-col leading-none text-white whitespace-nowrap">
-                      <span className="text-[7.5px] xs:text-[8px] md:text-[9px] uppercase text-white/75 font-medium tracking-wide">Get it on</span>
-                      <span className="text-[11px] xs:text-[12px] md:text-sm font-bold mt-0.5">Google Play</span>
+                      <span className="text-[6.5px] xs:text-[7.5px] md:text-[9px] uppercase text-white/75 font-medium tracking-wide">Get it on</span>
+                      <span className="text-[9.5px] xs:text-[11px] md:text-sm font-bold mt-0.5">Google Play</span>
                     </span>
                   </a>
 
                   <div
-                    className="flex items-center gap-2 bg-black/75 border border-white/20 rounded-xl px-2.5 xs:px-3.5 sm:px-4 py-2 select-none cursor-default opacity-90 shadow-md"
+                    className="flex items-center gap-1.5 bg-black/75 border border-white/20 rounded-xl px-2 xs:px-3 sm:px-4 py-1.5 xs:py-2 select-none cursor-default opacity-90 shadow-md"
                     title="iOS App Coming Soon!"
                   >
-                    <svg viewBox="0 0 24 24" className="w-4 h-4 xs:w-5 xs:h-5 md:w-6 md:h-6 fill-white/80 shrink-0" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 fill-white/80 shrink-0" aria-hidden="true">
                       <path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4.1zM13.9 4.9c.7-.9 1.2-2.1 1.1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"/>
                     </svg>
                     <span className="flex flex-col leading-none text-white whitespace-nowrap">
-                      <span className="text-[7.5px] xs:text-[8px] md:text-[9px] uppercase font-bold text-[#f5b82e] tracking-wider">Coming Soon</span>
-                      <span className="text-[11px] xs:text-[12px] md:text-sm font-bold text-white/90 mt-0.5">App Store</span>
+                      <span className="text-[6.5px] xs:text-[7.5px] md:text-[9px] uppercase font-bold text-[#f5b82e] tracking-wider">Coming Soon</span>
+                      <span className="text-[9.5px] xs:text-[11px] md:text-sm font-bold text-white/90 mt-0.5">App Store</span>
                     </span>
                   </div>
                 </div>
