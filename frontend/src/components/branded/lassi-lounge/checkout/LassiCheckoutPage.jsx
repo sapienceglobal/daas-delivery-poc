@@ -94,6 +94,13 @@ export default function LassiCheckoutPage() {
 
   // Mobile sticky place order bar visibility (auto-hides when scrolled to in-page place order)
   const inPagePlaceOrderRef = useRef(null);
+
+  // Ensure instant loyalty deduction is disabled (points are converted to coupons via Rewards page)
+  useEffect(() => {
+    if (c.useLoyaltyPoints) {
+      c.setUseLoyaltyPoints(false);
+    }
+  }, [c.useLoyaltyPoints, c.setUseLoyaltyPoints]);
   const [isStickyBarVisible, setIsStickyBarVisible] = useState(true);
 
   useEffect(() => {
@@ -339,7 +346,7 @@ export default function LassiCheckoutPage() {
               <span>100% Secure Checkout</span>
             </div>
 
-            <h1 className="font-['Playfair_Display'] text-4xl sm:text-5xl lg:text-[54px] font-black text-white leading-[1.08] tracking-tight">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-[1.08] tracking-tight">
               Checkout
             </h1>
 
@@ -350,10 +357,10 @@ export default function LassiCheckoutPage() {
         </div>
 
         {/* Smooth Bottom Curve Wave */}
-        <div className="absolute bottom-0 left-0 right-0 h-8 sm:h-11 pointer-events-none z-20">
-          <svg viewBox="0 0 1440 44" preserveAspectRatio="none" className="w-full h-full">
+        <div className="absolute -bottom-[2px] left-0 right-0 h-8 sm:h-11 pointer-events-none z-20 overflow-hidden">
+          <svg viewBox="0 0 1440 44" preserveAspectRatio="none" className="w-full h-full block">
             <path
-              d="M0,26 C180,0 380,4 680,22 C940,37 1180,38 1440,10 L1440,44 L0,44 Z"
+              d="M0,26 C180,0 380,4 680,22 C940,37 1180,38 1440,10 L1440,50 L0,50 Z"
               fill="#FAF3E8"
             />
           </svg>
@@ -363,16 +370,16 @@ export default function LassiCheckoutPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           2. 3-STEP HORIZONTAL PROGRESS STEPPER (Pixel-Perfect & Responsive)
          ═══════════════════════════════════════════════════════════════════ */}
-      <section className="bg-[#FAF3E8] pt-4 pb-4 border-b border-[#EFE3D2]">
+      <section className="relative z-20 bg-[#FAF3E8] pt-4 pb-4 border-b border-[#EFE3D2] -mt-1 sm:-mt-1.5">
         <div className="max-w-xl mx-auto px-3 sm:px-6">
           <div className="relative flex items-center justify-between">
             {/* Background Connecting Track Line */}
-            <div className="absolute top-[20px] left-[15%] right-[15%] h-[2px] bg-[#E2D6C5] z-0" />
+            <div className="absolute top-[20px] left-[16.7%] right-[16.7%] h-[2px] bg-[#E2D6C5] z-0" />
             {/* Active Maroon Progress Line */}
             <div
-              className="absolute top-[20px] left-[15%] h-[2.5px] bg-[#7A0B10] z-0 transition-all duration-500 ease-out"
+              className="absolute top-[20px] left-[16.7%] h-[2.5px] bg-[#7A0B10] z-0 transition-all duration-500 ease-out"
               style={{
-                width: c.step === 3 ? '70%' : '35%',
+                width: c.step === 3 ? '66.6%' : '33.3%',
               }}
             />
 
@@ -385,7 +392,7 @@ export default function LassiCheckoutPage() {
               <div className="w-10 h-10 rounded-full bg-[#7A0B10] text-white flex items-center justify-center shadow-[0_2px_8px_rgba(122,11,16,0.3)] border-2 border-white transition-all group-hover:scale-105">
                 <Check size={18} strokeWidth={2.8} />
               </div>
-              <span className="text-xs sm:text-sm font-bold text-[#1A1A1A] group-hover:text-[#7A0B10] transition-colors whitespace-nowrap mt-2 text-center">
+              <span className="text-[11px] sm:text-xs md:text-sm font-bold text-[#1A1A1A] group-hover:text-[#7A0B10] transition-colors whitespace-nowrap mt-2 text-center">
                 1. Cart
               </span>
             </button>
@@ -409,7 +416,7 @@ export default function LassiCheckoutPage() {
                   <MapPin size={17} strokeWidth={2.2} />
                 )}
               </div>
-              <span className={`text-xs sm:text-sm font-extrabold whitespace-nowrap transition-colors mt-2 text-center ${
+              <span className={`text-[11px] sm:text-xs md:text-sm font-extrabold whitespace-nowrap transition-colors mt-2 text-center ${
                 c.step < 3 ? 'text-[#7A0B10]' : 'text-[#1A1A1A]'
               }`}>
                 2. Delivery &amp; Pay
@@ -431,7 +438,7 @@ export default function LassiCheckoutPage() {
               >
                 <Check size={18} strokeWidth={2.5} />
               </div>
-              <span className={`text-xs sm:text-sm font-bold whitespace-nowrap transition-colors mt-2 text-center ${
+              <span className={`text-[11px] sm:text-xs md:text-sm font-bold whitespace-nowrap transition-colors mt-2 text-center ${
                 c.step === 3 ? 'text-[#7A0B10]' : 'text-[#8C7E72] group-hover:text-[#1A1A1A]'
               }`}>
                 3. Review Order
@@ -451,7 +458,7 @@ export default function LassiCheckoutPage() {
               <div className="w-20 h-20 rounded-full bg-[#FDF3E7] border border-[#EAD4B4] text-[#7A0B10] flex items-center justify-center mx-auto mb-5">
                 <ShoppingCart size={34} strokeWidth={1.8} />
               </div>
-              <h2 className="font-['Playfair_Display'] text-3xl font-black text-[#1A1A1A]">
+              <h2 className="text-2xl sm:text-3xl font-black text-[#1A1A1A]">
                 Your Cart is Empty
               </h2>
               <p className="text-sm text-[#6B5E53] mt-2 max-w-sm mx-auto leading-relaxed">
@@ -477,7 +484,7 @@ export default function LassiCheckoutPage() {
                     <div className="w-7 h-7 rounded-full bg-[#7A0B10] text-white text-xs font-black flex items-center justify-center shadow-xs">
                       1
                     </div>
-                    <h2 className="font-['Playfair_Display'] text-lg sm:text-xl font-bold text-[#1A1A1A]">
+                    <h2 className="font-bold text-lg sm:text-xl font-bold text-[#1A1A1A]">
                       Delivery Option
                     </h2>
                   </div>
@@ -569,7 +576,7 @@ export default function LassiCheckoutPage() {
                     <div className="w-7 h-7 rounded-full bg-[#7A0B10] text-white text-xs font-black flex items-center justify-center shadow-xs">
                       2
                     </div>
-                    <h2 className="font-['Playfair_Display'] text-lg sm:text-xl font-bold text-[#1A1A1A]">
+                    <h2 className="font-bold text-lg sm:text-xl font-bold text-[#1A1A1A]">
                       {c.orderType === 'delivery'
                         ? 'Contact & Delivery Details'
                         : 'Contact & Pickup Details'}
@@ -1006,8 +1013,8 @@ export default function LassiCheckoutPage() {
                       3
                     </div>
                     <div className="flex-1 flex items-center justify-between">
-                      <h2 className="font-['Playfair_Display'] text-lg sm:text-xl font-bold text-[#1A1A1A]">
-                        Payment Method
+                      <h2 className="text-base sm:text-lg font-bold text-[#1A1A1A]">
+                      Payment Method
                       </h2>
                       <div className="flex items-center gap-1.5 text-xs text-[#16A34A] font-bold bg-[#DCFCE7] px-2.5 py-1 rounded-full">
                         <Lock size={13} />
@@ -1112,7 +1119,7 @@ export default function LassiCheckoutPage() {
                     <div className="w-7 h-7 rounded-full bg-[#7A0B10] text-white text-xs font-black flex items-center justify-center shadow-xs">
                       4
                     </div>
-                    <h2 className="font-['Playfair_Display'] text-lg sm:text-xl font-bold text-[#1A1A1A]">
+                    <h2 className="text-base sm:text-lg font-bold text-[#1A1A1A]">
                       Special Instructions
                     </h2>
                   </div>
@@ -1144,14 +1151,10 @@ export default function LassiCheckoutPage() {
                   {/* Restaurant Header */}
                   <div className="pb-4 border-b border-[#F0E6D8] flex items-center justify-between">
                     <div>
-                      <h3 className="font-['Playfair_Display'] text-lg font-bold text-[#1A1A1A]">
-                        Lassi Lounge NY
+                      <h3 className="text-base sm:text-lg font-bold text-[#1A1A1A]">
+                        {c.restaurant?.name || 'Lassi Lounge NY'}
                       </h3>
-                      <div className="flex items-center gap-1.5 mt-0.5 text-xs text-[#6B5E53]">
-                        <Star size={13} fill="#F5B53D" className="text-[#F5B53D]" />
-                        <span className="font-bold text-[#1A1A1A]">4.9</span>
-                        <span>(1,500+ reviews)</span>
-                      </div>
+                      
                     </div>
                     <span className="px-2.5 py-1 rounded-full bg-[#FCEAE6] text-[#7A0B10] text-[11px] font-black uppercase tracking-wider">
                       {c.orderType === 'delivery' ? 'Delivery' : 'Pickup'}
@@ -1227,33 +1230,28 @@ export default function LassiCheckoutPage() {
                     })}
                   </div>
 
-                  {/* ═══ LOYALTY POINTS REDEEM BANNER (Lassi Lounge Specific) ═══ */}
+                  {/* ═══ LOYALTY REWARDS HELPER (Big Screen Parity: generate coupon via Rewards tab) ═══ */}
                   {loyaltyPoints > 0 && (
-                    <div className="mb-4 p-3.5 rounded-xl bg-gradient-to-r from-[#FFF8EE] to-[#FFF1DE] border border-[#F2D7A5] flex items-center justify-between gap-3">
+                    <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-[#FFF8EE] to-[#FFF1DE] border border-[#F2D7A5] flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="w-8 h-8 rounded-full bg-[#D4AF37] text-white flex items-center justify-center shrink-0 shadow-xs">
                           <Award size={16} />
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-[#1A1A1A]">
-                            Redeem Loyalty Points
+                            Loyalty Points: <span className="text-[#856404]">{loyaltyPoints} pts</span>
                           </p>
-                          <p className="text-[11px] text-[#856404] truncate">
-                            You have {loyaltyPoints} pts (Save ${loyaltyValue})
+                          <p className="text-[11px] text-[#6B5E53] truncate">
+                            Redeem points for coupons to apply below
                           </p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => c.setUseLoyaltyPoints(!c.useLoyaltyPoints)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          c.useLoyaltyPoints
-                            ? 'bg-[#16A34A] text-white shadow-xs'
-                            : 'bg-white text-[#7A0B10] border border-[#D4AF37] hover:bg-[#FFFDF4]'
-                        }`}
+                      <Link
+                        href="/profile?tab=loyalty"
+                        className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-white text-[#7A0B10] border border-[#D4AF37] hover:bg-[#FFFDF4] transition-colors shrink-0 whitespace-nowrap"
                       >
-                        {c.useLoyaltyPoints ? 'Applied ✓' : 'Redeem'}
-                      </button>
+                        Get Coupon →
+                      </Link>
                     </div>
                   )}
 
@@ -1357,12 +1355,7 @@ export default function LassiCheckoutPage() {
                       </div>
                     )}
 
-                    {c.useLoyaltyPoints && c.loyaltyDiscount > 0 && (
-                      <div className="flex justify-between text-[#856404] font-bold">
-                        <span>Loyalty Points Discount</span>
-                        <span>-{formatCurrency(c.loyaltyDiscount, c.restaurant?.currency)}</span>
-                      </div>
-                    )}
+                    
 
                     {c.tip > 0 && (
                       <div className="flex justify-between text-[#6B5E53]">
@@ -1381,7 +1374,7 @@ export default function LassiCheckoutPage() {
                         </p>
                         <p className="text-[10px] text-[#8C7E72]">Includes all applicable taxes</p>
                       </div>
-                      <span className="font-['Playfair_Display'] text-2xl font-black text-[#7A0B10]">
+                      <span className="text-2xl font-black text-[#7A0B10]">
                         {formatCurrency(c.total, c.restaurant?.currency)}
                       </span>
                     </div>
@@ -1499,7 +1492,7 @@ export default function LassiCheckoutPage() {
                 </span>
               </div>
               <div className="flex items-baseline gap-1.5 mt-0.5">
-                <span className="text-xl sm:text-2xl font-black text-[#7A0B10] leading-tight font-['Playfair_Display']">
+                <span className="text-xl sm:text-2xl font-black text-[#7A0B10] leading-tight">
                   {formatCurrency(c.total, c.restaurant?.currency)}
                 </span>
                 <span className="text-[10px] text-[#8C7E72] font-medium hidden xs:inline">
@@ -1587,7 +1580,7 @@ export default function LassiCheckoutPage() {
         serviceFee={c.serviceFee}
         packagingFee={c.packagingFee}
         couponDiscount={c.couponDiscount}
-        loyaltyDiscount={c.loyaltyDiscount}
+        loyaltyDiscount={0}
         orderType={c.orderType}
         courierNotes={c.deliveryInstructions}
         specialInstructions={specialInstructions}

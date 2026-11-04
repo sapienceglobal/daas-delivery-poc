@@ -29,7 +29,7 @@ const getDishImage = (itemName = '') => {
 };
 
 // ── Safe Portal Modal (Fixes Scroll & UI issues) ──────────────────────────
-export function PortalModal({ isOpen, onClose, title, children, size = 'md' }) {
+export function PortalModal({ isOpen, onClose, title, children, footer, size = 'md' }) {
   const [mounted, setMounted] = useState(false);
   const [show, setShow] = useState(false);
 
@@ -41,12 +41,12 @@ export function PortalModal({ isOpen, onClose, title, children, size = 'md' }) {
       document.body.style.paddingRight = `${scrollbarWidth}px`;
       document.body.style.overflow = 'hidden';
       // safe delay for initial render before animating in
-      timeoutId = setTimeout(() => setShow(true), 50);
+      timeoutId = setTimeout(() => setShow(true), 30);
     } else {
       setShow(false);
       document.body.style.overflow = '';
       document.body.style.paddingRight = '';
-      timeoutId = setTimeout(() => setMounted(false), 300);
+      timeoutId = setTimeout(() => setMounted(false), 250);
     }
     return () => { 
       clearTimeout(timeoutId);
@@ -58,13 +58,11 @@ export function PortalModal({ isOpen, onClose, title, children, size = 'md' }) {
   const handleClose = () => {
     // trigger exit animation
     setShow(false);
-    // cleanup body styles immediately so background can scroll
     document.body.style.overflow = '';
     document.body.style.paddingRight = '';
-    // wait for animation to finish before telling parent to unmount
     setTimeout(() => {
       if (onClose) onClose();
-    }, 300);
+    }, 250);
   };
 
   if (!mounted) return null;
@@ -73,25 +71,47 @@ export function PortalModal({ isOpen, onClose, title, children, size = 'md' }) {
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 select-none"
+      className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 select-none"
       onClick={(e) => e.stopPropagation()}
     >
+      {/* Backdrop */}
       <div 
-        className={`absolute inset-0 bg-[#000000]/60 backdrop-blur-sm transition-opacity duration-300 ease-out ${show ? 'opacity-100' : 'opacity-0'}`} 
+        className={`absolute inset-0 bg-[#000000]/65 backdrop-blur-[2px] transition-opacity duration-300 ease-out ${show ? 'opacity-100' : 'opacity-0'}`} 
         onClick={handleClose} 
       />
-      <div className={`relative z-10 w-full ${sizes[size] || sizes.md} bg-[#ffffff] border border-[#e5e7eb] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ease-out ${show ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'}`}>
+
+      {/* Modal Dialog / Mobile Bottom Sheet */}
+      <div className={`relative z-10 w-full ${sizes[size] || sizes.md} bg-white border border-[#e5e7eb] rounded-t-[28px] sm:rounded-2xl shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[90vh] overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${show ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 sm:scale-95 translate-y-full sm:translate-y-4'}`}>
         
-        <div className="flex items-center justify-between p-5 sm:p-6 pb-3 shrink-0 border-b border-[#e5e7eb]/50">
-          {title && <h3 className="text-[20px] font-bold font-serif text-[#1a1a1a]">{title}</h3>}
-          <button onClick={handleClose} className="ml-auto rounded-lg p-2 text-[#6b7280] hover:text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors">
+        {/* Mobile Pull Indicator */}
+        <div className="sm:hidden w-full flex justify-center pt-2.5 pb-1 shrink-0 bg-white">
+          <div className="w-10 h-1.5 bg-stone-300/80 rounded-full" />
+        </div>
+
+        {/* Modal Sticky Header */}
+        <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 pb-3 shrink-0 border-b border-[#e5e7eb]/70 bg-white">
+          {title && <h3 className="text-lg sm:text-[20px] font-bold font-serif text-[#1a1a1a] pr-2 truncate">{title}</h3>}
+          <button 
+            type="button"
+            onClick={handleClose} 
+            className="ml-auto rounded-full p-2 text-[#6b7280] hover:text-[#1a1a1a] hover:bg-[#f9fafb] active:scale-95 transition-all shrink-0 cursor-pointer"
+            aria-label="Close"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="p-5 sm:p-6 overflow-y-auto font-sans ll-soft-scroll">
+        {/* Scrollable Content Body */}
+        <div className="p-5 sm:p-6 overflow-y-auto font-sans ll-soft-scroll flex-1">
           {children}
         </div>
+
+        {/* Pinned Sticky Footer (Never hidden or squished) */}
+        {footer && (
+          <div className="p-3.5 sm:p-5 pb-[calc(env(safe-area-inset-bottom,0px)+14px)] sm:pb-5 border-t border-[#e5e7eb] bg-white shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body
@@ -99,7 +119,7 @@ export function PortalModal({ isOpen, onClose, title, children, size = 'md' }) {
 }
 
 
-// ── Item Detail Modal (Fixed Colors) ──────────────────────────────────────────
+// ── Item Detail Modal (Fixed Colors & Responsive Buttons) ────────────────────
 export default function ItemDetailModal({ item, onClose, onAdd }) {
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState(item.sizeVariations?.[0] || null);
@@ -121,9 +141,55 @@ export default function ItemDetailModal({ item, onClose, onAdd }) {
     (item.sizeVariations && item.sizeVariations.length > 0) ||
     (item.addOns && item.addOns.length > 0);
 
+  // Pinned Footer with Responsive Stepper + Full-Width CTA
+  const footerContent = (
+    <div className="flex items-center gap-2.5 sm:gap-3">
+      {/* Quantity Stepper */}
+      <div className="flex items-center border border-stone-300 rounded-xl h-11 sm:h-12 bg-stone-50/90 shadow-2xs shrink-0 overflow-hidden">
+        <button 
+          type="button"
+          onClick={() => setQuantity(Math.max(1, quantity - 1))} 
+          className="w-9 sm:w-10 h-full text-[#7a0b10] hover:bg-stone-100 active:scale-95 flex items-center justify-center transition-colors cursor-pointer" 
+          aria-label="Decrease quantity"
+        >
+          <Minus className="h-4 w-4" strokeWidth={2.6} />
+        </button>
+        <span className="text-sm sm:text-base font-extrabold text-[#1a1a1a] w-7 sm:w-8 text-center tabular-nums">
+          {quantity}
+        </span>
+        <button 
+          type="button"
+          onClick={() => setQuantity(quantity + 1)} 
+          className="w-9 sm:w-10 h-full text-[#7a0b10] hover:bg-stone-100 active:scale-95 flex items-center justify-center transition-colors cursor-pointer" 
+          aria-label="Increase quantity"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2.6} />
+        </button>
+      </div>
+
+      {/* Add to Cart CTA Button - Single line, never awkward line-breaks */}
+      <button
+        type="button"
+        onClick={() => { onAdd(item, quantity, selectedSize, selectedAddOns, specialInstructions); onClose(); }}
+        className="flex-1 h-11 sm:h-12 px-3.5 sm:px-5 rounded-xl bg-gradient-to-r from-[#7a0b10] via-[#5c0612] to-[#7a0b10] hover:from-[#5c0612] hover:to-[#4a070c] active:scale-[0.98] text-white font-extrabold text-xs sm:text-[13px] tracking-wide uppercase shadow-[0_6px_18px_rgba(122,11,16,0.32)] flex items-center justify-between transition-all cursor-pointer whitespace-nowrap min-w-0"
+      >
+        <span className="truncate">Add to Cart</span>
+        <span className="flex items-center gap-1 bg-black/25 px-2 sm:px-2.5 py-1 rounded-lg text-xs sm:text-sm font-black text-[#F5B53D] shrink-0 ml-1.5 sm:ml-2">
+          ${lineTotal.toFixed(2)}
+        </span>
+      </button>
+    </div>
+  );
+
   return (
-    <PortalModal isOpen={true} onClose={onClose} title={hasCustomizations ? `Customize — ${item.name}` : item.name} size="md">
-      <img src={item.image || getDishImage(item.name)} alt={item.name} className="w-full h-48 object-cover rounded-xl mb-4 ll-pop" />
+    <PortalModal 
+      isOpen={true} 
+      onClose={onClose} 
+      title={hasCustomizations ? `Customize — ${item.name}` : item.name} 
+      footer={footerContent}
+      size="md"
+    >
+      <img src={item.image || getDishImage(item.name)} alt={item.name} className="w-full h-44 sm:h-48 object-cover rounded-xl mb-4 ll-pop shadow-2xs" />
 
       <p className="text-[13px] text-[#6b7280] mb-5 leading-relaxed">{item.description}</p>
 
@@ -143,8 +209,9 @@ export default function ItemDetailModal({ item, onClose, onAdd }) {
             {item.sizeVariations.map(size => (
               <button
                 key={size.name}
+                type="button"
                 onClick={() => setSelectedSize(size)}
-                className={`rounded-xl px-4 py-2.5 text-[12px] font-bold border shadow-sm ll-interactive ll-focus-ring
+                className={`rounded-xl px-4 py-2.5 text-[12px] font-bold border shadow-sm ll-interactive ll-focus-ring cursor-pointer
                   ${selectedSize?.name === size.name
                     ? 'bg-[#7a0b10] text-[#ffffff] border-[#7a0b10]'
                     : 'bg-[#ffffff] text-[#6b7280] border-[#e5e7eb] hover:border-[#7a0b10]'
@@ -167,8 +234,9 @@ export default function ItemDetailModal({ item, onClose, onAdd }) {
               return (
                 <button
                   key={addon.name}
+                  type="button"
                   onClick={() => toggleAddOn(addon)}
-                  className={`w-full flex items-center justify-between rounded-xl px-4 py-3 text-[13px] border shadow-sm ll-interactive ll-focus-ring
+                  className={`w-full flex items-center justify-between rounded-xl px-4 py-3 text-[13px] border shadow-sm ll-interactive ll-focus-ring cursor-pointer
                     ${isSelected
                       ? 'bg-[#7a0b10]/10 text-[#7a0b10] border-[#7a0b10]/30 font-bold'
                       : 'bg-[#ffffff] text-[#6b7280] border-[#e5e7eb] hover:border-[#7a0b10]/30 font-medium'
@@ -184,7 +252,7 @@ export default function ItemDetailModal({ item, onClose, onAdd }) {
       )}
 
       {/* Special Instructions */}
-      <div className="mb-5">
+      <div className="mb-2">
         <h4 className="text-[13px] font-bold text-[#1a1a1a] mb-2.5">Special Instructions</h4>
         <textarea
           value={specialInstructions}
@@ -192,28 +260,6 @@ export default function ItemDetailModal({ item, onClose, onAdd }) {
           placeholder="E.g. No onions, extra spicy, etc."
           className="w-full rounded-xl border border-[#e5e7eb] bg-[#ffffff] p-3 text-[13px] text-[#1a1a1a] placeholder:text-[#9ca3af] focus:border-[#7a0b10] focus:ring-1 focus:ring-[#7a0b10] outline-none transition-all resize-none shadow-sm ll-focus-ring h-20"
         />
-      </div>
-
-      {/* Quantity & Add to Cart */}
-      <div className="flex items-center justify-between mt-6 pt-5 border-t border-[#e5e7eb]">
-        <div className="flex items-center border border-[#e5e7eb] rounded-lg h-11 bg-[#ffffff] shadow-sm">
-          <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-3.5 text-[#7a0b10] hover:bg-[#f9fafb] h-full flex items-center justify-center transition-colors ll-focus-ring" aria-label="Decrease quantity">
-            <Minus className="h-4 w-4" strokeWidth={2.5} />
-          </button>
-          <div className="w-px h-full bg-[#e5e7eb]"></div>
-          <span className="text-[15px] font-bold text-[#1a1a1a] w-10 text-center">{quantity}</span>
-          <div className="w-px h-full bg-[#e5e7eb]"></div>
-          <button onClick={() => setQuantity(quantity + 1)} className="px-3.5 text-[#7a0b10] hover:bg-[#f9fafb] h-full flex items-center justify-center transition-colors ll-focus-ring" aria-label="Increase quantity">
-            <Plus className="h-4 w-4" strokeWidth={2.5} />
-          </button>
-        </div>
-
-        <button
-          onClick={() => { onAdd(item, quantity, selectedSize, selectedAddOns, specialInstructions); onClose(); }}
-          className="bg-[#7a0b10] hover:bg-[#5e080c] text-[#ffffff] font-bold h-11 py-2 px-5 rounded-lg shadow-md text-[13px] tracking-wider uppercase flex items-center justify-center gap-2 ll-interactive ll-focus-ring"
-        >
-          Add to Cart — ${lineTotal.toFixed(2)}
-        </button>
       </div>
     </PortalModal>
   );

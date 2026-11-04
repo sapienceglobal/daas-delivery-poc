@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useCart } from '@/context/CartContext';
 import {
   X,
@@ -65,11 +66,16 @@ export default function CartSidebar() {
   } = useCart();
 
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [touchStartY, setTouchStartY] = useState(null);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (specialInstructions && !showNotes) {
@@ -168,12 +174,12 @@ export default function CartSidebar() {
     restaurant?.operatingHours &&
     !isRestaurantOpenNow(restaurant.operatingHours, restaurant.timezone);
 
-  return (
+  const cartMarkup = (
     <div
-      className={`fixed inset-0 z-[150] ${isCartOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
+      className={`fixed inset-0 z-[99990] ${isCartOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
       aria-hidden={!isCartOpen}
     >
-      {/* Dark Translucent Backdrop */}
+      {/* Dark Translucent Backdrop (Covers entire screen including sticky header) */}
       <div
         className={`absolute inset-0 bg-[#1A0D07]/65 backdrop-blur-[2px] transition-opacity duration-300 ${backdropClass}`}
         onClick={closeCart}
@@ -183,7 +189,7 @@ export default function CartSidebar() {
       <aside
         role="dialog"
         aria-label="Shopping Cart"
-        className={`absolute bottom-0 sm:top-0 right-0 w-full h-[88vh] sm:h-full sm:w-[430px] bg-[#FDF7EE] shadow-[-12px_0_40px_rgba(26,13,7,0.35)] border-l border-[#EADBC8] flex flex-col rounded-t-[26px] sm:rounded-none overflow-hidden transform ${transitionClass} ${sidebarClass}`}
+        className={`absolute bottom-0 right-0 w-full h-[88vh] max-h-[92dvh] sm:inset-y-0 sm:top-0 sm:bottom-0 sm:h-full sm:max-h-none sm:w-[430px] bg-[#FDF7EE] shadow-[-12px_0_40px_rgba(26,13,7,0.35)] border-l border-[#EADBC8] flex flex-col rounded-t-[28px] sm:rounded-none overflow-hidden transform ${transitionClass} ${sidebarClass}`}
         style={{
           transform:
             dragY > 0 && typeof window !== 'undefined' && window.innerWidth < 640
@@ -456,7 +462,7 @@ export default function CartSidebar() {
 
         {/* Footer / Bill Summary & Checkout CTA */}
         {items.length > 0 && (
-          <div className="bg-[#FFFDF9] border-t border-[#EADBC8] px-5 pt-3.5 pb-[calc(1rem+env(safe-area-inset-bottom))] space-y-3 shrink-0 shadow-[0_-8px_24px_rgba(92,6,18,0.06)]">
+          <div className="bg-[#FFFDF9] border-t border-[#EADBC8] px-5 pt-3.5 pb-[calc(env(safe-area-inset-bottom,0px)+16px)] sm:pb-6 space-y-3 shrink-0 shadow-[0_-8px_24px_rgba(92,6,18,0.06)]">
             <div className="space-y-1">
               <div className="flex items-center justify-between text-sm">
                 <span className="font-semibold text-[#57534E]">Item Subtotal</span>
@@ -505,4 +511,7 @@ export default function CartSidebar() {
       </aside>
     </div>
   );
+
+  if (!mounted) return null;
+  return createPortal(cartMarkup, document.body);
 }

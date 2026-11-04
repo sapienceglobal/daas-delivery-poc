@@ -143,13 +143,13 @@ export default function HomeTopSection() {
   const brandName2 = brandNameParts.slice(1).join(' ') || 'LOUNGE';
 
   return (
-    <div className="w-full relative flex flex-col bg-[#0e0d0c]">
+    <div className="w-full relative flex flex-col bg-[#f7f1e4]">
 
       {/* =========================================
           1. HERO SECTION (DARK LAYER)
           ========================================= */}
 
-      <section className="relative w-full pt-30 pb-32 md:pt-38 md:pb-30 lg:pt-56 lg:pb-44 flex flex-col justify-center overflow-hidden z-10 min-h-[600px] lg:min-h-[720px] ll-hero-mobile-fit">
+      <section className="relative w-full pt-20 pb-28 sm:pt-32 sm:pb-36 lg:pt-52 lg:pb-44 flex flex-col justify-center overflow-hidden z-10 min-h-[560px] sm:min-h-[620px] lg:min-h-[720px] ll-hero-mobile-fit bg-[#0e0d0c]">
 
         {/* Full-width Background Image */}
         <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${loadingCms ? 'opacity-0' : 'opacity-100'}`}>
@@ -230,12 +230,40 @@ export default function HomeTopSection() {
             </Button>
           </div>
         </div>
+        {/* Bottom Smooth Organic Wave Transition into Categories */}
+        <div className="absolute -bottom-[2px] left-0 right-0 h-12 sm:h-20 pointer-events-none z-20 overflow-hidden">
+          <svg
+            viewBox="0 0 1440 80"
+            fill="none"
+            preserveAspectRatio="none"
+            className="w-full h-full"
+          >
+            <path
+              d="M0,30 C360,62 720,66 1080,44 C1260,33 1360,26 1440,24"
+              fill="none"
+              stroke="#e8a020"
+              strokeWidth="6"
+              className="opacity-25"
+              style={{ filter: 'blur(3px)' }}
+            />
+            <path
+              d="M0,30 C360,62 720,66 1080,44 C1260,33 1360,26 1440,24 L1440,90 L0,90 Z"
+              fill="#f7f1e4"
+            />
+            <path
+              d="M0,30 C360,62 720,66 1080,44 C1260,33 1360,26 1440,24"
+              fill="none"
+              stroke="#FFFDF8"
+              strokeWidth="3"
+            />
+          </svg>
+        </div>
       </section>
 
       {/* =========================================
           2. LIGHT CREAM CANVAS WRAPPER
           ========================================= */}
-      <section className="bg-[#f7f1e4] w-full relative pb-16 pt-0 flex flex-col items-center z-30 mt-0">
+      <section className="bg-[#f7f1e4] w-full relative pb-16 pt-0 flex flex-col items-center z-30 -mt-1 sm:-mt-1.5">
 
         {/* ─── EXPLORE OUR MENU CONTAINER CARD ─── */}
         <div className="w-full max-w-7xl mx-auto px-4 md:px-8 -mt-20 relative z-40 ll-explore-mobile-gap">
