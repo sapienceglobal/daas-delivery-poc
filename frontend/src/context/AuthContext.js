@@ -153,8 +153,8 @@ export function AuthProvider({ children }) {
     return userData;
   }, []);
 
-  const socialLogin = useCallback(async (provider, token, role = 'customer') => {
-    const data = await authAPI.socialLogin({ provider, token, role });
+  const socialLogin = useCallback(async (provider, token, role = 'customer', extraData = {}) => {
+    const data = await authAPI.socialLogin({ provider, token, role, ...extraData });
     let { user: userData } = data;
     userData = flattenUser(userData);
 

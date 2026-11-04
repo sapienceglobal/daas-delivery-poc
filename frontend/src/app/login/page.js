@@ -4,6 +4,7 @@ import { useState, Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import Script from 'next/script';
 import {
   Mail, Lock, User, Eye, EyeOff, ChefHat, ArrowRight, Loader2, Check, AlertCircle, MailCheck,
   ShoppingBag, Bike, Calendar, Tag, Star, Clock
@@ -76,6 +77,19 @@ function LoginPageContent() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [isAppleDevice, setIsAppleDevice] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const ua = navigator.userAgent || '';
+      const platform = navigator.platform || '';
+      const isApple = /Macintosh|MacIntel|MacPPC|Mac68K|iPad|iPhone|iPod/.test(ua) ||
+        /Mac|iPhone|iPod|iPad/.test(platform) ||
+        (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      setIsAppleDevice(Boolean(isApple));
+    }
+  }, []);
 
   useEffect(() => {
     if (refCodeParam && typeof window !== 'undefined') {
@@ -234,10 +248,73 @@ function LoginPageContent() {
     }
   };
 
-  const handleAppleSuccess = async () => {
-    // in a real app, you would use react-apple-signin-auth.
-    // for this boilerplate, we'll show an error since it requires Apple Dev Setup.
-    showToast('Apple Sign In requires an Apple Developer Account setup.', 'error');
+  const initAppleAuth = () => {
+    if (typeof window !== 'undefined' && window.AppleID) {
+      try {
+        const clientId = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID || 'com.lassilounge.web';
+        const redirectURI = `${window.location.origin}/login`;
+        window.AppleID.auth.init({
+          clientId,
+          scope: 'name email',
+          redirectURI,
+          usePopup: true
+        });
+      } catch (err) {
+        console.warn('Apple auth init:', err);
+      }
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    try {
+      setAppleLoading(true);
+      setFormError('');
+
+      if (typeof window === 'undefined' || !window.AppleID) {
+        throw new Error('Apple Sign-In is initializing. Please try again in a moment.');
+      }
+
+      const clientId = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID || 'com.lassilounge.web';
+      const redirectURI = `${window.location.origin}/login`;
+      try {
+        window.AppleID.auth.init({
+          clientId,
+          scope: 'name email',
+          redirectURI,
+          usePopup: true
+        });
+      } catch (initErr) {
+        // Already initialized
+      }
+
+      const response = await window.AppleID.auth.signIn();
+      if (!response || !response.authorization?.id_token) {
+        throw new Error('Apple authentication did not return an identity token.');
+      }
+
+      const idToken = response.authorization.id_token;
+      let appleName = '';
+      if (response.user?.name) {
+        const { firstName, lastName } = response.user.name;
+        appleName = [firstName, lastName].filter(Boolean).join(' ').trim();
+      }
+      const appleEmail = response.user?.email || undefined;
+
+      await socialLogin('apple', idToken, form.role, {
+        name: appleName || undefined,
+        email: appleEmail
+      });
+
+      showToast(isRegister ? 'Account created via Apple!' : 'Signed in via Apple!', 'success');
+    } catch (err) {
+      const errMsg = err?.message || String(err || '');
+      if (err?.error === 'popup_closed_by_user' || errMsg.includes('popup_closed') || errMsg.includes('user_cancelled_authorize')) {
+        return;
+      }
+      setFormError(errMsg || 'Apple Sign-In failed. Please try again.');
+    } finally {
+      setAppleLoading(false);
+    }
   };
 
   const handleGoogleError = () => {
@@ -562,15 +639,37 @@ function LoginPageContent() {
                     <div className="flex-grow border-t border-[#eadfdb]"></div>
                   </div>
 
-                  <div className="flex justify-center">
-                    <GoogleLogin
-                      onSuccess={handleGoogleSuccess}
-                      onError={handleGoogleError}
-                      theme="outline"
-                      shape="rectangular"
-                      size="large"
-                      text={isRegister ? "signup_with" : "signin_with"}
-                    />
+                  <div className="flex flex-col gap-2.5 items-center w-full">
+                    {isAppleDevice && (
+                      <button
+                        type="button"
+                        onClick={handleAppleSignIn}
+                        disabled={loading || appleLoading}
+                        className="w-full h-10 flex items-center justify-center gap-2.5 px-4 bg-black hover:bg-neutral-900 active:scale-[0.99] text-white text-[14px] font-medium rounded-md shadow-sm transition-all disabled:opacity-60"
+                        style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                      >
+                        {appleLoading ? (
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4 fill-white mb-0.5" viewBox="0 0 170 170">
+                              <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.08-7.7-7.86-12-14.34-5.85-8.83-10.4-18.9-13.65-30.2-3.26-11.31-4.89-22.18-4.89-32.61 0-14.79 3.82-26.68 11.45-35.67 7.63-8.99 17.06-13.59 28.3-13.8 4.79 0 10.25 1.28 16.39 3.84 6.13 2.56 10.1 3.89 11.89 3.99 1.45 0 5.67-1.42 12.67-4.27 6.99-2.84 13.06-4.14 18.2-3.89 13.78.65 24.37 5.75 31.78 15.29-12.29 7.42-18.3 17.63-18.04 30.63.26 10.1 4.14 18.47 11.64 25.13 7.5 6.65 16.29 10.51 26.37 11.58-2.17 6.64-4.84 13.25-8 19.82zM119.22 31.84c0-7.23 2.66-14.07 7.97-20.53 5.32-6.45 11.89-10.4 19.72-11.84.44 2.82.55 5.56.32 8.21-.44 4.88-2.3 9.77-5.59 14.67-3.29 4.9-7.28 8.44-11.97 10.63-3.69 1.74-7.2 2.7-10.52 2.88-.11-1.32-.17-2.66-.17-4.02z" />
+                            </svg>
+                            <span>{isRegister ? 'Sign up with Apple' : 'Sign in with Apple'}</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                    <div className="flex justify-center w-full">
+                      <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={handleGoogleError}
+                        theme="outline"
+                        shape="rectangular"
+                        size="large"
+                        text={isRegister ? "signup_with" : "signin_with"}
+                      />
+                    </div>
                   </div>
                 </form>
               </div>
@@ -583,6 +682,11 @@ function LoginPageContent() {
         </div>
 
         <ForgotPasswordModal isOpen={isForgotModalOpen} onClose={() => setIsForgotModalOpen(false)} defaultEmail={form.email} />
+      <Script
+        src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"
+        strategy="lazyOnload"
+        onLoad={initAppleAuth}
+      />
 
         {/* Blend the react-phone-number-input default styling into this
             card's look — the library ships unstyled-ish inputs so this
@@ -850,15 +954,37 @@ function LoginPageContent() {
               <div className="flex-grow border-t border-brand-border"></div>
             </div>
 
-            <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                theme="filled_black"
-                shape="pill"
-                size="large"
-                text={isRegister ? "signup_with" : "signin_with"}
-              />
+            <div className="flex flex-col gap-3 items-center w-full">
+              {isAppleDevice && (
+                <button
+                  type="button"
+                  onClick={handleAppleSignIn}
+                  disabled={loading || appleLoading}
+                  className="w-full h-11 flex items-center justify-center gap-2.5 px-4 bg-black hover:bg-neutral-900 active:scale-[0.99] text-white text-[14px] font-medium rounded-full shadow-sm transition-all disabled:opacity-60"
+                  style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                >
+                  {appleLoading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 fill-white mb-0.5" viewBox="0 0 170 170">
+                        <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.08-7.7-7.86-12-14.34-5.85-8.83-10.4-18.9-13.65-30.2-3.26-11.31-4.89-22.18-4.89-32.61 0-14.79 3.82-26.68 11.45-35.67 7.63-8.99 17.06-13.59 28.3-13.8 4.79 0 10.25 1.28 16.39 3.84 6.13 2.56 10.1 3.89 11.89 3.99 1.45 0 5.67-1.42 12.67-4.27 6.99-2.84 13.06-4.14 18.2-3.89 13.78.65 24.37 5.75 31.78 15.29-12.29 7.42-18.3 17.63-18.04 30.63.26 10.1 4.14 18.47 11.64 25.13 7.5 6.65 16.29 10.51 26.37 11.58-2.17 6.64-4.84 13.25-8 19.82zM119.22 31.84c0-7.23 2.66-14.07 7.97-20.53 5.32-6.45 11.89-10.4 19.72-11.84.44 2.82.55 5.56.32 8.21-.44 4.88-2.3 9.77-5.59 14.67-3.29 4.9-7.28 8.44-11.97 10.63-3.69 1.74-7.2 2.7-10.52 2.88-.11-1.32-.17-2.66-.17-4.02z" />
+                      </svg>
+                      <span>{isRegister ? 'Sign up with Apple' : 'Sign in with Apple'}</span>
+                    </>
+                  )}
+                </button>
+              )}
+              <div className="flex justify-center w-full">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="filled_black"
+                  shape="pill"
+                  size="large"
+                  text={isRegister ? "signup_with" : "signin_with"}
+                />
+              </div>
             </div>
           </form>
 
@@ -874,6 +1000,11 @@ function LoginPageContent() {
 
       </GlassCard>
       <ForgotPasswordModal isOpen={isForgotModalOpen} onClose={() => setIsForgotModalOpen(false)} defaultEmail={form.email} />
+      <Script
+        src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"
+        strategy="lazyOnload"
+        onLoad={initAppleAuth}
+      />
     </div>
   );
 }

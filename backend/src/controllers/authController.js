@@ -448,12 +448,29 @@ export const socialLogin = asyncHandler(async (req, response) => {
   } else if (provider === 'apple') {
     // Apple ID Token Verification against Apple's public JWKS
     try {
+      const allowedAudiences = [
+        process.env.APPLE_CLIENT_ID,
+        process.env.APPLE_WEB_CLIENT_ID,
+        process.env.APPLE_BUNDLE_ID,
+        'com.lassilounge.customer',
+        'com.lassilounge.app',
+        'com.lassilounge.web',
+        'com.lassilounge.merchantMobile',
+        'com.example.singleRestaurantMobile',
+        'com.lassilounge.mobile'
+      ].filter(Boolean);
+
+      if (process.env.APPLE_ALLOWED_AUDIENCES) {
+        process.env.APPLE_ALLOWED_AUDIENCES.split(',')
+          .map(aud => aud.trim())
+          .filter(Boolean)
+          .forEach(aud => {
+            if (!allowedAudiences.includes(aud)) allowedAudiences.push(aud);
+          });
+      }
+
       const appleClaims = await appleSignin.verifyIdToken(jwtToken, {
-        audience: [
-          process.env.APPLE_CLIENT_ID || 'com.lassilounge.app',
-          'com.example.singleRestaurantMobile',
-          'com.lassilounge.mobile'
-        ],
+        audience: allowedAudiences,
         ignoreExpiration: false
       });
 
@@ -463,9 +480,14 @@ export const socialLogin = asyncHandler(async (req, response) => {
 
       socialId = appleClaims.sub;
       // Apple only returns email in token claims or clientEmail on first sign-in
-      emailVerifiedByProvider = Boolean(appleClaims.email);
-      email = (appleClaims.email || `${socialId}@apple.user`).toLowerCase();
-      name = clientName || (email.split('@')[0]) || 'Apple User';
+      emailVerifiedByProvider = Boolean(appleClaims.email && appleClaims.email_verified !== 'false' && appleClaims.email_verified !== false);
+      const rawEmail = appleClaims.email || clientEmail || `${socialId}@apple.user`;
+      email = rawEmail.toLowerCase().trim();
+
+      const candidateName = clientName?.trim();
+      name = candidateName && candidateName.length > 0
+        ? candidateName
+        : (appleClaims.email ? appleClaims.email.split('@')[0] : (clientEmail ? clientEmail.split('@')[0] : 'Apple User'));
       picture = null;
     } catch (appleErr) {
       if (appleErr instanceof AppError) throw appleErr;
