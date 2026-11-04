@@ -213,8 +213,8 @@ export default function CartSidebar() {
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-[#FDE6C4]/85 mt-0.5 sm:mt-1 font-medium truncate">
-                  Lassi Lounge • Authentic Royal Indian Cuisine
+                <p className="text-[11px] text-[#FDE6C4]/85 mt-0.5 sm:mt-1 font-medium">
+                  Lassi Lounge<span className="hidden sm:inline"> • Authentic Royal Indian Cuisine</span>
                 </p>
               </div>
             </div>

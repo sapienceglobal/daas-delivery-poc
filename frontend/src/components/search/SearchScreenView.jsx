@@ -708,8 +708,8 @@ export default function SearchScreenView() {
                           />
                         </div>
                         <div className="w-full min-w-0 px-0.5">
-                          <span className="block w-full min-w-0 text-[10px] xs:text-[11px] sm:text-xs font-bold text-[#7A0B10] line-clamp-2 leading-[1.15] break-words [overflow-wrap:anywhere] text-center">
-                            {dish.name}
+                          <span className="block w-full min-w-0 text-[10px] xs:text-[11px] sm:text-xs font-bold text-[#7A0B10] line-clamp-2 leading-[1.18] break-words text-center">
+                            {(dish.name || '').replace(/[\u00a0\s]+/g, ' ').trim()}
                           </span>
                         </div>
                       </button>
