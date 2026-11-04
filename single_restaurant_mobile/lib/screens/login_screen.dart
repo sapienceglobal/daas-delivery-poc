@@ -139,14 +139,23 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
       );
 
-      final name = (credential.givenName != null &&
-              credential.familyName != null)
-          ? '${credential.givenName} ${credential.familyName}'
-          : null;
+      final identityToken = credential.identityToken;
+      if (identityToken == null || identityToken.isEmpty) {
+        if (mounted) {
+          setState(() => _errorMessage = 'Apple authorization failed: identity token missing');
+        }
+        return;
+      }
+
+      final nameParts = [credential.givenName, credential.familyName]
+          .where((part) => part != null && part.trim().isNotEmpty)
+          .map((part) => part!.trim())
+          .toList();
+      final name = nameParts.isNotEmpty ? nameParts.join(' ') : null;
 
       final errorMsg = await _authService.socialLogin(
         provider: 'apple',
-        token: credential.identityToken ?? '',
+        token: identityToken,
         email: credential.email,
         name: name,
       );
@@ -157,6 +166,11 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _errorMessage = errorMsg);
       }
     } catch (e) {
+      if (e is SignInWithAppleAuthorizationException &&
+          e.code == AuthorizationErrorCode.canceled) {
+        // User cancelled Apple sign-in sheet - silently ignore
+        return;
+      }
       if (mounted) setState(() => _errorMessage = 'Apple Sign In failed: $e');
     } finally {
       if (mounted) setState(() => _isAppleLoading = false);
