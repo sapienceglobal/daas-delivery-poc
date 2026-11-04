@@ -683,7 +683,7 @@ export default function SearchScreenView() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2.5 sm:gap-3.5">
+                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3.5">
                   {popularDishes.map((dish) => {
                     const thumb =
                       resolveImageUrl(dish.image) ||
@@ -695,9 +695,9 @@ export default function SearchScreenView() {
                         key={dish._id || dish.id}
                         type="button"
                         onClick={() => handleSelectRecentOrPopular(dish.name)}
-                        className="group flex flex-col items-center bg-white rounded-2xl p-2 shadow-2xs border border-stone-200/60 hover:shadow-md hover:border-[#7A0B10]/30 active:scale-95 transition-all text-center cursor-pointer"
+                        className="group flex flex-col items-center bg-white rounded-2xl p-1.5 xs:p-2 sm:p-2.5 shadow-2xs border border-stone-200/60 hover:shadow-md hover:border-[#7A0B10]/30 active:scale-95 transition-all text-center cursor-pointer w-full min-w-0 overflow-hidden"
                       >
-                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100 mb-2 relative">
+                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-stone-100 mb-1.5 xs:mb-2 relative shrink-0">
                           <img
                             src={thumb}
                             alt={dish.name}
@@ -707,9 +707,11 @@ export default function SearchScreenView() {
                             }}
                           />
                         </div>
-                        <span className="text-[11px] sm:text-xs font-bold text-[#7A0B10] line-clamp-2 leading-tight">
-                          {dish.name}
-                        </span>
+                        <div className="w-full min-w-0 px-0.5">
+                          <span className="block w-full min-w-0 text-[10px] xs:text-[11px] sm:text-xs font-bold text-[#7A0B10] line-clamp-2 leading-[1.15] break-words [overflow-wrap:anywhere] text-center">
+                            {dish.name}
+                          </span>
+                        </div>
                       </button>
                     );
                   })}

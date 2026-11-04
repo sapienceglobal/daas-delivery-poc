@@ -152,7 +152,7 @@ function HeaderContent() {
           <div className="relative flex items-center justify-center">
             <ShoppingCart size={22} strokeWidth={2.2} className="text-white/95 group-hover:text-[#FFC107] group-hover:scale-105 transition-transform" />
             {cartCount > 0 && (
-              <span className="absolute -top-2 -right-2.5 min-w-[17px] h-[17px] px-1 rounded-full bg-gradient-to-r from-[#FFC107] via-[#FFA000] to-[#F59E0B] text-[#4A070B] text-[9.5px] font-black flex items-center justify-center shadow-[0_2px_8px_rgba(255,193,7,0.55)] ring-[1.5px] ring-[#2A060A] font-sans leading-none animate-in zoom-in-75 duration-200 pointer-events-none">
+              <span className="absolute -top-2 -right-2.5 min-w-[17px] h-[17px] px-1 rounded-full bg-gradient-to-r from-[#FFC107] via-[#FFA000] to-[#F59E0B] text-[#4A070B] text-[9.5px] font-black flex items-center justify-center shadow-[0_2px_8px_rgba(255,193,7,0.55)] ring-[1.5px] ring-black font-sans leading-none animate-in zoom-in-75 duration-200 pointer-events-none">
                 {cartCount}
               </span>
             )}
@@ -166,13 +166,7 @@ function HeaderContent() {
 // main exported component wrapping the header content in Suspense
 export default function LassiLoungeHeader() {
   return (
-    <header className="sticky top-0 z-[100] bg-gradient-to-r from-[#4A070B] via-[#680D13] to-[#42060A] lg:from-transparent lg:via-transparent lg:to-transparent lg:bg-background border-b border-[#FFC107]/20 lg:border-border shadow-[0_4px_24px_rgba(0,0,0,0.32)] lg:shadow-none transition-all duration-300">
-      {/* Top subtle ambient rim-light on mobile */}
-      <div className="lg:hidden absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none" />
-
-      {/* Bottom glowing luxury golden hairline on mobile */}
-      <div className="lg:hidden absolute inset-x-0 bottom-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#FFC107]/50 via-50% to-transparent pointer-events-none" />
-
+    <header className="sticky top-0 z-[100] bg-[#0e0d0c]/95 backdrop-blur-md border-b border-[#2a2624] transition-all duration-300">
       {/* Suspense wrapper for Next.js safe SSR */}
       <Suspense fallback={<div className="h-[64px] sm:h-[72px] w-full" />}>
         <HeaderContent />
