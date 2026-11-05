@@ -13,9 +13,10 @@ class AuthService {
   // Attempt to load token from storage and set it in ApiService
   Future<bool> loadToken() async {
     final prefs = await SharedPreferences.getInstance();
-    final rememberMe = prefs.getBool('remember_me') ?? false;
+    final rememberMe = prefs.getBool('remember_me');
     final token = prefs.getString(_tokenKey);
-    if (rememberMe && token != null && token.isNotEmpty) {
+    // On mobile, if a persistent auth token exists and was not explicitly marked unremembered, keep user logged in
+    if (token != null && token.isNotEmpty && rememberMe != false) {
       ApiService.setAuthToken(token);
       SocketService().reconnect();
       return true;
@@ -69,6 +70,7 @@ class AuthService {
         if (token != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_tokenKey, token);
+          await prefs.setBool('remember_me', true);
           ApiService.setAuthToken(token);
           SocketService().reconnect();
           PushNotificationService().syncTokenWithBackend();
@@ -118,6 +120,7 @@ class AuthService {
         if (jwtToken != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_tokenKey, jwtToken);
+          await prefs.setBool('remember_me', true);
           ApiService.setAuthToken(jwtToken);
           SocketService().reconnect();
           PushNotificationService().syncTokenWithBackend();
@@ -213,7 +216,9 @@ class AuthService {
     await prefs.remove('remember_me');
     ApiService.clearAuthToken();
     try {
-      await GoogleSignIn().signOut();
+      if (await GoogleSignIn().isSignedIn()) {
+        await GoogleSignIn().signOut().timeout(const Duration(seconds: 2));
+      }
     } catch (e) {
       print('Google sign out error: $e');
     }
@@ -379,6 +384,7 @@ class AuthService {
         if (token != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_tokenKey, token);
+          await prefs.setBool('remember_me', true);
           ApiService.setAuthToken(token);
         }
         return null; // success

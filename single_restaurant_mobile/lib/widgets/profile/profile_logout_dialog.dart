@@ -36,15 +36,21 @@ class ProfileLogoutDialog {
                       setState(() {
                         isLoggingOut = true;
                       });
-                      if (context.mounted) {
-                        Provider.of<CartProvider>(context, listen: false).clearCart();
-                        Provider.of<AddressProvider>(context, listen: false).clear();
-                        Provider.of<OrderProvider>(context, listen: false).clear();
-                        Provider.of<LoyaltyProvider>(context, listen: false).clear();
-                        Provider.of<CheckoutProvider>(context, listen: false).reset();
-                        Provider.of<NotificationProvider>(context, listen: false).clear();
+                      try {
+                        if (context.mounted) {
+                          Provider.of<CartProvider>(context, listen: false).clearCart();
+                          Provider.of<AddressProvider>(context, listen: false).clear();
+                          Provider.of<OrderProvider>(context, listen: false).clear();
+                          Provider.of<LoyaltyProvider>(context, listen: false).clear();
+                          Provider.of<CheckoutProvider>(context, listen: false).reset();
+                          Provider.of<NotificationProvider>(context, listen: false).clear();
+                        }
+                        await authProvider.logout();
+                      } catch (_) {}
+
+                      if (dialogCtx.mounted) {
+                        Navigator.pop(dialogCtx);
                       }
-                      await authProvider.logout();
                       if (context.mounted) {
                         Navigator.of(context).pushAndRemoveUntil(
                           MaterialPageRoute(builder: (context) => const LoginScreen()),

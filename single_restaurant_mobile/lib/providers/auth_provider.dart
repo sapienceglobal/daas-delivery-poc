@@ -43,18 +43,23 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     
-    final token = PushNotificationService().cachedToken;
-    if (token != null) {
-      try {
-        await ApiService.post('/api/auth/logout', {'fcmToken': token});
-      } catch (_) {}
+    try {
+      if (ApiService.authToken != null) {
+        final token = PushNotificationService().cachedToken;
+        if (token != null) {
+          try {
+            await ApiService.post('/api/auth/logout', {'fcmToken': token}).timeout(const Duration(seconds: 3));
+          } catch (_) {}
+        }
+      }
+      await _authService.logout().timeout(const Duration(seconds: 3));
+    } catch (_) {
+      ApiService.clearAuthToken();
+    } finally {
+      _user = null;
+      _isLoading = false;
+      notifyListeners();
     }
-
-    await _authService.logout();
-    _user = null;
-    
-    _isLoading = false;
-    notifyListeners();
   }
 
   Future<String?> deleteAccount({String? password, String? confirmation, String? reason}) async {

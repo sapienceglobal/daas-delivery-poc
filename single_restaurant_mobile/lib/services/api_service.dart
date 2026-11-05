@@ -13,7 +13,7 @@ class ApiService {
        defaultValue: 'https://api.lassiloungeny.com', // Change your laptop's actual IP
     // defaultValue: 'http://192.168.1.3:5001',
   );
-  static const Duration _requestTimeout = Duration(seconds: 20);
+  static const Duration _requestTimeout = Duration(seconds: 35);
  
   static String? _authToken;
   static void Function()? onSessionExpired;
