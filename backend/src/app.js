@@ -276,6 +276,7 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/kds', tenantDb, kdsRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/public/contact', contactRoutes);
 app.use('/api/location', locationRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/marketing', marketingRoutes);

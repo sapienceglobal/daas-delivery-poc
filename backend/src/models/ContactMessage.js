@@ -18,6 +18,16 @@ const ContactMessageSchema = new mongoose.Schema({
     trim: true,
     lowercase: true
   },
+  phone: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  inquiryType: {
+    type: String,
+    trim: true,
+    default: 'general'
+  },
   subject: {
     type: String,
     required: [true, 'Subject is required'],

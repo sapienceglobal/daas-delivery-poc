@@ -4,7 +4,9 @@ import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// public route to submit a message
+// public routes to submit a message
+router.post('/', submitContactMessage);
+router.post('/submit', submitContactMessage);
 router.post('/public/contact', submitContactMessage);
 
 // protected routes for merchants/admins

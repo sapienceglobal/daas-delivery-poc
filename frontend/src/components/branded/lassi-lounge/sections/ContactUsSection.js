@@ -36,11 +36,19 @@ export default function ContactUsSection() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('/api/public/contact', {
+      let response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
+      
+      if (response.status === 404) {
+        response = await fetch('/api/public/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+      }
       
       const data = await response.json();
       
