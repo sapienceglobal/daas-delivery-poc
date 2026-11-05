@@ -17,10 +17,8 @@ export const metadata = {
 
 export default function TermsConditionsPage() {
   return (
-    <div className="min-h-screen flex flex-col font-sans">
-      <main className="flex-1 pt-24 pb-16">
-        <TermsConditionsSection />
-      </main>
+    <div className="ll-page-enter min-h-screen bg-[#faf9f8]">
+      <TermsConditionsSection />
     </div>
   );
 }

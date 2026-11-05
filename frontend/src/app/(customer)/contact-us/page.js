@@ -8,10 +8,8 @@ export async function generateMetadata() {
 
 export default function ContactUsPage() {
   return (
-    <div className="min-h-screen flex flex-col font-sans">
-      <main className="flex-1 pt-24 pb-16">
-        <ContactUsSection />
-      </main>
+    <div className="ll-page-enter min-h-screen bg-[#faf9f8]">
+      <ContactUsSection />
     </div>
   );
 }
