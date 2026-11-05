@@ -114,6 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
             token: auth.idToken!,
             email: account.email,
             name: account.displayName,
+            rememberMe: _rememberMe,
           );
           if (errorMsg == null && mounted) {
             await _refreshUserDataAndNavigate();
@@ -158,6 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
         token: identityToken,
         email: credential.email,
         name: name,
+        rememberMe: _rememberMe,
       );
 
       if (errorMsg == null && mounted) {
@@ -195,6 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
           token: accessToken.tokenString,
           email: userData['email'] as String?,
           name: userData['name'] as String?,
+          rememberMe: _rememberMe,
         );
 
         if (errorMsg == null && mounted) {

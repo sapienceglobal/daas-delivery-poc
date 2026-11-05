@@ -13,10 +13,11 @@ class AuthService {
   // Attempt to load token from storage and set it in ApiService
   Future<bool> loadToken() async {
     final prefs = await SharedPreferences.getInstance();
-    final rememberMe = prefs.getBool('remember_me');
+    final rememberMe = prefs.getBool('remember_me') ?? false;
     final token = prefs.getString(_tokenKey);
-    // On mobile, if a persistent auth token exists and was not explicitly marked unremembered, keep user logged in
-    if (token != null && token.isNotEmpty && rememberMe != false) {
+    // If remember_me was ticked and token exists, restore session.
+    // If remember_me was NOT ticked (false), wipe token on app cold restart so login screen is shown.
+    if (rememberMe && token != null && token.isNotEmpty) {
       ApiService.setAuthToken(token);
       SocketService().reconnect();
       return true;
@@ -104,6 +105,7 @@ class AuthService {
     required String token,
     String? name,
     String? email,
+    bool rememberMe = true,
   }) async {
     try {
       final response = await ApiService.post('/api/auth/social-login', {
@@ -112,6 +114,7 @@ class AuthService {
         if (name != null) 'name': name,
         if (email != null) 'email': email,
         'role': 'customer',
+        'rememberMe': rememberMe,
       });
 
       if (response.statusCode == 200) {
@@ -119,8 +122,13 @@ class AuthService {
         final jwtToken = data['token'];
         if (jwtToken != null) {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(_tokenKey, jwtToken);
-          await prefs.setBool('remember_me', true);
+          if (rememberMe) {
+            await prefs.setString(_tokenKey, jwtToken);
+            await prefs.setBool('remember_me', true);
+          } else {
+            await prefs.remove(_tokenKey);
+            await prefs.setBool('remember_me', false);
+          }
           ApiService.setAuthToken(jwtToken);
           SocketService().reconnect();
           PushNotificationService().syncTokenWithBackend();

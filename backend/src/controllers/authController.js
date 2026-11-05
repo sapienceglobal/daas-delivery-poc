@@ -381,7 +381,7 @@ export const login = asyncHandler(async (req, response) => {
 
 export const socialLogin = asyncHandler(async (req, response) => {
   // we expect 'provider' (e.g. 'google', 'apple', 'facebook'), 'token', and optionally 'role'
-  const { provider, token, credential, role, name: clientName, email: clientEmail } = req.body;
+  const { provider, token, credential, role, name: clientName, email: clientEmail, rememberMe = true } = req.body;
   
   // fallback for older frontend still sending 'credential' instead of 'token'
   const jwtToken = token || credential;
@@ -636,7 +636,7 @@ export const socialLogin = asyncHandler(async (req, response) => {
     message: `Customer logged in via ${provider || 'Google'} (${user.email})`
   }).catch(() => {});
 
-  sendTokenCookie(user, 200, response, tenantId);
+  sendTokenCookie(user, 200, response, tenantId, rememberMe !== false && rememberMe !== 'false');
 });
 
 export const logout = asyncHandler(async (req, response) => {
