@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Search, MapPin, Navigation, History, Loader2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { showToast } from '@/components/ui';
+import { saveClientLocation } from '@/utils/geolocationHelper';
 import dynamic from 'next/dynamic';
 
 const MapLocationPicker = dynamic(() => import('@/components/shared/MapLocationPicker'), {
@@ -138,10 +139,12 @@ export default function LassiAddressModal({ isOpen, onClose, onSelect, initialVi
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setSelectedCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        saveClientLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setIsLocating(false);
         setView('map');
       },
       () => {
+        saveClientLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setIsLocating(false);
         showToast('Unable to retrieve your location', 'error');
       }
