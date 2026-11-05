@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,7 +8,16 @@ class AnalyticsService {
   factory AnalyticsService() => _instance;
   AnalyticsService._internal();
 
-  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+  /// Safe lazy getter so constructing AnalyticsService never throws
+  /// [core/no-app] on iOS when Firebase is not configured.
+  FirebaseAnalytics? get _analytics {
+    try {
+      if (Firebase.apps.isEmpty) return null;
+      return FirebaseAnalytics.instance;
+    } catch (_) {
+      return null;
+    }
+  }
 
   DateTime? _lastBeginCheckoutTime;
 
@@ -50,11 +60,14 @@ class AnalyticsService {
     int quantity = 1,
   }) async {
     try {
+      final analytics = _analytics;
+      if (analytics == null) return;
+
       final analyticsItem = _toAnalyticsItem(item);
       final price = (analyticsItem.price ?? 0.0).toDouble();
       final totalValue = (price * quantity).toDouble();
 
-      await _analytics.logAddToCart(
+      await analytics.logAddToCart(
         items: [analyticsItem],
         value: totalValue > 0 ? totalValue : null,
         currency: 'USD',
@@ -72,6 +85,9 @@ class AnalyticsService {
     required double value,
   }) async {
     try {
+      final analytics = _analytics;
+      if (analytics == null) return;
+
       final now = DateTime.now();
       if (_lastBeginCheckoutTime != null &&
           now.difference(_lastBeginCheckoutTime!) < const Duration(seconds: 10)) {
@@ -81,7 +97,7 @@ class AnalyticsService {
 
       final analyticsItems = items.map(_toAnalyticsItem).toList();
 
-      await _analytics.logBeginCheckout(
+      await analytics.logBeginCheckout(
         items: analyticsItems.isNotEmpty ? analyticsItems : null,
         value: value > 0 ? value : null,
         currency: 'USD',
@@ -104,6 +120,9 @@ class AnalyticsService {
     if (cleanId.isEmpty) return;
 
     try {
+      final analytics = _analytics;
+      if (analytics == null) return;
+
       final prefs = await SharedPreferences.getInstance();
       final dedupeKey = 'analytics_purchased_$cleanId';
 
@@ -114,7 +133,7 @@ class AnalyticsService {
 
       final analyticsItems = items.map(_toAnalyticsItem).toList();
 
-      await _analytics.logPurchase(
+      await analytics.logPurchase(
         transactionId: cleanId,
         value: value > 0 ? value : null,
         currency: currency,

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:single_restaurant_mobile/services/api_service.dart';
@@ -10,6 +11,10 @@ import 'package:google_sign_in/google_sign_in.dart';
 class AuthService {
   static const String _tokenKey = 'auth_token';
 
+  /// Cached user payload from the most recent successful auth response
+  /// (login, socialLogin, verifyOtp) so fetchUser() has an instant fallback.
+  static Map<String, dynamic>? lastAuthenticatedUser;
+
   // Attempt to load token from storage and set it in ApiService
   Future<bool> loadToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -19,7 +24,9 @@ class AuthService {
     // If remember_me was NOT ticked (false), wipe token on app cold restart so login screen is shown.
     if (rememberMe && token != null && token.isNotEmpty) {
       ApiService.setAuthToken(token);
-      SocketService().reconnect();
+      try {
+        SocketService().reconnect();
+      } catch (_) {}
       return true;
     } else {
       // Session-only or unremembered login: Wipe persistent token on app cold restart
@@ -36,12 +43,16 @@ class AuthService {
       final response = await ApiService.get('/api/auth/me');
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return data['data'];
+        if (data['data'] is Map) {
+          final userMap = Map<String, dynamic>.from(data['data'] as Map);
+          lastAuthenticatedUser = userMap;
+          return userMap;
+        }
       }
-      return null;
+      return lastAuthenticatedUser;
     } catch (e) {
       print('Error fetching profile: $e');
-      return null;
+      return lastAuthenticatedUser;
     }
   }
 
@@ -67,14 +78,17 @@ class AuthService {
       // Agar status 201 (Created) ya 200 (OK) hai toh success
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = json.decode(response.body);
+        if (data['user'] is Map) {
+          lastAuthenticatedUser = Map<String, dynamic>.from(data['user'] as Map);
+        }
         final token = data['token'];
         if (token != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_tokenKey, token);
           await prefs.setBool('remember_me', true);
           ApiService.setAuthToken(token);
-          SocketService().reconnect();
-          PushNotificationService().syncTokenWithBackend();
+          try { SocketService().reconnect(); } catch (_) {}
+          try { PushNotificationService().syncTokenWithBackend(); } catch (_) {}
         }
         return null; // Null return karne ka matlab hai Success
       } 
@@ -118,22 +132,30 @@ class AuthService {
       });
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final jwtToken = data['token'];
-        if (jwtToken != null) {
-          final prefs = await SharedPreferences.getInstance();
-          if (rememberMe) {
-            await prefs.setString(_tokenKey, jwtToken);
-            await prefs.setBool('remember_me', true);
-          } else {
-            await prefs.remove(_tokenKey);
-            await prefs.setBool('remember_me', false);
+        try {
+          final data = json.decode(response.body);
+          if (data['user'] is Map) {
+            lastAuthenticatedUser = Map<String, dynamic>.from(data['user'] as Map);
           }
-          ApiService.setAuthToken(jwtToken);
-          SocketService().reconnect();
-          PushNotificationService().syncTokenWithBackend();
+          final jwtToken = data['token'];
+          if (jwtToken != null) {
+            final prefs = await SharedPreferences.getInstance();
+            if (rememberMe) {
+              await prefs.setString(_tokenKey, jwtToken);
+              await prefs.setBool('remember_me', true);
+            } else {
+              await prefs.remove(_tokenKey);
+              await prefs.setBool('remember_me', false);
+            }
+            ApiService.setAuthToken(jwtToken);
+            try { SocketService().reconnect(); } catch (se) { print('Socket reconnect error: $se'); }
+            try { PushNotificationService().syncTokenWithBackend(); } catch (pe) { print('Push sync error: $pe'); }
+          }
+          return null;
+        } catch (parseErr) {
+          print('Error parsing socialLogin response: $parseErr');
+          return 'Social login succeeded but session storage error: $parseErr';
         }
-        return null;
       }
 
       try {
@@ -167,6 +189,9 @@ class AuthService {
       if (response.statusCode == 200) {
         try {
           final data = json.decode(response.body);
+          if (data['user'] is Map) {
+            lastAuthenticatedUser = Map<String, dynamic>.from(data['user'] as Map);
+          }
           final token = data['token'];
           if (token != null) {
             final prefs = await SharedPreferences.getInstance();
@@ -228,17 +253,20 @@ class AuthService {
 
   // Logout clears the token
   Future<void> logout() async {
+    lastAuthenticatedUser = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove('remember_me');
     ApiService.clearAuthToken();
-    try {
-      final isSignedIn = await GoogleSignIn().isSignedIn().timeout(const Duration(seconds: 2), onTimeout: () => false);
-      if (isSignedIn) {
-        await GoogleSignIn().signOut().timeout(const Duration(seconds: 2));
+    if (Platform.isAndroid) {
+      try {
+        final isSignedIn = await GoogleSignIn().isSignedIn().timeout(const Duration(seconds: 2), onTimeout: () => false);
+        if (isSignedIn) {
+          await GoogleSignIn().signOut().timeout(const Duration(seconds: 2));
+        }
+      } catch (e) {
+        print('Google sign out error: $e');
       }
-    } catch (e) {
-      print('Google sign out error: $e');
     }
     try {
       SocketService().reconnect();
@@ -300,8 +328,11 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        // The backend returns { success: true, data: user, message: ... }
-        return data['data'];
+        if (data['data'] is Map) {
+          final updated = Map<String, dynamic>.from(data['data'] as Map);
+          lastAuthenticatedUser = updated;
+          return updated;
+        }
       }
       return null;
     } catch (e) {
@@ -386,7 +417,7 @@ class AuthService {
     }
   }
 
- // Verify email OTP after registration
+  // Verify email OTP after registration
   // Returns null on success, error message string on failure
   Future<String?> verifyOtp({
     required String email,
@@ -400,12 +431,17 @@ class AuthService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
+        if (data['user'] is Map) {
+          lastAuthenticatedUser = Map<String, dynamic>.from(data['user'] as Map);
+        }
         final token = data['token'];
         if (token != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_tokenKey, token);
           await prefs.setBool('remember_me', true);
           ApiService.setAuthToken(token);
+          try { SocketService().reconnect(); } catch (_) {}
+          try { PushNotificationService().syncTokenWithBackend(); } catch (_) {}
         }
         return null; // success
       }

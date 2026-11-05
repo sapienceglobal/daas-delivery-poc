@@ -99,10 +99,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     if (errorMsg == null) {
       await context.read<AuthProvider>().fetchUser();
       if (!mounted) return;
-      context.read<AddressProvider>().fetchAddresses();
-      context.read<CartProvider>().loadCart();
-      context.read<LoyaltyProvider>().fetchHistory();
-      context.read<NotificationProvider>().fetchNotifications();
+      try { context.read<AddressProvider>().fetchAddresses(); } catch (_) {}
+      try { context.read<CartProvider>().loadCart(); } catch (_) {}
+      try { context.read<LoyaltyProvider>().fetchHistory(); } catch (_) {}
+      try { context.read<NotificationProvider>().fetchNotifications(); } catch (_) {}
 
       final user = context.read<AuthProvider>().user;
       final target = (user?.referralOnboarding == 'pending')

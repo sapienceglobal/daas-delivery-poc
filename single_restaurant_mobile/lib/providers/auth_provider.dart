@@ -22,17 +22,31 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final userData = await _authService.getMe();
+      Map<String, dynamic>? userData = await _authService.getMe();
+      userData ??= AuthService.lastAuthenticatedUser;
       if (userData != null) {
         _user = UserModel.fromJson(userData);
-        // Proactively sync FCM push token to backend for this user
-        PushNotificationService().syncTokenWithBackend();
+        // Proactively sync FCM push token to backend for this user (non-blocking)
+        try {
+          PushNotificationService().syncTokenWithBackend();
+        } catch (fcmErr) {
+          debugPrint('FCM sync skipped in fetchUser: $fcmErr');
+        }
       } else {
         _user = null;
       }
     } catch (e) {
+      debugPrint('Error in fetchUser: $e');
       _error = e.toString();
-      _user = null;
+      if (AuthService.lastAuthenticatedUser != null) {
+        try {
+          _user = UserModel.fromJson(AuthService.lastAuthenticatedUser!);
+        } catch (_) {
+          _user = null;
+        }
+      } else {
+        _user = null;
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -45,7 +59,10 @@ class AuthProvider with ChangeNotifier {
     
     try {
       if (ApiService.authToken != null) {
-        final token = PushNotificationService().cachedToken;
+        String? token;
+        try {
+          token = PushNotificationService().cachedToken;
+        } catch (_) {}
         if (token != null) {
           try {
             await ApiService.post('/api/auth/logout', {'fcmToken': token}).timeout(const Duration(seconds: 2));
@@ -54,9 +71,11 @@ class AuthProvider with ChangeNotifier {
         await _authService.logout().timeout(const Duration(seconds: 2));
       } else {
         // Guest mode: instant local cleanup
+        AuthService.lastAuthenticatedUser = null;
         ApiService.clearAuthToken();
       }
     } catch (_) {
+      AuthService.lastAuthenticatedUser = null;
       ApiService.clearAuthToken();
     } finally {
       _user = null;

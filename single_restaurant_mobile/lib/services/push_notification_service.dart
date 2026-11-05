@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
@@ -25,7 +26,17 @@ class PushNotificationService {
   factory PushNotificationService() => _instance;
   PushNotificationService._internal();
 
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  /// Safe lazy getter so constructing PushNotificationService never throws
+  /// [core/no-app] on iOS when Firebase is not configured.
+  FirebaseMessaging? get _fcm {
+    try {
+      if (Firebase.apps.isEmpty) return null;
+      return FirebaseMessaging.instance;
+    } catch (_) {
+      return null;
+    }
+  }
+
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
@@ -51,8 +62,14 @@ class PushNotificationService {
     if (_initialized) return;
     _initialized = true;
 
+    final fcm = _fcm;
+    if (fcm == null) {
+      debugPrint('[FCM] Firebase is not initialized on this device; skipping push notification setup.');
+      return;
+    }
+
     try {
-      await _fcm.requestPermission(
+      await fcm.requestPermission(
         alert: true,
         badge: true,
         sound: true,
@@ -85,8 +102,8 @@ class PushNotificationService {
 
     // ── 1. Subscribe every install (guest or user) to FCM broadcast topics ──
     try {
-      await _fcm.subscribeToTopic('all_customers');
-      await _fcm.subscribeToTopic('offers_and_marketing');
+      await fcm.subscribeToTopic('all_customers');
+      await fcm.subscribeToTopic('offers_and_marketing');
       debugPrint('[FCM] Successfully subscribed to topic: all_customers');
     } catch (topicErr) {
       debugPrint('[FCM] Error subscribing to topic: $topicErr');
@@ -94,7 +111,7 @@ class PushNotificationService {
 
     // ── 2. Get and sync FCM Device Token ──
     try {
-      String? token = await _fcm.getToken();
+      String? token = await fcm.getToken();
       if (token != null) {
         _cachedToken = token;
         await syncTokenWithBackend(token);
@@ -103,7 +120,7 @@ class PushNotificationService {
       debugPrint('[FCM] Error obtaining FCM token: $tokenErr');
     }
 
-    _fcm.onTokenRefresh.listen((newToken) {
+    fcm.onTokenRefresh.listen((newToken) {
       _cachedToken = newToken;
       syncTokenWithBackend(newToken);
     });
@@ -122,7 +139,7 @@ class PushNotificationService {
     // ── 4. Background / Terminated click listeners ──
     FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationOpen);
 
-    RemoteMessage? initialMessage = await _fcm.getInitialMessage();
+    RemoteMessage? initialMessage = await fcm.getInitialMessage();
     if (initialMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _handleNotificationOpen(initialMessage));
     }
@@ -131,7 +148,13 @@ class PushNotificationService {
   /// Proactively syncs device FCM token with backend MongoDB
   Future<void> syncTokenWithBackend([String? token]) async {
     try {
-      final tokenToSync = token ?? _cachedToken ?? await _fcm.getToken();
+      final fcm = _fcm;
+      if (fcm == null && token == null && _cachedToken == null) {
+        debugPrint('[FCM] Firebase not initialized; skipping token sync.');
+        return;
+      }
+
+      final tokenToSync = token ?? _cachedToken ?? await fcm?.getToken();
       if (tokenToSync == null || tokenToSync.isEmpty) {
         debugPrint('[FCM] Token is empty, skipping sync');
         return;

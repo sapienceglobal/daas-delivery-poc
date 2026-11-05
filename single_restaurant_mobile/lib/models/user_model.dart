@@ -44,29 +44,35 @@ class UserModel {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    final social = json['socialLogin'] as Map<String, dynamic>?;
+    final social = json['socialLogin'] is Map
+        ? Map<String, dynamic>.from(json['socialLogin'] as Map)
+        : null;
     final hasSocial = social != null && (social['googleId'] != null || social['appleId'] != null);
 
     return UserModel(
-      id: json['_id'] ?? '',
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      phone: json['phone'] ?? '',
-      role: json['role'] ?? 'customer',
-      isEmailVerified: json['isEmailVerified'] ?? false,
-      isPhoneVerified: json['isPhoneVerified'] ?? false,
-      profilePicture: json['avatar'] ?? json['profileImage'] ?? json['profilePicture'],
-      addresses: json['savedAddresses'] as List<dynamic>?,
-      savedCards: json['savedCards'] as List<dynamic>?,
-      favoriteItems: json['favoriteItems'] as List<dynamic>?,
-      loyaltyPoints: json['loyaltyPoints'] ?? 0,
-      isLoyaltyMember: json['isLoyaltyMember'] ?? false,
-      referralCode: json['referralCode'],
-      referralOnboarding: json['referralOnboarding'] ?? 'none',
-      notificationPreferences: json['notificationPreferences'] as Map<String, dynamic>?,
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      name: (json['name'] ?? '').toString(),
+      email: (json['email'] ?? '').toString(),
+      phone: (json['phone'] ?? '').toString(),
+      role: (json['role'] ?? 'customer').toString(),
+      isEmailVerified: json['isEmailVerified'] == true,
+      isPhoneVerified: json['isPhoneVerified'] == true,
+      profilePicture: (json['avatar'] ?? json['profileImage'] ?? json['profilePicture'])?.toString(),
+      addresses: json['savedAddresses'] is List ? json['savedAddresses'] as List<dynamic> : null,
+      savedCards: json['savedCards'] is List ? json['savedCards'] as List<dynamic> : null,
+      favoriteItems: json['favoriteItems'] is List ? json['favoriteItems'] as List<dynamic> : null,
+      loyaltyPoints: (json['loyaltyPoints'] is num) ? (json['loyaltyPoints'] as num).toInt() : 0,
+      isLoyaltyMember: json['isLoyaltyMember'] == true,
+      referralCode: json['referralCode']?.toString(),
+      referralOnboarding: (json['referralOnboarding'] ?? 'none').toString(),
+      notificationPreferences: json['notificationPreferences'] is Map
+          ? Map<String, dynamic>.from(json['notificationPreferences'] as Map)
+          : null,
       isSocialLogin: hasSocial,
-      requiresPasswordForDeletion: json['requiresPasswordForDeletion'] ?? !hasSocial,
-      deletionVerificationMode: json['deletionVerificationMode'] ?? (!hasSocial ? 'password' : 'otp'),
+      requiresPasswordForDeletion: json['requiresPasswordForDeletion'] is bool
+          ? json['requiresPasswordForDeletion'] as bool
+          : !hasSocial,
+      deletionVerificationMode: (json['deletionVerificationMode'] ?? (!hasSocial ? 'password' : 'otp')).toString(),
     );
   }
 }
