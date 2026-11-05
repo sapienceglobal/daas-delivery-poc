@@ -464,11 +464,23 @@ class AuthService {
 
   // Delete Account (Google Play Compliance)
   // Returns null on success, error message string on failure
-  Future<String?> deleteAccount({String? password, String? confirmation, String? reason}) async {
+  /// Sends a one-time deletion code to the user's email (for Google/Apple accounts).
+  /// Returns null on success, error message on failure.
+  Future<String?> sendDeleteAccountOtp() async {
+    try {
+      await ApiService.post('/api/auth/me/delete-otp', {});
+      return null;
+    } catch (e) {
+      if (e is ApiException) return e.message;
+      return 'Unable to send verification code. Please try again.';
+    }
+  }
+
+  Future<String?> deleteAccount({String? password, String? otp, String? reason}) async {
     try {
       final response = await ApiService.delete('/api/auth/me', body: {
-        if (password != null) 'password': password,
-        if (confirmation != null) 'confirmation': confirmation,
+        if (password != null && password.isNotEmpty) 'password': password,
+        if (otp != null && otp.isNotEmpty) 'otp': otp,
         if (reason != null) 'reason': reason,
       });
 

@@ -4,7 +4,7 @@ import User from '../models/User.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { AppError } from '../middleware/errorHandler.js';
 import * as res from '../utils/responseFormatter.js';
-import { sendPasswordResetEmail, sendWelcomeEmail, sendOtpEmail } from '../services/emailService.js';
+import { sendPasswordResetEmail, sendWelcomeEmail, sendOtpEmail, sendDeleteAccountOtpEmail } from '../services/emailService.js';
 import logger from '../utils/logger.js';
 import { OAuth2Client } from 'google-auth-library';
 import axios from 'axios';
@@ -681,6 +681,26 @@ export const logout = asyncHandler(async (req, response) => {
 });
 
 
+export const sendDeleteAccountOtp = asyncHandler(async (req, response) => {
+  const UserModel = req.getModel('User');
+  const user = await UserModel.findById(req.user._id);
+  if (!user) throw new AppError('User account not found', 404);
+  if (user.deletionVerificationMode() === 'password') {
+    throw new AppError('Please use your account password to confirm deletion.', 400);
+  }
+  // 60s resend cooldown
+  if (user.deleteOtpExpiry && (user.deleteOtpExpiry - Date.now()) / 1000 > 540) {
+    throw new AppError('Please wait a minute before requesting a new code.', 429);
+  }
+  const code = crypto.randomInt(100000, 1000000).toString();
+  user.deleteOtp = crypto.createHash('sha256').update(code).digest('hex');
+  user.deleteOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+  user.deleteOtpAttempts = 0;
+  await user.save();
+  await sendDeleteAccountOtpEmail(user.email, user.name, code);
+  res.success(response, { message: `Verification code sent to ${user.email}` });
+});
+
 export const deleteAccount = asyncHandler(async (req, response) => {
   const userId = req.user._id;
   const UserModel = req.getModel('User');
@@ -690,20 +710,42 @@ export const deleteAccount = asyncHandler(async (req, response) => {
     throw new AppError('User account not found', 404);
   }
 
-  const { password, confirmation, reason } = req.body;
-  // Security Verification: anyone who knows a password (incl. linked Google/Apple accounts) must enter it
-  if (user.requiresPasswordForDeletion()) {
-    if (!password) {
-      throw new AppError('Current password is required to verify your identity before deleting your account.', 400);
-    }
-    const isPasswordValid = user.validatePassword(password);
-    if (!isPasswordValid) {
+  const { password, otp, reason } = req.body;
+  // Security Verification
+  //  - 'password'        : user knows a password → must enter it
+  //  - 'otp'             : pure Google/Apple account → must enter emailed OTP
+  //  - 'password_or_otp' : older linked social account (unknown) → either works
+  const mode = user.deletionVerificationMode();
+  let verified = false;
+
+  if (password && mode !== 'otp') {
+    if (!user.validatePassword(password)) {
       throw new AppError('Incorrect password. Please verify your password to proceed.', 400);
     }
-  } else {
-    if (confirmation !== 'DELETE') {
-      throw new AppError('Please type DELETE to confirm account deletion.', 400);
+    verified = true;
+  } else if (otp && mode !== 'password') {
+    if (!user.deleteOtp || !user.deleteOtpExpiry || new Date() > user.deleteOtpExpiry) {
+      throw new AppError('Verification code expired. Please request a new code.', 400);
     }
+    if ((user.deleteOtpAttempts || 0) >= 5) {
+      await UserModel.updateOne({ _id: user._id }, { $set: { deleteOtp: null, deleteOtpExpiry: null, deleteOtpAttempts: 0 } });
+      throw new AppError('Too many wrong attempts. Please request a new code.', 429);
+    }
+    const hashed = crypto.createHash('sha256').update(String(otp).trim()).digest('hex');
+    if (hashed !== user.deleteOtp) {
+      await UserModel.updateOne({ _id: user._id }, { $inc: { deleteOtpAttempts: 1 } });
+      throw new AppError('Incorrect verification code.', 400);
+    }
+    verified = true;
+  }
+
+  if (!verified) {
+    throw new AppError(
+      mode === 'otp'
+        ? 'Please enter the verification code sent to your email.'
+        : 'Current password is required to verify your identity before deleting your account.',
+      400
+    );
   }
 
   // Cleanup related customer record

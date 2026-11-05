@@ -215,7 +215,12 @@ export const sendWelcomeEmail = async (email, userName) => {
       exclusive rewards unlock as you go.
     </p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td>
-      ${emailButton('Start Ordering', `https://${(process.env.FRONTEND_URL || 'https://lassiloungeny.com')}`)}
+      ${emailButton('Start Ordering', (() => {
+        const raw = (process.env.FRONTEND_URL || '').trim().replace(/\/+$/, '');
+        // ignore empty / localhost values so customers never get a broken link
+        if (!raw || /localhost|127\.0\.0\.1/i.test(raw)) return 'https://lassiloungeny.com';
+        return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+      })())}
     </td></tr></table>
   `;
 
@@ -303,6 +308,26 @@ export const sendOtpEmail = async (email, userName, otp) => {
     subject: `${otp} is your ${FROM_NAME} verification code`,
     text: `Hi ${userName},\n\nYour verification code is: ${otp}\n\nThis code expires in 10 minutes. Do not share it with anyone.\n\nIf you didn't create an account, please ignore this email.`,
     html: emailShell({ preheader: `Your ${FROM_NAME} verification code is: ${otp}`, bodyHtml })
+  });
+};
+
+export const sendDeleteAccountOtpEmail = async (email, userName, otp) => {
+  const bodyHtml = `
+    <h2 style="margin:0 0 8px;font-size:20px;color:${BRAND_TEXT};text-align:center;">Confirm account deletion</h2>
+    <p style="margin:0 0 24px;text-align:center;color:${BRAND_MUTED};">Hi ${userName}, we received a request to permanently delete your ${FROM_NAME} account. Enter this code in the app to confirm.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 28px;">
+      <tr><td style="background-color:${BRAND_CREAM};border:2px solid #DC2626;border-radius:12px;padding:20px 40px;text-align:center;">
+        <span style="font-size:36px;font-weight:900;letter-spacing:12px;color:#DC2626;font-family:monospace;">${otp}</span>
+      </td></tr>
+    </table>
+    <p style="margin:0;text-align:center;font-size:13px;color:${BRAND_MUTED};">This code expires in <strong>10 minutes</strong>. Do not share it with anyone.</p>
+    <p style="margin:16px 0 0;text-align:center;font-size:12px;color:${BRAND_MUTED};">If you did not request this, ignore this email — your account stays safe.</p>
+  `;
+  return sendEmail({
+    to: email,
+    subject: `${otp} is your ${FROM_NAME} account deletion code`,
+    text: `Hi ${userName},\n\nYour account deletion code is: ${otp}\n\nIt expires in 10 minutes. If you did not request this, ignore this email.`,
+    html: emailShell({ preheader: `Account deletion code: ${otp}`, bodyHtml })
   });
 };
 

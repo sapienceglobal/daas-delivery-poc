@@ -19,6 +19,7 @@ class UserModel {
   final Map<String, dynamic>? notificationPreferences;
   final bool isSocialLogin;
   final bool requiresPasswordForDeletion;
+  final String deletionVerificationMode;
   
   UserModel({
     required this.id,
@@ -39,6 +40,7 @@ class UserModel {
     this.notificationPreferences,
     this.isSocialLogin = false,
     this.requiresPasswordForDeletion = true,
+    this.deletionVerificationMode = 'password',
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -64,6 +66,7 @@ class UserModel {
       notificationPreferences: json['notificationPreferences'] as Map<String, dynamic>?,
       isSocialLogin: hasSocial,
       requiresPasswordForDeletion: json['requiresPasswordForDeletion'] ?? !hasSocial,
+      deletionVerificationMode: json['deletionVerificationMode'] ?? (!hasSocial ? 'password' : 'otp'),
     );
   }
 }

@@ -65,13 +65,17 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<String?> deleteAccount({String? password, String? confirmation, String? reason}) async {
+  Future<String?> sendDeleteAccountOtp() async {
+    return _authService.sendDeleteAccountOtp();
+  }
+
+  Future<String?> deleteAccount({String? password, String? otp, String? reason}) async {
     _isLoading = true;
     notifyListeners();
 
     final error = await _authService.deleteAccount(
       password: password,
-      confirmation: confirmation,
+      otp: otp,
       reason: reason,
     );
     if (error == null) {

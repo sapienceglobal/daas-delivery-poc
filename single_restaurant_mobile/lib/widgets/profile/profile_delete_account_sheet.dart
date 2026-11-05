@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/address_provider.dart';
@@ -15,11 +16,12 @@ import 'package:single_restaurant_mobile/widgets/common/app_button.dart';
 
 class ProfileDeleteAccountSheet {
   static void show(BuildContext context, AuthProvider authProvider) {
-    // Password is required whenever the account has a user-known password (incl. linked Google/Apple accounts).
-    // Only pure social-login accounts (no password ever set) fall back to typing DELETE.
-    final isSocialUser = !(authProvider.user?.requiresPasswordForDeletion ?? true);
+    final user = authProvider.user;
+    final userEmail = user?.email ?? '';
+    final initialMode = user?.deletionVerificationMode ?? 'password';
+
     final passwordController = TextEditingController();
-    final confirmationController = TextEditingController();
+    final otpController = TextEditingController();
 
     String selectedReason = 'I no longer need this service';
     final List<String> reasons = [
@@ -36,10 +38,48 @@ class ProfileDeleteAccountSheet {
       builder: (bottomSheetContext) {
         bool isDeleting = false;
         bool isObscured = true;
+        bool isSendingOtp = false;
+        bool otpSent = false;
+        int resendSeconds = 0;
+        Timer? timer;
         String? errorMessage;
+        String? successMessage;
+        String activeMode = (initialMode == 'otp') ? 'otp' : 'password';
 
         return StatefulBuilder(
           builder: (context, setModalState) {
+            void startTimer() {
+              resendSeconds = 60;
+              timer?.cancel();
+              timer = Timer.periodic(const Duration(seconds: 1), (t) {
+                if (resendSeconds > 0) {
+                  setModalState(() => resendSeconds--);
+                } else {
+                  t.cancel();
+                }
+              });
+            }
+
+            Future<void> sendOtp() async {
+              setModalState(() {
+                isSendingOtp = true;
+                errorMessage = null;
+                successMessage = null;
+              });
+
+              final err = await authProvider.sendDeleteAccountOtp();
+              setModalState(() {
+                isSendingOtp = false;
+                if (err == null) {
+                  otpSent = true;
+                  successMessage = 'A 6-digit code has been sent to $userEmail';
+                  startTimer();
+                } else {
+                  errorMessage = err;
+                }
+              });
+            }
+
             return AppBottomSheet(
               title: 'Delete Account',
               subtitle: 'Permanent & Irreversible Action',
@@ -50,7 +90,10 @@ class ProfileDeleteAccountSheet {
                     child: AppButton(
                       text: 'Cancel',
                       variant: AppButtonVariant.outlined,
-                      onPressed: isDeleting ? null : () => Navigator.pop(bottomSheetContext),
+                      onPressed: isDeleting ? null : () {
+                        timer?.cancel();
+                        Navigator.pop(bottomSheetContext);
+                      },
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -64,14 +107,17 @@ class ProfileDeleteAccountSheet {
                           ? null
                           : () async {
                               final password = passwordController.text.trim();
-                              final confirmation = confirmationController.text.trim();
+                              final otp = otpController.text.trim();
 
-                              if (!isSocialUser && password.isEmpty) {
+                              if (activeMode == 'password' && password.isEmpty) {
                                 setModalState(() => errorMessage = 'Please enter your password to proceed.');
                                 return;
                               }
-                              if (isSocialUser && confirmation != 'DELETE') {
-                                setModalState(() => errorMessage = 'Please type DELETE in capital letters to confirm.');
+
+                              if (activeMode == 'otp' && (!otpSent || otp.isEmpty)) {
+                                setModalState(() => errorMessage = otpSent
+                                    ? 'Please enter the 6-digit code sent to your email.'
+                                    : 'Please click "Send Verification Code" first.');
                                 return;
                               }
 
@@ -81,12 +127,13 @@ class ProfileDeleteAccountSheet {
                               });
 
                               final error = await authProvider.deleteAccount(
-                                password: !isSocialUser ? password : null,
-                                confirmation: isSocialUser ? confirmation : null,
+                                password: activeMode == 'password' ? password : null,
+                                otp: activeMode == 'otp' ? otp : null,
                                 reason: selectedReason,
                               );
 
                               if (error == null) {
+                                timer?.cancel();
                                 if (!context.mounted) return;
                                 Provider.of<CartProvider>(context, listen: false).clearCart();
                                 Provider.of<AddressProvider>(context, listen: false).clear();
@@ -185,12 +232,19 @@ class ProfileDeleteAccountSheet {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    if (!isSocialUser) ...[
+
+                    // ── Mode: Password ────────────────────────────
+                    if (activeMode == 'password') ...[
                       const Text(
-                        'Confirm your password:',
+                        'Confirm your account password:',
                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
+                      Text(
+                        'For security, please verify your password before deleting your account.',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                      ),
+                      const SizedBox(height: 8),
                       TextField(
                         controller: passwordController,
                         obscureText: isObscured,
@@ -204,21 +258,128 @@ class ProfileDeleteAccountSheet {
                           ),
                         ),
                       ),
-                    ] else ...[
-                      const Text(
-                        'Type DELETE to confirm:',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                      if (initialMode == 'password_or_otp') ...[
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: isDeleting
+                                ? null
+                                : () {
+                                    setModalState(() {
+                                      activeMode = 'otp';
+                                      errorMessage = null;
+                                    });
+                                  },
+                            style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                            child: const Text(
+                              'Forgot password? Verify with Email Code',
+                              style: TextStyle(fontSize: 12, color: Color(0xFF7A0B10), fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ]
+                    // ── Mode: Email OTP (for Google/Apple accounts) ─
+                    else ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Email Verification Code:',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                          ),
+                          if (initialMode == 'password_or_otp')
+                            TextButton(
+                              onPressed: isDeleting
+                                  ? null
+                                  : () {
+                                      setModalState(() {
+                                        activeMode = 'password';
+                                        errorMessage = null;
+                                      });
+                                    },
+                              style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                              child: const Text(
+                                'Use Password instead',
+                                style: TextStyle(fontSize: 12, color: Color(0xFF7A0B10), fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                        ],
                       ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: confirmationController,
-                        enabled: !isDeleting,
-                        decoration: _inputDeco(
-                          hintText: 'Type DELETE in capital letters',
-                          prefixIcon: Icons.security,
+                      const SizedBox(height: 4),
+                      Text(
+                        'A 6-digit verification code will be sent to your registered email ($userEmail) to confirm your identity.',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                      ),
+                      const SizedBox(height: 10),
+                      if (!otpSent) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: isSendingOtp || isDeleting ? null : sendOtp,
+                            icon: isSendingOtp
+                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                : const Icon(Icons.mark_email_read_outlined, size: 18),
+                            label: Text(isSendingOtp ? 'Sending code...' : 'Send Verification Code to Email'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF7A0B10),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                        ),
+                      ] else ...[
+                        TextField(
+                          controller: otpController,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6,
+                          enabled: !isDeleting,
+                          decoration: _inputDeco(
+                            hintText: 'Enter 6-digit verification code',
+                            prefixIcon: Icons.security,
+                            suffixIcon: resendSeconds > 0
+                                ? Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                    child: Text(
+                                      '${resendSeconds}s',
+                                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+                                    ),
+                                  )
+                                : TextButton(
+                                    onPressed: isSendingOtp || isDeleting ? null : sendOtp,
+                                    child: const Text('Resend', style: TextStyle(fontSize: 12, color: Color(0xFF7A0B10), fontWeight: FontWeight.bold)),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ],
+
+                    if (successMessage != null) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDF4),
+                          borderRadius: AppRadius.borderSm,
+                          border: Border.all(color: const Color(0xFF86EFAC)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check_circle_outline, color: Color(0xFF16A34A), size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                successMessage!,
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF16A34A), fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
+
                     if (errorMessage != null) ...[
                       const SizedBox(height: 12),
                       Container(
@@ -263,6 +424,7 @@ class ProfileDeleteAccountSheet {
       hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400),
       prefixIcon: Icon(prefixIcon, size: 20, color: Colors.grey),
       suffixIcon: suffixIcon,
+      counterText: '',
       filled: true,
       fillColor: const Color(0xFFF9FAFB),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

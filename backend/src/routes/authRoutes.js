@@ -33,6 +33,7 @@ router.put('/me', protect, authController.updateProfile);
 router.put('/me/password', protect, validate(changePasswordSchema), authController.changePassword);
 router.post('/me/fcm-token', protect, authController.saveFcmToken);
 router.post('/logout', protect, authController.logout);
+router.post('/me/delete-otp', protect, authLimiter, authController.sendDeleteAccountOtp);
 router.delete('/me', protect, authController.deleteAccount);
 
 // ── Addresses ───────────────────────────────────────────────────────────────

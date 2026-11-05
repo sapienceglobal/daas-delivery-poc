@@ -244,15 +244,22 @@ const UserSchema = new mongoose.Schema({
   // true when the user knows their password (email signup / password set / password login)
   hasUserPassword: {
     type: Boolean
-  }
+  },
+  deleteOtp: { type: String, default: null },
+  deleteOtpExpiry: { type: Date, default: null },
+  deleteOtpAttempts: { type: Number, default: 0 }
 }, { timestamps: true });
 
-// Whether account deletion must be verified with the current password
-UserSchema.methods.requiresPasswordForDeletion = function () {
+// How account deletion must be verified: 'password' | 'otp' | 'password_or_otp'
+UserSchema.methods.deletionVerificationMode = function () {
   const isSocial = !!(this.socialLogin?.googleId || this.socialLogin?.appleId || this.socialLogin?.facebookId);
-  if (this.hasUserPassword === true) return true;
-  if (this.hasUserPassword === false) return false;
-  return !isSocial;
+  if (this.hasUserPassword === true || !isSocial) return 'password';
+  if (this.hasUserPassword === false) return 'otp';
+  return 'password_or_otp'; // older linked account: unknown whether user ever set a password
+};
+
+UserSchema.methods.requiresPasswordForDeletion = function () {
+  return this.deletionVerificationMode() === 'password';
 };
 
 // ── Indexes ─────────────────────────────────────────────────────────────────
@@ -300,6 +307,11 @@ UserSchema.methods.createPasswordResetToken = function () {
 UserSchema.methods.toSafeJSON = function () {
   const obj = this.toObject();
   obj.requiresPasswordForDeletion = this.requiresPasswordForDeletion();
+  obj.deletionVerificationMode = this.deletionVerificationMode();
+  delete obj.deleteOtp;
+  delete obj.deleteOtpExpiry;
+  delete obj.deleteOtpAttempts;
+  delete obj.hasUserPassword;
   delete obj.password;
   delete obj.salt;
   delete obj.passwordAlgorithm;
