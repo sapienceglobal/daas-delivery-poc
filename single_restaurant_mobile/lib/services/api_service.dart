@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -10,7 +11,7 @@ class ApiService {
   // When building for release, pass the production URL using --dart-define=API_BASE_URL=https://your-server.com
   static const String _configuredBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-       defaultValue: 'https://api.lassiloungeny.com', // Change your laptop's actual IP
+    defaultValue: 'https://api.lassiloungeny.com', // Change your laptop's actual IP
     // defaultValue: 'http://192.168.1.3:5001',
   );
   static const Duration _requestTimeout = Duration(seconds: 35);
@@ -37,6 +38,13 @@ class ApiService {
 
   static void clearAuthToken() {
     _authToken = null;
+  }
+
+  /// Helper to sanitize headers so non-ASCII characters (e.g. Hindi, Unicode) never throw FormatException in dart:io
+  static String? _safeHeader(String? val) {
+    if (val == null) return null;
+    final sanitized = val.replaceAll(RegExp(r'[^\x20-\x7E]'), '').trim();
+    return sanitized.isEmpty ? null : sanitized;
   }
 
   /// Self-healing token loader: if in-memory _authToken is null, loads it from SharedPreferences.
@@ -92,36 +100,36 @@ class ApiService {
       'x-app-secret': 'mobile_app_secure_key_2026', // API key for mobile apps
       'x-platform': 'customer_app',
       'x-device-os': Platform.isAndroid ? 'Android' : (Platform.isIOS ? 'iOS' : Platform.operatingSystem),
-      'x-device-os-version': Platform.operatingSystemVersion,
+      'x-device-os-version': _safeHeader(Platform.operatingSystemVersion) ?? 'Unknown',
     };
 
-    if (_deviceLocation != null && _deviceLocation!.isNotEmpty) {
-      headers['x-device-location'] = _deviceLocation!;
-    }
-    if (_deviceCity != null && _deviceCity!.isNotEmpty) {
-      headers['x-device-city'] = _deviceCity!;
-    }
-    if (_deviceRegion != null && _deviceRegion!.isNotEmpty) {
-      headers['x-device-region'] = _deviceRegion!;
-    }
-    if (_deviceCountry != null && _deviceCountry!.isNotEmpty) {
-      headers['x-device-country'] = _deviceCountry!;
-    }
-        if (_deviceIp != null && _deviceIp!.isNotEmpty) {
-      headers['x-device-ip'] = _deviceIp!;
-    }
+    final safeLoc = _safeHeader(_deviceLocation);
+    if (safeLoc != null) headers['x-device-location'] = safeLoc;
+
+    final safeCity = _safeHeader(_deviceCity);
+    if (safeCity != null) headers['x-device-city'] = safeCity;
+
+    final safeReg = _safeHeader(_deviceRegion);
+    if (safeReg != null) headers['x-device-region'] = safeReg;
+
+    final safeCountry = _safeHeader(_deviceCountry);
+    if (safeCountry != null) headers['x-device-country'] = safeCountry;
+
+    final safeIp = _safeHeader(_deviceIp);
+    if (safeIp != null) headers['x-device-ip'] = safeIp;
+
     if (_deviceLat != null && _deviceLng != null) {
       headers['x-device-lat'] = _deviceLat.toString();
       headers['x-device-lng'] = _deviceLng.toString();
     }
-    if (_networkCarrier != null && _networkCarrier!.isNotEmpty) {
-      headers['x-network-carrier'] = _networkCarrier!;
-    }
-    if (_networkType != null && _networkType!.isNotEmpty) {
-      headers['x-network-type'] = _networkType!;
-    }
 
-    if (_authToken != null) {
+    final safeCarrier = _safeHeader(_networkCarrier);
+    if (safeCarrier != null) headers['x-network-carrier'] = safeCarrier;
+
+    final safeType = _safeHeader(_networkType);
+    if (safeType != null) headers['x-network-type'] = safeType;
+
+    if (_authToken != null && _authToken!.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_authToken';
     }
 
@@ -133,20 +141,26 @@ class ApiService {
 
   static String get baseUrl => _configuredBaseUrl.replaceAll(RegExp(r'/+$'), '');
 
-  static http.Response _handleResponse(http.Response response) {
+  static http.Response _handleResponse(http.Response response, {String? endpoint}) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return response;
     } else {
-      if (response.statusCode == 401) {
+      // Never treat login/register attempts as session expirations
+      final isAuthEndpoint = endpoint != null && (
+        endpoint.contains('/api/auth/login') ||
+        endpoint.contains('/api/auth/register') ||
+        endpoint.contains('/api/auth/social-login')
+      );
+      if (response.statusCode == 401 && !isAuthEndpoint) {
         _handleSessionExpired();
       }
       try {
         final decoded = json.decode(response.body);
         final errMsg = decoded['message'] ?? 'API request failed';
-        throw HttpException(errMsg);
+        throw ApiException(errMsg, response.statusCode);
       } catch (e) {
-        if (e is HttpException) rethrow;
-        throw HttpException('Request failed: ${response.statusCode}');
+        if (e is ApiException) rethrow;
+        throw ApiException('Request failed: ${response.statusCode}', response.statusCode);
       }
     }
   }
@@ -170,25 +184,25 @@ class ApiService {
   static Future<http.Response> get(String endpoint, {Map<String, String>? headers}) async {
     await ensureAuthTokenLoaded();
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => _client.get(uri, headers: buildHeaders(headers)));
+    return _send(() => _client.get(uri, headers: buildHeaders(headers)), endpoint: endpoint);
   }
 
   static Future<http.Response> post(String endpoint, dynamic body, {Map<String, String>? headers}) async {
     await ensureAuthTokenLoaded();
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => _client.post(uri, headers: buildHeaders(headers), body: json.encode(body)));
+    return _send(() => _client.post(uri, headers: buildHeaders(headers), body: json.encode(body)), endpoint: endpoint);
   }
   
   static Future<http.Response> put(String endpoint, dynamic body, {Map<String, String>? headers}) async {
     await ensureAuthTokenLoaded();
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => _client.put(uri, headers: buildHeaders(headers), body: json.encode(body)));
+    return _send(() => _client.put(uri, headers: buildHeaders(headers), body: json.encode(body)), endpoint: endpoint);
   }
 
   static Future<http.Response> patch(String endpoint, dynamic body, {Map<String, String>? headers}) async {
     await ensureAuthTokenLoaded();
     final uri = Uri.parse('$baseUrl$endpoint');
-    return _send(() => _client.patch(uri, headers: buildHeaders(headers), body: json.encode(body)));
+    return _send(() => _client.patch(uri, headers: buildHeaders(headers), body: json.encode(body)), endpoint: endpoint);
   }
 
   static Future<http.Response> delete(String endpoint, {dynamic body, Map<String, String>? headers}) async {
@@ -198,28 +212,33 @@ class ApiService {
       uri,
       headers: buildHeaders(headers),
       body: body != null ? json.encode(body) : null,
-    ));
+    ), endpoint: endpoint);
   }
 
-  static Future<http.Response> _send(Future<http.Response> Function() request) async {
+  static Future<http.Response> _send(Future<http.Response> Function() request, {String? endpoint}) async {
     try {
       final response = await request().timeout(_requestTimeout);
-      return _handleResponse(response);
+      return _handleResponse(response, endpoint: endpoint);
     } on TimeoutException {
-      throw HttpException('Server request timed out. Please try again.');
+      throw ApiException('Server request timed out. Please try again.');
     } on SocketException {
-      throw HttpException('No internet connection. Please check your network.');
-    } on HttpException {
-      rethrow; // Don't wrap our own HttpException in "Unable to connect"
+      throw ApiException('No internet connection. Please check your network.');
+    } on ApiException {
+      rethrow;
     } catch (error) {
-      throw HttpException('Unable to connect to the server: $error');
+      debugPrint('[ApiService Error] Request failed on $endpoint: $error');
+      throw ApiException('Unable to connect to the server: $error');
     }
   }
 }
 
-class HttpException implements Exception {
+class ApiException implements Exception {
   final String message;
-  HttpException(this.message);
+  final int? statusCode;
+  ApiException(this.message, [this.statusCode]);
   @override
   String toString() => message;
 }
+
+/// Backward compatibility alias
+typedef HttpException = ApiException;

@@ -48,11 +48,14 @@ class AuthProvider with ChangeNotifier {
         final token = PushNotificationService().cachedToken;
         if (token != null) {
           try {
-            await ApiService.post('/api/auth/logout', {'fcmToken': token}).timeout(const Duration(seconds: 3));
+            await ApiService.post('/api/auth/logout', {'fcmToken': token}).timeout(const Duration(seconds: 2));
           } catch (_) {}
         }
+        await _authService.logout().timeout(const Duration(seconds: 2));
+      } else {
+        // Guest mode: instant local cleanup
+        ApiService.clearAuthToken();
       }
-      await _authService.logout().timeout(const Duration(seconds: 3));
     } catch (_) {
       ApiService.clearAuthToken();
     } finally {

@@ -13,6 +13,7 @@ import 'package:single_restaurant_mobile/widgets/common/app_dialog.dart';
 
 class ProfileLogoutDialog {
   static void show(BuildContext context, AuthProvider authProvider) {
+    final isGuest = !authProvider.isAuthenticated;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -21,13 +22,15 @@ class ProfileLogoutDialog {
         return StatefulBuilder(
           builder: (context, setState) {
             return AppDialog(
-              title: 'Confirm Logout',
-              message: 'Are you sure you want to log out of your account?',
+              title: isGuest ? 'Exit Guest Mode' : 'Confirm Logout',
+              message: isGuest
+                  ? 'Are you sure you want to exit guest mode and return to the login screen?'
+                  : 'Are you sure you want to log out of your account?',
               icon: Icons.logout_rounded,
               iconColor: AppColors.brandRed,
               isDestructive: true,
               isLoading: isLoggingOut,
-              primaryActionText: 'Logout',
+              primaryActionText: isGuest ? 'Exit' : 'Logout',
               secondaryActionText: 'Cancel',
               onSecondaryAction: isLoggingOut ? null : () => Navigator.pop(dialogCtx),
               onPrimaryAction: isLoggingOut

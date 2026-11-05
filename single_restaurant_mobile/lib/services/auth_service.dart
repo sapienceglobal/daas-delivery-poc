@@ -159,39 +159,48 @@ class AuthService {
   }) async {
     try {
       final response = await ApiService.post('/api/auth/login', {
-        'email': email,
+        'email': email.trim().toLowerCase(),
         'password': password,
         'rememberMe': rememberMe,
       });
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final token = data['token'];
-        if (token != null) {
-          final prefs = await SharedPreferences.getInstance();
-          if (rememberMe) {
-            await prefs.setString(_tokenKey, token);
-            await prefs.setBool('remember_me', true);
-          } else {
-            await prefs.remove(_tokenKey);
-            await prefs.setBool('remember_me', false);
+        try {
+          final data = json.decode(response.body);
+          final token = data['token'];
+          if (token != null) {
+            final prefs = await SharedPreferences.getInstance();
+            if (rememberMe) {
+              await prefs.setString(_tokenKey, token);
+              await prefs.setBool('remember_me', true);
+            } else {
+              await prefs.remove(_tokenKey);
+              await prefs.setBool('remember_me', false);
+            }
+            ApiService.setAuthToken(token);
+            try { SocketService().reconnect(); } catch (se) { print('Socket reconnect error: $se'); }
+            try { PushNotificationService().syncTokenWithBackend(); } catch (pe) { print('Push sync error: $pe'); }
+            return null; // success
           }
-          ApiService.setAuthToken(token);
-          SocketService().reconnect();
-          PushNotificationService().syncTokenWithBackend();
-          return null; // success
+        } catch (parseErr) {
+          print('Error parsing login response: $parseErr');
+          return 'Login succeeded but session storage error: $parseErr';
         }
       }
       
       // Parse error message if available
-      final errorData = json.decode(response.body);
-      return errorData['message'] ?? 'Login failed. Please check your credentials.';
+      try {
+        final errorData = json.decode(response.body);
+        return errorData['message'] ?? 'Login failed (${response.statusCode}). Please check your credentials.';
+      } catch (_) {
+        return 'Login failed (${response.statusCode}).';
+      }
     } catch (e) {
       print('Error during login: $e');
-      if (e is HttpException) {
+      if (e is ApiException) {
         return e.message;
       }
-      return 'Unable to connect to the server.';
+      return 'Login failed: ${e.toString()}';
     }
   }
 
@@ -210,7 +219,7 @@ class AuthService {
       return errorData['message'] ?? 'Failed to send reset link.';
     } catch (e) {
       print('Error during forgot password: $e');
-      if (e is HttpException) {
+      if (e is ApiException) {
         return e.message;
       }
       return 'Unable to connect to the server.';
@@ -224,13 +233,16 @@ class AuthService {
     await prefs.remove('remember_me');
     ApiService.clearAuthToken();
     try {
-      if (await GoogleSignIn().isSignedIn()) {
+      final isSignedIn = await GoogleSignIn().isSignedIn().timeout(const Duration(seconds: 2), onTimeout: () => false);
+      if (isSignedIn) {
         await GoogleSignIn().signOut().timeout(const Duration(seconds: 2));
       }
     } catch (e) {
       print('Google sign out error: $e');
     }
-    SocketService().reconnect();
+    try {
+      SocketService().reconnect();
+    } catch (_) {}
   }
 
   // Update profile

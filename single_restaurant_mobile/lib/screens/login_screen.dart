@@ -53,24 +53,34 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _refreshUserDataAndNavigate() async {
-    final authProv = context.read<AuthProvider>();
-    await authProv.fetchUser();
-    if (!mounted) return;
-    context.read<AddressProvider>().fetchAddresses();
-    context.read<CartProvider>().loadCart();
-    context.read<LoyaltyProvider>().fetchHistory();
-    context.read<NotificationProvider>().fetchNotifications();
-    PushNotificationService().syncTokenWithBackend();
+    try {
+      final authProv = context.read<AuthProvider>();
+      await authProv.fetchUser();
+      if (!mounted) return;
+      try { context.read<AddressProvider>().fetchAddresses(); } catch (_) {}
+      try { context.read<CartProvider>().loadCart(); } catch (_) {}
+      try { context.read<LoyaltyProvider>().fetchHistory(); } catch (_) {}
+      try { context.read<NotificationProvider>().fetchNotifications(); } catch (_) {}
+      try { PushNotificationService().syncTokenWithBackend(); } catch (_) {}
 
-    final user = authProv.user;
-    final target = (user?.referralOnboarding == 'pending')
-        ? const ReferralPromptScreen()
-        : const MainScreen(initialIndex: 0);
+      final user = authProv.user;
+      final target = (user?.referralOnboarding == 'pending')
+          ? const ReferralPromptScreen()
+          : const MainScreen(initialIndex: 0);
 
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => target),
-      (route) => false,
-    );
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => target),
+        (route) => false,
+      );
+    } catch (e) {
+      debugPrint('Navigation error after login: $e');
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const MainScreen(initialIndex: 0)),
+          (route) => false,
+        );
+      }
+    }
   }
 
   Future<void> _login() async {
