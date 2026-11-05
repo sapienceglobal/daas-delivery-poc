@@ -83,7 +83,8 @@ export function AuthProvider({ children }) {
     };
 
     initializeAuth();
-    initClientGeolocation(true);
+    // Do NOT prompt for geolocation on initial load; only silently sync if user already granted permission
+    initClientGeolocation(false);
 
     return () => {
       cancelled = true;
@@ -91,7 +92,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = useCallback(async (email, password, rememberMe = true) => {
-    initClientGeolocation(true);
+    initClientGeolocation(false);
     const data = await authAPI.login({ email, password, rememberMe });
     
     if (data.requires2fa) {

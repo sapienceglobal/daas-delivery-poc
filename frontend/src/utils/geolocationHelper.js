@@ -26,9 +26,7 @@ export async function initClientGeolocation(promptIfNeeded = false) {
       fetchAndStoreLocation();
     }
   } catch (err) {
-    if (promptIfNeeded) {
-      fetchAndStoreLocation();
-    }
+    // Never proactively trigger browser permission prompt on error
   }
 }
 
