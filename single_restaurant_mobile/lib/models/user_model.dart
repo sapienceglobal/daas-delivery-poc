@@ -18,6 +18,7 @@ class UserModel {
   final String referralOnboarding;
   final Map<String, dynamic>? notificationPreferences;
   final bool isSocialLogin;
+  final bool requiresPasswordForDeletion;
   
   UserModel({
     required this.id,
@@ -37,6 +38,7 @@ class UserModel {
     this.referralOnboarding = 'none',
     this.notificationPreferences,
     this.isSocialLogin = false,
+    this.requiresPasswordForDeletion = true,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -61,6 +63,7 @@ class UserModel {
       referralOnboarding: json['referralOnboarding'] ?? 'none',
       notificationPreferences: json['notificationPreferences'] as Map<String, dynamic>?,
       isSocialLogin: hasSocial,
+      requiresPasswordForDeletion: json['requiresPasswordForDeletion'] ?? !hasSocial,
     );
   }
 }

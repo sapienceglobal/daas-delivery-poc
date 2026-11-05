@@ -240,8 +240,20 @@ const UserSchema = new mongoose.Schema({
   resetPasswordExpires: {
     type: Date,
     default: null
+  },
+  // true when the user knows their password (email signup / password set / password login)
+  hasUserPassword: {
+    type: Boolean
   }
 }, { timestamps: true });
+
+// Whether account deletion must be verified with the current password
+UserSchema.methods.requiresPasswordForDeletion = function () {
+  const isSocial = !!(this.socialLogin?.googleId || this.socialLogin?.appleId || this.socialLogin?.facebookId);
+  if (this.hasUserPassword === true) return true;
+  if (this.hasUserPassword === false) return false;
+  return !isSocial;
+};
 
 // ── Indexes ─────────────────────────────────────────────────────────────────
 UserSchema.index({ role: 1 });
@@ -252,7 +264,9 @@ UserSchema.index({ 'socialLogin.appleId': 1 }, { sparse: true });
 // ── Password hashing (scrypt) ───────────────────────────────────────────────
 const SCRYPT_OPTIONS = { N: 32768, r: 8, p: 1, maxmem: 128 * 1024 * 1024 };
 
-UserSchema.methods.setPassword = function (password) {
+// userDefined=false is used for random placeholder passwords of social-only accounts
+UserSchema.methods.setPassword = function (password, userDefined = true) {
+  this.hasUserPassword = userDefined;
   this.salt = crypto.randomBytes(16).toString('hex');
   this.password = crypto.scryptSync(password, this.salt, 64, SCRYPT_OPTIONS).toString('hex');
   this.passwordAlgorithm = 'scrypt_tuned';
@@ -285,6 +299,7 @@ UserSchema.methods.createPasswordResetToken = function () {
 // ── JSON sanitization (remove sensitive fields) ─────────────────────────────
 UserSchema.methods.toSafeJSON = function () {
   const obj = this.toObject();
+  obj.requiresPasswordForDeletion = this.requiresPasswordForDeletion();
   delete obj.password;
   delete obj.salt;
   delete obj.passwordAlgorithm;

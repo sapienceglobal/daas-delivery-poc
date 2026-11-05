@@ -318,6 +318,8 @@ export const login = asyncHandler(async (req, response) => {
   // successful login — reset failed attempts
   user.failedLoginAttempts = 0;
   user.loginLockedUntil = null;
+  // user just proved they know the password
+  user.hasUserPassword = true;
 
   // transparently upgrade old password hashes
   if (user.needsPasswordRehash()) {
@@ -554,7 +556,7 @@ export const socialLogin = asyncHandler(async (req, response) => {
       isEmailVerified: true
     });
     // create random robust password for DB constraint if needed
-    user.setPassword(crypto.randomBytes(20).toString('hex'));
+    user.setPassword(crypto.randomBytes(20).toString('hex'), false);
     user.referralCode = crypto.randomBytes(3).toString('hex').toUpperCase();
     if (finalRole === 'customer') {
       user.referralOnboarding = 'pending';
@@ -689,16 +691,14 @@ export const deleteAccount = asyncHandler(async (req, response) => {
   }
 
   const { password, confirmation, reason } = req.body;
-  const isSocialUser = !!(user.socialLogin?.googleId || user.socialLogin?.appleId || user.socialLogin?.facebookId);
-
-  // Security Verification
-  if (!isSocialUser) {
+  // Security Verification: anyone who knows a password (incl. linked Google/Apple accounts) must enter it
+  if (user.requiresPasswordForDeletion()) {
     if (!password) {
       throw new AppError('Current password is required to verify your identity before deleting your account.', 400);
     }
     const isPasswordValid = user.validatePassword(password);
     if (!isPasswordValid) {
-      throw new AppError('Incorrect password. Please verify your password to proceed.', 401);
+      throw new AppError('Incorrect password. Please verify your password to proceed.', 400);
     }
   } else {
     if (confirmation !== 'DELETE') {

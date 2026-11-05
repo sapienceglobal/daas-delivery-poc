@@ -15,7 +15,9 @@ import 'package:single_restaurant_mobile/widgets/common/app_button.dart';
 
 class ProfileDeleteAccountSheet {
   static void show(BuildContext context, AuthProvider authProvider) {
-    final isSocialUser = authProvider.user?.isSocialLogin ?? false;
+    // Password is required whenever the account has a user-known password (incl. linked Google/Apple accounts).
+    // Only pure social-login accounts (no password ever set) fall back to typing DELETE.
+    final isSocialUser = !(authProvider.user?.requiresPasswordForDeletion ?? true);
     final passwordController = TextEditingController();
     final confirmationController = TextEditingController();
 
