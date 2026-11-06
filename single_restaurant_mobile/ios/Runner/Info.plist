@@ -85,5 +85,18 @@
 		<string>Lassi Lounge requires access to your photo library to select a profile photo.</string>
 		<key>ITSAppUsesNonExemptEncryption</key>
 		<false/>
+		<key>GIDClientID</key>
+		<string>960808501824-1cp10470vlsr80ajv0k7mmbmevkeses6.apps.googleusercontent.com</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.960808501824-1cp10470vlsr80ajv0k7mmbmevkeses6</string>
+				</array>
+			</dict>
+		</array>
 	</dict>
 </plist>

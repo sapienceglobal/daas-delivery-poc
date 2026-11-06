@@ -25,9 +25,32 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+const FirebaseOptions _iosFirebaseOptions = FirebaseOptions(
+  apiKey: 'AIzaSyBmn53pFcABCmirM62buokZlUzNGpMrmQA',
+  appId: '1:960808501824:ios:dca2df30c6cdd4ace415a5',
+  messagingSenderId: '960808501824',
+  projectId: 'lassi-lounge-48123',
+  storageBucket: 'lassi-lounge-48123.firebasestorage.app',
+  iosClientId: '960808501824-1cp10470vlsr80ajv0k7mmbmevkeses6.apps.googleusercontent.com',
+  iosBundleId: 'com.lassilounge.customer',
+);
+
+Future<void> _ensureFirebaseInitialized() async {
+  if (Firebase.apps.isNotEmpty) return;
+  try {
+    await Firebase.initializeApp();
+  } catch (_) {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      await Firebase.initializeApp(options: _iosFirebaseOptions);
+    } else {
+      rethrow;
+    }
+  }
+}
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await _ensureFirebaseInitialized();
   debugPrint("Handling a background message: ${message.messageId}");
   if (message.notification == null) {
     try {
@@ -57,7 +80,7 @@ Future<void> _guard(
 }
 
 Future<void> _initFirebase() async {
-  await Firebase.initializeApp();
+  await _ensureFirebaseInitialized();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 }
 

@@ -75,6 +75,11 @@ class PushNotificationService {
         sound: true,
         provisional: false,
       );
+      await fcm.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
     } catch (e) {
       debugPrint('[FCM] requestPermission error: $e');
     }
@@ -99,6 +104,15 @@ class PushNotificationService {
       await androidImplementation.requestNotificationsPermission();
       await androidImplementation.createNotificationChannel(_channel);
     }
+
+    // On iOS physical devices, wait briefly for APNs token registration before topic/token calls
+    try {
+      String? apnsToken = await fcm.getAPNSToken();
+      if (apnsToken == null) {
+        await Future.delayed(const Duration(seconds: 2));
+        apnsToken = await fcm.getAPNSToken();
+      }
+    } catch (_) {}
 
     // ── 1. Subscribe every install (guest or user) to FCM broadcast topics ──
     try {
