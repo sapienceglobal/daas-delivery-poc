@@ -4,6 +4,7 @@ import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/theme/app_radius.dart';
 import 'package:single_restaurant_mobile/theme/app_spacing.dart';
+import 'package:single_restaurant_mobile/utils/spice_helper.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:single_restaurant_mobile/widgets/common/app_bottom_sheet.dart';
 import 'package:single_restaurant_mobile/widgets/common/app_button.dart';
@@ -30,10 +31,27 @@ class _CustomizationBottomSheetState extends State<CustomizationBottomSheet> {
   final Set<int> _selectedAddOnIndices = {};
   int _quantity = 1;
   int? _selectedSizeIndex;
+  late String _selectedSpiceLevel;
+
+  static const List<Map<String, String>> _spiceOptions = [
+    {'label': 'Mild', 'icon': '🌶'},
+    {'label': 'Medium', 'icon': '🌶'},
+    {'label': 'Spicy', 'icon': '🌶'},
+    {'label': 'Extra Spicy', 'icon': '🌶🌶'},
+  ];
 
   @override
   void initState() {
     super.initState();
+    final canSelectSpice = SpiceHelper.canCustomizeSpice(widget.item);
+    final customSpice = widget.item['spiceLevel'] ?? widget.item['spicyLevel'];
+    final isSpicy = widget.item['isSpicy'] ?? false;
+    _selectedSpiceLevel = canSelectSpice
+        ? (customSpice != null
+            ? customSpice.toString()
+            : (isSpicy ? 'Medium' : 'Mild'))
+        : '';
+
     final sizes = widget.item['sizeVariations'] as List<dynamic>? ?? [];
     if (sizes.isNotEmpty) {
       _selectedSizeIndex = 0;
@@ -43,6 +61,7 @@ class _CustomizationBottomSheetState extends State<CustomizationBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
+    final canSelectSpice = SpiceHelper.canCustomizeSpice(item);
     final addons = item['addOns'] as List<dynamic>? ?? [];
     final sizes = item['sizeVariations'] as List<dynamic>? ?? [];
 
@@ -111,6 +130,11 @@ class _CustomizationBottomSheetState extends State<CustomizationBottomSheet> {
                 final newItem = Map<String, dynamic>.from(item);
                 newItem['quantity'] = _quantity;
                 newItem['addOns'] = selectedAddOns;
+                if (canSelectSpice && _selectedSpiceLevel.isNotEmpty) {
+                  newItem['selectedSpiceLevel'] = _selectedSpiceLevel;
+                } else {
+                  newItem.remove('selectedSpiceLevel');
+                }
                 if (sizes.isNotEmpty && _selectedSizeIndex != null) {
                   newItem['selectedSize'] = sizes[_selectedSizeIndex!];
                   newItem['price'] = (sizes[_selectedSizeIndex!]['price'] as num?)?.toDouble() ?? 0.0;
@@ -136,6 +160,70 @@ class _CustomizationBottomSheetState extends State<CustomizationBottomSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Spice Level Selection (for spice-eligible items)
+            if (canSelectSpice) ...[
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Spice Level', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text('Select preference', style: TextStyle(color: AppColors.textLight, fontSize: 13)),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: _spiceOptions.map((opt) {
+                    final label = opt['label']!;
+                    final icon = opt['icon']!;
+                    final isSelected = _selectedSpiceLevel.toLowerCase() == label.toLowerCase();
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedSpiceLevel = label),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? const Color(0xFFFBF4EE) : const Color(0xFFF9FAFB),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected ? AppColors.brandRed : AppColors.border,
+                              width: isSelected ? 1.5 : 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(icon, style: const TextStyle(fontSize: 13)),
+                              const SizedBox(width: 5),
+                              Text(
+                                label,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                  color: isSelected ? AppColors.brandRed : const Color(0xFF4B5563),
+                                ),
+                              ),
+                              if (isSelected) ...[
+                                const SizedBox(width: 5),
+                                const Icon(Icons.check_circle_rounded, size: 14, color: AppColors.brandRed),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                child: Divider(color: AppColors.borderSubtle, thickness: 1),
+              ),
+            ],
+
             // Size Variations
             if (sizes.isNotEmpty) ...[
               Row(

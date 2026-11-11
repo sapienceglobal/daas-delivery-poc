@@ -35,6 +35,16 @@ class RestaurantProvider with ChangeNotifier {
       if (data != null) {
         _restaurant = data;
         final rawMenu = List<dynamic>.from(data['menu'] ?? []);
+        for (final cat in rawMenu) {
+          if (cat is Map && cat['items'] is List) {
+            final catName = (cat['name'] ?? '').toString();
+            for (final item in cat['items']) {
+              if (item is Map && item['categoryName'] == null) {
+                item['categoryName'] = catName;
+              }
+            }
+          }
+        }
         rawMenu.sort((a, b) => categorySortIndex(a).compareTo(categorySortIndex(b)));
         _menu = rawMenu;
       } else {

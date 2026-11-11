@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:single_restaurant_mobile/utils/spice_helper.dart';
 
 class ItemDetailInfo extends StatelessWidget {
   final String name;
@@ -8,6 +9,8 @@ class ItemDetailInfo extends StatelessWidget {
   final String description;
   final int prepTime;
   final Map<String, dynamic>? item;
+  final String? selectedSpiceLevel;
+  final bool canCustomizeSpice;
 
   const ItemDetailInfo({
     super.key,
@@ -18,6 +21,8 @@ class ItemDetailInfo extends StatelessWidget {
     required this.description,
     required this.prepTime,
     this.item,
+    this.selectedSpiceLevel,
+    this.canCustomizeSpice = true,
   });
 
   Widget _buildHighlightItem({
@@ -48,15 +53,32 @@ class ItemDetailInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveItem = item ?? <String, dynamic>{'name': name, 'isSpicy': isSpicy};
     final dynamic customSpice = item?['spiceLevel'] ?? item?['spicyLevel'];
-    final String spiceText = customSpice != null
-        ? customSpice.toString()
-        : (isSpicy ? 'Medium Spicy' : 'Mild Spicy');
+    final String activeSpiceText = (selectedSpiceLevel != null && selectedSpiceLevel!.trim().isNotEmpty)
+        ? selectedSpiceLevel!.trim()
+        : (customSpice != null
+            ? customSpice.toString()
+            : (isSpicy ? 'Medium' : 'Mild'));
+
+    final nonSpicyHighlight = SpiceHelper.getNonSpicyHighlight(effectiveItem);
+    final IconData secondIcon = canCustomizeSpice
+        ? Icons.local_fire_department_rounded
+        : nonSpicyHighlight.icon;
+    final String secondLabel = canCustomizeSpice
+        ? activeSpiceText
+        : nonSpicyHighlight.label;
+
+    final String defaultMethod = SpiceHelper.isBeverage(effectiveItem)
+        ? 'Freshly Blended'
+        : (SpiceHelper.isDessert(effectiveItem)
+            ? 'House Special'
+            : (isVeg ? 'Clay Oven' : 'Tandoor Grilled'));
 
     final String cookingStyle = item?['cookingMethod'] ??
         item?['cookingStyle'] ??
         item?['categoryName'] ??
-        (isVeg ? 'Clay Oven' : 'Tandoor Grilled');
+        defaultMethod;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,8 +161,8 @@ class ItemDetailInfo extends StatelessWidget {
                 label: isVeg ? 'Veg' : 'Non-Veg',
               ),
               _buildHighlightItem(
-                icon: Icons.local_fire_department_rounded,
-                label: spiceText,
+                icon: secondIcon,
+                label: secondLabel,
               ),
               _buildHighlightItem(
                 icon: Icons.access_time_rounded,

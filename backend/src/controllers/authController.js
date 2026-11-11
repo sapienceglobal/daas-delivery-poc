@@ -1186,6 +1186,7 @@ const sanitizeSavedCart = ({ items = [], restaurant = null, tenantId = 'marketpl
         quantity,
         qty: quantity,
         selectedSize: item.selectedSize || null,
+        selectedSpiceLevel: item.selectedSpiceLevel ? String(item.selectedSpiceLevel).slice(0, 50) : null,
         addOns,
         specialInstructions: String(item.specialInstructions || '').slice(0, 500),
         lineTotal: Math.round((price + addOnTotal) * quantity * 100) / 100

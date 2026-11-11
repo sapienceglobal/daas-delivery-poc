@@ -168,6 +168,10 @@ class CartProvider with ChangeNotifier, WidgetsBindingObserver {
       existingItem['quantity'] = newQty;
       existingItem['qty'] = newQty;
       existingItem['lineTotal'] = (basePrice + addonsTotal) * newQty;
+      if (item['selectedSpiceLevel'] != null &&
+          item['selectedSpiceLevel'].toString().isNotEmpty) {
+        existingItem['selectedSpiceLevel'] = item['selectedSpiceLevel'];
+      }
       
       _items[existingIdx] = existingItem;
     } else {
@@ -219,6 +223,19 @@ class CartProvider with ChangeNotifier, WidgetsBindingObserver {
     }
     item['lineTotal'] = (basePrice + addonsTotal) * newQuantity;
     
+    _items[index] = item;
+    notifyListeners();
+    _triggerSync();
+  }
+
+  void updateItemSpiceLevel(int index, String spiceLevel) {
+    if (index < 0 || index >= _items.length) return;
+    final item = Map<String, dynamic>.from(_items[index]);
+    if (spiceLevel.isEmpty) {
+      item.remove('selectedSpiceLevel');
+    } else {
+      item['selectedSpiceLevel'] = spiceLevel;
+    }
     _items[index] = item;
     notifyListeners();
     _triggerSync();

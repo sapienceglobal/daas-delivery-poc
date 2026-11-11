@@ -106,6 +106,7 @@ const UserSchema = new mongoose.Schema({
       quantity: { type: Number, default: 1, min: 1, max: 99 },
       qty: { type: Number, default: 1, min: 1, max: 99 },
       selectedSize: { type: mongoose.Schema.Types.Mixed, default: null },
+      selectedSpiceLevel: { type: String, default: null },
       addOns: [{ type: mongoose.Schema.Types.Mixed }],
       specialInstructions: { type: String, default: '' },
       lineTotal: { type: Number, default: 0 }

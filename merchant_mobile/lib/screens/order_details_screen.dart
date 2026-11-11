@@ -2563,6 +2563,16 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                           color: Colors.grey.shade600,
                                         ),
                                       ),
+                                    if (item.spiceLevel != null &&
+                                        item.spiceLevel!.trim().isNotEmpty)
+                                      Text(
+                                        'Spice: ${item.spiceLevel} 🌶️',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: const Color(0xFFB91C1C),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                     if (item.addOns.isNotEmpty)
                                       Text(
                                         item.addOns.join(', '),

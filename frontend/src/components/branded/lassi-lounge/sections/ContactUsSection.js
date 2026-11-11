@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   ChevronRight, 
@@ -17,9 +17,89 @@ import {
 } from 'lucide-react';
 import { showToast } from '@/components/ui';
 import { useBrand } from '@/context/BrandContext';
+import { restaurantAPI } from '@/lib/api';
+import { footerContent } from '../config';
+import { getTimezoneAbbr, isRestaurantOpenNow } from '@/lib/formatters';
+import HoursModal from '@/components/shared/HoursModal';
+
+const DAYS_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const DAY_SHORT = {
+  monday: 'Mon',
+  tuesday: 'Tue',
+  wednesday: 'Wed',
+  thursday: 'Thu',
+  friday: 'Fri',
+  saturday: 'Sat',
+  sunday: 'Sun',
+};
+
+const formatTime12h = (timeStr) => {
+  if (!timeStr || typeof timeStr !== 'string') return '';
+  const [hours, minutes] = timeStr.split(':');
+  let h = parseInt(hours, 10);
+  if (isNaN(h)) return timeStr;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${minutes || '00'} ${ampm}`;
+};
+
+const buildDynamicHours = (restaurant) => {
+  const operatingHours = restaurant?.operatingHours;
+  const tzAbbr = getTimezoneAbbr(restaurant?.timezone);
+
+  if (!operatingHours || Object.keys(operatingHours).length === 0) {
+    if (restaurant?.openTime && restaurant?.closeTime) {
+      const t = `${formatTime12h(restaurant.openTime)} - ${formatTime12h(restaurant.closeTime)}${tzAbbr ? ` ${tzAbbr}` : ''}`;
+      return {
+        groups: [{ day: 'Mon - Sun', time: t, isClosed: false }],
+        openDaysCount: 7,
+      };
+    }
+    return {
+      groups: footerContent.hours || [{ day: 'Mon - Sun', time: '11:30 AM - 10:00 PM', isClosed: false }],
+      openDaysCount: 7,
+    };
+  }
+
+  const groups = [];
+  let currentGroup = null;
+  let openDaysCount = 0;
+
+  for (const day of DAYS_ORDER) {
+    const hrs = operatingHours[day];
+    const isClosed = !hrs || !!hrs.isClosed || !hrs.open || !hrs.close;
+    if (!isClosed) openDaysCount++;
+
+    const timeStr = !isClosed
+      ? `${formatTime12h(hrs.open)} - ${formatTime12h(hrs.close)}${tzAbbr ? ` ${tzAbbr}` : ''}`
+      : 'Closed';
+
+    if (!currentGroup) {
+      currentGroup = { startDay: day, endDay: day, time: timeStr, isClosed };
+    } else if (currentGroup.time === timeStr) {
+      currentGroup.endDay = day;
+    } else {
+      groups.push(currentGroup);
+      currentGroup = { startDay: day, endDay: day, time: timeStr, isClosed };
+    }
+  }
+  if (currentGroup) groups.push(currentGroup);
+
+  const formattedGroups = groups.map((g) => {
+    const dayLabel =
+      g.startDay === g.endDay
+        ? DAY_SHORT[g.startDay]
+        : `${DAY_SHORT[g.startDay]} - ${DAY_SHORT[g.endDay]}`;
+    return { day: dayLabel, time: g.time, isClosed: g.isClosed };
+  });
+
+  return { groups: formattedGroups, openDaysCount };
+};
 
 export default function ContactUsSection() {
   const { brand } = useBrand();
+  const [fetchedRestaurant, setFetchedRestaurant] = useState(null);
+  const [isHoursModalOpen, setIsHoursModalOpen] = useState(false);
   
   const [formData, setFormData] = useState({ 
     name: '', 
@@ -31,22 +111,54 @@ export default function ContactUsSection() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    let mounted = true;
+    const fetchLiveRestaurant = async () => {
+      try {
+        const res = await restaurantAPI.getById('lassi-lounge');
+        if (mounted && res?.data) {
+          setFetchedRestaurant(res.data);
+          return;
+        }
+      } catch (_) {}
+      try {
+        const allRes = await restaurantAPI.getAll();
+        const found =
+          allRes?.data?.find((r) => r.name?.toLowerCase().includes('lassi lounge')) ||
+          allRes?.data?.[0];
+        if (mounted && found) {
+          setFetchedRestaurant(found);
+        }
+      } catch (_) {}
+    };
+    fetchLiveRestaurant();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const activeBrand = fetchedRestaurant || brand;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     
     try {
+      const payload = {
+        ...formData,
+        ...(activeBrand?._id ? { restaurantId: activeBrand._id } : {}),
+      };
       let response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       
       if (response.status === 404) {
         response = await fetch('/api/public/contact', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(payload)
         });
       }
       
@@ -65,9 +177,19 @@ export default function ContactUsSection() {
     }
   };
 
-  const address = brand?.address || 'Lassi Lounge, 450 Powell Street, San Francisco, CA 94102';
-  const phone = brand?.phone || '+1 (415) 555-1234';
-  const email = brand?.email || 'hello@lassilounge.com';
+  const address = activeBrand?.address || footerContent.visitUs.address;
+  const phone = activeBrand?.phone || footerContent.visitUs.phone;
+  const email = activeBrand?.email || footerContent.visitUs.email;
+  const { groups: hoursGroups, openDaysCount } = buildDynamicHours(activeBrand);
+  const isOpenNow = activeBrand?.operatingHours
+    ? isRestaurantOpenNow(activeBrand.operatingHours, activeBrand.timezone)
+    : null;
+  const openDaysLabel =
+    openDaysCount === 7
+      ? 'Open 7 Days a Week'
+      : openDaysCount > 0
+      ? `Open ${openDaysCount} Days a Week`
+      : 'Opening Hours';
 
   const contactCards = [
     {
@@ -99,11 +221,12 @@ export default function ContactUsSection() {
     },
     {
       icon: Clock,
-      badge: 'Kitchen Hours',
-      title: 'Open 7 Days a Week',
-      desc: 'Mon - Sun: 11:00 AM - 10:00 PM (Kitchen closes 9:45 PM)',
-      actionText: 'Order Online',
-      actionUrl: '/order-online',
+      badge: isOpenNow === true ? 'Open Now' : isOpenNow === false ? 'Closed Now' : 'Opening Hours',
+      badgeTone: isOpenNow === true ? 'open' : isOpenNow === false ? 'closed' : 'default',
+      title: openDaysLabel,
+      hoursGroups,
+      actionText: 'View All Hours',
+      onActionClick: () => setIsHoursModalOpen(true),
       isExternal: false
     }
   ];
@@ -178,7 +301,7 @@ export default function ContactUsSection() {
             </div>
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs text-white/90 font-medium">
               <Clock className="w-3.5 h-3.5 text-[#e8a020]" />
-              <span>Open 7 Days a Week</span>
+              <span>{openDaysLabel}</span>
             </div>
           </div>
         </div>
@@ -196,6 +319,13 @@ export default function ContactUsSection() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
             {contactCards.map((card, idx) => {
               const Icon = card.icon;
+              const badgeClasses =
+                card.badgeTone === 'open'
+                  ? 'bg-emerald-500/15 text-emerald-700'
+                  : card.badgeTone === 'closed'
+                  ? 'bg-red-500/15 text-red-700'
+                  : 'bg-[#7a0b10]/10 text-[#7a0b10]';
+
               return (
                 <div 
                   key={idx}
@@ -206,7 +336,7 @@ export default function ContactUsSection() {
                       <div className="w-12 h-12 rounded-2xl bg-[#7a0b10]/5 group-hover:bg-[#7a0b10]/10 border border-[#7a0b10]/15 flex items-center justify-center transition-all duration-300 group-hover:scale-105">
                         <Icon className="w-6 h-6 text-[#7a0b10]" />
                       </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#7a0b10]/10 text-[#7a0b10]">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${badgeClasses}`}>
                         {card.badge}
                       </span>
                     </div>
@@ -214,13 +344,35 @@ export default function ContactUsSection() {
                     <h3 className="text-lg font-bold font-serif text-[#1a1a1a] mb-2">
                       {card.title}
                     </h3>
-                    <p className="text-xs sm:text-sm text-[#4b5563] leading-relaxed mb-4">
-                      {card.desc}
-                    </p>
+                    {card.hoursGroups ? (
+                      <div className="space-y-1 mb-4">
+                        {card.hoursGroups.map((g, gIdx) => (
+                          <div key={gIdx} className="flex items-baseline justify-between gap-2 text-xs sm:text-[13px] leading-snug">
+                            <span className="font-semibold text-[#1a1a1a] shrink-0">{g.day}:</span>
+                            <span className={g.isClosed ? 'text-red-600 font-semibold text-right' : 'text-[#4b5563] text-right'}>
+                              {g.time}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs sm:text-sm text-[#4b5563] leading-relaxed mb-4">
+                        {card.desc}
+                      </p>
+                    )}
                   </div>
 
                   <div className="pt-2 border-t border-[#f3f4f6]">
-                    {card.isExternal ? (
+                    {card.onActionClick ? (
+                      <button
+                        type="button"
+                        onClick={card.onActionClick}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#7a0b10] hover:text-[#e8a020] transition-colors cursor-pointer"
+                      >
+                        <span>{card.actionText}</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    ) : card.isExternal ? (
                       <a 
                         href={card.actionUrl} 
                         target="_blank" 
@@ -429,6 +581,12 @@ export default function ContactUsSection() {
 
         </div>
       </section>
+
+      <HoursModal
+        isOpen={isHoursModalOpen}
+        onClose={() => setIsHoursModalOpen(false)}
+        brand={activeBrand}
+      />
     </div>
   );
 }

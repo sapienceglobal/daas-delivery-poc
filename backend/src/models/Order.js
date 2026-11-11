@@ -16,6 +16,7 @@ const OrderItemSchema = new mongoose.Schema({
   image: { type: String, default: null },
   price: { type: Number, required: true },       // unit price at time of order
   quantity: { type: Number, required: true, default: 1, min: 1 },
+  selectedSpiceLevel: { type: String, default: null },
   selectedSize: {
     name: { type: String, default: null },
     price: { type: Number, default: null }

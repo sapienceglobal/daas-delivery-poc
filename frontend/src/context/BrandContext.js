@@ -18,8 +18,18 @@ export function BrandProvider({ children }) {
 
     const loadBrandInfo = async () => {
       try {
+        try {
+          const bySlug = await restaurantAPI.getById('lassi-lounge');
+          if (bySlug?.data) {
+            setBrand(bySlug.data);
+            return;
+          }
+        } catch (_) {}
+
         const res = await restaurantAPI.getAll();
-        const lassiLounge = res.data?.find(r => r.name.toLowerCase().includes('lassi lounge'));
+        const lassiLounge =
+          res.data?.find((r) => r.name?.toLowerCase().includes('lassi lounge')) ||
+          res.data?.[0];
         if (lassiLounge) {
           setBrand(lassiLounge);
         }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
+import 'package:single_restaurant_mobile/utils/spice_helper.dart';
 
 class CartItemCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -21,11 +22,14 @@ class CartItemCard extends StatelessWidget {
     final name = item['name'] ?? 'Unknown Item';
     final quantity = (item['quantity'] ?? item['qty'] ?? 1) as int;
     final isVeg = item['isVeg'] ?? true;
-    final isSpicy = item['isSpicy'] ?? false;
 
-    // Formatting size and spice label
+    // Formatting size and spice label (only show spice if eligible & selected)
     final sizeName = item['selectedSize'] != null ? (item['selectedSize']['name'] ?? 'Regular') : 'Regular';
-    final spiceLabel = isSpicy ? 'Medium' : 'Mild';
+    final rawSelectedSpice = item['selectedSpiceLevel']?.toString().trim();
+    final canHaveSpice = SpiceHelper.canCustomizeSpice(item);
+    final String? spiceLabel = (canHaveSpice && rawSelectedSpice != null && rawSelectedSpice.isNotEmpty)
+        ? rawSelectedSpice
+        : null;
 
     void goToDetail() {
       Navigator.push(
@@ -140,7 +144,7 @@ class CartItemCard extends StatelessWidget {
                                 children: [
                                   Flexible(
                                     child: Text(
-                                      '$sizeName • $spiceLabel',
+                                      spiceLabel != null ? '$sizeName • $spiceLabel' : '$sizeName',
                                       style: TextStyle(
                                         color: Colors.grey.shade600,
                                         fontSize: 12,
@@ -149,8 +153,10 @@ class CartItemCard extends StatelessWidget {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  const SizedBox(width: 3),
-                                  const Text('🌶️', style: TextStyle(fontSize: 11)),
+                                  if (spiceLabel != null) ...[
+                                    const SizedBox(width: 3),
+                                    const Text('🌶️', style: TextStyle(fontSize: 11)),
+                                  ],
                                 ],
                               ),
                             ],

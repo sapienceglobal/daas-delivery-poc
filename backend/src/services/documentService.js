@@ -72,6 +72,7 @@ export const generateInvoiceHTML = (order, payment = null) => {
   // ── Item rows ────────────────────────────────────────────────────────────
   const itemRows = (order.items || []).map(item => {
     const sizeLabel = item.selectedSize?.name ? ` (${item.selectedSize.name})` : '';
+    const spiceLabel = item.selectedSpiceLevel ? ` • 🌶️ ${item.selectedSpiceLevel}` : '';
     const addOnsLabel = (item.addOns || []).length > 0
       ? `<br><span style="font-size:11px;color:#6b7280;">+ ${item.addOns.map(a => a.name).join(', ')}</span>`
       : '';
@@ -79,7 +80,7 @@ export const generateInvoiceHTML = (order, payment = null) => {
     return `
       <tr>
         <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#111827;vertical-align:top;">
-          ${item.name}${sizeLabel}${addOnsLabel}
+          ${item.name}${sizeLabel}${spiceLabel}${addOnsLabel}
           ${item.specialInstructions ? `<br><span style="font-size:11px;color:#9ca3af;font-style:italic;">${item.specialInstructions}</span>` : ''}
         </td>
         <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:13px;color:#6b7280;text-align:center;vertical-align:top;">${item.quantity}</td>
@@ -364,6 +365,7 @@ export const generateKOTHTML = (order) => {
 
   const itemLines = (order.items || []).map(item => {
     const sizeStr = item.selectedSize?.name ? ` [${item.selectedSize.name}]` : '';
+    const spiceStr = item.selectedSpiceLevel ? ` [Spice: ${item.selectedSpiceLevel}]` : '';
     const addOnsStr = (item.addOns || []).length > 0
       ? item.addOns.map(a => `  + ${a.name}`).join('\n')
       : '';
@@ -373,7 +375,7 @@ export const generateKOTHTML = (order) => {
     return `
       <tr>
         <td style="padding:4px 0;font-size:15px;font-weight:700;vertical-align:top;line-height:1.3;">
-          ${item.name}${sizeStr}
+          ${item.name}${sizeStr}${spiceStr}
           ${addOnsStr ? `<div style="font-size:12px;font-weight:400;margin-top:2px;">${item.addOns.map(a => `+ ${a.name}`).join('<br>')}</div>` : ''}
           ${item.specialInstructions ? `<div style="font-size:12px;font-style:italic;font-weight:700;margin-top:3px;">*** ${item.specialInstructions} ***</div>` : ''}
         </td>

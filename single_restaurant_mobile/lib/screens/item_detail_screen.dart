@@ -4,6 +4,7 @@ import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
+import 'package:single_restaurant_mobile/utils/spice_helper.dart';
 import 'package:single_restaurant_mobile/theme/app_responsive.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:single_restaurant_mobile/widgets/common/responsive_center.dart';
@@ -34,11 +35,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   @override
   void initState() {
     super.initState();
+    final canSelectSpice = SpiceHelper.canCustomizeSpice(widget.item);
     final customSpice = widget.item['spiceLevel'] ?? widget.item['spicyLevel'];
     final isSpicy = widget.item['isSpicy'] ?? false;
-    _selectedSpiceLevel = customSpice != null
-        ? customSpice.toString()
-        : (isSpicy ? 'Medium' : 'Mild');
+    _selectedSpiceLevel = canSelectSpice
+        ? (customSpice != null
+            ? customSpice.toString()
+            : (isSpicy ? 'Medium' : 'Mild'))
+        : '';
 
     final sizeVariations =
         widget.item['sizeVariations'] as List<dynamic>? ?? [];
@@ -53,8 +57,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         final cartItem = cartProvider.items[cartIndex];
         setState(() {
           _localQuantity = cartItem['quantity'] ?? cartItem['qty'] ?? 1;
-          if (cartItem['selectedSpiceLevel'] != null) {
-            _selectedSpiceLevel = cartItem['selectedSpiceLevel'];
+          if (canSelectSpice &&
+              cartItem['selectedSpiceLevel'] != null &&
+              cartItem['selectedSpiceLevel'].toString().isNotEmpty) {
+            _selectedSpiceLevel = cartItem['selectedSpiceLevel'].toString();
           }
           final addons = _getAddOns();
           final cartAddons = cartItem['addOns'] as List<dynamic>? ?? [];
@@ -113,6 +119,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
+    final canSelectSpice = SpiceHelper.canCustomizeSpice(item);
     final itemId = item['_id'] ?? item['id'] ?? '';
     final name = item['name'] ?? 'Unknown Dish';
     final isSpicy = item['isSpicy'] ?? false;
@@ -212,6 +219,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       description: description,
                       prepTime: prepTime,
                       item: widget.item,
+                      selectedSpiceLevel: _selectedSpiceLevel,
+                      canCustomizeSpice: canSelectSpice,
                     ),
                     ItemDetailOptions(
                       sizes: sizes,
@@ -241,6 +250,13 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         });
                       },
                       selectedSpiceLevel: _selectedSpiceLevel,
+                      showSpiceSelector: canSelectSpice,
+                      onSelectSpiceLevel: (level) {
+                        setState(() => _selectedSpiceLevel = level);
+                        if (inCart) {
+                          cartProvider.updateItemSpiceLevel(cartIndex, level);
+                        }
+                      },
                     ),
                     ItemDetailRecommendations(
                       recommended: recommended,
@@ -277,7 +293,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 newItem['quantity'] = 1;
                 newItem['qty'] = 1;
                 newItem['addOns'] = selectedAddonsList;
-                newItem['selectedSpiceLevel'] = _selectedSpiceLevel;
+                if (canSelectSpice && _selectedSpiceLevel.isNotEmpty) {
+                  newItem['selectedSpiceLevel'] = _selectedSpiceLevel;
+                } else {
+                  newItem.remove('selectedSpiceLevel');
+                }
                 newItem['price'] = (sizes.isNotEmpty && _selectedSizeIndex != null)
                     ? (sizes[_selectedSizeIndex!]['price'] as num?)?.toDouble() ?? 0.0
                     : basePrice;

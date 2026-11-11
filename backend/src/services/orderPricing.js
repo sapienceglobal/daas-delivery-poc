@@ -159,6 +159,7 @@ export const calculateOrderPricing = async ({
       price: menuItem.effectivePrice,
       quantity,
       selectedSize,
+      selectedSpiceLevel: requested.selectedSpiceLevel ? xss(String(requested.selectedSpiceLevel).slice(0, 50)) : null,
       addOns,
       specialInstructions: xss(String(requested.specialInstructions || '').slice(0, 500)),
       lineTotal

@@ -103,6 +103,7 @@ export const createOrderSchema = Joi.object({
         name: Joi.string().required(),
         price: Joi.number()
       }).allow(null).optional(),
+      selectedSpiceLevel: Joi.string().max(50).allow('', null).optional(),
       addOns: Joi.array().items(
         Joi.object({
           _id: Joi.string(),

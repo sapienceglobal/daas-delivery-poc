@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/providers/restaurant_provider.dart';
 import 'package:single_restaurant_mobile/widgets/customization_bottom_sheet.dart';
+import 'package:single_restaurant_mobile/utils/spice_helper.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 import 'package:single_restaurant_mobile/constants/colors.dart';
 import 'package:single_restaurant_mobile/widgets/common/app_dialog.dart';
@@ -22,6 +23,11 @@ class AddToCartHelper {
       // Direct add
       final newItem = Map<String, dynamic>.from(item);
       newItem['quantity'] = quantity;
+      if (SpiceHelper.canCustomizeSpice(item)) {
+        newItem['selectedSpiceLevel'] ??= SpiceHelper.getMenuSpiceBadgeText(item);
+      } else {
+        newItem.remove('selectedSpiceLevel');
+      }
       cartProvider.addItem(newItem, restaurantData: restaurantProvider.restaurant);
       ToastUtils.showCartSuccess(context);
       return;

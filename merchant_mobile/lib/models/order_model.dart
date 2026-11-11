@@ -2,6 +2,7 @@ class OrderItem {
   final String name;
   final int quantity;
   final String? size;
+  final String? spiceLevel;
   final List<String> addOns;
   final String? specialInstructions;
   final double lineTotal;
@@ -11,6 +12,7 @@ class OrderItem {
     required this.name,
     required this.quantity,
     this.size,
+    this.spiceLevel,
     this.addOns = const [],
     this.specialInstructions,
     this.lineTotal = 0.0,
@@ -28,6 +30,7 @@ class OrderItem {
       name: json['name'] ?? 'Unknown Item',
       quantity: json['quantity'] ?? 1,
       size: json['selectedSize'] != null ? json['selectedSize']['name'] : null,
+      spiceLevel: json['selectedSpiceLevel']?.toString(),
       addOns: addOnsList,
       specialInstructions: json['specialInstructions'],
       lineTotal: (json['lineTotal'] ?? 0.0).toDouble(),

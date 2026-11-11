@@ -621,6 +621,8 @@ class CheckoutProvider with ChangeNotifier {
         'menuItemId': item['menuItemId'] ?? item['_id'] ?? item['id'],
         'quantity': item['quantity'] ?? item['qty'] ?? 1,
         'selectedSize': item['selectedSize'],
+        if (item['selectedSpiceLevel'] != null && item['selectedSpiceLevel'].toString().trim().isNotEmpty)
+          'selectedSpiceLevel': item['selectedSpiceLevel'].toString().trim(),
         'addOns': item['addOns'],
         'specialInstructions': item['specialInstructions'] ?? '',
       }).toList();

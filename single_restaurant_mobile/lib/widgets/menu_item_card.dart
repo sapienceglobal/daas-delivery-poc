@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:single_restaurant_mobile/providers/auth_provider.dart';
+import 'package:single_restaurant_mobile/providers/cart_provider.dart';
 import 'package:single_restaurant_mobile/screens/item_detail_screen.dart';
 import 'package:single_restaurant_mobile/utils/image_helper.dart';
+import 'package:single_restaurant_mobile/utils/spice_helper.dart';
 import 'package:single_restaurant_mobile/utils/toast_utils.dart';
 
 class MenuItemCard extends StatelessWidget {
@@ -24,8 +26,18 @@ class MenuItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isVeg = item['isVeg'] ?? true;
-    final isSpicy = item['isSpicy'] ?? false;
-    final spiceText = isSpicy ? 'Medium' : 'Mild';
+    final showSpiceBadge = SpiceHelper.shouldShowMenuSpiceBadge(item);
+    final itemId = item['_id'] ?? item['id'];
+    final cartItems = Provider.of<CartProvider>(context).items;
+    final cartMatch = cartItems.cast<Map<String, dynamic>?>().firstWhere(
+          (c) => c != null && (c['menuItemId'] == itemId || c['_id'] == itemId),
+          orElse: () => null,
+        );
+    final effectiveItemForSpice = (cartMatch != null && cartMatch['selectedSpiceLevel'] != null)
+        ? <String, dynamic>{...item, 'selectedSpiceLevel': cartMatch['selectedSpiceLevel']}
+        : item;
+    final spiceText = SpiceHelper.getMenuSpiceBadgeText(effectiveItemForSpice);
+    final activeFlames = SpiceHelper.getActiveFlameCount(spiceText);
     final price = item['price'] ?? 0.0;
     final name = item['name'] ?? 'Unknown Dish';
     final description = item['description'] ?? 'Crispy rolls stuffed with fresh vegetables & served hot.';
@@ -151,41 +163,42 @@ class MenuItemCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 6),
+                          if (showSpiceBadge) ...[
+                            const SizedBox(height: 6),
 
-                          // Spice Levels
-                          Row(
-                            children: [
-                              Row(
-                                children: List.generate(3, (index) {
-                                  final isActive =
-                                      isSpicy ? index < 2 : index < 1;
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 2),
-                                    child: Image.asset(
-                                      'assets/images/chili.png',
-                                      width: 12,
-                                      height: 12,
-                                      color: isActive
-                                          ? Colors.red.shade900
-                                          : Colors.grey.shade300,
-                                      errorBuilder: (c, e, s) => Icon(
-                                          Icons.local_fire_department,
-                                          size: 13,
-                                          color: isActive
-                                              ? Colors.red.shade900
-                                              : Colors.grey.shade300),
-                                    ),
-                                  );
-                                }),
-                              ),
-                              const SizedBox(width: 4),
-                              Text('($spiceText)',
-                                  style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 11)),
-                            ],
-                          ),
+                            // Spice Levels
+                            Row(
+                              children: [
+                                Row(
+                                  children: List.generate(3, (index) {
+                                    final isActive = index < activeFlames;
+                                    return Padding(
+                                      padding: const EdgeInsets.only(right: 2),
+                                      child: Image.asset(
+                                        'assets/images/chili.png',
+                                        width: 12,
+                                        height: 12,
+                                        color: isActive
+                                            ? Colors.red.shade900
+                                            : Colors.grey.shade300,
+                                        errorBuilder: (c, e, s) => Icon(
+                                            Icons.local_fire_department,
+                                            size: 13,
+                                            color: isActive
+                                                ? Colors.red.shade900
+                                                : Colors.grey.shade300),
+                                      ),
+                                    );
+                                  }),
+                                ),
+                                const SizedBox(width: 4),
+                                Text('($spiceText)',
+                                    style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 11)),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),

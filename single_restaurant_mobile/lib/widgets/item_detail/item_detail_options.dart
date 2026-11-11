@@ -8,6 +8,8 @@ class ItemDetailOptions extends StatelessWidget {
   final Set<int> selectedAddOnIndices;
   final ValueChanged<int> onToggleAddon;
   final String selectedSpiceLevel;
+  final bool showSpiceSelector;
+  final ValueChanged<String>? onSelectSpiceLevel;
 
   const ItemDetailOptions({
     super.key,
@@ -18,6 +20,8 @@ class ItemDetailOptions extends StatelessWidget {
     required this.selectedAddOnIndices,
     required this.onToggleAddon,
     required this.selectedSpiceLevel,
+    this.showSpiceSelector = true,
+    this.onSelectSpiceLevel,
   });
 
   static const List<Map<String, String>> _spiceOptions = [
@@ -36,49 +40,54 @@ class ItemDetailOptions extends StatelessWidget {
         (selectedSpiceLevel.toLowerCase().contains('extra') && label == 'Extra Spicy') ||
         (selectedSpiceLevel.toLowerCase() == 'spicy' && label == 'Spicy');
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFFFBF4EE) : const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isSelected ? const Color(0xFF8B1818) : const Color(0xFFE5E7EB),
-          width: isSelected ? 1.5 : 1.0,
-        ),
-        boxShadow: isSelected
-            ? [
-                BoxShadow(
-                  color: const Color(0xFF8B1818).withValues(alpha: 0.08),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(icon, style: const TextStyle(fontSize: 13)),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected
-                  ? const Color(0xFF8B1818)
-                  : const Color(0xFF9CA3AF),
-            ),
+    return GestureDetector(
+      onTap: () => onSelectSpiceLevel?.call(label),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFBF4EE) : const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF8B1818) : const Color(0xFFE5E7EB),
+            width: isSelected ? 1.5 : 1.0,
           ),
-          if (isSelected) ...[
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF8B1818).withValues(alpha: 0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 13)),
             const SizedBox(width: 5),
-            const Icon(
-              Icons.check_circle_rounded,
-              size: 14,
-              color: Color(0xFF8B1818),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? const Color(0xFF8B1818)
+                    : const Color(0xFF4B5563),
+              ),
             ),
+            if (isSelected) ...[
+              const SizedBox(width: 5),
+              const Icon(
+                Icons.check_circle_rounded,
+                size: 14,
+                color: Color(0xFF8B1818),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -88,64 +97,66 @@ class ItemDetailOptions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Item Spice Level Header
-        Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFDE8E8),
-                shape: BoxShape.circle,
+        if (showSpiceSelector) ...[
+          // Item Spice Level Header
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFDE8E8),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.local_fire_department_rounded,
+                  color: Color(0xFFDC2626),
+                  size: 20,
+                ),
               ),
-              child: const Icon(
-                Icons.local_fire_department_rounded,
-                color: Color(0xFFDC2626),
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Item Spice Level',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF111827),
+              const SizedBox(width: 12),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Item Spice Level',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF111827),
+                    ),
                   ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Standard preparation for this item',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                ),
-              ],
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 14),
-
-        // 4 Spice Pills (scrollable or snug row)
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            children: _spiceOptions.map((opt) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: _buildSpicePill(opt),
-              );
-            }).toList(),
+                  SizedBox(height: 2),
+                  Text(
+                    'Select your preferred spice level',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ),
 
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 20.0),
-          child: Divider(color: Color(0xFFF3F4F6), thickness: 1, height: 1),
-        ),
+          const SizedBox(height: 14),
+
+          // 4 Spice Pills (scrollable or snug row)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: _spiceOptions.map((opt) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: _buildSpicePill(opt),
+                );
+              }).toList(),
+            ),
+          ),
+
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20.0),
+            child: Divider(color: Color(0xFFF3F4F6), thickness: 1, height: 1),
+          ),
+        ],
 
         // Size Variations (if any)
         if (sizes.isNotEmpty) ...[
