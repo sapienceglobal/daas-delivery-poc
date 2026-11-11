@@ -147,7 +147,7 @@ const OrderSchema = new mongoose.Schema({
   // ── Pricing ───────────────────────────────────────────────────────────
   orderSource: {
     type: String,
-    enum: ['web', 'app', 'merchant_app', 'merchant_web'],
+    enum: ['web', 'app', 'customer_app', 'merchant_app', 'merchant_web', 'pos', 'mobile', 'ios', 'android'],
     default: 'web'
   },
   subtotal: { type: Number, required: true, default: 0 },

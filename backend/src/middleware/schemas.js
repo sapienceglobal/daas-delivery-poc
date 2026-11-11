@@ -161,7 +161,7 @@ export const createOrderSchema = Joi.object({
       'string.pattern.base': 'Emojis are not allowed in email addresses. Please provide a standard email address.'
     }),
   specialInstructions: Joi.string().max(1000).allow('', null).optional(),
-  orderSource: Joi.string().valid('web', 'app', 'merchant_app', 'merchant_web').optional()
+  orderSource: Joi.string().valid('web', 'app', 'customer_app', 'merchant_app', 'merchant_web', 'pos', 'mobile', 'ios', 'android').optional()
 });
 
 export const rateOrderSchema = Joi.object({
