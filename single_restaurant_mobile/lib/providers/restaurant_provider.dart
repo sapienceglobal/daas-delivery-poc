@@ -31,7 +31,12 @@ class RestaurantProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final data = await _restaurantService.getRestaurantDetails();
+      var data = await _restaurantService.getRestaurantDetails();
+      if (data == null) {
+        // One silent retry before showing an error (slow first network on fresh install)
+        await Future.delayed(const Duration(seconds: 2));
+        data = await _restaurantService.getRestaurantDetails();
+      }
       if (data != null) {
         _restaurant = data;
         final rawMenu = List<dynamic>.from(data['menu'] ?? []);

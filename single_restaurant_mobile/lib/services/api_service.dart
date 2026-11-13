@@ -11,8 +11,8 @@ class ApiService {
   // When building for release, pass the production URL using --dart-define=API_BASE_URL=https://your-server.com
   static const String _configuredBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    // defaultValue: 'https://api.lassiloungeny.com', // Change your laptop's actual IP
-    defaultValue: 'http://192.168.1.4:5001',
+    defaultValue: 'https://api.lassiloungeny.com', // Change your laptop's actual IP
+    // defaultValue: 'http://192.168.1.4:5001',
   );
   static const Duration _requestTimeout = Duration(seconds: 35);
  
@@ -217,8 +217,23 @@ class ApiService {
 
   static Future<http.Response> _send(Future<http.Response> Function() request, {String? endpoint}) async {
     try {
-      final response = await request().timeout(_requestTimeout);
-      return _handleResponse(response, endpoint: endpoint);
+      http.Response? response;
+      // Retry transient network failures (IPv6/NAT64 cold DNS, flaky Wi-Fi) up to 3 attempts
+      for (int attempt = 1; attempt <= 3; attempt++) {
+        try {
+          response = await request().timeout(_requestTimeout);
+          break;
+        } on SocketException {
+          if (attempt == 3) rethrow;
+          await Future.delayed(Duration(milliseconds: 700 * attempt));
+        } on http.ClientException {
+          if (attempt == 3) rethrow;
+          await Future.delayed(Duration(milliseconds: 700 * attempt));
+        }
+      }
+      return _handleResponse(response!, endpoint: endpoint);
+    } on http.ClientException {
+      throw ApiException('No internet connection. Please check your network.');
     } on TimeoutException {
       throw ApiException('Server request timed out. Please try again.');
     } on SocketException {
