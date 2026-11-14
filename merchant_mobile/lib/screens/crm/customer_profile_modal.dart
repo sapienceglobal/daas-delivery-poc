@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
 import '../../services/api_service.dart';
 import '../../models/customer_model.dart';
+import '../order_details_screen.dart';
 import 'crm_modals.dart';
 
 class CustomerProfileModal extends StatefulWidget {
@@ -81,6 +82,17 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
     } catch (_) {
       return 'No orders yet';
     }
+  }
+
+  void _openOrderDetails(dynamic rawOrder) {
+    if (rawOrder is! Map) return;
+    final orderId = (rawOrder['_id'] ?? rawOrder['id'])?.toString();
+    if (orderId == null || orderId.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => OrderDetailsScreen(orderId: orderId),
+      ),
+    );
   }
 
   @override
@@ -409,67 +421,84 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
                 ),
                 const SizedBox(height: 8),
 
-                // Badges Row
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: [
-                    // Active Customer
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDCFCE7),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.check_circle_rounded, size: 11, color: Color(0xFF16A34A)),
-                          const SizedBox(width: 3),
-                          Text(
-                            'Active Customer',
+                // Badges Row (100% Real Data)
+                Builder(
+                  builder: (context) {
+                    final stats = _profileData?['stats'] ?? {};
+                    final isActive = widget.customer.status.toLowerCase() != 'inactive';
+                    final lastLocation = stats['lastKnownLocation']?.toString() ?? '';
+                    final groupLabel = widget.customer.group.isNotEmpty ? widget.customer.group : 'General';
+                    final preferredType = (stats['preferredOrderType'] ?? '').toString();
+                    final channelBadge = preferredType.isNotEmpty
+                        ? '${preferredType[0].toUpperCase()}${preferredType.substring(1)}'
+                        : (widget.customer.segment.isNotEmpty ? widget.customer.segment : 'Customer');
+
+                    return Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        // Real Account Status Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isActive ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isActive ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                                size: 11,
+                                color: isActive ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                isActive ? 'Active Customer' : 'Inactive Customer',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: isActive ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Real Location or Customer Group Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF1F2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            lastLocation.isNotEmpty ? lastLocation : 'Group: $groupLabel',
                             style: GoogleFonts.inter(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF16A34A),
+                              color: const Color(0xFF991B1B),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    // Location: New York
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF1F2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'New York',
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF991B1B),
                         ),
-                      ),
-                    ),
-                    // Order Channel: Online Order
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF1F2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'Online Order',
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF991B1B),
+                        // Real Preferred Channel / Segment Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF1F2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            channelBadge,
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF991B1B),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -533,12 +562,12 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.arrow_outward_rounded, size: 10, color: Color(0xFF16A34A)),
-                      const SizedBox(width: 2),
+                      const Icon(Icons.receipt_long_rounded, size: 10, color: Color(0xFF16A34A)),
+                      const SizedBox(width: 3),
                       Text(
-                        '+12%',
+                        '$totalOrders ${totalOrders == 1 ? 'Order' : 'Orders'}',
                         style: GoogleFonts.inter(
-                          fontSize: 10,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF16A34A),
                         ),
@@ -571,7 +600,7 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
                       const Icon(Icons.shopping_cart_outlined, size: 10, color: Color(0xFF2563EB)),
                       const SizedBox(width: 4),
                       Text(
-                        'Online Orders  $totalOrders',
+                        'View History ($totalOrders)',
                         style: GoogleFonts.inter(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w600,
@@ -596,20 +625,20 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
                 bottomBadge: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFDCFCE7),
+                    color: const Color(0xFFF3E8FF),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.arrow_outward_rounded, size: 10, color: Color(0xFF16A34A)),
-                      const SizedBox(width: 2),
+                      const Icon(Icons.local_mall_outlined, size: 10, color: Color(0xFF7E22CE)),
+                      const SizedBox(width: 3),
                       Text(
-                        '+8%',
+                        'Preferred: ${(stats['preferredOrderType'] ?? 'Delivery').toString()}',
                         style: GoogleFonts.inter(
-                          fontSize: 10,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF16A34A),
+                          color: const Color(0xFF7E22CE),
                         ),
                       ),
                     ],
@@ -638,7 +667,7 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
                       const Icon(Icons.local_offer_outlined, size: 10, color: Color(0xFF16A34A)),
                       const SizedBox(width: 4),
                       Text(
-                        'Offers Used  ${promos.length}',
+                        'Offers Sent  ${promos.length}',
                         style: GoogleFonts.inter(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w600,
@@ -659,6 +688,13 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
                 bgColor: const Color(0xFFFFFBEB),
                 borderColor: const Color(0xFFFEF3C7),
                 hasChevron: true,
+                onTap: () {
+                  if (orders.isNotEmpty) {
+                    _openOrderDetails(orders.first);
+                  } else {
+                    _tabController.animateTo(1);
+                  }
+                },
                 topTrailing: Icon(Icons.calendar_month_outlined, size: 28, color: const Color(0xFFF59E0B).withValues(alpha: 0.2)),
                 bottomBadge: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -686,6 +722,14 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
                 bgColor: const Color(0xFFF0F4FF),
                 borderColor: const Color(0xFFE0E7FF),
                 hasChevron: true,
+                onTap: () {
+                  CrmModals.showChangeStatusModal(
+                    context,
+                    widget.restaurantId,
+                    [widget.customer.id],
+                    _fetchProfileData,
+                  );
+                },
                 topTrailing: Icon(Icons.shield_outlined, size: 28, color: const Color(0xFF6366F1).withValues(alpha: 0.2)),
                 bottomBadge: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -1052,106 +1096,119 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
               : '';
           final orderType = (order['orderType'] ?? 'Online Order').toString();
           final status = (order['status'] ?? 'Delivered').toString();
+          final statusLower = status.toLowerCase();
+          final isDelivered = statusLower == 'delivered' || statusLower == 'completed';
+          final isCancelled = statusLower == 'cancelled' || statusLower == 'failed';
           final total = (order['total'] is num) ? (order['total'] as num).toDouble() : 0.0;
           final items = order['items'] as List? ?? [];
           final firstItem = items.isNotEmpty ? items.first : null;
           final dishImage = firstItem is Map ? firstItem['image']?.toString() : null;
 
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white,
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: InkWell(
+              onTap: () => _openOrderDetails(order),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: dishImage != null && dishImage.startsWith('http')
-                      ? Image.network(
-                          dishImage,
-                          width: 44,
-                          height: 44,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: 44,
-                            height: 44,
-                            color: const Color(0xFFF1F5F9),
-                            child: const Icon(Icons.restaurant_rounded, size: 20, color: Color(0xFF991B1B)),
-                          ),
-                        )
-                      : Container(
-                          width: 44,
-                          height: 44,
-                          color: const Color(0xFFF1F5F9),
-                          child: const Icon(Icons.restaurant_rounded, size: 20, color: Color(0xFF991B1B)),
-                        ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '#$orderNum',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F172A),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        dateStr.isNotEmpty ? '$dateStr • $orderType' : orderType,
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '● $status',
-                          style: GoogleFonts.inter(
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF16A34A),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '\$${total.toStringAsFixed(2)}',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0F172A),
-                      ),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
-                    const SizedBox(height: 4),
-                    const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF94A3B8)),
                   ],
                 ),
-              ],
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: dishImage != null && dishImage.startsWith('http')
+                          ? Image.network(
+                              dishImage,
+                              width: 44,
+                              height: 44,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 44,
+                                height: 44,
+                                color: const Color(0xFFF1F5F9),
+                                child: const Icon(Icons.restaurant_rounded, size: 20, color: Color(0xFF991B1B)),
+                              ),
+                            )
+                          : Container(
+                              width: 44,
+                              height: 44,
+                              color: const Color(0xFFF1F5F9),
+                              child: const Icon(Icons.restaurant_rounded, size: 20, color: Color(0xFF991B1B)),
+                            ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '#$orderNum',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            dateStr.isNotEmpty ? '$dateStr • $orderType' : orderType,
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isDelivered
+                                  ? const Color(0xFFDCFCE7)
+                                  : (isCancelled ? const Color(0xFFFEE2E2) : const Color(0xFFFEF3C7)),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '● $status',
+                              style: GoogleFonts.inter(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: isDelivered
+                                    ? const Color(0xFF16A34A)
+                                    : (isCancelled ? const Color(0xFFDC2626) : const Color(0xFFD97706)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '\$${total.toStringAsFixed(2)}',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Icon(Icons.chevron_right_rounded, size: 16, color: Color(0xFF94A3B8)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           );
         }),
@@ -1184,88 +1241,104 @@ class _CustomerProfileModalState extends State<CustomerProfileModal> with Single
         final items = order['items'] as List? ?? [];
         final orderNum = order['orderNumber'] ?? order['_id']?.toString().substring(0, 6).toUpperCase() ?? 'ORDER';
         final status = (order['status'] ?? 'pending').toString();
-        final isDelivered = status.toLowerCase() == 'completed' || status.toLowerCase() == 'delivered';
+        final statusLower = status.toLowerCase();
+        final isDelivered = statusLower == 'completed' || statusLower == 'delivered';
+        final isCancelled = statusLower == 'cancelled' || statusLower == 'failed';
 
-        return Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Order #$orderNum',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14, color: const Color(0xFF0F172A)),
-                  ),
-                  Text(
-                    '\$${(order['total'] ?? 0).toStringAsFixed(2)}',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15, color: const Color(0xFF0F172A)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: isDelivered ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '● ${status.toUpperCase()} • ${(order['orderType'] ?? 'PICKUP').toString().toUpperCase()}',
-                      style: GoogleFonts.inter(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: isDelivered ? const Color(0xFF16A34A) : const Color(0xFFD97706),
-                      ),
-                    ),
-                  ),
-                  Text(
-                    order['createdAt'] != null ? order['createdAt'].toString().substring(0, 16).replaceFirst('T', ' ') : '',
-                    style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
-                  ),
-                ],
-              ),
-              if (order['couponCode'] != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'Coupon: ${order['couponCode']}',
-                  style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF2563EB), fontWeight: FontWeight.bold),
+        return InkWell(
+          onTap: () => _openOrderDetails(order),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
-              if (items.isNotEmpty) ...[
-                const Divider(height: 16, color: Color(0xFFF1F5F9)),
-                ...items.map((item) {
-                  final name = item['name'] is Map ? item['name']['name'] : item['name'];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Order #$orderNum',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14, color: const Color(0xFF0F172A)),
+                    ),
+                    Row(
                       children: [
-                        Text('${item['quantity']}x', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 11.5, color: const Color(0xFF0F172A))),
-                        const SizedBox(width: 6),
-                        Expanded(child: Text(name.toString(), style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF64748B)), overflow: TextOverflow.ellipsis)),
-                        Text('\$${(item['price'] ?? 0).toStringAsFixed(2)}', style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF0F172A))),
+                        Text(
+                          '\$${(order['total'] ?? 0).toStringAsFixed(2)}',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15, color: const Color(0xFF0F172A)),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFF94A3B8)),
                       ],
                     ),
-                  );
-                }),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isDelivered
+                            ? const Color(0xFFDCFCE7)
+                            : (isCancelled ? const Color(0xFFFEE2E2) : const Color(0xFFFEF3C7)),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '● ${status.toUpperCase()} • ${(order['orderType'] ?? 'PICKUP').toString().toUpperCase()}',
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: isDelivered
+                              ? const Color(0xFF16A34A)
+                              : (isCancelled ? const Color(0xFFDC2626) : const Color(0xFFD97706)),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      order['createdAt'] != null ? order['createdAt'].toString().substring(0, 16).replaceFirst('T', ' ') : '',
+                      style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+                if (order['couponCode'] != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Coupon: ${order['couponCode']}',
+                    style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF2563EB), fontWeight: FontWeight.bold),
+                  ),
+                ],
+                if (items.isNotEmpty) ...[
+                  const Divider(height: 16, color: Color(0xFFF1F5F9)),
+                  ...items.map((item) {
+                    final name = item['name'] is Map ? item['name']['name'] : item['name'];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          Text('${item['quantity']}x', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 11.5, color: const Color(0xFF0F172A))),
+                          const SizedBox(width: 6),
+                          Expanded(child: Text(name.toString(), style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF64748B)), overflow: TextOverflow.ellipsis)),
+                          Text('\$${(item['price'] ?? 0).toStringAsFixed(2)}', style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF0F172A))),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
               ],
-            ],
+            ),
           ),
         );
       },

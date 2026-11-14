@@ -210,7 +210,7 @@ const computeRestaurantCustomers = async (req, actualRestaurantId) => {
 
   const customerGrowth = newCustomersLastMonthCount > 0 
     ? Math.round(((newCustomersCount - newCustomersLastMonthCount) / newCustomersLastMonthCount) * 100) 
-    : (newCustomersCount > 0 ? 20 : 12);
+    : (newCustomersCount > 0 ? 100 : 0);
 
   const stats = {
     totalCustomers: enrichedCustomers.length,
@@ -219,7 +219,7 @@ const computeRestaurantCustomers = async (req, actualRestaurantId) => {
     repeatCustomers: enrichedCustomers.filter(c => c.totalOrders > 1).length,
     totalOrders: totalOrdersSum,
     totalSpent: Math.round(totalSpentSum * 100) / 100,
-    customerGrowthPct: customerGrowth > 0 ? `↑ ${customerGrowth}%` : `${customerGrowth}%`,
+    customerGrowthPct: customerGrowth > 0 ? `↑ ${customerGrowth}%` : (customerGrowth < 0 ? `↓ ${Math.abs(customerGrowth)}%` : '0%'),
   };
 
   return { customers: enrichedCustomers, stats };
@@ -356,6 +356,7 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
     ensureCanManageRestaurant(req.user, actualRestaurantId);
   }
 
+  const escapeRegex = (str) => String(str || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const isObjectId = mongoose.Types.ObjectId.isValid(customerId);
   let customer = null;
   let user = null;
@@ -370,24 +371,51 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
   // If user not found by ID, try finding by customer email or phone
   if (!user && customer) {
     const orConditions = [];
-    if (customer.email) orConditions.push({ email: { $regex: new RegExp(`^${customer.email}$`, 'i') } });
-    if (customer.phone) orConditions.push({ phone: customer.phone });
+    if (customer.email) orConditions.push({ email: { $regex: new RegExp(`^${escapeRegex(customer.email.trim())}$`, 'i') } });
+    if (customer.phone) {
+      orConditions.push({ phone: customer.phone });
+      const cleanDigits = String(customer.phone).replace(/\D/g, '');
+      if (cleanDigits.length >= 10) {
+        orConditions.push({ phone: { $regex: new RegExp(`${escapeRegex(cleanDigits.slice(-10))}$`) } });
+      }
+    }
     if (orConditions.length > 0) {
       user = await UserModel.findOne({ $or: orConditions }).lean();
+    }
+  } else if (!user && !customer && customerId) {
+    // Check if customerId is an email or phone belonging to a registered User or Manual Customer
+    const isEmail = customerId.includes('@');
+    const cleanDigits = String(customerId).replace(/\D/g, '');
+    const lookupOr = [];
+    if (isEmail) {
+      lookupOr.push({ email: { $regex: new RegExp(`^${escapeRegex(customerId.trim())}$`, 'i') } });
+    } else if (!customerId.startsWith('guest-') && cleanDigits.length >= 10) {
+      lookupOr.push({ phone: customerId });
+      lookupOr.push({ phone: { $regex: new RegExp(`${escapeRegex(cleanDigits.slice(-10))}$`) } });
+    }
+    if (lookupOr.length > 0) {
+      [customer, user] = await Promise.all([
+        CustomerModel.findOne({ restaurantId: actualRestaurantId, $or: lookupOr }).lean(),
+        UserModel.findOne({ $or: lookupOr }).lean()
+      ]);
     }
   }
 
   // If customer is neither in Customer nor User, they are a pure Guest
   if (!customer && !user) {
     const isEmail = customerId.includes('@');
+    const isGuestName = customerId.startsWith('guest-');
+    const guestName = isGuestName ? customerId.slice(6).replace(/\b\w/g, (l) => l.toUpperCase()) : 'Guest Customer';
     customer = {
       _id: customerId,
       customerId: `#CUST-${customerId.slice(-6).toUpperCase()}`,
-      name: 'Guest Customer',
+      name: guestName,
       email: isEmail ? customerId : '',
-      phone: !isEmail ? customerId : '',
+      phone: (!isEmail && !isGuestName) ? customerId : '',
       group: 'Guest',
-      loyaltyTier: 'Bronze'
+      loyaltyTier: 'Bronze',
+      status: 'Active',
+      loginPlatforms: []
     };
   } else if (!customer && user) {
     customer = {
@@ -397,7 +425,18 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
       email: user.email,
       phone: user.phone,
       group: 'General',
-      loyaltyTier: 'Bronze'
+      loyaltyTier: 'Bronze',
+      status: user.isActive === false ? 'Inactive' : 'Active',
+      loginPlatforms: user.loginPlatforms || []
+    };
+  } else if (customer && user) {
+    customer = {
+      ...customer,
+      name: customer.name || user.name,
+      email: customer.email || user.email,
+      phone: customer.phone || user.phone,
+      status: customer.status || (user.isActive === false ? 'Inactive' : 'Active'),
+      loginPlatforms: user.loginPlatforms || customer.loginPlatforms || []
     };
   }
 
@@ -406,18 +445,28 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
   const orConditions = [];
   
   if (user && user._id) orConditions.push({ userId: user._id });
-  if (customer.email) orConditions.push({ customerEmail: { $regex: new RegExp(`^${customer.email}$`, 'i') } });
-  if (customer.phone) orConditions.push({ customerPhone: customer.phone });
+  const targetEmail = customer.email || user?.email;
+  if (targetEmail) {
+    orConditions.push({ customerEmail: { $regex: new RegExp(`^${escapeRegex(targetEmail.trim())}$`, 'i') } });
+  }
+  const targetPhone = customer.phone || user?.phone;
+  if (targetPhone) {
+    orConditions.push({ customerPhone: targetPhone });
+    const phoneDigits = String(targetPhone).replace(/\D/g, '');
+    if (phoneDigits.length >= 10) {
+      orConditions.push({ customerPhone: { $regex: new RegExp(`${escapeRegex(phoneDigits.slice(-10))}$`) } });
+    }
+  }
   
   if (orConditions.length > 0) {
     orderQuery.$or = orConditions;
   } else if (customer.name) {
-    orderQuery.customerName = customer.name;
+    orderQuery.customerName = { $regex: new RegExp(`^${escapeRegex(customer.name.trim())}$`, 'i') };
   }
 
-  // Project only relevant fields for profile order history and calculation
+  // Project relevant fields for profile order history and calculation
   const orders = await OrderModel.find(orderQuery)
-    .select('orderNumber total discount loyaltyDiscount couponCode orderType createdAt status items loyaltyPointsEarned loyaltyPointsUsed paymentMethod paymentStatus isRemake parentOrderId remakeReason')
+    .select('orderNumber total subtotal tax deliveryFee tip serviceFee packagingFee discount loyaltyDiscount couponCode orderType orderSource address customerName customerEmail customerPhone createdAt status items loyaltyPointsEarned loyaltyPointsUsed paymentMethod paymentStatus isRemake parentOrderId remakeReason')
     .sort({ createdAt: -1 })
     .lean();
 
@@ -427,6 +476,7 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
   let totalCouponsUsed = 0;
   
   const orderTypes = { delivery: 0, pickup: 0, dine_in: 0 };
+  let lastKnownLocation = null;
   
   orders.forEach(order => {
     totalSpent += (order.total || 0);
@@ -436,14 +486,44 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
     if (order.orderType) {
       orderTypes[order.orderType] = (orderTypes[order.orderType] || 0) + 1;
     }
+
+    if (!lastKnownLocation && order.address && order.orderType === 'delivery' && order.address !== 'Pickup at Restaurant') {
+      const parts = String(order.address).split(',').map(p => p.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        lastKnownLocation = parts.slice(-2).join(', ').replace(/\s+\d{5}(-\d{4})?$/, '').trim();
+      }
+    }
   });
 
-  const aov = totalOrders > 0 ? (totalSpent / totalOrders).toFixed(2) : 0;
+  if (!lastKnownLocation && user?.savedAddresses?.length > 0) {
+    const defAddr = user.savedAddresses.find(a => a.isDefault) || user.savedAddresses[0];
+    if (defAddr?.address) {
+      const parts = String(defAddr.address).split(',').map(p => p.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        lastKnownLocation = parts.slice(-2).join(', ').replace(/\s+\d{5}(-\d{4})?$/, '').trim();
+      }
+    }
+  }
+
+  const aov = totalOrders > 0 ? (totalSpent / totalOrders).toFixed(2) : '0.00';
   const lastOrderDate = totalOrders > 0 ? orders[0].createdAt : null;
 
   let preferredOrderType = 'delivery';
-  if (Object.keys(orderTypes).length > 0) {
-    preferredOrderType = Object.keys(orderTypes).reduce((a, b) => orderTypes[a] > orderTypes[b] ? a : b);
+  if (totalOrders > 0 && Object.keys(orderTypes).length > 0) {
+    preferredOrderType = Object.keys(orderTypes).reduce((a, b) => orderTypes[a] >= orderTypes[b] ? a : b);
+  }
+
+  // Backfill customer name/email/phone from latest order if missing on guest record
+  if (orders.length > 0) {
+    if ((!customer.name || customer.name === 'Guest Customer') && orders[0].customerName) {
+      customer.name = orders[0].customerName;
+    }
+    if (!customer.email && orders[0].customerEmail) {
+      customer.email = orders[0].customerEmail;
+    }
+    if (!customer.phone && orders[0].customerPhone) {
+      customer.phone = orders[0].customerPhone;
+    }
   }
 
   // Loyalty history
@@ -473,7 +553,7 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
   let promoHistory = [];
   const searchIds = [
     user ? user._id : null,
-    customer ? customer._id : null
+    customer && mongoose.Types.ObjectId.isValid(customer._id) ? customer._id : null
   ].filter(Boolean);
 
   if (searchIds.length > 0) {
@@ -490,14 +570,15 @@ export const getCustomerProfile = asyncHandler(async (req, response) => {
     customer,
     stats: {
       totalOrders,
-      totalSpent,
+      totalSpent: Math.round(totalSpent * 100) / 100,
       aov,
       lastOrderDate,
       preferredOrderType,
-      totalSavings,
+      lastKnownLocation,
+      totalSavings: Math.round(totalSavings * 100) / 100,
       totalCouponsUsed
     },
-    orders: orders.slice(0, 20), // Send recent 20 orders with projected lightweight fields
+    orders: orders.slice(0, 20),
     loyalty: {
       tier: customer.loyaltyTier || 'Bronze',
       points: currentPoints,

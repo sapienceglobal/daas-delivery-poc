@@ -40,10 +40,10 @@ class _CrmScreenState extends State<CrmScreen> {
     'newCustomers': 0,
     'totalOrders': 0,
     'totalSpent': 0.0,
-    'customerGrowth': '↑ 12%',
-    'newCustomerGrowth': '↑ 20%',
-    'orderGrowth': '↑ 18%',
-    'spentGrowth': '↑ 25%',
+    'customerGrowth': '0%',
+    'newCustomerGrowth': 'This Month',
+    'orderGrowth': 'All Time',
+    'spentGrowth': 'Lifetime',
   };
 
   @override
@@ -124,15 +124,16 @@ class _CrmScreenState extends State<CrmScreen> {
         // If backend returned stats object, use it directly
         if (data['stats'] is Map) {
           final s = data['stats'];
+          final rawGrowth = s['customerGrowthPct']?.toString() ?? '0%';
           _stats = {
             'totalCustomers': s['totalCustomers'] ?? _allCustomers.length,
             'newCustomers': s['newCustomers'] ?? 0,
             'totalOrders': s['totalOrders'] ?? 0,
             'totalSpent': (s['totalSpent'] is num) ? (s['totalSpent'] as num).toDouble() : 0.0,
-            'customerGrowth': s['customerGrowthPct']?.toString() ?? '↑ 12%',
-            'newCustomerGrowth': '↑ 20%',
-            'orderGrowth': '↑ 18%',
-            'spentGrowth': '↑ 25%',
+            'customerGrowth': rawGrowth.startsWith('-') ? rawGrowth : '↑ $rawGrowth',
+            'newCustomerGrowth': 'This Month',
+            'orderGrowth': 'All Time',
+            'spentGrowth': 'Lifetime',
           };
         } else {
           _computeStats();
@@ -190,7 +191,7 @@ class _CrmScreenState extends State<CrmScreen> {
 
     final custGrowth = newCustomersLastMonthCount > 0
         ? ((newCustomersCount - newCustomersLastMonthCount) / newCustomersLastMonthCount * 100).round()
-        : (newCustomersCount > 0 ? 20 : 0);
+        : (newCustomersCount > 0 ? 100 : 0);
 
     _stats = {
       'totalCustomers': _allCustomers.length,
@@ -198,9 +199,9 @@ class _CrmScreenState extends State<CrmScreen> {
       'totalOrders': ordersCount,
       'totalSpent': spentTotal,
       'customerGrowth': custGrowth > 0 ? '↑ $custGrowth%' : '$custGrowth%',
-      'newCustomerGrowth': '↑ 20%',
-      'orderGrowth': '↑ 18%',
-      'spentGrowth': '↑ 25%',
+      'newCustomerGrowth': 'This Month',
+      'orderGrowth': 'All Time',
+      'spentGrowth': 'Lifetime',
     };
   }
 

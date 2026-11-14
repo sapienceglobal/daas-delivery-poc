@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { X, ShoppingBag, Star, Mail, Phone, Calendar, Clock, MapPin, Gift, TrendingUp, RefreshCw, ChevronRight, MessageSquare, Tag, Globe, Smartphone } from 'lucide-react';
 import { crmAPI } from '@/lib/api';
 
 export default function CustomerProfileModal({ customer, restaurantId, onClose, onTriggerPromo }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
   const [error, setError] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+
+  const handleNavigateToOrder = (order) => {
+    if (!order?._id) return;
+    onClose();
+    router.push(`/merchant/all-orders?orderId=${order._id}`);
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -139,8 +147,21 @@ export default function CustomerProfileModal({ customer, restaurantId, onClose, 
 
           {!loading && !error && profileData && (
             <div className="animate-fadeIn space-y-6 pb-12">
-              {activeTab === 'overview' && <OverviewTab data={profileData} customer={customer} onTriggerPromo={onTriggerPromo} />}
-              {activeTab === 'orders' && <OrdersTab data={profileData} />}
+              {activeTab === 'overview' && (
+                <OverviewTab
+                  data={profileData}
+                  customer={customer}
+                  onTriggerPromo={onTriggerPromo}
+                  onSwitchToOrders={() => setActiveTab('orders')}
+                  onNavigateToOrder={handleNavigateToOrder}
+                />
+              )}
+              {activeTab === 'orders' && (
+                <OrdersTab
+                  data={profileData}
+                  onNavigateToOrder={handleNavigateToOrder}
+                />
+              )}
               {activeTab === 'loyalty' && <LoyaltyTab data={profileData} />}
             </div>
           )}
@@ -153,9 +174,11 @@ export default function CustomerProfileModal({ customer, restaurantId, onClose, 
 
 // ── TAB COMPONENTS ──────────────────────────────────────────────────────────
 
-function OverviewTab({ data, customer, onTriggerPromo }) {
+function OverviewTab({ data, customer, onTriggerPromo, onSwitchToOrders, onNavigateToOrder }) {
   const stats = data?.stats || {};
   const promos = data?.promos || [];
+  const orders = data?.orders || [];
+  const recentOrders = orders.slice(0, 3);
   
   return (
     <div className="space-y-6">
@@ -173,12 +196,18 @@ function OverviewTab({ data, customer, onTriggerPromo }) {
           </div>
         </div>
         
-        <div className="bg-admin-card p-4 sm:p-5 rounded-2xl border border-admin-border shadow-sm group">
-          <div className="flex items-center gap-2.5 mb-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-500/15 flex items-center justify-center">
-              <ShoppingBag className="w-4 h-4 text-blue-500" />
+        <div
+          onClick={onSwitchToOrders}
+          className="bg-admin-card p-4 sm:p-5 rounded-2xl border border-admin-border shadow-sm group cursor-pointer hover:border-brand/40 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/15 flex items-center justify-center">
+                <ShoppingBag className="w-4 h-4 text-blue-500" />
+              </div>
+              <span className="text-admin-text-secondary text-xs font-semibold">Total Orders</span>
             </div>
-            <span className="text-admin-text-secondary text-xs font-semibold">Total Orders</span>
+            <ChevronRight className="w-4 h-4 text-admin-text-muted group-hover:text-brand transition-colors" />
           </div>
           <div className="font-heading text-2xl font-extrabold text-admin-text">{stats.totalOrders || 0}</div>
         </div>
@@ -193,12 +222,18 @@ function OverviewTab({ data, customer, onTriggerPromo }) {
           <div className="font-heading text-2xl font-extrabold text-admin-text">${stats.aov || '0.00'}</div>
         </div>
 
-        <div className="bg-admin-card p-4 sm:p-5 rounded-2xl border border-admin-border shadow-sm group">
-          <div className="flex items-center gap-2.5 mb-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center">
-              <Clock className="w-4 h-4 text-amber-500" />
+        <div
+          onClick={() => orders.length > 0 ? onNavigateToOrder(orders[0]) : onSwitchToOrders()}
+          className="bg-admin-card p-4 sm:p-5 rounded-2xl border border-admin-border shadow-sm group cursor-pointer hover:border-brand/40 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                <Clock className="w-4 h-4 text-amber-500" />
+              </div>
+              <span className="text-admin-text-secondary text-xs font-semibold">Last Order</span>
             </div>
-            <span className="text-admin-text-secondary text-xs font-semibold">Last Order</span>
+            <ChevronRight className="w-4 h-4 text-admin-text-muted group-hover:text-brand transition-colors" />
           </div>
           <div className="font-heading text-base font-bold text-admin-text truncate mt-1">
             {stats.lastOrderDate ? new Date(stats.lastOrderDate).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : 'Never'}
@@ -218,6 +253,14 @@ function OverviewTab({ data, customer, onTriggerPromo }) {
               {stats.preferredOrderType || 'Delivery'}
             </span>
           </div>
+          {stats.lastKnownLocation && (
+            <div className="flex justify-between items-center pb-3 border-b border-admin-border">
+              <span className="text-admin-text-secondary font-medium">Location</span>
+              <span className="text-admin-text font-bold bg-admin-surface-light border border-admin-border px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                <MapPin className="w-3 h-3 text-brand" /> {stats.lastKnownLocation}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between items-center pb-3 border-b border-admin-border">
             <span className="text-admin-text-secondary font-medium">Customer Group</span>
             <span className="text-admin-text font-bold bg-admin-surface-light border border-admin-border px-2.5 py-1 rounded-lg">
@@ -258,6 +301,59 @@ function OverviewTab({ data, customer, onTriggerPromo }) {
           </div>
         </div>
       </div>
+
+      {/* Recent Orders Preview */}
+      {recentOrders.length > 0 && (
+        <div className="bg-admin-card p-5 sm:p-6 rounded-2xl border border-admin-border shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-heading text-sm font-bold text-admin-text uppercase tracking-wider">
+              Recent Orders
+            </h3>
+            <button
+              type="button"
+              onClick={onSwitchToOrders}
+              className="text-xs font-bold text-brand hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              View All <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="space-y-2.5">
+            {recentOrders.map((order) => (
+              <div
+                key={order._id || Math.random()}
+                onClick={() => onNavigateToOrder(order)}
+                className="flex items-center justify-between p-3.5 rounded-xl border border-admin-border bg-admin-surface-light/40 hover:border-brand/40 hover:bg-admin-surface-hover transition-all cursor-pointer group"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-admin-text">
+                      #{order.orderNumber || (order._id ? String(order._id).slice(-6).toUpperCase() : 'N/A')}
+                    </span>
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${
+                      order.status === 'delivered' || order.status === 'completed' ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25' : 
+                      order.status === 'cancelled' ? 'bg-rose-500/15 text-rose-500 border border-rose-500/25' :
+                      'bg-blue-500/15 text-blue-500 border border-blue-500/25'
+                    }`}>
+                      {order.status}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-admin-text-muted mt-1 flex items-center gap-2">
+                    <span>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Recent'}</span>
+                    <span>•</span>
+                    <span className="capitalize">{order.orderType || 'Delivery'}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-heading text-sm font-black text-admin-text">
+                    ${Number(order.total || 0).toFixed(2)}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-admin-text-muted group-hover:text-brand transition-colors" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       
       {/* Quick Action Card & Promo History */}
       <div className="space-y-4">
@@ -317,7 +413,7 @@ function OverviewTab({ data, customer, onTriggerPromo }) {
   );
 }
 
-function OrdersTab({ data }) {
+function OrdersTab({ data, onNavigateToOrder }) {
   const orders = data?.orders || [];
 
   if (!orders || orders.length === 0) {
@@ -378,7 +474,11 @@ function OrdersTab({ data }) {
   return (
     <div className="space-y-3.5">
       {orders.map((order) => (
-        <div key={order._id || Math.random()} className="bg-admin-card p-4 sm:p-5 rounded-2xl border border-admin-border shadow-sm hover:border-brand/40 transition-colors relative overflow-hidden group">
+        <div
+          key={order._id || Math.random()}
+          onClick={() => onNavigateToOrder?.(order)}
+          className="bg-admin-card p-4 sm:p-5 rounded-2xl border border-admin-border shadow-sm hover:border-brand/40 transition-colors relative overflow-hidden group cursor-pointer"
+        >
           <div className="flex justify-between items-start mb-3">
             <div>
               <h4 className="text-admin-text font-bold text-sm flex items-center gap-2">
@@ -401,9 +501,12 @@ function OrdersTab({ data }) {
                 <span className="capitalize">{order.orderType || 'Delivery'}</span>
               </div>
             </div>
-            <div className="text-right">
-              <div className="font-heading text-lg font-black text-admin-text">${Number(order.total || 0).toFixed(2)}</div>
-              {renderPaymentInfo(order)}
+            <div className="text-right flex items-center gap-2">
+              <div>
+                <div className="font-heading text-lg font-black text-admin-text">${Number(order.total || 0).toFixed(2)}</div>
+                {renderPaymentInfo(order)}
+              </div>
+              <ChevronRight className="w-4 h-4 text-admin-text-muted group-hover:text-brand transition-colors shrink-0" />
             </div>
           </div>
           

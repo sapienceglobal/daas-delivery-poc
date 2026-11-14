@@ -21,9 +21,25 @@ export default function MerchantAllOrdersPage() {
     try {
       if (!silent) setLoading(true);
       const res = await orderAPI.getRestaurantOrders(roomId, 'limit=100').catch(() => ({ data: [] }));
-      setOrders(res.data || []);
+      const loadedOrders = res.data || [];
+      setOrders(loadedOrders);
       if (res.stats) setStats(res.stats);
       if (res.pagination) setPagination(res.pagination);
+
+      if (!silent && typeof window !== 'undefined') {
+        const targetOrderId = new URLSearchParams(window.location.search).get('orderId');
+        if (targetOrderId) {
+          const matched = loadedOrders.find(o => String(o._id) === String(targetOrderId));
+          if (matched) {
+            setSelectedOrder(matched);
+          } else {
+            try {
+              const singleRes = await orderAPI.getById(targetOrderId);
+              if (singleRes?.data) setSelectedOrder(singleRes.data);
+            } catch (_) {}
+          }
+        }
+      }
     } catch (err) {
       console.error('Orders Load Error:', err);
       if (!silent) showToast('Failed to load orders', 'error');
@@ -83,7 +99,12 @@ export default function MerchantAllOrdersPage() {
     return (
       <OrderDetailsView 
         order={selectedOrder}
-        onBack={() => setSelectedOrder(null)}
+        onBack={() => {
+          setSelectedOrder(null);
+          if (typeof window !== 'undefined' && window.location.search.includes('orderId=')) {
+            window.history.replaceState({}, '', window.location.pathname);
+          }
+        }}
         onUpdateStatus={handleUpdateStatus}
         onRefresh={() => loadData(true)}
         onViewOriginal={(parentId) => {

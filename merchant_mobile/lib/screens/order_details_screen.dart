@@ -1113,7 +1113,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => context.pop(),
+          onPressed: () => Navigator.of(context).canPop() ? Navigator.of(context).pop() : context.pop(),
         ),
         actions: [
           IconButton(
