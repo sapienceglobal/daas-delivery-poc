@@ -125,16 +125,23 @@ export default function ProfileAddressModal({ isOpen, onClose, addressToEdit, on
   };
 
   const handleSelectSuggestion = async (suggestion) => {
+    const selectedStreet = (suggestion.main_text || suggestion.display_name?.split(',')[0] || '').trim();
+    const hasLeadingStreetNumber = /^\d+[a-zA-Z0-9\-\/]*\s+/.test(selectedStreet);
+    const fallbackCity = suggestion.secondary_text?.split(',')[0]?.trim() || '';
+
     if (suggestion.place_id) {
       try {
-        const res = await fetch(`/api/location/place?place_id=${suggestion.place_id}&sessionToken=${sessionTokenRef.current || ''}`);
+        const res = await fetch(`/api/location/place?place_id=${encodeURIComponent(suggestion.place_id)}&sessionToken=${sessionTokenRef.current || ''}&main_text=${encodeURIComponent(selectedStreet)}`);
         const data = await res.json();
         sessionTokenRef.current = null; // Clear token after place details is fetched
         
         if (data) {
-          setAddressLine1(data.address?.house_number ? `${data.address.house_number} ${data.address.road}`.trim() : data.address?.road || suggestion.main_text || '');
-          setCity(data.address?.city || '');
-          setState(data.address?.state || '');
+          const placeStreet = data.address?.house_number
+            ? `${data.address.house_number} ${data.address.road || ''}`.trim()
+            : (data.address?.road || '');
+          setAddressLine1(hasLeadingStreetNumber ? selectedStreet : (placeStreet || selectedStreet || ''));
+          setCity(data.address?.city || fallbackCity || '');
+          setState(data.address?.state || 'NY');
           setZipCode((data.address?.postcode || '').substring(0, 5));
           
           if (data.lat && data.lng) {

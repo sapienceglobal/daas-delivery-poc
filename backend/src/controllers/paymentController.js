@@ -22,6 +22,10 @@ const getTrustedDeliveryQuoteForPayment = async ({ restaurant, address, subtotal
       logger.warn('Failed to get delivery quote, returning $5.00 mock quote for local dev in paymentController');
       return { fee: 5.00, provider: 'mock_local_dev' };
     }
+    const rawMsg = String(err?.message || '');
+    if (/service area|too far|distance|out of range|not available|no available delivery/i.test(rawMsg)) {
+      throw new AppError('Delivery is not available for this location — it is outside our delivery partners\' (DoorDash / Uber Eats) service area.', 400);
+    }
     throw new AppError('Unable to calculate delivery fee for this address. Please check the address and try again, or contact support.', 400);
   }
 };

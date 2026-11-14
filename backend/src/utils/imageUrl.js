@@ -25,6 +25,9 @@ export const getNotificationImageUrl = (type = 'new_order') => {
     case 'catering':
     case 'catering_new':
       return `${baseUrl}/${NOTIFICATION_ASSETS.catering}`;
+    case 'contact_new':
+    case 'support_message':
+      return null;
     case 'new_order':
     default:
       return `${baseUrl}/${NOTIFICATION_ASSETS.new_order}`;

@@ -451,17 +451,24 @@ export function useCheckoutState() {
   };
 
   const handleSelectSuggestion = async (suggestion) => {
+    const selectedStreet = (suggestion.main_text || suggestion.display_name?.split(',')[0] || '').trim();
+    const hasLeadingStreetNumber = /^\d+[a-zA-Z0-9\-\/]*\s+/.test(selectedStreet);
+    const fallbackCity = suggestion.secondary_text?.split(',')[0]?.trim() || '';
+
     // if it's a Google Place suggestion, it will have a place_id. We need to fetch details.
     if (suggestion.place_id) {
       try {
-        const res = await fetch(`/api/location/place?place_id=${suggestion.place_id}&sessionToken=${sessionTokenRef.current || ''}`);
+        const res = await fetch(`/api/location/place?place_id=${encodeURIComponent(suggestion.place_id)}&sessionToken=${sessionTokenRef.current || ''}&main_text=${encodeURIComponent(selectedStreet)}`);
         const data = await res.json();
         sessionTokenRef.current = null; // Reset session token
         
         if (data) {
-          setAddressLine1(data.address?.house_number ? `${data.address.house_number} ${data.address.road}`.trim() : data.address?.road || suggestion.main_text || '');
-          setCity(data.address?.city || '');
-          setState(data.address?.state || '');
+          const placeStreet = data.address?.house_number
+            ? `${data.address.house_number} ${data.address.road || ''}`.trim()
+            : (data.address?.road || '');
+          setAddressLine1(hasLeadingStreetNumber ? selectedStreet : (placeStreet || selectedStreet || ''));
+          setCity(data.address?.city || fallbackCity || '');
+          setState(data.address?.state || 'NY');
           setZipCode((data.address?.postcode || '').substring(0, 5));
           
           if (data.lat && data.lng) {
@@ -484,9 +491,9 @@ export function useCheckoutState() {
     const addr = suggestion.address || {};
     const road = addr.road || '';
     const houseNumber = addr.house_number || '';
-    const line1 = `${houseNumber} ${road}`.trim() || parts.slice(0, 2).join(', ');
+    const line1 = hasLeadingStreetNumber ? selectedStreet : (`${houseNumber} ${road}`.trim() || parts.slice(0, 2).join(', '));
 
-    const cityVal = addr.city || addr.town || addr.village || addr.suburb || '';
+    const cityVal = addr.city || addr.town || addr.village || addr.suburb || fallbackCity || '';
     const stateVal = (addr.state || '').substring(0, 2).toUpperCase() || 'NY';
     const postcodeVal = addr.postcode || '';
 
@@ -510,7 +517,10 @@ export function useCheckoutState() {
       return;
     }
 
-    if (!compiledAddress.trim() || !addressVerified) {
+    const hasCompleteAddressFields = Boolean(
+      addressLine1.trim() && city.trim() && state.trim() && zipCode.trim()
+    );
+    if (!compiledAddress.trim() || (!addressVerified && !hasCompleteAddressFields)) {
       setDeliveryQuote(null);
       if (!hasDeliveryAddressInput) setQuoteError(null);
       return;
@@ -786,8 +796,15 @@ export function useCheckoutState() {
       let currentLng = addressLng;
 
       if (!addressVerified || currentLat === null || currentLng === null) {
-        showToast('Please select a valid address from the Google dropdown suggestions.', 'error');
-        return;
+        setQuoteLoading(true);
+        const coords = await triggerGeocoding(compiledAddress);
+        setQuoteLoading(false);
+        if (!coords) {
+          showToast('Please select a valid address from suggestions or pin on map.', 'error');
+          return;
+        }
+        currentLat = coords.lat;
+        currentLng = coords.lng;
       }
 
       // sync quote fetch if not already done
@@ -806,7 +823,7 @@ export function useCheckoutState() {
           setQuoteError(null);
         } catch (err) {
           setDeliveryQuote(null);
-          const errMsg = err.message || 'Delivery unavailable for this location';
+          const errMsg = err.response?.data?.message || err.message || 'Delivery unavailable for this location';
           setQuoteError(errMsg);
           showToast(errMsg, 'error');
           setQuoteLoading(false);
@@ -954,13 +971,14 @@ export function useCheckoutState() {
     couponCode, setCouponCode, couponDiscount, couponApplied, couponLoading,
     useLoyaltyPoints, setUseLoyaltyPoints,
     showPaymentModal, setShowPaymentModal,
-    quoteLoading, isLocationLoading, quoteError,
-    suggestions, suggestionsLoading, addressVerified,
+    quoteLoading, isLocationLoading, quoteError, deliveryQuote,
+    suggestions, suggestionsLoading, addressVerified, addressLat, addressLng, setAddressLat, setAddressLng,
     items, restaurant, subtotal, itemCount, updateQuantity, removeItem, user,
     compiledAddress, checkoutPayload, tax, deliveryFee, platformFee, serviceFee, packagingFee, tip, setTip, total,
     isPhoneValid, isFullNameValid, isEmailValid,
     handleSelectSavedAddress, handleUseCurrentLocation,
     handleAddressLine1Change, handleSelectSuggestion,
+    triggerGeocoding,
     handleApplyCoupon, handleRemoveCoupon,
     handleContinueToPayment, handleContinueToReview,
     handlePlaceOrder, executeOrderCreation,

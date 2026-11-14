@@ -327,6 +327,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       leftAccentColor = const Color(0xFFD97706);
       avatarBgColor = const Color(0xFFFEF3C7);
       avatarIcon = const Icon(Icons.room_service_outlined, color: Color(0xFFD97706), size: 26);
+    } else if (typeLower.contains('contact') || typeLower.contains('support')) {
+      leftAccentColor = const Color(0xFF2563EB);
+      avatarBgColor = const Color(0xFFDBEAFE);
+      avatarIcon = const Icon(Icons.mark_chat_unread_outlined, color: Color(0xFF2563EB), size: 25);
     }
 
     return Padding(
@@ -354,6 +358,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               context.push('/reservations');
             } else if (type.contains('catering')) {
               context.push('/catering');
+            } else if (type.contains('contact') || type.contains('support')) {
+              context.push('/support-messages');
             } else if (url.isNotEmpty) {
               try {
                 context.push(url);

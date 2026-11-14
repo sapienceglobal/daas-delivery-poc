@@ -34,7 +34,8 @@ const NotificationSchema = new mongoose.Schema({
     type: String,
     enum: [
       'order_update', 'promotion', 'review', 'system',
-      'delivery_update', 'payment', 'loyalty', 'marketing', 'new_order', 'order_cancelled'
+      'delivery_update', 'payment', 'loyalty', 'marketing', 'new_order', 'order_cancelled',
+      'reservation_new', 'reservation', 'catering_new', 'catering', 'contact_new', 'support_message'
     ],
     default: 'system'
   },

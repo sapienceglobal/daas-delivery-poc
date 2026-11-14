@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, CheckCircle, Search, RefreshCw, AlertCircle, Clock, Trash2, CheckCircle2, MessageSquare, Send } from 'lucide-react';
+import { Mail, CheckCircle, Search, RefreshCw, AlertCircle, Clock, Trash2, CheckCircle2, MessageSquare, Send, Phone, Tag } from 'lucide-react';
 import { showToast } from '@/components/ui';
 import StatCard from './StatCard';
 import PageHeaderGradient from './common/PageHeaderGradient';
+
+const INQUIRY_TYPE_META = {
+  general: { label: 'General Inquiry', className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
+  order: { label: 'Order & Delivery', className: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' },
+  catering: { label: 'Catering & Events', className: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20' },
+  feedback: { label: 'Feedback & Dining', className: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20' },
+  reservation: { label: 'Table Reservation', className: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20' },
+};
 
 export default function MessagesView() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
 
   useEffect(() => {
     fetchMessages();
@@ -66,11 +75,31 @@ export default function MessagesView() {
     }
   };
 
-  const filteredMessages = messages.filter(m => 
-    m.name.toLowerCase().includes(search.toLowerCase()) || 
-    m.email.toLowerCase().includes(search.toLowerCase()) ||
-    m.subject.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredMessages = messages.filter(m => {
+    const q = search.toLowerCase();
+    const matchesSearch =
+      (m.name || '').toLowerCase().includes(q) || 
+      (m.email || '').toLowerCase().includes(q) ||
+      (m.phone || '').toLowerCase().includes(q) ||
+      (m.subject || '').toLowerCase().includes(q) ||
+      (m.inquiryType || '').toLowerCase().includes(q);
+    const msgType = (m.inquiryType || 'general').toLowerCase();
+    const matchesType = typeFilter === 'all' || msgType === typeFilter;
+    return matchesSearch && matchesType;
+  });
+
+  const getInquiryTypeBadge = (inquiryType) => {
+    const raw = (inquiryType || 'general').toString().toLowerCase().trim();
+    const meta = INQUIRY_TYPE_META[raw] || {
+      label: inquiryType ? String(inquiryType).replace(/_/g, ' ') : 'General Inquiry',
+      className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+    };
+    return (
+      <span className={`inline-flex items-center gap-1 border font-bold text-[11px] px-2.5 py-0.5 rounded-lg font-outfit capitalize ${meta.className}`}>
+        <Tag className="w-3 h-3" /> {meta.label}
+      </span>
+    );
+  };
 
   const getStatusBadge = (status) => {
     if (status === 'new') return (
@@ -157,7 +186,18 @@ export default function MessagesView() {
               className="w-full pl-10 pr-4 py-2 bg-admin-surface border border-admin-border rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-xs text-admin-text transition-all placeholder:text-admin-muted"
             />
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
+            <select 
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-3.5 py-2 bg-admin-surface border border-admin-border rounded-xl text-xs text-admin-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium min-w-[160px]"
+            >
+              <option value="all">All Inquiry Types</option>
+              <option value="general">General Inquiry</option>
+              <option value="order">Order & Delivery</option>
+              <option value="catering">Catering & Events</option>
+              <option value="feedback">Feedback & Dining</option>
+            </select>
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -202,11 +242,22 @@ export default function MessagesView() {
                           {msg.name?.charAt(0)?.toUpperCase() || 'U'}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-bold text-admin-text truncate flex items-center gap-2 font-outfit">
-                            {msg.name} 
+                          <h3 className="text-sm font-bold text-admin-text flex items-center gap-2 flex-wrap font-outfit">
+                            <span>{msg.name}</span>
                             {getStatusBadge(msg.status)}
+                            {getInquiryTypeBadge(msg.inquiryType)}
                           </h3>
-                          <p className="text-xs text-admin-muted truncate">{msg.email}</p>
+                          <div className="flex items-center gap-3 flex-wrap mt-0.5">
+                            <p className="text-xs text-admin-muted truncate">{msg.email}</p>
+                            {msg.phone && (
+                              <a
+                                href={`tel:${msg.phone}`}
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                              >
+                                <Phone className="w-3 h-3" /> {msg.phone}
+                              </a>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="ml-13 mt-3">

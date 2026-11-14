@@ -196,13 +196,20 @@ function POSContent() {
   };
 
   const handleSelectSuggestion = async (suggestion) => {
+    const selectedStreet = (suggestion.main_text || suggestion.display_name?.split(',')[0] || '').trim();
+    const hasLeadingStreetNumber = /^\d+[a-zA-Z0-9\-\/]*\s+/.test(selectedStreet);
+    const fallbackCity = suggestion.secondary_text?.split(',')[0]?.trim() || '';
+
     if (suggestion.place_id) {
       try {
-        const res = await fetch(`/api/location/place?place_id=${suggestion.place_id}&sessionToken=${getSessionToken()}`);
+        const res = await fetch(`/api/location/place?place_id=${encodeURIComponent(suggestion.place_id)}&sessionToken=${getSessionToken()}&main_text=${encodeURIComponent(selectedStreet)}`);
         if (res.ok) {
           const data = await res.json();
-          setAddressLine1(data.address?.house_number ? `${data.address.house_number} ${data.address.road}`.trim() : data.address?.road || suggestion.main_text || '');
-          setCity(data.address?.city || data.address?.town || data.address?.village || '');
+          const placeStreet = data.address?.house_number
+            ? `${data.address.house_number} ${data.address.road || ''}`.trim()
+            : (data.address?.road || '');
+          setAddressLine1(hasLeadingStreetNumber ? selectedStreet : (placeStreet || selectedStreet || ''));
+          setCity(data.address?.city || data.address?.town || data.address?.village || fallbackCity || '');
           setAddressState(data.address?.state || '');
           setZipCode(data.address?.postcode || '');
           setAddressLat(data.lat || suggestion.lat || null);

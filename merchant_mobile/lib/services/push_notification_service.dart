@@ -11,6 +11,8 @@ import '../providers/auth_provider.dart';
 import '../providers/order_provider.dart';
 import '../providers/reservation_provider.dart';
 import '../providers/catering_provider.dart';
+import '../providers/support_messages_provider.dart';
+import '../providers/notification_provider.dart';
 import 'api_service.dart';
 import 'package:toastification/toastification.dart';
 
@@ -152,7 +154,12 @@ class PushNotificationService {
           Provider.of<ReservationProvider>(activeContext, listen: false).fetchReservations();
         } else if (type.contains('catering')) {
           Provider.of<CateringProvider>(activeContext, listen: false).fetchEnquiries(force: true);
+        } else if (type.contains('contact') || type.contains('support')) {
+          Provider.of<SupportMessagesProvider>(activeContext, listen: false).fetchMessages();
         }
+        try {
+          Provider.of<NotificationProvider>(activeContext, listen: false).fetchNotifications();
+        } catch (_) {}
         
         final notification = message.notification;
         final data = message.data;
@@ -210,6 +217,7 @@ class PushNotificationService {
     final bool isOrder = type.contains('order');
     final bool isReservation = type.contains('reservation');
     final bool isCatering = type.contains('catering');
+    final bool isSupport = type.contains('contact') || type.contains('support');
 
     // Deduplicate new_order alerts within the same isolate so Socket.IO + FCM never double-ring
     String? extractedOrderId = data['orderId']?.toString();
@@ -271,6 +279,8 @@ class PushNotificationService {
       actions.add(const AndroidNotificationAction('view_reservation', 'View Reservation', showsUserInterface: true));
     } else if (isCatering) {
       actions.add(const AndroidNotificationAction('view_catering', 'View Inquiry', showsUserInterface: true));
+    } else if (isSupport) {
+      actions.add(const AndroidNotificationAction('view_support', 'View Message', showsUserInterface: true));
     }
 
     await localNotifications.show(
@@ -370,6 +380,8 @@ class PushNotificationService {
       context.push('/reservations');
     } else if (type.contains('catering')) {
       context.push('/catering');
+    } else if (type.contains('contact') || type.contains('support') || url.contains('support')) {
+      context.push('/support-messages');
     } else {
       context.push('/live-orders'); // fallback
     }

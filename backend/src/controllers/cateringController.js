@@ -27,14 +27,28 @@ export const createInquiry = async (req, res) => {
       additionalNotes
     } = req.body;
 
-    // verify restaurant exists
-    const restaurant = await Restaurant.findById(restaurantId);
+    // verify restaurant exists (support ObjectId, slug, or single-restaurant fallback)
+    let restaurant = null;
+    if (restaurantId) {
+      if (String(restaurantId).match(/^[0-9a-fA-F]{24}$/)) {
+        restaurant = await Restaurant.findById(restaurantId);
+      }
+      if (!restaurant) {
+        restaurant = await Restaurant.findOne({ slug: restaurantId });
+      }
+    }
+    if (!restaurant) {
+      restaurant =
+        (await Restaurant.findOne({ isActive: true })) ||
+        (await Restaurant.findOne({ status: { $in: ['active', 'approved'] } })) ||
+        (await Restaurant.findOne());
+    }
     if (!restaurant) {
       return res.status(404).json({ success: false, message: 'Restaurant not found' });
     }
 
     const inquiry = await CateringInquiry.create({
-      restaurantId,
+      restaurantId: restaurant._id,
       customerName,
       customerEmail,
       customerPhone,
@@ -57,8 +71,7 @@ export const createInquiry = async (req, res) => {
           ...(restaurant.ownerId ? [{ _id: restaurant.ownerId }] : []),
           { role: { $in: ['admin', 'merchant'] } }
         ],
-        role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] },
-        fcmTokens: { $exists: true, $not: { $size: 0 } }
+        role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] }
       });
 
       console.log(`[FCM Catering] Found ${merchantUsers.length} merchant users for restaurant ${restaurant._id}`);

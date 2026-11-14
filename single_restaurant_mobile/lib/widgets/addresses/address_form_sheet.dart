@@ -118,6 +118,13 @@ class _AddressFormBottomSheetState extends State<AddressFormBottomSheet> {
 
   Future<void> _handleAutocomplete(Map<String, dynamic> data) async {
     Map<String, dynamic> details = data;
+    final String selectedStreet = (data['main_text'] ??
+            (data['display_name']?.toString().split(',').first ?? ''))
+        .toString()
+        .trim();
+    final bool hasLeadingStreetNumber =
+        RegExp(r'^\d+[a-zA-Z0-9\-\/]*\s+').hasMatch(selectedStreet);
+    final String fallbackCity = (data['secondary_text']?.toString().split(',').first ?? '').trim();
 
     if (data['place_id'] != null) {
       setState(() => _isLoading = true);
@@ -132,12 +139,15 @@ class _AddressFormBottomSheetState extends State<AddressFormBottomSheet> {
     if (details['address'] != null) {
       final addr = details['address'];
       setState(() {
-        _streetController.text = addr['house_number'] != null && addr['road'] != null
+        final String placeStreet = addr['house_number'] != null && addr['road'] != null
             ? '${addr['house_number']} ${addr['road']}'.trim()
-            : addr['road'] ?? addr['suburb'] ?? details['name'] ?? data['main_text'] ?? '';
+            : (addr['road'] ?? addr['suburb'] ?? details['name'] ?? '').toString();
+        _streetController.text = hasLeadingStreetNumber
+            ? selectedStreet
+            : (placeStreet.isNotEmpty ? placeStreet : selectedStreet);
 
         _cityController.text =
-            addr['city'] ?? addr['town'] ?? addr['village'] ?? '';
+            addr['city'] ?? addr['town'] ?? addr['village'] ?? fallbackCity;
         _state = (addr['state'] ?? 'NY').toString().substring(0, 2).toUpperCase();
 
         String zip = (addr['postcode'] ?? '').toString().replaceAll(RegExp(r'\D'), '');

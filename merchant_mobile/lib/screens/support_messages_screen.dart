@@ -176,6 +176,15 @@ class _SupportMessagesScreenState extends State<SupportMessagesScreen> {
                                     msg['email']?.toString() ?? '',
                                     style: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF64748B)),
                                   ),
+                                  if ((msg['phone']?.toString() ?? '').isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      msg['phone'].toString(),
+                                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: _primaryRed),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 6),
+                                  _buildInquiryTypeBadge(msg['inquiryType']?.toString()),
                                 ],
                               ),
                             ),
@@ -600,14 +609,37 @@ class _SupportMessagesScreenState extends State<SupportMessagesScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              name,
-                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14.5, color: const Color(0xFF111827)),
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14.5, color: const Color(0xFF111827)),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
+                            const SizedBox(width: 6),
+                            _buildInquiryTypeBadge(msg['inquiryType']?.toString()),
+                            const SizedBox(width: 6),
                             _buildStatusBadge(status),
                           ],
                         ),
-                        Text(email, style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF64748B))),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                email,
+                                style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF64748B)),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if ((msg['phone']?.toString() ?? '').isNotEmpty) ...[
+                              Text(' • ', style: GoogleFonts.inter(fontSize: 11.5, color: const Color(0xFF94A3B8))),
+                              Text(
+                                msg['phone'].toString(),
+                                style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w600, color: _primaryRed),
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -706,6 +738,51 @@ class _SupportMessagesScreenState extends State<SupportMessagesScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(6)),
       child: Text('READ', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF6B7280))),
+    );
+  }
+
+  static Widget _buildInquiryTypeBadge(String? rawType) {
+    final t = (rawType ?? 'general').toLowerCase().trim();
+    String label = 'General Inquiry';
+    Color textColor = const Color(0xFF2563EB);
+    Color bgColor = const Color(0xFFEFF6FF);
+    Color borderColor = const Color(0xFFBFDBFE);
+
+    if (t == 'order') {
+      label = 'Order & Delivery';
+      textColor = const Color(0xFFE11D48);
+      bgColor = const Color(0xFFFFF1F2);
+      borderColor = const Color(0xFFFECDD3);
+    } else if (t == 'catering') {
+      label = 'Catering & Events';
+      textColor = const Color(0xFF7C3AED);
+      bgColor = const Color(0xFFF5F3FF);
+      borderColor = const Color(0xFFDDD6FE);
+    } else if (t == 'feedback') {
+      label = 'Feedback & Dining';
+      textColor = const Color(0xFF0D9488);
+      bgColor = const Color(0xFFF0FDFA);
+      borderColor = const Color(0xFF99F6E4);
+    } else if (t == 'reservation') {
+      label = 'Table Reservation';
+      textColor = const Color(0xFF4F46E5);
+      bgColor = const Color(0xFFEEF2FF);
+      borderColor = const Color(0xFFC7D2FE);
+    } else if (rawType != null && rawType.isNotEmpty && t != 'general') {
+      label = rawType[0].toUpperCase() + rawType.substring(1);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: borderColor),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: GoogleFonts.inter(fontSize: 9.5, fontWeight: FontWeight.w800, color: textColor),
+      ),
     );
   }
 }

@@ -407,6 +407,10 @@ const getTrustedDeliveryQuote = async ({ restaurant, address, subtotal, schedule
       quote
     };
   } catch (err) {
+    const rawMsg = String(err?.message || '');
+    if (/service area|too far|distance|out of range|not available|no available delivery/i.test(rawMsg)) {
+      throw new AppError('Delivery is not available for this location — it is outside our delivery partners\' (DoorDash / Uber Eats) service area.', 400);
+    }
     // Delivery fee is mandatory. Do not fallback to 0 or fixed fee to avoid restaurant loss.
     throw new AppError('Unable to calculate delivery fee for this address. Please check the address and try again, or contact support.', 400);
   }

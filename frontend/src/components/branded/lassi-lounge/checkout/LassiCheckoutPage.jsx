@@ -237,23 +237,7 @@ export default function LassiCheckoutPage() {
    */
   const handleReviewOrderClick = async () => {
     if (!validateFields()) return;
-
-    if (c.orderType === 'delivery') {
-      let currentLat = c.addressLat;
-      let currentLng = c.addressLng;
-
-      if (!c.addressVerified || currentLat === null || currentLng === null) {
-        showToast('Please select a valid address from suggestions or pin on map.', 'error');
-        return;
-      }
-
-      if (c.quoteError) {
-        showToast(c.quoteError, 'error');
-        return;
-      }
-    }
-
-    c.setStep(3);
+    await c.handleContinueToReview();
   };
 
   const handleStep1Click = () => {
@@ -955,12 +939,12 @@ export default function LassiCheckoutPage() {
                         <label className="block text-xs font-bold uppercase tracking-wider text-[#6B5E53] mb-1.5">
                           Delivery Instructions for Driver (Optional)
                         </label>
-                        <input
-                          type="text"
+                        <textarea
+                          rows={2}
                           value={c.deliveryInstructions}
                           onChange={(e) => c.setDeliveryInstructions(e.target.value)}
                           placeholder="e.g. Leave with doorman, gate code #1234, ring bell"
-                          className="w-full h-11 rounded-xl border border-[#E4D9C8] bg-[#FDFBF8] px-3.5 text-sm text-[#1A1A1A] placeholder-[#A89F91] focus:outline-none focus:border-[#7A0B10]"
+                          className="w-full rounded-xl border border-[#E4D9C8] bg-[#FDFBF8] p-3 text-sm text-[#1A1A1A] placeholder-[#A89F91] focus:outline-none focus:border-[#7A0B10] resize-none"
                         />
                       </div>
 

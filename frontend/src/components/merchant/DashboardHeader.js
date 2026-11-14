@@ -367,11 +367,24 @@ export default function DashboardHeader({ user, onToggleSidebar }) {
         setNotifications((prev) => prev.map((item) => (item._id === notification._id ? { ...item, isRead: true, read: true } : item)));
       }
     } catch (_) {}
-    if (notification.actionUrl) {
+    const typeLower = (notification.type || '').toLowerCase();
+    const urlLower = (notification.actionUrl || '').toLowerCase();
+    if (typeLower.includes('contact') || typeLower.includes('support') || urlLower === '/support-messages') {
+      setNotificationOpen(false);
+      router.push('/merchant/messages');
+    } else if (typeLower.includes('reservation') || urlLower.startsWith('/reservations')) {
+      setNotificationOpen(false);
+      router.push('/merchant/reservations');
+    } else if (typeLower.includes('catering') || urlLower.startsWith('/catering')) {
+      setNotificationOpen(false);
+      router.push('/merchant/catering');
+    } else if (typeLower.includes('order') || urlLower.startsWith('/orders')) {
+      setNotificationOpen(false);
+      router.push('/merchant/live-orders');
+    } else if (notification.actionUrl) {
       setNotificationOpen(false);
       router.push(notification.actionUrl);
     } else if (
-      notification.type === 'order' ||
       (notification.title && notification.title.toLowerCase().includes('order')) ||
       (notification.message && notification.message.toLowerCase().includes('order'))
     ) {

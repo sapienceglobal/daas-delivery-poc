@@ -74,7 +74,7 @@ export const getAutocompleteSuggestions = async (req, res) => {
 // 2. Get Place Details (Geocode by Place ID)
 export const getPlaceDetails = async (req, res) => {
   try {
-    const { place_id, sessionToken } = req.query;
+    const { place_id, sessionToken, main_text } = req.query;
     if (!place_id) return res.status(400).json({ error: 'place_id is required' });
 
     let url = `https://places.googleapis.com/v1/places/${place_id}`;
@@ -96,13 +96,29 @@ export const getPlaceDetails = async (req, res) => {
     const address = {};
     if (result.addressComponents) {
       result.addressComponents.forEach(component => {
-        const types = component.types;
+        const types = component.types || [];
         if (types.includes('street_number')) address.house_number = component.longText;
         if (types.includes('route')) address.road = component.longText;
-        if (types.includes('locality') || types.includes('neighborhood')) address.city = component.longText;
+        if (types.includes('locality') || types.includes('sublocality_level_1') || types.includes('sublocality') || types.includes('neighborhood') || types.includes('postal_town')) {
+          if (!address.city || types.includes('locality') || types.includes('sublocality_level_1')) {
+            address.city = component.longText;
+          }
+        }
         if (types.includes('administrative_area_level_1')) address.state = component.shortText;
         if (types.includes('postal_code')) address.postcode = component.longText;
       });
+    }
+
+    // Preserve the exact house/unit number from the autocomplete prediction (e.g., Queens hyphenated
+    // numbers like "82-167 Country Pointe Circle" where Google Place Details resolves the master parcel "82-82")
+    if (main_text && typeof main_text === 'string') {
+      const streetMatch = main_text.trim().match(/^(\d+[a-zA-Z0-9\-\/]*)\s+(.+)$/);
+      if (streetMatch) {
+        address.house_number = streetMatch[1];
+        if (!address.road) {
+          address.road = streetMatch[2];
+        }
+      }
     }
 
     res.json({

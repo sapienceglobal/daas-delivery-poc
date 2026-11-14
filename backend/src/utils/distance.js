@@ -2,15 +2,16 @@ import { AppError } from '../middleware/errorHandler.js';
 import logger from './logger.js';
 
 /**
- * Validates if the delivery address is within the maximum allowed radius (15 miles).
- * Throws an AppError if it's too far.
+ * Validates that delivery address coordinates are present and logs the straight-line distance.
+ * Serviceability is determined dynamically by Shipday (DoorDash / Uber Eats availability)
+ * unless an explicit MAX_DELIVERY_MILES environment variable is configured.
  */
-export const validateDeliveryDistance = (restaurant, addressLat, addressLng, maxDistanceMiles = 15) => {
+export const validateDeliveryDistance = (restaurant, addressLat, addressLng, maxDistanceMiles = null) => {
   if (!addressLat || !addressLng || Number(addressLat) === 0 || Number(addressLng) === 0) {
-    // if we don't have lat/lng from the frontend, we must either geocode it or reject it.
-    // for safety, if it's a delivery order, we should enforce valid coordinates.
     throw new AppError('Delivery address coordinates missing. Please select a valid address from the dropdown.', 400);
   }
+
+  const configuredMaxMiles = maxDistanceMiles ?? (process.env.MAX_DELIVERY_MILES ? Number(process.env.MAX_DELIVERY_MILES) : null);
 
   if (restaurant?.location?.coordinates) {
     const [restLng, restLat] = restaurant.location.coordinates;
@@ -21,16 +22,16 @@ export const validateDeliveryDistance = (restaurant, addressLat, addressLng, max
     const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(restLat)) * Math.cos(toRad(addressLat)) * Math.sin(dLon / 2) ** 2;
     const distanceMiles = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    if (distanceMiles > maxDistanceMiles) {
+    if (configuredMaxMiles && distanceMiles > configuredMaxMiles) {
       throw new AppError(
-        `Delivery is not available for this location. It is ${Math.round(distanceMiles)} miles away — we deliver within ${maxDistanceMiles} miles.`,
+        `Delivery is not available for this location. It is ${Math.round(distanceMiles)} miles away — maximum delivery distance is ${configuredMaxMiles} miles.`,
         400
       );
     }
-    
-    logger.info(`Delivery distance check passed: ${distanceMiles.toFixed(1)} miles (max ${maxDistanceMiles})`);
+
+    logger.info(`Delivery distance calculated: ${distanceMiles.toFixed(1)} miles (serviceability delegated to Shipday)`);
     return distanceMiles;
-  } else {
-    throw new AppError('Restaurant location is not configured properly for delivery.', 500);
   }
+
+  return 0;
 };

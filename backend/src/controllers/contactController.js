@@ -1,28 +1,48 @@
+import mongoose from 'mongoose';
 import ContactMessage from '../models/ContactMessage.js';
 import Restaurant from '../models/Restaurant.js';
 import { AppError } from '../middleware/errorHandler.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import logger from '../utils/logger.js';
 import { sendEmail } from '../services/emailService.js';
+import { createNotification } from './notificationController.js';
+import { getNotificationImageUrl } from '../utils/imageUrl.js';
+import { sendPushNotification } from '../services/webPushService.js';
+
+const getModels = (req) => ({
+  ContactMessage: req.getModel?.('ContactMessage') || ContactMessage,
+  Restaurant: req.getModel?.('Restaurant') || Restaurant,
+});
 
 // @desc    submit a new contact message
 // @route   POST /api/contact or POST /api/public/contact
 // @access  Public
 export const submitContactMessage = asyncHandler(async (req, res, next) => {
-  // if in single-restaurant mode or restaurant ID is passed
-  // we'll try to use the first active restaurant if ID not provided
+  const { ContactMessage, Restaurant } = getModels(req);
   let restaurantId = req.body.restaurantId;
+  let restaurant = null;
 
-  if (!restaurantId) {
-    let defaultRestaurant = await Restaurant.findOne({ status: 'active' });
-    if (!defaultRestaurant) {
-      defaultRestaurant = await Restaurant.findOne();
+  if (restaurantId) {
+    if (mongoose.Types.ObjectId.isValid(restaurantId)) {
+      restaurant = await Restaurant.findById(restaurantId);
     }
-    if (!defaultRestaurant) {
-      return next(new AppError('No active restaurant found', 404));
+    if (!restaurant) {
+      restaurant = await Restaurant.findOne({ slug: restaurantId });
     }
-    restaurantId = defaultRestaurant._id;
   }
+
+  if (!restaurant) {
+    restaurant =
+      (await Restaurant.findOne({ isActive: true })) ||
+      (await Restaurant.findOne({ status: { $in: ['active', 'approved'] } })) ||
+      (await Restaurant.findOne());
+  }
+
+  if (!restaurant) {
+    return next(new AppError('No active restaurant found', 404));
+  }
+
+  restaurantId = restaurant._id;
 
   const { name, email, phone, inquiryType, subject, message } = req.body;
 
@@ -42,9 +62,70 @@ export const submitContactMessage = asyncHandler(async (req, res, next) => {
 
   logger.info(`New contact message received from ${email} for restaurant ${restaurantId}`);
 
+  // ── Background Push & Real-Time Notifications for Merchant APK & Web ──
+  try {
+    const io = req.app?.get('io');
+    const UserModel = req.getModel
+      ? req.getModel('User')
+      : (req.app?.get('tenantModels')?.[req.tenantId]?.User || (await import('../models/User.js')).default);
+
+    const merchantUsers = await UserModel.find({
+      $or: [
+        { restaurantId: restaurant._id },
+        ...(restaurant.ownerId ? [{ _id: restaurant.ownerId }] : []),
+        { role: { $in: ['admin', 'merchant'] } }
+      ],
+      role: { $in: ['admin', 'merchant', 'restaurant_owner', 'manager', 'staff'] }
+    });
+
+    const INQUIRY_LABELS = {
+      general: 'General Inquiry',
+      order: 'Order / Delivery',
+      catering: 'Catering & Events',
+      feedback: 'Feedback & Dining',
+      reservation: 'Table Reservation',
+    };
+    const rawType = (inquiryType || 'general').toString().toLowerCase().trim();
+    const inquiryLabel = INQUIRY_LABELS[rawType] || inquiryType || 'General Inquiry';
+    const cleanSubject = subject && subject !== 'General Inquiry' ? `${subject} — ` : '';
+    const snippet = message.length > 90 ? `${message.slice(0, 90)}...` : message;
+    const notifTitle = `New Support Message (${inquiryLabel}) 💬`;
+    const notifBody = `${name}: "${cleanSubject}${snippet}"`;
+    const imageUrl = getNotificationImageUrl('contact_new');
+
+    for (const mUser of merchantUsers) {
+      await createNotification(
+        mUser._id,
+        notifTitle,
+        notifBody,
+        'contact_new',
+        '/support-messages',
+        io,
+        req.getModel,
+        imageUrl,
+        {
+          entityType: 'contact_message',
+          entityId: contactMessage._id.toString(),
+          inquiryType: contactMessage.inquiryType || 'general'
+        }
+      );
+    }
+
+    if (io) {
+      io.to(restaurant._id.toString()).emit('new_contact_message', contactMessage);
+    }
+
+    await sendPushNotification(restaurant, {
+      title: notifTitle,
+      body: notifBody,
+      data: { url: '/merchant/messages' }
+    });
+  } catch (notifErr) {
+    logger.warn(`Error sending push notifications for contact message: ${notifErr.message}`);
+  }
+
   // Optional asynchronous notification to restaurant email if available
   try {
-    const restaurant = await Restaurant.findById(restaurantId).select('email name');
     const notifyEmail = restaurant?.email || process.env.ADMIN_EMAIL || process.env.FROM_EMAIL;
     if (notifyEmail) {
       sendEmail({
@@ -81,6 +162,7 @@ export const submitContactMessage = asyncHandler(async (req, res, next) => {
 // @route   GET /api/contact/merchant/messages
 // @access  Private (Merchant/Admin)
 export const getMerchantMessages = asyncHandler(async (req, res, next) => {
+  const { ContactMessage } = getModels(req);
   const restaurantId = req.user.restaurantId || req.query.restaurantId;
 
   if (!restaurantId && req.user.role !== 'admin') {
@@ -107,6 +189,7 @@ export const getMerchantMessages = asyncHandler(async (req, res, next) => {
 // @route   PATCH /api/contact/merchant/messages/:id
 // @access  Private (Merchant/Admin)
 export const updateMessageStatus = asyncHandler(async (req, res, next) => {
+  const { ContactMessage } = getModels(req);
   const { id } = req.params;
   const { status } = req.body;
 

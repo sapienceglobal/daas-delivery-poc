@@ -273,7 +273,11 @@ function AddressesTab({ user, updateUser }) {
   const handleSelectSuggestion = async (suggestion) => {
     try {
       setSuggestionsLoading(true); // Reuse loading state for geocoding
-      const res = await fetch(`/api/location/place?place_id=${suggestion.place_id}`);
+      const selectedStreet = (suggestion.main_text || suggestion.display_name?.split(',')[0] || '').trim();
+      const hasLeadingStreetNumber = /^\d+[a-zA-Z0-9\-\/]*\s+/.test(selectedStreet);
+      const fallbackCity = suggestion.secondary_text?.split(',')[0]?.trim() || '';
+
+      const res = await fetch(`/api/location/place?place_id=${encodeURIComponent(suggestion.place_id)}&main_text=${encodeURIComponent(selectedStreet)}`);
       const details = await res.json();
 
       const addr = details.address || {};
@@ -281,13 +285,15 @@ function AddressesTab({ user, updateUser }) {
       const houseNumber = addr.house_number || '';
       
       let line1 = '';
-      if (houseNumber && road) {
+      if (hasLeadingStreetNumber) {
+        line1 = selectedStreet;
+      } else if (houseNumber && road) {
         line1 = `${houseNumber} ${road}`;
       } else {
-        line1 = road || suggestion.display_name?.split(',')[0] || '';
+        line1 = road || selectedStreet || '';
       }
 
-      const cityVal = addr.city || addr.town || addr.village || addr.suburb || '';
+      const cityVal = addr.city || addr.town || addr.village || addr.suburb || fallbackCity || '';
       const stateVal = (addr.state || '').substring(0, 2).toUpperCase() || 'NY';
       const postcodeVal = addr.postcode || '';
 
