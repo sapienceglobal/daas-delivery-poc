@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { PageLoader, showToast } from '../ui';
+import { useMerchantContext } from '@/context/MerchantContext';
+import { mapTimezone } from '@/lib/formatters';
 import PageHeaderGradient from './common/PageHeaderGradient';
 import TableScrollContainer from './common/TableScrollContainer';
 
@@ -20,6 +22,8 @@ const severityConfig = {
 };
 
 export default function SystemAuditView({ onSelectOrder }) {
+  const { restaurant } = useMerchantContext();
+  const auditTimeZone = restaurant?.timezone ? mapTimezone(restaurant.timezone) : 'America/New_York';
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState({ total: 0, merchantCount: 0, customerCount: 0, criticalCount: 0, remakeCount: 0 });
   const [loading, setLoading] = useState(true);
@@ -541,10 +545,10 @@ export default function SystemAuditView({ onSelectOrder }) {
                         <td className="p-3.5 whitespace-nowrap">
                           <div className="space-y-0.5">
                             <p className="font-semibold text-admin-text text-[11.5px]">
-                              {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                              {new Date(log.timestamp).toLocaleTimeString('en-US', { timeZone: auditTimeZone, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                             </p>
                             <p className="text-[10px] text-admin-muted">
-                              {new Date(log.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {new Date(log.timestamp).toLocaleDateString('en-US', { timeZone: auditTimeZone, month: 'short', day: 'numeric', year: 'numeric' })}
                             </p>
                           </div>
                         </td>

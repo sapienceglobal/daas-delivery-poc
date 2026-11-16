@@ -591,16 +591,28 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                   <p className="text-[13px] font-semibold text-admin-text-secondary mb-1">{order.customerPhone || 'No Phone Number'}</p>
                   
                   {/* Explicit Platform Indicator */}
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    <span className="text-[10px] font-bold text-brand uppercase tracking-wider">Source:</span>
-                    <span className="text-[12px] font-bold text-admin-text flex items-center gap-1 bg-admin-card px-2.5 py-0.5 rounded-lg border border-admin-border shadow-sm">
-                      {order.orderSource === 'app' ? (
-                        <><Smartphone className="w-3.5 h-3.5 text-emerald-500" /> Mobile App</>
-                      ) : (
-                        <><Globe className="w-3.5 h-3.5 text-blue-500" /> Website</>
-                      )}
-                    </span>
-                  </div>
+                  {(() => {
+                    const rawSource = (order.orderSource || order.deviceContext?.platform || '').toLowerCase();
+                    const isCustomerApp =
+                      ['app', 'customer_app', 'mobile', 'ios', 'android'].includes(rawSource) ||
+                      (order.deviceContext?.browser || '').toLowerCase().includes('mobile app') ||
+                      (order.deviceContext?.userAgent || '').toLowerCase().includes('dart/');
+                    const isPosOrder = ['pos', 'merchant_web', 'merchant_app'].includes(rawSource);
+                    return (
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <span className="text-[10px] font-bold text-brand uppercase tracking-wider">Source:</span>
+                        <span className="text-[12px] font-bold text-admin-text flex items-center gap-1 bg-admin-card px-2.5 py-0.5 rounded-lg border border-admin-border shadow-sm">
+                          {isCustomerApp ? (
+                            <><Smartphone className="w-3.5 h-3.5 text-emerald-500" /> Mobile App</>
+                          ) : isPosOrder ? (
+                            <><ShoppingBag className="w-3.5 h-3.5 text-amber-500" /> POS / Merchant</>
+                          ) : (
+                            <><Globe className="w-3.5 h-3.5 text-blue-500" /> Website</>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
               <div className="space-y-2.5">
@@ -644,18 +656,29 @@ export default function OrderDetailsView({ order: initialOrder, onBack, onUpdate
                     </span>
                   </div>
                   <div className="bg-admin-card/60 border border-admin-border rounded-xl p-2.5 space-y-1.5 text-[11px]">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-admin-text-secondary font-medium shrink-0">Device & OS:</span>
-                      <span className="font-semibold text-admin-text text-right truncate">
-                        {order.deviceContext?.deviceType || (order.orderSource === 'app' ? 'Mobile' : 'Desktop')} • {order.deviceContext?.os || (order.orderSource === 'app' ? 'Mobile OS' : 'Web Client')}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-admin-text-secondary font-medium shrink-0">Browser / Client:</span>
-                      <span className="font-semibold text-admin-text text-right truncate">
-                        {order.deviceContext?.browser || (order.orderSource === 'app' ? 'Customer Mobile App' : 'Web Browser')}
-                      </span>
-                    </div>
+                    {(() => {
+                      const rawSource = (order.orderSource || order.deviceContext?.platform || '').toLowerCase();
+                      const isApp =
+                        ['app', 'customer_app', 'mobile', 'ios', 'android'].includes(rawSource) ||
+                        (order.deviceContext?.browser || '').toLowerCase().includes('mobile app') ||
+                        (order.deviceContext?.userAgent || '').toLowerCase().includes('dart/');
+                      return (
+                        <>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-admin-text-secondary font-medium shrink-0">Device & OS:</span>
+                            <span className="font-semibold text-admin-text text-right truncate">
+                              {order.deviceContext?.deviceType || (isApp ? 'Mobile' : 'Desktop')} • {order.deviceContext?.os || (isApp ? 'Mobile OS' : 'Web Client')}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-admin-text-secondary font-medium shrink-0">Browser / Client:</span>
+                            <span className="font-semibold text-admin-text text-right truncate">
+                              {order.deviceContext?.browser || (isApp ? 'Customer Mobile App' : 'Web Browser')}
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()}
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-admin-text-secondary font-medium shrink-0">Client IP:</span>
                       <span className="font-mono text-[10.5px] font-bold text-admin-text bg-admin-surface px-1.5 py-0.5 rounded border border-admin-border">

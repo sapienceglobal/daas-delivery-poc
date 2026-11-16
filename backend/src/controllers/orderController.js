@@ -1341,6 +1341,19 @@ export const getMyOrders = asyncHandler(async (req, response) => {
   res.success(response, { data: orders, pagination: res.buildPagination(page, limit, total) });
 });
 
+const normalizeOrderSourceForClient = (orderObj) => {
+  if (!orderObj || typeof orderObj !== 'object') return orderObj;
+  const raw = String(orderObj.orderSource || orderObj.deviceContext?.platform || '').toLowerCase();
+  if (
+    ['customer_app', 'mobile', 'ios', 'android'].includes(raw) ||
+    String(orderObj.deviceContext?.browser || '').toLowerCase().includes('customer mobile app') ||
+    String(orderObj.deviceContext?.userAgent || '').toLowerCase().includes('dart/')
+  ) {
+    orderObj.orderSource = 'app';
+  }
+  return orderObj;
+};
+
 export const getOrderById = asyncHandler(async (req, response) => {
   const Order = req.getModel('Order');
   const order = await Order.findById(req.params.id)
@@ -1368,7 +1381,7 @@ export const getOrderById = asyncHandler(async (req, response) => {
 
   await syncDeliveryTracking(order);
 
-  res.success(response, { data: order.toObject() });
+  res.success(response, { data: normalizeOrderSourceForClient(order.toObject()) });
 });
 
 export const cancelOrder = asyncHandler(async (req, response) => {
@@ -1657,6 +1670,8 @@ export const getRestaurantOrders = asyncHandler(async (req, response) => {
     stats.total = total;
   }
 
+  orders.forEach(normalizeOrderSourceForClient);
+
   res.success(response, {
     data: orders,
     stats,
@@ -1764,6 +1779,8 @@ export const getMerchantOrders = asyncHandler(async (req, response) => {
   if (stats.total === 0 && total > 0) {
     stats.total = total;
   }
+
+  orders.forEach(normalizeOrderSourceForClient);
 
   res.success(response, {
     data: orders,

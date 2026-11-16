@@ -1795,49 +1795,58 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: Colors.grey.shade300,
-                                        ),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'Source: ',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              color: const Color(0xFF8B0000),
+                                    Builder(
+                                      builder: (context) {
+                                        final rawSource = (order.orderSource ?? order.deviceContext?['platform'] ?? '').toString().toLowerCase();
+                                        final isMobileAppSource = ['app', 'customer_app', 'mobile', 'ios', 'android'].contains(rawSource) ||
+                                            (order.deviceContext?['browser'] ?? '').toString().toLowerCase().contains('mobile app') ||
+                                            (order.deviceContext?['userAgent'] ?? '').toString().toLowerCase().contains('dart/');
+                                        final isPosSource = ['pos', 'merchant_web', 'merchant_app'].contains(rawSource);
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            border: Border.all(
+                                              color: Colors.grey.shade300,
                                             ),
+                                            borderRadius: BorderRadius.circular(4),
                                           ),
-                                          Icon(
-                                            order.orderSource == 'app'
-                                                ? Icons.smartphone
-                                                : Icons.language,
-                                            size: 12,
-                                            color: order.orderSource == 'app'
-                                                ? Colors.green
-                                                : Colors.blue,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                'Source: ',
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: const Color(0xFF8B0000),
+                                                ),
+                                              ),
+                                              Icon(
+                                                isMobileAppSource
+                                                    ? Icons.smartphone
+                                                    : (isPosSource ? Icons.point_of_sale : Icons.language),
+                                                size: 12,
+                                                color: isMobileAppSource
+                                                    ? Colors.green
+                                                    : (isPosSource ? Colors.orange : Colors.blue),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                isMobileAppSource
+                                                    ? 'Mobile App'
+                                                    : (isPosSource ? 'POS / Merchant' : 'Website'),
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            order.orderSource == 'app'
-                                                ? 'Mobile App'
-                                                : 'Website',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                        );
+                                      },
                                     ),
                                   ],
                                 ),
@@ -1965,15 +1974,46 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('Device & OS:', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600)),
-                                    Text(
-                                      '${order.deviceContext?['deviceType'] ?? (order.orderSource == 'app' ? 'Mobile' : 'Desktop')} • ${order.deviceContext?['os'] ?? (order.orderSource == 'app' ? 'Mobile App' : 'Web')}',
-                                      style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
-                                    ),
-                                  ],
+                                Builder(
+                                  builder: (context) {
+                                    final rawSource = (order.orderSource ?? order.deviceContext?['platform'] ?? '').toString().toLowerCase();
+                                    final isApp = ['app', 'customer_app', 'mobile', 'ios', 'android'].contains(rawSource) ||
+                                        (order.deviceContext?['browser'] ?? '').toString().toLowerCase().contains('mobile app') ||
+                                        (order.deviceContext?['userAgent'] ?? '').toString().toLowerCase().contains('dart/');
+                                    return Column(
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text('Device & OS:', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600)),
+                                            Flexible(
+                                              child: Text(
+                                                '${order.deviceContext?['deviceType'] ?? (isApp ? 'Mobile' : 'Desktop')} • ${order.deviceContext?['os'] ?? (isApp ? 'Mobile OS' : 'Web')}',
+                                                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
+                                                textAlign: TextAlign.right,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text('Browser / Client:', style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600)),
+                                            Flexible(
+                                              child: Text(
+                                                '${order.deviceContext?['browser'] ?? (isApp ? 'Customer Mobile App' : 'Web Browser')}',
+                                                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
+                                                textAlign: TextAlign.right,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 ),
                                 const SizedBox(height: 4),
                                 Row(
