@@ -486,10 +486,21 @@ export const socialLogin = asyncHandler(async (req, response) => {
       const rawEmail = appleClaims.email || clientEmail || `${socialId}@apple.user`;
       email = rawEmail.toLowerCase().trim();
 
+      const isPrivateRelayOrPlaceholder =
+        email.endsWith('@privaterelay.appleid.com') ||
+        email.endsWith('@apple.user') ||
+        appleClaims.is_private_email === true ||
+        appleClaims.is_private_email === 'true';
+
       const candidateName = clientName?.trim();
-      name = candidateName && candidateName.length > 0
-        ? candidateName
-        : (appleClaims.email ? appleClaims.email.split('@')[0] : (clientEmail ? clientEmail.split('@')[0] : 'Apple User'));
+      if (candidateName && candidateName.length > 0) {
+        name = candidateName;
+      } else if (!isPrivateRelayOrPlaceholder && (appleClaims.email || clientEmail)) {
+        name = (appleClaims.email || clientEmail).split('@')[0];
+      } else {
+        // Avoid setting random private-relay tokens (e.g. "bnhbnz4w6n") as the customer's display name
+        name = 'Customer';
+      }
       picture = null;
     } catch (appleErr) {
       if (appleErr instanceof AppError) throw appleErr;
@@ -568,9 +579,25 @@ export const socialLogin = asyncHandler(async (req, response) => {
   } else {
     // industry Level: Account Linking!
     // if user exists (manual register or other social), link this new social ID
-    if (provider === 'apple' && !user.socialLogin?.appleId) {
-      user.socialLogin.appleId = socialId;
-      await user.save();
+    if (provider === 'apple') {
+      let dirty = false;
+      if (!user.socialLogin?.appleId) {
+        user.socialLogin.appleId = socialId;
+        dirty = true;
+      }
+      // If an earlier Apple private-relay login saved the random relay token as the user's name,
+      // upgrade it when a real name arrives (or replace the gibberish token with 'Customer').
+      const existingEmailPrefix = user.email?.split('@')[0];
+      const hasGibberishRelayName =
+        user.email?.endsWith('@privaterelay.appleid.com') &&
+        user.name &&
+        existingEmailPrefix &&
+        user.name.toLowerCase() === existingEmailPrefix.toLowerCase();
+      if (hasGibberishRelayName) {
+        user.name = clientName?.trim() || 'Customer';
+        dirty = true;
+      }
+      if (dirty) await user.save();
     } else if (provider === 'facebook' && !user.socialLogin?.facebookId) {
       user.socialLogin.facebookId = socialId;
       if (!user.avatar && picture) user.avatar = picture;

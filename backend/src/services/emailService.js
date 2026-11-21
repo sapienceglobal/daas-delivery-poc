@@ -3,27 +3,48 @@ import logger from '../utils/logger.js';
 import nodemailer from 'nodemailer';
 
 /**
- * Email service using Nodemailer and Gmail.
+ * Email service using Nodemailer (supports Resend SMTP, SendGrid SMTP, or Gmail SMTP).
  *
- * When EMAIL_APP_PASSWORD is not set, emails are logged to console instead of
- * sent — safe for development and staging environments.
+ * Provider priority:
+ * 1. RESEND_API_KEY   -> smtp.resend.com (recommended for custom domain + Apple Private Email Relay)
+ * 2. SENDGRID_API_KEY -> smtp.sendgrid.net
+ * 3. EMAIL_APP_PASSWORD + FROM_EMAIL -> Gmail SMTP
+ *
+ * When no credentials are set, emails are logged to console instead of sent —
+ * safe for development and staging environments.
  */
 
 let transporter = null;
 
+const getFromEmail = () => (process.env.FROM_EMAIL || 'projects.sapience@gmail.com').trim();
+const getFromName = () => (process.env.FROM_NAME || 'Lassi Lounge').trim();
+
 const initTransporter = () => {
   if (transporter) return transporter;
 
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const appPassword = process.env.EMAIL_APP_PASSWORD;
-  const fromEmail = process.env.FROM_EMAIL;
+  const resendApiKey = process.env.RESEND_API_KEY?.trim();
+  const sendgridApiKey = process.env.SENDGRID_API_KEY?.trim();
+  const appPassword = process.env.EMAIL_APP_PASSWORD?.trim();
+  const fromEmail = process.env.FROM_EMAIL?.trim();
 
-  if (!sendgridApiKey && (!appPassword || !fromEmail)) {
+  if (!resendApiKey && !sendgridApiKey && (!appPassword || !fromEmail)) {
     logger.warn('Email credentials not set — emails will be logged to console');
     return null;
   }
 
-  if (sendgridApiKey) {
+  if (resendApiKey) {
+    const smtpPort = Number(process.env.RESEND_SMTP_PORT || 465);
+    transporter = nodemailer.createTransport({
+      host: process.env.RESEND_SMTP_HOST || 'smtp.resend.com',
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: {
+        user: 'resend', // Resend SMTP requires the exact string 'resend'
+        pass: resendApiKey
+      }
+    });
+    logger.info('Nodemailer Resend SMTP transporter initialized');
+  } else if (sendgridApiKey) {
     transporter = nodemailer.createTransport({
       host: 'smtp.sendgrid.net',
       port: 587,
@@ -47,8 +68,7 @@ const initTransporter = () => {
   return transporter;
 };
 
-const FROM_EMAIL = process.env.FROM_EMAIL || 'projects.sapience@gmail.com';
-const FROM_NAME = process.env.FROM_NAME || 'Lassi Lounge';
+const FROM_NAME = getFromName();
 
 // ── Brand config ─────────────────────────────────────────────────────────
 // must be a public, absolute HTTPS URL — email clients cannot load local
@@ -67,15 +87,26 @@ const BRAND_BORDER = '#eadfdb';
 
 // send a single email.
 export const sendEmail = async ({ to, subject, text, html, attachments }) => {
+  const recipient = typeof to === 'string' ? to.trim().toLowerCase() : '';
+  // Skip internal synthetic placeholder addresses (note: @privaterelay.appleid.com IS valid and routable)
+  if (!recipient || recipient.endsWith('@apple.user') || recipient.endsWith('@facebook.user')) {
+    logger.info(`Skipping email to synthetic placeholder address: ${to}`);
+    return { delivered: false, skipped: true };
+  }
+
   const mailer = initTransporter();
+  const fromEmail = getFromEmail();
+  const fromName = getFromName();
+  const replyTo = process.env.REPLY_TO_EMAIL?.trim();
 
   const msg = {
-    from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+    from: `"${fromName}" <${fromEmail}>`,
     to,
     subject,
     text,
     html,
-    attachments
+    attachments,
+    ...(replyTo ? { replyTo } : {})
   };
 
   if (!mailer) {
