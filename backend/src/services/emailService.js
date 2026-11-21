@@ -76,7 +76,15 @@ const FROM_NAME = getFromName();
 // assets/email-logo.png) or a CDN/S3 bucket, and set BRAND_LOGO_URL in your
 // env so each deployment of this white-label codebase can swap its own logo
 // without touching this file.
-const BRAND_LOGO_URL = process.env.BRAND_LOGO_URL || 'https://lassiloungeny.com/assets/images/branded/lassi-lounge/logo-email.png';
+const DEFAULT_BRAND_LOGO_URL = 'https://lassiloungeny.com/assets/images/branded/lassi-lounge/logo-email.png';
+const getBrandLogoUrl = () => {
+  const raw = (process.env.BRAND_LOGO_URL || '').trim();
+  // Gmail & Apple Mail image proxies fail on localhost or raw HTTP IP:port URLs
+  if (!raw || /^http:\/\/(localhost|127\.0\.0\.1|\d{1,3}(?:\.\d{1,3}){3})(:\d+)?\b/i.test(raw)) {
+    return DEFAULT_BRAND_LOGO_URL;
+  }
+  return raw;
+};
 const BRAND_PRIMARY = '#7a0b10';   // deep maroon — matches app buttons/CTAs
 const BRAND_PRIMARY_DARK = '#680307';
 const BRAND_ACCENT = '#E8B93D';    // gold
@@ -153,7 +161,7 @@ const emailShell = ({ preheader = '', bodyHtml }) => `
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${BRAND_BORDER};">
             <tr>
               <td align="center" style="padding:28px 24px;border-bottom:1px solid ${BRAND_BORDER};">
-                <img src="${BRAND_LOGO_URL}" alt="${FROM_NAME}" height="72" style="display:block;height:72px;width:auto;border:0;" />
+                <img src="${getBrandLogoUrl()}" alt="${getFromName()}" height="72" style="display:block;height:72px;width:auto;border:0;" />
               </td>
             </tr>
             <tr>

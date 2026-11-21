@@ -404,18 +404,20 @@ export default function HomeTopSection() {
                     </span>
                   </a>
 
-                  <div
-                    className="flex items-center gap-1.5 bg-black/75 border border-white/20 rounded-xl px-2 xs:px-3 sm:px-4 py-1.5 xs:py-2 select-none cursor-default opacity-90 shadow-md"
-                    title="iOS App Coming Soon!"
+                  <a
+                    href={brand?.appStoreUrl || 'https://apps.apple.com/in/app/lassi-lounge/id6830701286'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 bg-black/90 hover:bg-black border border-white/25 rounded-xl px-2 xs:px-3 sm:px-4 py-1.5 xs:py-2 transition-all hover:scale-105 shadow-md"
                   >
-                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 fill-white/80 shrink-0" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 xs:w-4 xs:h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 fill-white shrink-0" aria-hidden="true">
                       <path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4.1zM13.9 4.9c.7-.9 1.2-2.1 1.1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"/>
                     </svg>
                     <span className="flex flex-col leading-none text-white whitespace-nowrap">
-                      <span className="text-[6.5px] xs:text-[7.5px] md:text-[9px] uppercase font-bold text-[#f5b82e] tracking-wider">Coming Soon</span>
-                      <span className="text-[9.5px] xs:text-[11px] md:text-sm font-bold text-white/90 mt-0.5">App Store</span>
+                      <span className="text-[6.5px] xs:text-[7.5px] md:text-[9px] uppercase text-white/75 font-medium tracking-wide">Download on</span>
+                      <span className="text-[9.5px] xs:text-[11px] md:text-sm font-bold mt-0.5">App Store</span>
                     </span>
-                  </div>
+                  </a>
                 </div>
               </div>
             </div>

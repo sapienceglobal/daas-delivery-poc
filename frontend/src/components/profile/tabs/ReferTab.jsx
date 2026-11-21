@@ -50,7 +50,7 @@ export default function ReferTab({ user }) {
   const progressPercent = maxRewards > 0 ? Math.min(100, Math.round((stats.rewarded / maxRewards) * 100)) : 0;
 
   const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.lassilounge.customer';
-  const appStoreUrl = 'https://apps.apple.com/app/lassi-lounge/id6470000000';
+  const appStoreUrl = 'https://apps.apple.com/in/app/lassi-lounge/id6830701286';
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(code);
